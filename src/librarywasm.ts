@@ -1,4 +1,4 @@
-function library(): string {
+export function library(): string {
     return `
 #if WASM
 

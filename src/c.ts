@@ -1,4 +1,3 @@
-import {int32} from "./primitives";
 import {CheckContext} from "./checker";
 import {StringBuilder, StringBuilder_new} from "./stringbuilder";
 import {Compiler, replaceFileExtension} from "./compiler";
@@ -7,7 +6,6 @@ import {Precedence} from "./parser";
 import {Symbol, SymbolKind} from "./symbol";
 import {isAlpha, isNumber, isASCII} from "./lexer";
 import {Type} from "./type";
-import {assert} from "./imports";
 
 export enum TypeMode {
     NORMAL,
@@ -40,7 +38,7 @@ export class CResult {
 
     emitNewlineBefore(node: Node): void {
         if (this.previousNode != null && (!isCompactNodeKind(this.previousNode.kind) || !isCompactNodeKind(node.kind))) {
-            this.code.appendChar('\n');
+            this.code.append('\n');
         }
         this.previousNode = null;
     }
@@ -63,7 +61,7 @@ export class CResult {
         this.emitStatements(node.firstChild);
         this.indent = this.indent - 1;
         this.emitIndent();
-        this.code.appendChar('}');
+        this.code.append('}');
         this.previousNode = null;
     }
 
@@ -73,7 +71,7 @@ export class CResult {
         var code = this.code;
 
         if (parentPrecedence > operatorPrecedence) {
-            code.appendChar('(');
+            code.append('(');
         }
 
         if (!isPostfix) {
@@ -87,7 +85,7 @@ export class CResult {
         }
 
         if (parentPrecedence > operatorPrecedence) {
-            code.appendChar(')');
+            code.append(')');
         }
     }
 
@@ -109,7 +107,7 @@ export class CResult {
         }
 
         if (needsParentheses) {
-            code.appendChar('(');
+            code.append('(');
         }
 
         this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) as Precedence : operatorPrecedence);
@@ -117,7 +115,7 @@ export class CResult {
         this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1) as Precedence);
 
         if (needsParentheses) {
-            code.appendChar(')');
+            code.append(')');
         }
     }
 
@@ -134,7 +132,7 @@ export class CResult {
 
     emitSymbolName(symbol: Symbol): void {
         if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
-            this.code.append(symbol.parent().name).appendChar('_');
+            this.code.append(symbol.parent().name).append('_');
         }
 
         this.code.append(symbol.rename != null ? symbol.rename : symbol.name);
@@ -154,7 +152,7 @@ export class CResult {
         }
 
         else if (node.kind == NodeKind.boolean) {
-            code.appendChar(node.intValue != 0 ? '1' : '0');
+            code.append(node.intValue != 0 ? '1' : '0');
         }
 
         else if (node.kind == NodeKind.INT32) {
@@ -192,10 +190,10 @@ export class CResult {
                 var c = value[i];
                 if (isAlpha(c) || isNumber(c)) {
                     if (underscore) {
-                        builder.appendChar('_');
+                        builder.append('_');
                         underscore = false;
                     }
-                    builder.appendChar(c);
+                    builder.append(c);
                 } else {
                     underscore = true;
                 }
@@ -210,7 +208,7 @@ export class CResult {
                 if (i + 1 < length) {
                     codePrefix.append(i % 32 == 20 ? ",\n  " : ", ");
                     cEmitCharacter(codePrefix, value[i + 1]);
-                    codePrefix.appendChar(')');
+                    codePrefix.append(')');
                 } else {
                     codePrefix.append(", 0)");
                 }
@@ -223,16 +221,16 @@ export class CResult {
 
         else if (node.kind == NodeKind.CAST) {
             if (parentPrecedence > Precedence.UNARY_PREFIX) {
-                code.appendChar('(');
+                code.append('(');
             }
 
-            code.appendChar('(');
+            code.append('(');
             this.emitType(node.resolvedType, TypeMode.NORMAL);
-            code.appendChar(')');
+            code.append(')');
             this.emitExpression(node.castValue(), Precedence.UNARY_PREFIX);
 
             if (parentPrecedence > Precedence.UNARY_PREFIX) {
-                code.appendChar(')');
+                code.append(')');
             }
         }
 
@@ -245,7 +243,7 @@ export class CResult {
 
         else if (node.kind == NodeKind.HOOK) {
             if (parentPrecedence > Precedence.ASSIGN) {
-                code.appendChar('(');
+                code.append('(');
             }
 
             this.emitExpression(node.hookValue(), Precedence.LOGICAL_OR);
@@ -255,14 +253,14 @@ export class CResult {
             this.emitExpression(node.hookFalse(), Precedence.ASSIGN);
 
             if (parentPrecedence > Precedence.ASSIGN) {
-                code.appendChar(')');
+                code.append(')');
             }
         }
 
         else if (node.kind == NodeKind.CALL) {
             let value = node.callValue();
             this.emitSymbolName(value.symbol);
-            code.appendChar('(');
+            code.append('(');
 
             // Make sure to emit "this"
             if (value.kind == NodeKind.DOT) {
@@ -273,7 +271,7 @@ export class CResult {
             }
 
             this.emitCommaSeparatedExpressions(value.nextSibling, null);
-            code.appendChar(')');
+            code.append(')');
         }
 
         // This uses "calloc" instead of "malloc" because it needs to be zero-initialized
@@ -354,16 +352,16 @@ export class CResult {
         else this.emitSymbolName(type.symbol);
 
         if (originalType.pointerTo != null) {
-            code.appendChar(' ');
+            code.append(' ');
             while (originalType.pointerTo != null) {
-                code.appendChar('*');
+                code.append('*');
                 originalType = originalType.pointerTo;
             }
         }
 
         else if (mode != TypeMode.BARE) {
             if (type.isReference()) code.append(" *");
-            else if (mode == TypeMode.DECLARATION) code.appendChar(' ');
+            else if (mode == TypeMode.DECLARATION) code.append(' ');
         }
     }
 
@@ -380,7 +378,7 @@ export class CResult {
                 this.emitBlock(node.ifTrue());
                 var no = node.ifFalse();
                 if (no == null) {
-                    code.appendChar('\n');
+                    code.append('\n');
                     break;
                 }
                 code.append("\n\n");
@@ -388,7 +386,7 @@ export class CResult {
                 code.append("else ");
                 if (no.firstChild == null || no.firstChild != no.lastChild || no.firstChild.kind != NodeKind.IF) {
                     this.emitBlock(no);
-                    code.appendChar('\n');
+                    code.append('\n');
                     break;
                 }
                 node = no.firstChild;
@@ -403,7 +401,7 @@ export class CResult {
             this.emitExpression(node.whileValue(), Precedence.LOWEST);
             code.append(") ");
             this.emitBlock(node.whileBody());
-            code.appendChar('\n');
+            code.append('\n');
             this.emitNewlineAfter(node);
         }
 
@@ -453,7 +451,7 @@ export class CResult {
                 this.emitNewlineBefore(node);
                 this.emitIndent();
                 this.emitBlock(node);
-                code.appendChar('\n');
+                code.append('\n');
                 this.emitNewlineAfter(node);
             }
         }
@@ -592,7 +590,7 @@ export class CResult {
                     }
                     this.emitType(returnType.resolvedType, TypeMode.DECLARATION);
                     this.emitSymbolName(symbol);
-                    code.appendChar('(');
+                    code.append('(');
 
                     if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
                         child.symbol.rename = "__this";
@@ -663,7 +661,7 @@ export class CResult {
                     }
                     this.emitType(returnType.resolvedType, TypeMode.DECLARATION);
                     this.emitSymbolName(symbol);
-                    code.appendChar('(');
+                    code.append('(');
 
                     while (child != returnType) {
                         assert(child.kind == NodeKind.VARIABLE);
@@ -677,7 +675,7 @@ export class CResult {
 
                     code.append(") ");
                     this.emitBlock(node.functionBody());
-                    code.appendChar('\n');
+                    code.append('\n');
                     this.emitNewlineAfter(node);
                 }
             }
@@ -699,12 +697,12 @@ export class CResult {
 
 export function cEmitCharacter(builder: StringBuilder, c: string): void {
     if (isASCII(c.charCodeAt(0))) {
-        builder.appendChar('\'');
+        builder.append('\'');
         if (c == '\\' || c == '\'') {
-            builder.appendChar('\\');
+            builder.append('\\');
         }
-        builder.appendChar(c);
-        builder.appendChar('\'');
+        builder.append(c);
+        builder.append('\'');
     }
     else if (c == '\0') builder.append("\'\\0\'");
     else if (c == '\r') builder.append("\'\\r\'");

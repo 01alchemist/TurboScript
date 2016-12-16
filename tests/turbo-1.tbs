@@ -1,0 +1,55 @@
+declare function log(v: string): void;
+//declare function unsafe():void;
+
+export class Vector3{
+    x: float32;
+    y: float32;
+
+    constructor(x: float32, y:float32): void {
+        this.y = y;
+        this.x = x;
+    }
+}
+
+@unsafe
+export class Vector {
+
+    x: float32;
+    y: float32;
+
+    constructor(x: float32, y:float32): void {
+        this.y = y;
+        this.x = x;
+    }
+
+    add(b:Vector3):Vector3 {
+        let c = new Vector3();
+        c.x = this.x + b.x;
+        c.y = this.y + b.y;
+        return c;
+    }
+
+    toJSON():string {
+        let x = this.x;
+        let y = this.y;
+        return `{x:${x},y:${y}}`;
+    }
+}
+
+@unsafe
+export class Triangle {
+    v1:Vector;
+
+    constructor(v1:Vector):void {
+        this.v1 = v1 == null? new Vector() : v1;
+    }
+}
+
+@unsafe
+export class Mesh {
+    triangles:int32;
+
+    constructor(data:int32):void {
+        this.triangles = data;
+    }
+}

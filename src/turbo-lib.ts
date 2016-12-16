@@ -2,9 +2,11 @@
  * Created by Nidin Vinayakan on 6/13/2016.
  *
  */
+declare var SharedArrayBuffer:any;
+declare var Atomics:any;
+
 var WORKER_ENV = false;
 if (typeof importScripts === 'function') {
-    var window = this;
     WORKER_ENV = true;
 }
 function MemoryError(msg) {
@@ -227,8 +229,8 @@ var turbo = {
         return (mb == 0 ? usage : mb) + "MB";
     }
 };
-window["turbo"] = turbo;
-window["unsafe"] = turbo.Runtime;
+this["turbo"] = turbo;
+this["unsafe"] = turbo.Runtime;
 
 function alloc_sab(nbytes, alignment) {
     var _this = this;

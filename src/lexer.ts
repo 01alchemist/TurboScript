@@ -1,7 +1,5 @@
 import {Range, createRange, Source, Log} from "./log";
-import {ushort, byte} from "./primitives";
 import {StringBuilder_new} from "./stringbuilder";
-import {assert} from "./imports";
 /**
  * Author: Nidin Vinayakan
  */
@@ -75,6 +73,7 @@ export enum TokenKind {
     LET,
     NEW,
     NULL,
+    UNDEFINED,
     OPERATOR,
     PRIVATE,
     PROTECTED,
@@ -85,6 +84,7 @@ export enum TokenKind {
     THIS,
     TRUE,
     UNSAFE,
+    UNSAFE_TURBO,
     VAR,
     WHILE,
 
@@ -196,6 +196,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.LET) return "'let'";
     if (token == TokenKind.NEW) return "'new'";
     if (token == TokenKind.NULL) return "'null'";
+    if (token == TokenKind.UNDEFINED) return "'undefined'";
     if (token == TokenKind.OPERATOR) return "'operator'";
     if (token == TokenKind.PRIVATE) return "'private'";
     if (token == TokenKind.PROTECTED) return "'protected'";
@@ -206,6 +207,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.THIS) return "'this'";
     if (token == TokenKind.TRUE) return "'true'";
     if (token == TokenKind.UNSAFE) return "'unsafe'";
+    if (token == TokenKind.UNSAFE_TURBO) return "'@unsafe'";
     if (token == TokenKind.VAR) return "'var'";
     if (token == TokenKind.WHILE) return "'while'";
 
@@ -275,7 +277,7 @@ export function tokenize(source: Source, log: Log): Token {
         }
 
         // Identifier
-        else if (isAlpha(c)) {
+        else if (isAlpha(c) || c == "@") {
             kind = TokenKind.IDENTIFIER;
 
             while (i < limit && (isAlpha(contents[i]) || isNumber(contents[i]))) {
@@ -288,31 +290,57 @@ export function tokenize(source: Source, log: Log): Token {
                 var text = contents.slice(start, i);
 
                 if (length == 2) {
-                    if (text == "as") kind = TokenKind.AS; else if (text == "if") kind = TokenKind.IF;
+                    if (text == "as") kind = TokenKind.AS;
+                    else if (text == "if") kind = TokenKind.IF;
                 }
 
                 else if (length == 3) {
-                    if (text == "let") kind = TokenKind.LET; else if (text == "new") kind = TokenKind.NEW; else if (text == "var") kind = TokenKind.VAR;
+                    if (text == "let") kind = TokenKind.LET;
+                    else if (text == "new") kind = TokenKind.NEW;
+                    else if (text == "var") kind = TokenKind.VAR;
                 }
 
                 else if (length == 4) {
-                    if (text == "else") kind = TokenKind.ELSE; else if (text == "enum") kind = TokenKind.ENUM; else if (text == "null") kind = TokenKind.NULL; else if (text == "this") kind = TokenKind.THIS; else if (text == "true") kind = TokenKind.TRUE;
+                    if (text == "else") kind = TokenKind.ELSE;
+                    else if (text == "enum") kind = TokenKind.ENUM;
+                    else if (text == "null") kind = TokenKind.NULL;
+                    else if (text == "this") kind = TokenKind.THIS;
+                    else if (text == "true") kind = TokenKind.TRUE;
                 }
 
                 else if (length == 5) {
-                    if (text == "break") kind = TokenKind.BREAK; else if (text == "class") kind = TokenKind.CLASS; else if (text == "const") kind = TokenKind.CONST; else if (text == "false") kind = TokenKind.FALSE; else if (text == "while") kind = TokenKind.WHILE;
+                    if (text == "break") kind = TokenKind.BREAK;
+                    else if (text == "class") kind = TokenKind.CLASS;
+                    else if (text == "const") kind = TokenKind.CONST;
+                    else if (text == "false") kind = TokenKind.FALSE;
+                    else if (text == "while") kind = TokenKind.WHILE;
                 }
 
                 else if (length == 6) {
-                    if (text == "export") kind = TokenKind.EXPORT; else if (text == "extern") kind = TokenKind.EXTERN; else if (text == "import") kind = TokenKind.IMPORT; else if (text == "public") kind = TokenKind.PUBLIC; else if (text == "return") kind = TokenKind.RETURN; else if (text == "sizeof") kind = TokenKind.SIZEOF; else if (text == "static") kind = TokenKind.STATIC; else if (text == "unsafe") kind = TokenKind.UNSAFE;
+                    if (text == "export") kind = TokenKind.EXPORT;
+                    else if (text == "extern") kind = TokenKind.EXTERN;
+                    else if (text == "import") kind = TokenKind.IMPORT;
+                    else if (text == "public") kind = TokenKind.PUBLIC;
+                    else if (text == "return") kind = TokenKind.RETURN;
+                    else if (text == "sizeof") kind = TokenKind.SIZEOF;
+                    else if (text == "static") kind = TokenKind.STATIC;
+                    else if (text == "unsafe") kind = TokenKind.UNSAFE;
                 }
 
                 else if (length == 7) {
-                    if (text == "alignof") kind = TokenKind.ALIGNOF; else if (text == "declare") kind = TokenKind.DECLARE; else if (text == "extends") kind = TokenKind.EXTENDS; else if (text == "private") kind = TokenKind.PRIVATE;
+                    if (text == "alignof") kind = TokenKind.ALIGNOF;
+                    else if (text == "declare") kind = TokenKind.DECLARE;
+                    else if (text == "extends") kind = TokenKind.EXTENDS;
+                    else if (text == "private") kind = TokenKind.PRIVATE;
+                    else if (text == "@unsafe") kind = TokenKind.UNSAFE_TURBO;
                 }
 
                 else {
-                    if (text == "continue") kind = TokenKind.CONTINUE; else if (text == "function") kind = TokenKind.FUNCTION; else if (text == "implements") kind = TokenKind.IMPLEMENTS; else if (text == "interface") kind = TokenKind.INTERFACE; else if (text == "protected") kind = TokenKind.PROTECTED;
+                    if (text == "continue") kind = TokenKind.CONTINUE;
+                    else if (text == "function") kind = TokenKind.FUNCTION;
+                    else if (text == "implements") kind = TokenKind.IMPLEMENTS;
+                    else if (text == "interface") kind = TokenKind.INTERFACE;
+                    else if (text == "protected") kind = TokenKind.PROTECTED;
                 }
             }
         }

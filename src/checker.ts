@@ -1,4 +1,3 @@
-import {int32} from "./primitives";
 import {
     Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
     SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
@@ -15,7 +14,7 @@ import {CompileTarget} from "./compiler";
 import {Log, Range, spanRanges} from "./log";
 import {Scope, ScopeHint, FindNested} from "./scope";
 import {StringBuilder_new} from "./stringbuilder";
-import {alignToNextMultipleOf, assert, isPositivePowerOf2} from "./imports";
+import {alignToNextMultipleOf, isPositivePowerOf2} from "./imports";
 /**
  * Author : Nidin Vinayakan
  */
@@ -38,6 +37,7 @@ export class CheckContext {
     float32Type: Type;
     float64Type: Type;
     nullType: Type;
+    undefinedType: Type;
     shortType: Type;
     stringType: Type;
     byteType: Type;
@@ -256,7 +256,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     // Most flags aren't supported yet
     var node = symbol.node;
-    forbidFlag(context, node, NODE_FLAG_EXPORT, "Unsupported flag 'export'");
+    // forbidFlag(context, node, NODE_FLAG_EXPORT, "Unsupported flag 'export'");
     forbidFlag(context, node, NODE_FLAG_PROTECTED, "Unsupported flag 'protected'");
     forbidFlag(context, node, NODE_FLAG_STATIC, "Unsupported flag 'static'");
 
@@ -266,6 +266,14 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a class");
         forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a class");
         forbidFlag(context, node, NODE_FLAG_PRIVATE, "Cannot use 'private' on a class");
+    }
+
+    // Interface
+    else if (symbol.kind == SymbolKind.TYPE_INTERFACE) {
+        forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a interface");
+        forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a interface");
+        forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a interface");
+        forbidFlag(context, node, NODE_FLAG_PRIVATE, "Cannot use 'private' on a interface");
     }
 
     // Enum
@@ -818,6 +826,17 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.CLASS) {
+        var oldEnclosingClass = context.enclosingClass;
+        initializeSymbol(context, node.symbol);
+        context.enclosingClass = node.symbol;
+        resolveChildren(context, node, node.scope);
+        if (node.symbol.kind == SymbolKind.TYPE_CLASS) {
+            node.symbol.determineClassLayout(context);
+        }
+        context.enclosingClass = oldEnclosingClass;
+    }
+
+    else if (kind == NodeKind.INTERFACE) {
         var oldEnclosingClass = context.enclosingClass;
         initializeSymbol(context, node.symbol);
         context.enclosingClass = node.symbol;
@@ -1700,6 +1719,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else {
+        console.error(`Unexpected kind: ${NodeKind[kind]}`);
         assert(false);
     }
 }

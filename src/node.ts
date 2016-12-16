@@ -1,4 +1,3 @@
-import {int32, float32} from "./primitives";
 import {Type} from "./type";
 import {Symbol, SymbolKind, isType} from "./symbol";
 import {Range} from "./log";
@@ -22,6 +21,7 @@ export enum NodeKind {
     BLOCK,
     BREAK,
     CLASS,
+    INTERFACE,
     CONSTANTS,
     CONTINUE,
     EMPTY,
@@ -31,6 +31,7 @@ export enum NodeKind {
     IF,
     RETURN,
     UNSAFE,
+    UNSAFE_TURBO,
     VARIABLES,
     WHILE,
 
@@ -49,6 +50,7 @@ export enum NodeKind {
     NAME,
     NEW,
     NULL,
+    UNDEFINED,
     PARSE_ERROR,
     SIZE_OF,
     STRING,
@@ -133,7 +135,8 @@ export const NODE_FLAG_PUBLIC = 1 << 8;
 export const NODE_FLAG_SET = 1 << 9;
 export const NODE_FLAG_STATIC = 1 << 10;
 export const NODE_FLAG_UNSAFE = 1 << 11;
-export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 12;
+export const NODE_FLAG_UNSAFE_TURBO = 1 << 12;
+export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13;
 
 export class NodeFlag {
     flag: int32;
@@ -196,6 +199,7 @@ export class Node {
     resolvedType: Type;
     symbol: Symbol;
     scope: Scope;
+    offset: int32;
 
     become(node: Node): void {
         assert(node != this);
@@ -251,6 +255,18 @@ export class Node {
         return (this.flags & NODE_FLAG_EXTERN) != 0;
     }
 
+    isExport(): boolean {
+        return (this.flags & NODE_FLAG_EXPORT) != 0;
+    }
+
+    isTurbo(): boolean {
+        return (this.flags & NODE_FLAG_UNSAFE_TURBO) != 0;
+    }
+
+    isDeclareOrTurbo(): boolean {
+        return (this.flags & (NODE_FLAG_DECLARE | NODE_FLAG_UNSAFE_TURBO)) != 0;
+    }
+
     isDeclareOrExtern(): boolean {
         return (this.flags & (NODE_FLAG_DECLARE | NODE_FLAG_EXTERN)) != 0;
     }
@@ -298,11 +314,13 @@ export class Node {
 
         if (this.firstChild == null) {
             this.firstChild = child;
+            this.firstChild.offset = 0;
         }
 
         else {
             child.previousSibling = this.lastChild;
             this.lastChild.nextSibling = child;
+            child.offset = this.firstChild.offset + 1;
         }
 
         this.lastChild = child;
@@ -708,6 +726,12 @@ export function createNull(): Node {
     return node;
 }
 
+export function createUndefined(): Node {
+    var node = new Node();
+    node.kind = NodeKind.UNDEFINED;
+    return node;
+}
+
 export function createThis(): Node {
     var node = new Node();
     node.kind = NodeKind.THIS;
@@ -812,6 +836,13 @@ export function createBlock(): Node {
 export function createClass(name: string): Node {
     var node = new Node();
     node.kind = NodeKind.CLASS;
+    node.stringValue = name;
+    return node;
+}
+
+export function createInterface(name: string): Node {
+    var node = new Node();
+    node.kind = NodeKind.INTERFACE;
     node.stringValue = name;
     return node;
 }

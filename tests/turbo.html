@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Turbo test</title>
+</head>
+<body>
+<script src="turbo.js"></script>
+<script>
+
+    log = console.log;
+    console.log(newVector(1,1,1));
+
+    //WebAssembly
+    /*async function init() {
+        let data = await fetch("turbo.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        console.log(wasmBytes);
+        try{
+            WebAssembly.compile(wasmBytes);
+        }catch (e){
+            console.error(e);
+        }
+    }
+    init();*/
+</script>
+</body>
+</html>

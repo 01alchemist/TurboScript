@@ -9,8 +9,10 @@ import {parse} from "./parser";
 import {treeShaking} from "./shaking";
 import {StringBuilder_new} from "./stringbuilder";
 import {cEmit} from "./c";
-import {assert, Profiler_begin, Profiler_end} from "./imports";
 import {jsEmit} from "./js";
+import {turboJsEmit} from "./turbojs";
+import {wasmEmit} from "./wasm";
+import {library} from "./libraryjs";
 /**
  * Author: Nidin Vinayakan
  */
@@ -80,6 +82,7 @@ export class Compiler {
         // Hard-coded types
         context.errorType = scope.defineNativeType(context.log, "<error>");
         context.nullType = scope.defineNativeType(context.log, "null");
+        context.undefinedType = scope.defineNativeType(context.log, "undefined");
         context.voidType = scope.defineNativeType(context.log, "void");
 
         this.context = context;
@@ -99,7 +102,7 @@ export class Compiler {
     }
 
     finish(): boolean {
-        Profiler_begin();
+        Profiler_begin("lexing");
 
         var source = this.firstSource;
         while (source != null) {
@@ -108,7 +111,7 @@ export class Compiler {
         }
 
         Profiler_end("lexing");
-        Profiler_begin();
+        Profiler_begin("preprocessing");
 
         source = this.firstSource;
         while (source != null) {
@@ -117,7 +120,7 @@ export class Compiler {
         }
 
         Profiler_end("preprocessing");
-        Profiler_begin();
+        Profiler_begin("parsing");
 
         source = this.firstSource;
         while (source != null) {
@@ -128,7 +131,7 @@ export class Compiler {
         }
 
         Profiler_end("parsing");
-        Profiler_begin();
+        Profiler_begin("checking");
 
         var global = this.global;
         var context = this.context;
@@ -172,12 +175,12 @@ export class Compiler {
             return false;
         }
 
-        Profiler_begin();
+        Profiler_begin("shaking");
 
         treeShaking(global);
 
         Profiler_end("shaking");
-        Profiler_begin();
+        Profiler_begin("emitting");
 
         if (this.target == CompileTarget.C) {
             cEmit(this);

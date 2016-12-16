@@ -1,6 +1,3 @@
-import {int32, int64, byte} from "./primitives";
-import {assert} from "./imports";
-
 export function ByteArray_set16(array: ByteArray, index: number, value: number): void {
     array.set(index, value);
     array.set(index + 1, (value >> 8));

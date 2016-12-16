@@ -1,7 +1,5 @@
-import {int32} from "./primitives";
 import {Token} from "./lexer";
 import {Node} from "./node";
-import {assert} from "./imports";
 import {StringBuilder, StringBuilder_new} from "./stringbuilder";
 
 export class LineColumn {
@@ -114,9 +112,9 @@ export class Diagnostic {
     appendSourceName(builder: StringBuilder, location: LineColumn): void {
         builder
             .append(this.range.source.name)
-            .appendChar(':')
+            .append(':')
             .append((location.line + 1).toString())
-            .appendChar(':')
+            .append(':')
             .append((location.column + 1).toString())
             .append(": ");
     }
@@ -126,12 +124,12 @@ export class Diagnostic {
     }
 
     appendMessage(builder: StringBuilder): void {
-        builder.append(this.message).appendChar('\n');
+        builder.append(this.message).append('\n');
     }
 
     appendLineContents(builder: StringBuilder, location: LineColumn): void {
         var range = this.range.enclosingLine();
-        builder.appendSlice(range.source.contents, range.start, range.end).appendChar('\n');
+        builder.appendSlice(range.source.contents, range.start, range.end).append('\n');
     }
 
     appendRange(builder: StringBuilder, location: LineColumn): void {
@@ -141,25 +139,25 @@ export class Diagnostic {
 
         // Whitespace
         while (column > 0) {
-            builder.appendChar(' ');
+            builder.append(' ');
             column = column - 1;
         }
 
         // Single character
         if (range.end - range.start <= 1) {
-            builder.appendChar('^');
+            builder.append('^');
         }
 
         // Multiple characters
         else {
             var i = range.start;
             while (i < range.end && contents[i] != '\n') {
-                builder.appendChar('~');
+                builder.append('~');
                 i = i + 1;
             }
         }
 
-        builder.appendChar('\n');
+        builder.append('\n');
     }
 }
 

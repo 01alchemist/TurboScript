@@ -1,9 +1,10 @@
-import {int32, uint32} from "./primitives";
 import {
     Symbol, SymbolKind, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED,
     SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_IS_REFERENCE
 } from "./symbol";
 import {CheckContext} from "./checker";
+import {StringBuilder_new} from "./stringbuilder";
+import {ScopeHint} from "./scope";
 
 export enum ConversionKind {
     IMPLICIT,

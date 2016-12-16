@@ -1,4 +1,3 @@
-import {ushort, int32} from "./primitives";
 var stringBuilderPool: StringBuilder = null;
 
 // Remove an object from the pool or allocate a new object if the pool is empty
@@ -42,11 +41,27 @@ declare function StringBuilder_appendChar(a: string, b: string): string;
 declare function StringBuilder_append(a: string, b: string): string;
 
 export class StringBuilder {
+    indent: int32 = 0;
     next: StringBuilder;
     _text: string;
 
     clear(): void {
         this._text = "";
+    }
+
+    clearIndent(delta: number=0): void {
+        this._text = this._text.substr(0, this._text.length - (delta * 4));
+    }
+    emitIndent(delta: number=0): void {
+        if (delta < 0) {
+            this._text = this._text.substr(0, this._text.length + (delta * 4));
+        }
+        this.indent += delta;
+        var i = this.indent;
+        while (i > 0) {
+            this._text += "    ";
+            i = i - 1;
+        }
     }
 
     appendChar(c: string): StringBuilder {
@@ -59,8 +74,17 @@ export class StringBuilder {
         return this;
     }
 
-    append(text: string): StringBuilder {
-        this._text = StringBuilder_append(this._text, text);
+    append(text: string, indent: number = 0): StringBuilder {
+        this.indent += indent;
+        let lines: string[] = text.split("\n");
+        lines.forEach((line, i) => {
+            if (i > 0) {
+                this._text += "\n";
+                this.emitIndent();
+            }
+            this._text += line;
+        });
+
         return this;
     }
 

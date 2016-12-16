@@ -17,3 +17,15 @@ interface String{
     startsWith(str:string):boolean;
     endsWith(str:string):boolean;
 }
+
+interface Math{
+    imul(a:number, b:number):number
+    log2(a:number):number
+}
+
+declare var assert;
+declare function Profiler_begin(name:string);
+declare function Profiler_end(name:string);
+declare function StringBuilder_append(a, b);
+declare function StringBuilder_appendChar(a, b);
+declare function Uint8Array_new(x);

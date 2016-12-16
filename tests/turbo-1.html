@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Turbo test</title>
+</head>
+<body>
+<script src="../src/turbo-lib.js"></script>
+<script src="turbo-1.js"></script>
+<script>
+
+    log = console.log;
+    turbo.init(1024);
+    let v1 = turbo.Vector.new(1,1);
+    let v2 = new turbo.Vector3(1,1);
+    let v3 = turbo.Vector.add(v1,v2);
+
+    console.log(turbo.Vector.toJSON(v3));
+
+    //WebAssembly
+    /*async function init() {
+        let data = await fetch("turbo.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        console.log(wasmBytes);
+        try{
+            WebAssembly.compile(wasmBytes);
+        }catch (e){
+            console.error(e);
+        }
+    }
+    init();*/
+</script>
+</body>
+</html>

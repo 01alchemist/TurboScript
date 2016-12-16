@@ -1,11 +1,12 @@
 import {Type} from "./type";
-import {int32} from "./primitives";
 import {Node, NodeKind} from "./node";
 import {CheckContext} from "./checker";
 import {Scope} from "./scope";
 import {Range} from "./log";
+import {alignToNextMultipleOf} from "./imports";
 
 export enum SymbolKind {
+    TYPE_INTERFACE,
     TYPE_CLASS,
     TYPE_ENUM,
     TYPE_GLOBAL,
@@ -56,7 +57,7 @@ export class Symbol {
     scope: Scope;
     resolvedType: Type;
     next: Symbol;
-    state: SymbolState;
+    state: SymbolState = SymbolState.UNINITIALIZED;
     flags: int32;
     byteSize: int32;
     maxAlignment: int32;

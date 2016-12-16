@@ -1,3 +1,12 @@
+import {Symbol, SymbolKind, isFunction} from "./symbol";
+import {ByteArray, ByteArray_append32, ByteArray_set32, ByteArray_setString, ByteArray_set16} from "./bytearray";
+import {CheckContext} from "./checker";
+import {alignToNextMultipleOf} from "./imports";
+import {Node, NodeKind, isExpression} from "./node";
+import {Type} from "./type";
+import {StringBuilder_new} from "./stringbuilder";
+import {Compiler} from "./compiler";
+
 // Control flow operators
 const WASM_OPCODE_UNREACHABLE: byte = 0x00;
 const WASM_OPCODE_NOP: byte = 0x01;
@@ -206,8 +215,8 @@ const WASM_OPCODE_F64_REINTERPRET_I64: byte = 0xbf;
 
 const WASM_OPCODE_CALL_IMPORT: byte = 31; //FIXME: Not found in spec
 
-const WASM_MAGIC = '\0' | 'a' << 8 | 's' << 16 | 'm' << 24;
-// const WASM_MAGIC = 0x6d736100;
+// const WASM_MAGIC = '\0' | 'a' << 8 | 's' << 16 | 'm' << 24;
+const WASM_MAGIC = 0x6d736100;
 const WASM_VERSION = 0x0d;
 const WASM_SIZE_IN_PAGES = 256;
 const WASM_SET_MAX_MEMORY = false;
@@ -1054,7 +1063,7 @@ class WasmModule {
             var value = node.castValue();
             var context = this.context;
             var from = value.resolvedType.underlyingType(context);
-            var type = node.resolvedType.underlyingType(context);
+            let type = node.resolvedType.underlyingType(context);
             var fromSize = from.variableSizeOf(context);
             var typeSize = type.variableSizeOf(context);
 
@@ -1298,7 +1307,7 @@ function wasmWriteLengthPrefixedASCII(array: ByteArray, value: string): void {
     array.resize(index + length);
     var i = 0;
     while (i < length) {
-        array.set(index + i, value[i]);
+        array.set(index + i, value.charCodeAt(i));
         i = i + 1;
     }
 }
@@ -1344,7 +1353,7 @@ function wasmAssignLocalVariableOffsets(node: Node, shared: WasmSharedOffset): v
     }
 }
 
-function wasmEmit(compiler: Compiler): void {
+export function wasmEmit(compiler: Compiler): void {
     var module = new WasmModule();
     module.context = compiler.context;
     module.memoryInitializer = new ByteArray();

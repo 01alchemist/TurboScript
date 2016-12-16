@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Empty test</title>
+</head>
+<body>
+<script>
+
+    async function init() {
+        let data = await fetch("empty.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        console.log(wasmBytes);
+        try{
+            WebAssembly.compile(wasmBytes);
+        }catch (e){
+            console.error(e);
+        }
+    }
+    init();
+</script>
+</body>
+</html>

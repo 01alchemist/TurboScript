@@ -1,7 +1,6 @@
 import {ByteArray} from "./bytearray";
 import {Log, DiagnosticKind} from "./log";
 import {StringBuilder_new} from "./stringbuilder";
-import {int32} from "./primitives";
 import {CompileTarget, Compiler, replaceFileExtension} from "./compiler";
 export enum Color {
     DEFAULT,
@@ -216,3 +215,8 @@ export function main_entry(): int32 {
 
     return 1;
 }
+
+export var turbo = {
+    main_addArgument:main_addArgument,
+    main_entry:main_entry
+};

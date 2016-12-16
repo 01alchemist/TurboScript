@@ -1,28 +1,32 @@
+import {CheckContext} from "./checker";
+import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "./stringbuilder";
+import {
+    Node, isCompactNodeKind, isUnaryPostfix, NodeKind, invertedBinaryKind, NODE_FLAG_DECLARE,
+    NODE_FLAG_UNSAFE_TURBO
+} from "./node";
+import {Precedence} from "./parser";
+import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
+import {SymbolKind, Symbol} from "./symbol";
+import {Compiler} from "./compiler";
+
 // enum EmitBinary {
 //   NORMAL,
 //   CAST_TO_INT,
 // }
 
-declare var turboJsOptimiztion: uint32 = 0;
+var turboJsOptimiztion: uint32 = 0;
+var classMap: Map<string, any> = new Map<string, any>();
+var currentClass: string;
 
-class TurboJsResult {
+export class TurboJsResult {
     context: CheckContext;
     code: StringBuilder;
-    indent: int32;
     foundMultiply: boolean;
     previousNode: Node;
 
-    emitIndent(): void {
-        var i = this.indent;
-        while (i > 0) {
-            this.code.append("  ");
-            i = i - 1;
-        }
-    }
-
     emitNewlineBefore(node: Node): void {
         if (this.previousNode != null && (!isCompactNodeKind(this.previousNode.kind) || !isCompactNodeKind(node.kind))) {
-            this.code.appendChar('\n');
+            this.code.append("\n");
         }
         this.previousNode = null;
     }
@@ -41,17 +45,15 @@ class TurboJsResult {
     emitBlock(node: Node, needBraces: boolean): void {
         this.previousNode = null;
         if (needBraces) {
-            this.code.append("{\n");
-            this.indent = this.indent + 1;
-            this.emitIndent();
+            this.code.append("{\n", 1);
         }
 
         this.emitStatements(node.firstChild);
 
         if (needBraces) {
-            this.indent = this.indent - 1;
-            this.emitIndent();
-            this.code.appendChar('}');
+            this.code.clearIndent(1);
+            this.code.emitIndent(-1);
+            this.code.append("}");
         }
         this.previousNode = null;
     }
@@ -61,62 +63,60 @@ class TurboJsResult {
         var shouldCastToInt = node.kind == NodeKind.NEGATIVE && !jsKindCastsOperandsToInt(node.parent.kind);
         var isUnsigned = node.isUnsignedOperator();
         var operatorPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : isPostfix ? Precedence.UNARY_POSTFIX : Precedence.UNARY_PREFIX;
-        var code = this.code;
 
         if (parentPrecedence > operatorPrecedence) {
-            code.appendChar('(');
+            this.code.append("(");
         }
 
         if (!isPostfix) {
-            code.append(operator);
+            this.code.append(operator);
         }
 
         this.emitExpression(node.unaryValue(), operatorPrecedence);
 
         if (isPostfix) {
-            code.append(operator);
+            this.code.append(operator);
         }
 
         if (shouldCastToInt) {
-            code.append(isUnsigned ? " >>> 0" : " | 0");
+            this.code.append(isUnsigned ? " >>> 0" : " | 0");
         }
 
         if (parentPrecedence > operatorPrecedence) {
-            code.appendChar(')');
+            this.code.append(")");
         }
     }
 
     emitBinary(node: Node, parentPrecedence: Precedence, operator: string, operatorPrecedence: Precedence, mode: EmitBinary): void {
         var isRightAssociative = node.kind == NodeKind.ASSIGN;
         var isUnsigned = node.isUnsignedOperator();
-        var code = this.code;
 
         // Avoid casting when the parent operator already does a cast
         var shouldCastToInt = mode == EmitBinary.CAST_TO_INT && (isUnsigned || !jsKindCastsOperandsToInt(node.parent.kind));
         var selfPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : parentPrecedence;
 
         if (parentPrecedence > selfPrecedence) {
-            code.appendChar('(');
+            this.code.append("(");
         }
 
         if (selfPrecedence > operatorPrecedence) {
-            code.appendChar('(');
+            this.code.append("(");
         }
 
         this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) as Precedence : operatorPrecedence);
-        code.append(operator);
+        this.code.append(operator);
         this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1) as Precedence);
 
         if (selfPrecedence > operatorPrecedence) {
-            code.appendChar(')');
+            this.code.append(")");
         }
 
         if (shouldCastToInt) {
-            code.append(isUnsigned ? " >>> 0" : " | 0");
+            this.code.append(isUnsigned ? " >>> 0" : " | 0");
         }
 
         if (parentPrecedence > selfPrecedence) {
-            code.appendChar(')');
+            this.code.append(")");
         }
     }
 
@@ -132,52 +132,53 @@ class TurboJsResult {
     }
 
     emitExpression(node: Node, parentPrecedence: Precedence): void {
-        var code = this.code;
 
         if (node.kind == NodeKind.NAME) {
             var symbol = node.symbol;
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                code.append("__declare.");
+                this.code.append("__declare.");
             }
             this.emitSymbolName(symbol);
         }
 
         else if (node.kind == NodeKind.NULL) {
-            code.append("null");
+            this.code.append("0");
+        }
+
+        else if (node.kind == NodeKind.UNDEFINED) {
+            this.code.append("undefined");
         }
 
         else if (node.kind == NodeKind.boolean) {
-            code.append(node.intValue != 0 ? "true" : "false");
+            this.code.append(node.intValue != 0 ? "true" : "false");
         }
 
         else if (node.kind == NodeKind.INT32) {
             if (parentPrecedence == Precedence.MEMBER) {
-                code.appendChar('(');
+                this.code.append("(");
             }
 
-            code.append(node.resolvedType.isUnsigned()
-                ? (node.intValue).toString()
-                : node.intValue.toString());
+            this.code.append(node.resolvedType.isUnsigned() ? (node.intValue).toString() : node.intValue.toString());
 
             if (parentPrecedence == Precedence.MEMBER) {
-                code.appendChar(')');
+                this.code.append(")");
             }
         }
 
         else if (node.kind == NodeKind.FLOAT32) {
             if (parentPrecedence == Precedence.MEMBER) {
-                code.appendChar('(');
+                this.code.append("(");
             }
 
-            code.append(node.floatValue.toString());
+            this.code.append(node.floatValue.toString());
 
             if (parentPrecedence == Precedence.MEMBER) {
-                code.appendChar(')');
+                this.code.append(")");
             }
         }
 
         else if (node.kind == NodeKind.STRING) {
-            StringBuilder_appendQuoted(code, node.stringValue);
+            this.code.append(`\`${node.stringValue}\``);
         }
 
         else if (node.kind == NodeKind.CAST) {
@@ -197,61 +198,61 @@ class TurboJsResult {
                 // Sign-extend
                 if (type == context.sbyteType || type == context.shortType) {
                     if (parentPrecedence > Precedence.SHIFT) {
-                        code.appendChar('(');
+                        this.code.append("(");
                     }
 
                     var shift = (32 - typeSize * 8).toString();
                     this.emitExpression(value, Precedence.SHIFT);
-                    code.append(" << ");
-                    code.append(shift);
-                    code.append(" >> ");
-                    code.append(shift);
+                    this.code.append(" << ");
+                    this.code.append(shift);
+                    this.code.append(" >> ");
+                    this.code.append(shift);
 
                     if (parentPrecedence > Precedence.SHIFT) {
-                        code.appendChar(')');
+                        this.code.append(")");
                     }
                 }
 
                 // Mask
                 else if (type == context.byteType || type == context.ushortType) {
                     if (parentPrecedence > Precedence.BITWISE_AND) {
-                        code.appendChar('(');
+                        this.code.append("(");
                     }
 
                     this.emitExpression(value, Precedence.BITWISE_AND);
-                    code.append(" & ");
-                    code.append(type.integerBitMask(context).toString());
+                    this.code.append(" & ");
+                    this.code.append(type.integerBitMask(context).toString());
 
                     if (parentPrecedence > Precedence.BITWISE_AND) {
-                        code.appendChar(')');
+                        this.code.append(")");
                     }
                 }
 
                 // Truncate signed
                 else if (type == context.int32Type) {
                     if (parentPrecedence > Precedence.BITWISE_OR) {
-                        code.appendChar('(');
+                        this.code.append("(");
                     }
 
                     this.emitExpression(value, Precedence.BITWISE_OR);
-                    code.append(" | 0");
+                    this.code.append(" | 0");
 
                     if (parentPrecedence > Precedence.BITWISE_OR) {
-                        code.appendChar(')');
+                        this.code.append(")");
                     }
                 }
 
                 // Truncate unsigned
                 else if (type == context.uint32Type) {
                     if (parentPrecedence > Precedence.SHIFT) {
-                        code.appendChar('(');
+                        this.code.append("(");
                     }
 
                     this.emitExpression(value, Precedence.SHIFT);
-                    code.append(" >>> 0");
+                    this.code.append(" >>> 0");
 
                     if (parentPrecedence > Precedence.SHIFT) {
-                        code.appendChar(')');
+                        this.code.append(")");
                     }
                 }
 
@@ -263,41 +264,47 @@ class TurboJsResult {
         }
 
         else if (node.kind == NodeKind.DOT) {
+            let dotTarget = node.dotTarget();
+            let targetSymbolName: string = dotTarget.symbol.name;
+            let resolvedNode = dotTarget.resolvedType.symbol.node;
 
-            if (node.dotTarget().symbol.name == "this") {
-                code.append("unsafe._mem_");
-                code.append(this.getMemoryName(node.resolvedType.symbol.name));
-                code.append("[ptr >> 2]");
+            if (resolvedNode.isDeclareOrTurbo()) {
+                let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
+                let memory: string = classMap.get(currentClass).members[node.symbol.name].memory;
+                let offset: number = classMap.get(currentClass).members[node.symbol.name].offset;
+                let shift: number = classMap.get(currentClass).members[node.symbol.name].shift;
+
+                this.code.append(`unsafe.${memory}[(${ref} + ${offset}) >> ${shift}]`);
+
             } else {
                 this.emitExpression(node.dotTarget(), Precedence.MEMBER);
-                code.appendChar('.');
+                this.code.append(".");
                 this.emitSymbolName(node.symbol);
             }
-
         }
 
         else if (node.kind == NodeKind.HOOK) {
             if (parentPrecedence > Precedence.ASSIGN) {
-                code.appendChar('(');
+                this.code.append("(");
             }
 
             this.emitExpression(node.hookValue(), Precedence.LOGICAL_OR);
-            code.append(" ? ");
+            this.code.append(" ? ");
             this.emitExpression(node.hookTrue(), Precedence.ASSIGN);
-            code.append(" : ");
+            this.code.append(" : ");
             this.emitExpression(node.hookFalse(), Precedence.ASSIGN);
 
             if (parentPrecedence > Precedence.ASSIGN) {
-                code.appendChar(')');
+                this.code.append(")");
             }
         }
 
         else if (node.kind == NodeKind.INDEX) {
             var value = node.indexTarget();
             this.emitExpression(value, Precedence.UNARY_POSTFIX);
-            code.appendChar('[');
+            this.code.append("[");
             this.emitCommaSeparatedExpressions(value.nextSibling, null);
-            code.appendChar(']');
+            this.code.append("]");
         }
 
         else if (node.kind == NodeKind.CALL) {
@@ -310,17 +317,25 @@ class TurboJsResult {
                 this.emitExpression(value, Precedence.UNARY_POSTFIX);
 
                 if (value.symbol == null || !value.symbol.isGetter()) {
-                    code.appendChar('(');
+                    this.code.append("(");
                     this.emitCommaSeparatedExpressions(value.nextSibling, null);
-                    code.appendChar(')');
+                    this.code.append(")");
                 }
             }
         }
 
         else if (node.kind == NodeKind.NEW) {
-            this.emitExpression(node.newType(), Precedence.UNARY_POSTFIX);
-            code.append(".new");
-            code.append("()");
+            let resolvedNode = node.resolvedType.symbol.node;
+            if (resolvedNode.isDeclareOrTurbo()) {
+                this.emitExpression(node.newType(), Precedence.UNARY_POSTFIX);
+                this.code.append(".new");
+                this.code.append("()");
+            } else {
+                this.code.append("new ");
+                this.emitExpression(node.newType(), Precedence.UNARY_POSTFIX);
+                this.code.append("()");
+            }
+
         }
 
         else if (node.kind == NodeKind.NOT) {
@@ -377,21 +392,21 @@ class TurboJsResult {
             var isUnsigned = node.isUnsignedOperator();
 
             if (isUnsigned && parentPrecedence > Precedence.SHIFT) {
-                code.appendChar('(');
+                this.code.append("(");
             }
 
-            code.append("__imul(");
+            this.code.append("__imul(");
             this.emitExpression(left, Precedence.LOWEST);
-            code.append(", ");
+            this.code.append(", ");
             this.emitExpression(right, Precedence.LOWEST);
-            code.appendChar(')');
+            this.code.append(")");
             this.foundMultiply = true;
 
             if (isUnsigned) {
-                code.append(" >>> 0");
+                this.code.append(" >>> 0");
 
                 if (parentPrecedence > Precedence.SHIFT) {
-                    code.appendChar(')');
+                    this.code.append(")");
                 }
             }
         }
@@ -406,7 +421,6 @@ class TurboJsResult {
     }
 
     emitStatement(node: Node): void {
-        var code = this.code;
 
         if (node.kind == NodeKind.FUNCTION) {
             var body = node.functionBody();
@@ -417,107 +431,110 @@ class TurboJsResult {
             var symbol = node.symbol;
             var needsSemicolon = false;
             this.emitNewlineBefore(node);
-            this.emitIndent();
 
             var isConstructor: boolean = symbol.name == "constructor";
+            let isTurbo: boolean = node.parent.isTurbo();
 
             if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
 
                 if (isConstructor) {
                     this.emitSymbolName(symbol.parent());
-                    code.append(".new");
-                    code.append(" = function");
+                    if (isTurbo) {
+                        this.code.append(".new");
+                    } else {
+                        this.code.append(".prototype");
+                    }
+                    this.code.append(" = function");
                 } else {
 
                     this.emitSymbolName(symbol.parent());
-                    code.append(".");
+
+                    if (isTurbo) {
+                        this.code.append(".");
+                    } else {
+                        this.code.append(".prototype.");
+                    }
                     this.emitSymbolName(symbol);
-                    code.append(" = function");
+                    this.code.append(" = function");
                 }
                 needsSemicolon = true;
             }
 
-            else if (node.isExtern()) {
-                code.append("var ");
+            else if (node.isExport()) {
+                this.code.append("var ");
                 this.emitSymbolName(symbol);
-                code.append(" = __extern.");
+                this.code.append(" = __exports.");
                 this.emitSymbolName(symbol);
-                code.append(" = function");
+                this.code.append(" = function");
                 needsSemicolon = true;
             }
 
             else {
-                code.append("function ");
+                this.code.append("function ");
                 this.emitSymbolName(symbol);
             }
 
-            code.appendChar('(');
+            this.code.append("(");
 
             var returnType = node.functionReturnType();
             var child = node.functionFirstArgumentIgnoringThis();
+            var needComma = false;
 
             if (!isConstructor) {
-                code.append("ptr, ");
+                this.code.append("ptr");
+                needComma = true;
             }
 
             while (child != returnType) {
                 assert(child.kind == NodeKind.VARIABLE);
+                if (needComma) {
+                    this.code.append(", ");
+                    needComma = false;
+                }
                 this.emitSymbolName(child.symbol);
                 child = child.nextSibling;
                 if (child != returnType) {
-                    code.append(", ");
+                    this.code.append(", ");
                 }
             }
 
-            code.append(") ");
+            this.code.append(") ");
 
-            if (isConstructor) {
-                this.code.append("{\n");
-                this.indent = this.indent + 1;
-                this.emitIndent();
-                this.code.append("let ptr = unsafe.alloc(");
-                this.emitSymbolName(symbol.parent());
-                this.code.append(".SIZE, ");
-                this.emitSymbolName(symbol.parent());
-                this.code.append(".ALIGN);\n");
-                this.emitIndent();
-                this.emitSymbolName(symbol.parent());
-                this.code.append(".internal_init(ptr);\n");
+            if (isConstructor && isTurbo) {
+                let parentName: string = symbol.parent().name;
+                this.code.append("{\n", 1);
+                this.code.append(`let ptr = unsafe.alloc(${parentName}.SIZE, ${parentName}.ALIGN);\n`);
+                this.code.append(`${parentName}.internal_init(ptr);\n`);
             }
 
-            this.emitBlock(node.functionBody(), !isConstructor);
+            this.emitBlock(node.functionBody(), !isConstructor || !isTurbo);
 
-            if (isConstructor) {
-                this.emitIndent();
-                this.code.append("return ptr;\n");
-                this.indent = this.indent - 1;
-                this.emitIndent();
-                this.code.appendChar('}');
+            if (isConstructor && isTurbo) {
+                this.code.append("return ptr;\n", -1);
+                this.code.append("}");
             }
 
-            code.append(needsSemicolon ? ";\n" : "\n");
+            this.code.append(needsSemicolon ? ";\n" : "\n");
             this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.IF) {
             this.emitNewlineBefore(node);
-            this.emitIndent();
             while (true) {
-                code.append("if (");
+                this.code.append("if (");
                 this.emitExpression(node.ifValue(), Precedence.LOWEST);
-                code.append(") ");
+                this.code.append(") ");
                 this.emitBlock(node.ifTrue(), true);
                 var no = node.ifFalse();
                 if (no == null) {
-                    code.appendChar('\n');
+                    this.code.append("\n");
                     break;
                 }
-                code.append("\n\n");
-                this.emitIndent();
-                code.append("else ");
+                this.code.append("\n\n");
+                this.code.append("else ");
                 if (no.firstChild == null || no.firstChild != no.lastChild || no.firstChild.kind != NodeKind.IF) {
                     this.emitBlock(no, true);
-                    code.appendChar('\n');
+                    this.code.append("\n");
                     break;
                 }
                 node = no.firstChild;
@@ -527,34 +544,30 @@ class TurboJsResult {
 
         else if (node.kind == NodeKind.WHILE) {
             this.emitNewlineBefore(node);
-            this.emitIndent();
-            code.append("while (");
+            this.code.append("while (");
             this.emitExpression(node.whileValue(), Precedence.LOWEST);
-            code.append(") ");
+            this.code.append(") ");
             this.emitBlock(node.whileBody(), true);
-            code.appendChar('\n');
+            this.code.append("\n");
             this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.BREAK) {
             this.emitNewlineBefore(node);
-            this.emitIndent();
-            code.append("break;\n");
+            this.code.append("break;\n");
             this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.CONTINUE) {
             this.emitNewlineBefore(node);
-            this.emitIndent();
-            code.append("continue;\n");
+            this.code.append("continue;\n");
             this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.EXPRESSION) {
             this.emitNewlineBefore(node);
-            this.emitIndent();
             this.emitExpression(node.expressionValue(), Precedence.LOWEST);
-            code.append(";\n");
+            this.code.append(";\n");
             this.emitNewlineAfter(node);
         }
 
@@ -564,13 +577,12 @@ class TurboJsResult {
         else if (node.kind == NodeKind.RETURN) {
             var value = node.returnValue();
             this.emitNewlineBefore(node);
-            this.emitIndent();
             if (value != null) {
-                code.append("return ");
+                this.code.append("return ");
                 this.emitExpression(value, Precedence.LOWEST);
-                code.append(";\n");
+                this.code.append(";\n");
             } else {
-                code.append("return;\n");
+                this.code.append("return;\n");
             }
             this.emitNewlineAfter(node);
         }
@@ -580,17 +592,15 @@ class TurboJsResult {
                 this.emitStatements(node.firstChild);
             } else {
                 this.emitNewlineBefore(node);
-                this.emitIndent();
                 this.emitBlock(node, true);
-                code.appendChar('\n');
+                this.code.append("\n");
                 this.emitNewlineAfter(node);
             }
         }
 
         else if (node.kind == NodeKind.VARIABLES) {
             this.emitNewlineBefore(node);
-            // this.emitIndent();
-            code.append("var ");
+            this.code.append("var ");
             var child = node.firstChild;
 
             while (child != null) {
@@ -598,84 +608,83 @@ class TurboJsResult {
                 this.emitSymbolName(child.symbol);
                 child = child.nextSibling;
                 if (child != null) {
-                    code.append(", ");
+                    this.code.append(", ");
                 }
                 assert(value != null);
-                code.append(" = ");
+                this.code.append(" = ");
                 this.emitExpression(value, Precedence.LOWEST);
             }
 
-            code.append(";\n");
+            this.code.append(";\n");
             this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.CLASS) {
+
+            currentClass = node.symbol.name;
+
             // Emit constructor
             if (!node.isDeclare()) {
+
+                let needsSemicolon: boolean = true;
+                let classDef = this.getClassDef(node);
+
                 this.emitNewlineBefore(node);
-                this.emitIndent();
+                if (node.isTurbo()) {
 
-                //Emit object
-                code.append("var ");
-                this.emitSymbolName(node.symbol);
-                code.append(" = {};\n");
-                this.emitIndent();
-                //--
-                this.emitSymbolName(node.symbol);
-                code.append(".NAME = '");
-                this.emitSymbolName(node.symbol);
-                code.append("';\n");
-                this.emitIndent();
-                //--
-                this.emitSymbolName(node.symbol);
-                code.append(".SIZE = 0");
-                code.append(";\n");
-                this.emitIndent();
-                //--
-                this.emitSymbolName(node.symbol);
-                code.append(".ALIGN = 0");
-                code.append(";\n");
-                this.emitIndent();
-                //--
-                this.emitSymbolName(node.symbol);
-                code.append(".CLSID = 0");
-                code.append(";\n");
-                this.emitIndent();
-                //--
-                this.emitSymbolName(node.symbol);
-                code.append(".internal_init = function(ptr) {\n");
-                this.indent = this.indent + 1;
 
-                var argument = node.firstChild;
-                while (argument != null) {
-                    if (argument.kind == NodeKind.VARIABLE) {
+                    //Emit object
+                    this.code.append(`var ${classDef.name} = {};\n`);
+                    this.code.append(`${classDef.name}.NAME = "${classDef.name}";\n`);
+                    this.code.append(`${classDef.name}.SIZE = "${classDef.size}";\n`);
+                    this.code.append(`${classDef.name}.ALIGN = "${classDef.align}";\n`);
+                    this.code.append(`${classDef.name}.CLSID = "${classDef.clsid}";\n`);
+                    this.code.append(`unsafe._idToType[${classDef.clsid}] = ${classDef.name};\n`)
 
-                        var mem: string = "_mem_";
-                        var ref: string = "0";
-                        var shift: string = "2";
+                    this.code.append(`${classDef.name}.internal_init = function(ptr) {\n`, 1);
 
-                        this.emitIndent();
-                        // var expr = `turbo.Runtime.${mem}[${ref} >> ${shift}] ${OpAttr[operation].vanilla} ${rhs}`;
-                        code.append("unsafe.");
-                        code.append(mem);
-                        code.append(this.getMemoryName(argument.firstChild.stringValue));
-                        code.append("[ptr");
-                        code.append(" + ");
-                        code.append(ref);
-                        code.append(" >> ");
-                        code.append(shift);
-                        code.append("]");
-                        code.append(" = ");
-                        // this.emitSymbolName(argument.symbol);
-                        this.emitExpression(argument.variableValue(), Precedence.LOWEST);
-                        code.append(";\n");
+                    this.code.append(`unsafe._mem_i32[ptr >> 2] = ${classDef.clsid};\n`);
+
+                    for (let key in classDef.members) {
+                        let member = classDef.members[key];
+
+                        this.code.append(`unsafe.${member.memory}[(ptr + ${member.offset}) >> ${member.shift}] = `);
+
+                        this.emitExpression(member.value, Precedence.LOWEST);
+                        this.code.append(";\n");
                     }
-                    argument = argument.nextSibling;
-                }
 
-                this.indent = this.indent - 1;
-                this.emitIndent();
-                code.append("};\n");
+                    this.code.append(`return ptr;\n`);
+
+
+                    classMap.set(node.symbol.name, classDef);
+
+                } else {
+                    this.code.append("var ");
+                    this.emitSymbolName(node.symbol);
+                    this.code.append(" = {\n", 1);
+
+                    var argument = node.firstChild;
+                    while (argument != null) {
+                        if (argument.kind == NodeKind.VARIABLE) {
+                            // this.code.append("this.");
+                            this.emitSymbolName(argument.symbol);
+                            this.code.append(" : ");
+                            this.emitExpression(argument.variableValue(), Precedence.LOWEST);
+                            this.code.append(",\n");
+                        }
+                        argument = argument.nextSibling;
+                    }
+
+                    needsSemicolon = false;
+                }
+                this.code.clearIndent(1);
+                this.code.emitIndent(-1);
+                this.code.append(`}${needsSemicolon ? ";" : ""}\n`);
+
+                if (node.isExport()) {
+                    this.code.append(`__exports.${classDef.name} = ${classDef.name};\n`);
+                }
 
                 this.emitNewlineAfter(node);
             }
@@ -691,69 +700,66 @@ class TurboJsResult {
         }
 
         else if (node.kind == NodeKind.ENUM) {
-            if (node.isExtern()) {
+            if (node.isExport()) {
                 this.emitNewlineBefore(node);
-                this.emitIndent();
-                code.append("__extern.");
+                this.code.append("__exports.");
                 this.emitSymbolName(node.symbol);
-                code.append(" = {\n");
-                this.indent = this.indent + 1;
+                this.code.append(" = {\n");
+                this.code.indent += 1;
 
                 // Emit enum values
                 var child = node.firstChild;
                 while (child != null) {
                     assert(child.kind == NodeKind.VARIABLE);
-                    this.emitIndent();
+                    // this.code.emitIndent();
                     this.emitSymbolName(child.symbol);
-                    code.append(": ");
-                    code.append(child.symbol.offset.toString());
+                    this.code.append(": ");
+                    this.code.append(child.symbol.offset.toString());
                     child = child.nextSibling;
-                    code.append(child != null ? ",\n" : "\n");
+                    this.code.append(child != null ? ",\n" : "\n");
                 }
 
-                this.indent = this.indent - 1;
-                this.emitIndent();
-                code.append("};\n");
+                this.code.emitIndent(-1);
+                this.code.append("};\n");
                 this.emitNewlineAfter(node);
             } else if (turboJsOptimiztion == 0) {
                 this.emitNewlineBefore(node);
-                this.emitIndent();
-                code.append("var ");
+                // this.code.emitIndent();
+                this.code.append("var ");
                 this.emitSymbolName(node.symbol);
-                code.append(";\n");
-                this.emitIndent();
-                code.append("(function (");
+                this.code.append(";\n");
+                // this.code.emitIndent();
+                this.code.append("(function (");
                 this.emitSymbolName(node.symbol);
-                code.append(") {\n");
-                this.indent = this.indent + 1;
+                this.code.append(") {\n");
+                this.code.indent += 1;
 
                 // Emit enum values
                 var child = node.firstChild;
                 while (child != null) {
                     assert(child.kind == NodeKind.VARIABLE);
-                    this.emitIndent();
+                    // this.code.emitIndent();
                     this.emitSymbolName(node.symbol);
-                    code.append("[");
+                    this.code.append("[");
                     this.emitSymbolName(node.symbol);
-                    code.append("['");
+                    this.code.append("['");
                     this.emitSymbolName(child.symbol);
-                    code.append("'] = ");
-                    code.append(child.symbol.offset.toString());
-                    code.append("] = ");
-                    code.append("'");
+                    this.code.append("'] = ");
+                    this.code.append(child.symbol.offset.toString());
+                    this.code.append("] = ");
+                    this.code.append("'");
                     this.emitSymbolName(child.symbol);
-                    code.append("'");
+                    this.code.append("'");
                     child = child.nextSibling;
-                    code.append(";\n");
+                    this.code.append(";\n");
                 }
 
-                this.indent = this.indent - 1;
-                this.emitIndent();
-                code.append("})(");
+                this.code.emitIndent(-1);
+                this.code.append("})(");
                 this.emitSymbolName(node.symbol);
-                code.append(" || (");
+                this.code.append(" || (");
                 this.emitSymbolName(node.symbol);
-                code.append(" = {}));\n");
+                this.code.append(" = {}));\n");
 
                 this.emitNewlineAfter(node);
             }
@@ -767,7 +773,73 @@ class TurboJsResult {
         }
     }
 
-    getMemoryName(name: string): string {
+    getClassDef(node: Node) {
+        let def = {
+            name: node.symbol.name,
+            size: 4,
+            align: 4,
+            clsid: this.computeClassId(node.symbol.name),
+            members: {},
+            code: ""
+        };
+
+        var argument = node.firstChild;
+        while (argument != null) {
+            if (argument.kind == NodeKind.VARIABLE) {
+                let typeSize: number;
+                let memory: string;
+                let offset: number;
+                let shift: number;
+                let resolvedSymbol = argument.symbol.resolvedType.symbol;
+                if (resolvedSymbol.kind == SymbolKind.TYPE_CLASS) {
+                    typeSize = 4;
+                    memory = `_mem_i32`;
+                    offset = 4 + (argument.offset * typeSize);
+                    shift = Math.log2(typeSize);
+                } else {
+                    typeSize = resolvedSymbol.byteSize;
+                    memory = `_mem_${this.getMemoryType(argument.firstChild.stringValue)}`;
+                    offset = 4 + (argument.offset * typeSize);
+                    shift = Math.log2(typeSize);
+                }
+                def.members[argument.symbol.name] = {
+                    memory: memory,
+                    size: typeSize,
+                    offset: offset,
+                    shift: shift,
+                    value: argument.variableValue()
+                };
+                def.size += typeSize;
+            }
+            argument = argument.nextSibling;
+        }
+
+        return def;
+    }
+
+    computeClassId(name: string): number {
+        let n = name.length;
+        for (let i = 0; i < name.length; i++) {
+            let c = name.charAt(i);
+            let v = 0;
+            if (c >= 'A' && c <= 'Z')
+                v = c.charCodeAt(0) - 'A'.charCodeAt(0);
+            else if (c >= 'a' && c <= 'z')
+                v = c.charCodeAt(0) - 'a'.charCodeAt(0) + 26;
+            else if (c >= '0' && c <= '9')
+                v = c.charCodeAt(0) - '0'.charCodeAt(0) + 52;
+            else if (c == '_')
+                v = 62;
+            else if (c == '>')
+                v = 63;
+            else
+                throw "Bad character in class name: " + c;
+            n = (((n & 0x1FFFFFF) << 3) | (n >>> 25)) ^ v;
+        }
+        return n;
+    }
+
+    getMemoryType(name: string): string {
         if (name == "int32") {
             return "i32";
         } else if (name == "int16") {
@@ -785,7 +857,8 @@ class TurboJsResult {
         } else if (name == "float64") {
             return "f64";
         }
-        return "unknown";
+        //Pointer object
+        return "i32";
     }
 }
 
@@ -795,33 +868,29 @@ class TurboJsResult {
 //     kind == NodeKind.BITWISE_OR || kind == NodeKind.BITWISE_AND || kind == NodeKind.BITWISE_XOR;
 // }
 
-function turboJsEmit(compiler: Compiler): void {
-    var code = StringBuilder_new();
+export function turboJsEmit(compiler: Compiler): void {
+    var code: StringBuilder = StringBuilder_new();
     var result = new TurboJsResult();
     result.context = compiler.context;
     result.code = code;
 
-    code.append("(function(__declare, __extern) {\n");
-    result.indent = 1;
+    code.append("(function(__declare, __exports) {\n");
+    code.emitIndent(1);
+    // code.append("let turbo = {};\n");
+    // code.append("__exports.turbo = turbo;\n");
+    code.append("__exports = __exports.turbo;\n");
     result.emitStatements(compiler.global.firstChild);
-
     if (result.foundMultiply) {
-        code.appendChar('\n');
-        result.emitIndent();
+        code.append("\n");
         code.append("var __imul = Math.imul || function(a, b) {\n");
-        result.indent = 2;
-        result.emitIndent();
         code.append("return (a * (b >>> 16) << 16) + a * (b & 65535) | 0;\n");
-        result.indent = 1;
-        result.emitIndent();
         code.append("};\n");
     }
 
+    code.emitIndent(-1);
     code.append("}(\n");
-    result.emitIndent();
-    code.append("typeof global !== 'undefined' ? global : this,\n");
-    result.emitIndent();
-    code.append("typeof exports !== 'undefined' ? exports : this\n");
+    code.append("   typeof global !== 'undefined' ? global : this,\n");
+    code.append("   typeof exports !== 'undefined' ? exports : this\n");
     code.append("));\n");
 
     compiler.outputJS = code.finish();
