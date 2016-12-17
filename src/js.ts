@@ -143,7 +143,7 @@ export class JsResult {
             code.append("null");
         }
 
-        else if (node.kind == NodeKind.boolean) {
+        else if (node.kind == NodeKind.BOOLEAN) {
             code.append(node.intValue != 0 ? "true" : "false");
         }
 

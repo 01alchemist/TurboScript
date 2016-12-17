@@ -151,7 +151,7 @@ export class CResult {
             code.append("NULL");
         }
 
-        else if (node.kind == NodeKind.boolean) {
+        else if (node.kind == NodeKind.BOOLEAN) {
             code.append(node.intValue != 0 ? '1' : '0');
         }
 

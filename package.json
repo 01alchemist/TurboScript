@@ -7,15 +7,15 @@
     "test": "tests"
   },
   "dependencies": {
-    "ts-node": "^1.7.2",
-    "typescript": "^2.1.4"
   },
   "devDependencies": {
     "@types/node": "^6.0.52",
-    "ts-node": "^1.7.2"
+    "ts-node": "^1.7.2",
+    "typescript": "^2.1.4"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -p .",
+    "watch": "tsc -w -p ."
   },
   "repository": {
     "type": "git",

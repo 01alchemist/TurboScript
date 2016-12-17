@@ -14,9 +14,9 @@ import {Compiler} from "./compiler";
 //   CAST_TO_INT,
 // }
 
-var turboJsOptimiztion: uint32 = 0;
-var classMap: Map<string, any> = new Map<string, any>();
-var currentClass: string;
+let turboJsOptimiztion: uint32 = 0;
+let classMap: Map<string, any> = new Map<string, any>();
+let currentClass: string;
 
 export class TurboJsResult {
     context: CheckContext;
@@ -52,17 +52,17 @@ export class TurboJsResult {
 
         if (needBraces) {
             this.code.clearIndent(1);
-            this.code.emitIndent(-1);
             this.code.append("}");
+            this.code.indent -= 1;
         }
         this.previousNode = null;
     }
 
     emitUnary(node: Node, parentPrecedence: Precedence, operator: string): void {
-        var isPostfix = isUnaryPostfix(node.kind);
-        var shouldCastToInt = node.kind == NodeKind.NEGATIVE && !jsKindCastsOperandsToInt(node.parent.kind);
-        var isUnsigned = node.isUnsignedOperator();
-        var operatorPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : isPostfix ? Precedence.UNARY_POSTFIX : Precedence.UNARY_PREFIX;
+        let isPostfix = isUnaryPostfix(node.kind);
+        let shouldCastToInt = node.kind == NodeKind.NEGATIVE && !jsKindCastsOperandsToInt(node.parent.kind);
+        let isUnsigned = node.isUnsignedOperator();
+        let operatorPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : isPostfix ? Precedence.UNARY_POSTFIX : Precedence.UNARY_PREFIX;
 
         if (parentPrecedence > operatorPrecedence) {
             this.code.append("(");
@@ -88,12 +88,12 @@ export class TurboJsResult {
     }
 
     emitBinary(node: Node, parentPrecedence: Precedence, operator: string, operatorPrecedence: Precedence, mode: EmitBinary): void {
-        var isRightAssociative = node.kind == NodeKind.ASSIGN;
-        var isUnsigned = node.isUnsignedOperator();
+        let isRightAssociative = node.kind == NodeKind.ASSIGN;
+        let isUnsigned = node.isUnsignedOperator();
 
         // Avoid casting when the parent operator already does a cast
-        var shouldCastToInt = mode == EmitBinary.CAST_TO_INT && (isUnsigned || !jsKindCastsOperandsToInt(node.parent.kind));
-        var selfPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : parentPrecedence;
+        let shouldCastToInt = mode == EmitBinary.CAST_TO_INT && (isUnsigned || !jsKindCastsOperandsToInt(node.parent.kind));
+        let selfPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : parentPrecedence;
 
         if (parentPrecedence > selfPrecedence) {
             this.code.append("(");
@@ -134,7 +134,7 @@ export class TurboJsResult {
     emitExpression(node: Node, parentPrecedence: Precedence): void {
 
         if (node.kind == NodeKind.NAME) {
-            var symbol = node.symbol;
+            let symbol = node.symbol;
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
                 this.code.append("__declare.");
             }
@@ -149,7 +149,7 @@ export class TurboJsResult {
             this.code.append("undefined");
         }
 
-        else if (node.kind == NodeKind.boolean) {
+        else if (node.kind == NodeKind.BOOLEAN) {
             this.code.append(node.intValue != 0 ? "true" : "false");
         }
 
@@ -182,12 +182,12 @@ export class TurboJsResult {
         }
 
         else if (node.kind == NodeKind.CAST) {
-            var context = this.context;
-            var value = node.castValue();
-            var from = value.resolvedType.underlyingType(context);
-            var type = node.resolvedType.underlyingType(context);
-            var fromSize = from.variableSizeOf(context);
-            var typeSize = type.variableSizeOf(context);
+            let context = this.context;
+            let value = node.castValue();
+            let from = value.resolvedType.underlyingType(context);
+            let type = node.resolvedType.underlyingType(context);
+            let fromSize = from.variableSizeOf(context);
+            let typeSize = type.variableSizeOf(context);
 
             // The cast isn't needed if it's to a wider integer type
             if (from == type || fromSize < typeSize) {
@@ -201,7 +201,7 @@ export class TurboJsResult {
                         this.code.append("(");
                     }
 
-                    var shift = (32 - typeSize * 8).toString();
+                    let shift = (32 - typeSize * 8).toString();
                     this.emitExpression(value, Precedence.SHIFT);
                     this.code.append(" << ");
                     this.code.append(shift);
@@ -300,7 +300,7 @@ export class TurboJsResult {
         }
 
         else if (node.kind == NodeKind.INDEX) {
-            var value = node.indexTarget();
+            let value = node.indexTarget();
             this.emitExpression(value, Precedence.UNARY_POSTFIX);
             this.code.append("[");
             this.emitCommaSeparatedExpressions(value.nextSibling, null);
@@ -313,7 +313,7 @@ export class TurboJsResult {
             }
 
             else {
-                var value = node.callValue();
+                let value = node.callValue();
                 this.emitExpression(value, Precedence.UNARY_POSTFIX);
 
                 if (value.symbol == null || !value.symbol.isGetter()) {
@@ -339,11 +339,11 @@ export class TurboJsResult {
         }
 
         else if (node.kind == NodeKind.NOT) {
-            var value = node.unaryValue();
+            let value = node.unaryValue();
 
             // Automatically invert operators for readability
             value.expandCallIntoOperatorTree();
-            var invertedKind = invertedBinaryKind(value.kind);
+            let invertedKind = invertedBinaryKind(value.kind);
 
             if (invertedKind != value.kind) {
                 value.kind = invertedKind;
@@ -387,9 +387,9 @@ export class TurboJsResult {
         else if (node.kind == NodeKind.SUBTRACT) this.emitBinary(node, parentPrecedence, " - ", Precedence.ADD, EmitBinary.CAST_TO_INT);
 
         else if (node.kind == NodeKind.MULTIPLY) {
-            var left = node.binaryLeft();
-            var right = node.binaryRight();
-            var isUnsigned = node.isUnsignedOperator();
+            let left = node.binaryLeft();
+            let right = node.binaryRight();
+            let isUnsigned = node.isUnsignedOperator();
 
             if (isUnsigned && parentPrecedence > Precedence.SHIFT) {
                 this.code.append("(");
@@ -422,46 +422,111 @@ export class TurboJsResult {
 
     emitStatement(node: Node): void {
 
-        if (node.kind == NodeKind.FUNCTION) {
-            var body = node.functionBody();
+        if (node.kind == NodeKind.CLASS) {
+
+            currentClass = node.symbol.name;
+            let classDef = this.getClassDef(node);
+            let isTurbo = node.isTurbo();
+            // Emit constructor
+            if (!node.isDeclare()) {
+                this.emitNewlineBefore(node);
+                if (isTurbo) {
+                    //Emit class object
+                    this.code.append(`let ${classDef.name} = {};\n`);
+                    this.code.append(`${classDef.name}.NAME = "${classDef.name}";\n`);
+                    this.code.append(`${classDef.name}.SIZE = ${classDef.size};\n`);
+                    this.code.append(`${classDef.name}.ALIGN = ${classDef.align};\n`);
+                    this.code.append(`${classDef.name}.CLSID = ${classDef.clsid};\n`);
+                    this.code.append(`unsafe._idToType[${classDef.clsid}] = ${classDef.name};\n`)
+
+                    this.code.append(`${classDef.name}.internal_init = function(ptr) {\n`, 1);
+
+                    this.code.append(`unsafe._mem_i32[ptr >> 2] = ${classDef.clsid};\n`);
+
+                    for (let key in classDef.members) {
+                        let member = classDef.members[key];
+
+                        this.code.append(`unsafe.${member.memory}[(ptr + ${member.offset}) >> ${member.shift}] = `);
+
+                        this.emitExpression(member.value, Precedence.LOWEST);
+                        this.code.append(";\n");
+                    }
+
+                    this.code.append(`return ptr;\n`);
+
+                    classMap.set(node.symbol.name, classDef);
+                    this.code.clearIndent(1);
+                    // this.code.emitIndent(-1);
+                    this.code.append("};\n");
+                    this.code.indent -= 1;
+                } else {
+                    // this.code.append(`let ${classDef.name} = (function(){\n`, 1);
+                    // this.code.append(`function ${classDef.name}(){\n`, 1);
+                    this.code.append(`class ${classDef.name} {`);
+                }
+
+                this.emitNewlineAfter(node);
+            }
+
+            // Emit instance functions
+            let child = node.firstChild;
+            while (child != null) {
+                if (child.kind == NodeKind.FUNCTION) {
+                    if(!isTurbo)this.code.indent += 1;
+                    this.emitStatement(child);
+                    if(!isTurbo)this.code.indent -= 1;
+                }
+                child = child.nextSibling;
+            }
+
+            if (!node.isDeclare() && !isTurbo) {
+                this.code.clearIndent(1);
+                this.code.append("}\n");
+
+                // this.code.append(`return ${classDef.name};\n`);
+                // this.code.append(`}());\n`);
+
+            }
+            if (node.isExport()) {
+                this.code.append(`__exports.${classDef.name} = ${classDef.name};\n`);
+            }
+        }
+
+        else if (node.kind == NodeKind.FUNCTION) {
+            let body = node.functionBody();
             if (body == null) {
                 return;
             }
 
-            var symbol = node.symbol;
-            var needsSemicolon = false;
+            let symbol = node.symbol;
+            let needsSemicolon = false;
             this.emitNewlineBefore(node);
 
-            var isConstructor: boolean = symbol.name == "constructor";
+            let isConstructor: boolean = symbol.name == "constructor";
             let isTurbo: boolean = node.parent.isTurbo();
 
             if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
 
-                if (isConstructor) {
+                if (isConstructor && isTurbo) {
                     this.emitSymbolName(symbol.parent());
-                    if (isTurbo) {
-                        this.code.append(".new");
-                    } else {
-                        this.code.append(".prototype");
-                    }
+                    this.code.append(".new");
                     this.code.append(" = function");
+                    needsSemicolon = true;
                 } else {
-
-                    this.emitSymbolName(symbol.parent());
-
                     if (isTurbo) {
+                        this.emitSymbolName(symbol.parent());
                         this.code.append(".");
-                    } else {
-                        this.code.append(".prototype.");
+                        this.emitSymbolName(symbol);
+                        this.code.append(" = function");
+                        needsSemicolon = true;
+                    }else{
+                        this.emitSymbolName(symbol);
                     }
-                    this.emitSymbolName(symbol);
-                    this.code.append(" = function");
                 }
-                needsSemicolon = true;
             }
 
             else if (node.isExport()) {
-                this.code.append("var ");
+                this.code.append("let ");
                 this.emitSymbolName(symbol);
                 this.code.append(" = __exports.");
                 this.emitSymbolName(symbol);
@@ -476,11 +541,11 @@ export class TurboJsResult {
 
             this.code.append("(");
 
-            var returnType = node.functionReturnType();
-            var child = node.functionFirstArgumentIgnoringThis();
-            var needComma = false;
+            let returnType = node.functionReturnType();
+            let child = node.functionFirstArgumentIgnoringThis();
+            let needComma = false;
 
-            if (!isConstructor) {
+            if (!isConstructor && isTurbo) {
                 this.code.append("ptr");
                 needComma = true;
             }
@@ -525,7 +590,7 @@ export class TurboJsResult {
                 this.emitExpression(node.ifValue(), Precedence.LOWEST);
                 this.code.append(") ");
                 this.emitBlock(node.ifTrue(), true);
-                var no = node.ifFalse();
+                let no = node.ifFalse();
                 if (no == null) {
                     this.code.append("\n");
                     break;
@@ -575,8 +640,8 @@ export class TurboJsResult {
         }
 
         else if (node.kind == NodeKind.RETURN) {
-            var value = node.returnValue();
-            this.emitNewlineBefore(node);
+            let value = node.returnValue();
+            //this.emitNewlineBefore(node);
             if (value != null) {
                 this.code.append("return ");
                 this.emitExpression(value, Precedence.LOWEST);
@@ -600,11 +665,11 @@ export class TurboJsResult {
 
         else if (node.kind == NodeKind.VARIABLES) {
             this.emitNewlineBefore(node);
-            this.code.append("var ");
-            var child = node.firstChild;
+            this.code.append("let ");
+            let child = node.firstChild;
 
             while (child != null) {
-                var value = child.variableValue();
+                let value = child.variableValue();
                 this.emitSymbolName(child.symbol);
                 child = child.nextSibling;
                 if (child != null) {
@@ -619,86 +684,6 @@ export class TurboJsResult {
             this.emitNewlineAfter(node);
         }
 
-        else if (node.kind == NodeKind.CLASS) {
-
-            currentClass = node.symbol.name;
-
-            // Emit constructor
-            if (!node.isDeclare()) {
-
-                let needsSemicolon: boolean = true;
-                let classDef = this.getClassDef(node);
-
-                this.emitNewlineBefore(node);
-                if (node.isTurbo()) {
-
-
-                    //Emit object
-                    this.code.append(`var ${classDef.name} = {};\n`);
-                    this.code.append(`${classDef.name}.NAME = "${classDef.name}";\n`);
-                    this.code.append(`${classDef.name}.SIZE = "${classDef.size}";\n`);
-                    this.code.append(`${classDef.name}.ALIGN = "${classDef.align}";\n`);
-                    this.code.append(`${classDef.name}.CLSID = "${classDef.clsid}";\n`);
-                    this.code.append(`unsafe._idToType[${classDef.clsid}] = ${classDef.name};\n`)
-
-                    this.code.append(`${classDef.name}.internal_init = function(ptr) {\n`, 1);
-
-                    this.code.append(`unsafe._mem_i32[ptr >> 2] = ${classDef.clsid};\n`);
-
-                    for (let key in classDef.members) {
-                        let member = classDef.members[key];
-
-                        this.code.append(`unsafe.${member.memory}[(ptr + ${member.offset}) >> ${member.shift}] = `);
-
-                        this.emitExpression(member.value, Precedence.LOWEST);
-                        this.code.append(";\n");
-                    }
-
-                    this.code.append(`return ptr;\n`);
-
-
-                    classMap.set(node.symbol.name, classDef);
-
-                } else {
-                    this.code.append("var ");
-                    this.emitSymbolName(node.symbol);
-                    this.code.append(" = {\n", 1);
-
-                    var argument = node.firstChild;
-                    while (argument != null) {
-                        if (argument.kind == NodeKind.VARIABLE) {
-                            // this.code.append("this.");
-                            this.emitSymbolName(argument.symbol);
-                            this.code.append(" : ");
-                            this.emitExpression(argument.variableValue(), Precedence.LOWEST);
-                            this.code.append(",\n");
-                        }
-                        argument = argument.nextSibling;
-                    }
-
-                    needsSemicolon = false;
-                }
-                this.code.clearIndent(1);
-                this.code.emitIndent(-1);
-                this.code.append(`}${needsSemicolon ? ";" : ""}\n`);
-
-                if (node.isExport()) {
-                    this.code.append(`__exports.${classDef.name} = ${classDef.name};\n`);
-                }
-
-                this.emitNewlineAfter(node);
-            }
-
-            // Emit instance functions
-            var child = node.firstChild;
-            while (child != null) {
-                if (child.kind == NodeKind.FUNCTION) {
-                    this.emitStatement(child);
-                }
-                child = child.nextSibling;
-            }
-        }
-
         else if (node.kind == NodeKind.ENUM) {
             if (node.isExport()) {
                 this.emitNewlineBefore(node);
@@ -708,7 +693,7 @@ export class TurboJsResult {
                 this.code.indent += 1;
 
                 // Emit enum values
-                var child = node.firstChild;
+                let child = node.firstChild;
                 while (child != null) {
                     assert(child.kind == NodeKind.VARIABLE);
                     // this.code.emitIndent();
@@ -719,13 +704,13 @@ export class TurboJsResult {
                     this.code.append(child != null ? ",\n" : "\n");
                 }
 
-                this.code.emitIndent(-1);
+                this.code.clearIndent(1);
                 this.code.append("};\n");
                 this.emitNewlineAfter(node);
             } else if (turboJsOptimiztion == 0) {
                 this.emitNewlineBefore(node);
                 // this.code.emitIndent();
-                this.code.append("var ");
+                this.code.append("let ");
                 this.emitSymbolName(node.symbol);
                 this.code.append(";\n");
                 // this.code.emitIndent();
@@ -735,7 +720,7 @@ export class TurboJsResult {
                 this.code.indent += 1;
 
                 // Emit enum values
-                var child = node.firstChild;
+                let child = node.firstChild;
                 while (child != null) {
                     assert(child.kind == NodeKind.VARIABLE);
                     // this.code.emitIndent();
@@ -754,7 +739,7 @@ export class TurboJsResult {
                     this.code.append(";\n");
                 }
 
-                this.code.emitIndent(-1);
+                this.code.clearIndent(1);
                 this.code.append("})(");
                 this.emitSymbolName(node.symbol);
                 this.code.append(" || (");
@@ -783,7 +768,7 @@ export class TurboJsResult {
             code: ""
         };
 
-        var argument = node.firstChild;
+        let argument = node.firstChild;
         while (argument != null) {
             if (argument.kind == NodeKind.VARIABLE) {
                 let typeSize: number;
@@ -869,8 +854,8 @@ export class TurboJsResult {
 // }
 
 export function turboJsEmit(compiler: Compiler): void {
-    var code: StringBuilder = StringBuilder_new();
-    var result = new TurboJsResult();
+    let code: StringBuilder = StringBuilder_new();
+    let result = new TurboJsResult();
     result.context = compiler.context;
     result.code = code;
 
@@ -882,12 +867,12 @@ export function turboJsEmit(compiler: Compiler): void {
     result.emitStatements(compiler.global.firstChild);
     if (result.foundMultiply) {
         code.append("\n");
-        code.append("var __imul = Math.imul || function(a, b) {\n");
+        code.append("let __imul = Math.imul || function(a, b) {\n");
         code.append("return (a * (b >>> 16) << 16) + a * (b & 65535) | 0;\n");
         code.append("};\n");
     }
 
-    code.emitIndent(-1);
+    code.clearIndent(1);
     code.append("}(\n");
     code.append("   typeof global !== 'undefined' ? global : this,\n");
     code.append("   typeof exports !== 'undefined' ? exports : this\n");

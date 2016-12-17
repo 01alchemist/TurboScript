@@ -483,7 +483,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                 resolveAsExpression(context, value, symbol.scope);
                 checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), ConversionKind.IMPLICIT);
 
-                if (value.kind == NodeKind.INT32 || value.kind == NodeKind.boolean) {
+                if (value.kind == NodeKind.INT32 || value.kind == NodeKind.BOOLEAN) {
                     symbol.offset = value.intValue;
                 }
 
@@ -880,7 +880,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), ConversionKind.IMPLICIT);
 
             // Variable initializers must be compile-time constants
-            if (symbol.kind == SymbolKind.VARIABLE_GLOBAL && value.kind != NodeKind.INT32 && value.kind != NodeKind.boolean && value.kind != NodeKind.NULL) {
+            if (symbol.kind == SymbolKind.VARIABLE_GLOBAL && value.kind != NodeKind.INT32 && value.kind != NodeKind.BOOLEAN && value.kind != NodeKind.NULL) {
                 context.log.error(value.range, "Global initializers must be compile-time constants");
             }
         }
@@ -934,7 +934,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         node.resolvedType = context.stringType;
     }
 
-    else if (kind == NodeKind.boolean) {
+    else if (kind == NodeKind.BOOLEAN) {
         node.resolvedType = context.booleanType;
     }
 

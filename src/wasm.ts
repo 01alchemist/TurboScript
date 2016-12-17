@@ -849,7 +849,7 @@ class WasmModule {
             var body = node.whileBody();
 
             // Ignore "while (false) { ... }"
-            if (value.kind == NodeKind.boolean && value.intValue == 0) {
+            if (value.kind == NodeKind.BOOLEAN && value.intValue == 0) {
                 return 0;
             }
 
@@ -859,7 +859,7 @@ class WasmModule {
             var count = 0;
 
             // Emit the condition as "loop { if (!condition) break; }" as long as it's not a "while (true)" loop
-            if (value.kind != NodeKind.boolean) {
+            if (value.kind != NodeKind.BOOLEAN) {
                 array.append(WASM_OPCODE_BR_IF);
                 wasmWriteVarUnsigned(array, 1); // Break out of the immediately enclosing loop
                 array.append(WASM_OPCODE_NOP); // This is a statement, not an expression
@@ -993,7 +993,7 @@ class WasmModule {
             wasmWriteVarSigned(array, 0);
         }
 
-        else if (node.kind == NodeKind.INT32 || node.kind == NodeKind.boolean) {
+        else if (node.kind == NodeKind.INT32 || node.kind == NodeKind.BOOLEAN) {
             array.append(WASM_OPCODE_I32_CONST);
             wasmWriteVarSigned(array, node.intValue);
         }

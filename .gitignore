@@ -21,3 +21,4 @@ bin-release/
 /node_modules/
 src/*.js
 src/*.js.map
+/TurboScript.iml

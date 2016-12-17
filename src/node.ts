@@ -37,7 +37,7 @@ export enum NodeKind {
 
         // Expressions
     ALIGN_OF,
-    boolean,
+    BOOLEAN,
     CALL,
     CAST,
     DOT,
@@ -233,7 +233,7 @@ export class Node {
     }
 
     becomebooleaneanConstant(value: boolean): void {
-        this.kind = NodeKind.boolean;
+        this.kind = NodeKind.BOOLEAN;
         this.symbol = null;
         this.intValue = value ? 1 : 0;
         this.removeChildren();
@@ -772,7 +772,7 @@ export function createSizeOf(type: Node): Node {
 
 export function createboolean(value: boolean): Node {
     var node = new Node();
-    node.kind = NodeKind.boolean;
+    node.kind = NodeKind.BOOLEAN;
     node.intValue = value ? 1 : 0;
     return node;
 }

@@ -9,6 +9,13 @@ export class Vector3{
         this.y = y;
         this.x = x;
     }
+
+    add(b:Vector3):Vector3{
+        let c = new Vector3();
+        c.x = this.x + b.x;
+        c.y = this.y + b.y;
+        return c;
+    }
 }
 
 @unsafe
@@ -22,7 +29,14 @@ export class Vector {
         this.x = x;
     }
 
-    add(b:Vector3):Vector3 {
+    add(b:Vector):Vector3 {
+        let c = new Vector3();
+        c.x = this.x + b.x;
+        c.y = this.y + b.y;
+        return c;
+    }
+
+    add_vec3(b:Vector3):Vector3 {
         let c = new Vector3();
         c.x = this.x + b.x;
         c.y = this.y + b.y;
@@ -36,12 +50,31 @@ export class Vector {
     }
 }
 
+enum ShapeType{
+
+}
+
+@unsafe
+export class Shape {
+    v1:Vector;
+
+    constructor(v1:Vector):void {
+        this.v1 = v1 == null? new Vector() : v1;
+    }
+}
+
 @unsafe
 export class Triangle {
     v1:Vector;
 
     constructor(v1:Vector):void {
         this.v1 = v1 == null? new Vector() : v1;
+    }
+
+    normal():Vector3{
+        let b = new Vector();
+        let c = this.v1.add(b);
+        return c;
     }
 }
 
