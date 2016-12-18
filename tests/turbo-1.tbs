@@ -43,16 +43,16 @@ export class Vector {
         return c;
     }
 
-    toJSON():string {
+    toString():string {
         let x = this.x;
         let y = this.y;
-        return `{x:${x},y:${y}}`;
+        return `{"x":${x},"y":${y}}`;
     }
 }
 
-enum ShapeType{
-
-}
+// enum ShapeType{
+//
+// }
 
 @unsafe
 export class Shape {
@@ -76,13 +76,22 @@ export class Triangle {
         let c = this.v1.add(b);
         return c;
     }
+
+    toString():string {
+        let str = this.v1.toString();
+        return `{"v1":${str}}`;
+    }
 }
 
 @unsafe
 export class Mesh {
-    triangles:int32;
+    unsafe triangles:*Triangle;
 
-    constructor(data:int32):void {
+    unsafe constructor(data:*Triangle):void {
         this.triangles = data;
+    }
+
+    unsafe normal():void{
+        log(this.triangles as string);
     }
 }

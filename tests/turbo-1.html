@@ -15,7 +15,7 @@
     let v2 = new turbo.Vector3(1,1);
     let v3 = turbo.Vector.add(v1,v2);
 
-    console.log(turbo.Vector.toJSON(v3));
+    console.log(JSON.parse(turbo.Vector.toString(v3)));
 
     //WebAssembly
     /*async function init() {

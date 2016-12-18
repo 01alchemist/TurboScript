@@ -1386,7 +1386,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             var type = value.resolvedType;
 
             if (type != context.errorType) {
-                if (!type.isInteger() && type.pointerTo == null) {
+                if ((!type.isInteger() && !type.symbol.node.isTurbo()) && type.pointerTo == null) {
                     context.log.error(node.internalRange, StringBuilder_new()
                         .append("Cannot create a pointer to non-integer type '")
                         .append(type.toString())

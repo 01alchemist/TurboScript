@@ -17,6 +17,7 @@ import {Compiler} from "./compiler";
 let turboJsOptimiztion: uint32 = 0;
 let classMap: Map<string, any> = new Map<string, any>();
 let currentClass: string;
+let turboTargetPointer:string; //to store temporary pointer for variable access rewrite
 
 export class TurboJsResult {
     context: CheckContext;
@@ -266,15 +267,46 @@ export class TurboJsResult {
         else if (node.kind == NodeKind.DOT) {
             let dotTarget = node.dotTarget();
             let targetSymbolName: string = dotTarget.symbol.name;
-            let resolvedNode = dotTarget.resolvedType.symbol.node;
+            let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
 
-            if (resolvedNode.isDeclareOrTurbo()) {
-                let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
-                let memory: string = classMap.get(currentClass).members[node.symbol.name].memory;
-                let offset: number = classMap.get(currentClass).members[node.symbol.name].offset;
-                let shift: number = classMap.get(currentClass).members[node.symbol.name].shift;
+            let resolvedNode = null;
 
-                this.code.append(`unsafe.${memory}[(${ref} + ${offset}) >> ${shift}]`);
+            if(node.resolvedType.pointerTo){
+                resolvedNode = node.resolvedType.pointerTo.symbol.node;
+            }else{
+                resolvedNode = node.resolvedType.symbol.node;
+            }
+
+            if (resolvedTargetNode.isDeclareOrTurbo()) {
+
+                if(node.symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
+                    let ref:string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
+                    let memory:string = classMap.get(currentClass).members[node.symbol.name].memory;
+                    let offset:number = classMap.get(currentClass).members[node.symbol.name].offset;
+                    let shift:number = classMap.get(currentClass).members[node.symbol.name].shift;
+
+                    //check if
+                    if(node.parent.kind == NodeKind.DOT){
+                        //store the variable pointer, we need to move it as function argument
+                        turboTargetPointer = `unsafe.${memory}[(${ref} + ${offset}) >> ${shift}]`;
+                        //emit class name for static call
+                        this.code.append(`${resolvedNode.symbol.name}`);
+                    }else {
+                        this.code.append(`unsafe.${memory}[(${ref} + ${offset}) >> ${shift}]`);
+                    }
+                }
+
+                else if(node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+                    this.emitExpression(dotTarget, Precedence.MEMBER);
+                    this.code.append(".");
+                    this.emitSymbolName(node.symbol);
+                }
+
+                else {
+                    this.emitExpression(dotTarget, Precedence.MEMBER);
+                    this.code.append(".");
+                    this.emitSymbolName(node.symbol);
+                }
 
             } else {
                 this.emitExpression(node.dotTarget(), Precedence.MEMBER);
@@ -318,6 +350,12 @@ export class TurboJsResult {
 
                 if (value.symbol == null || !value.symbol.isGetter()) {
                     this.code.append("(");
+                    if(node.firstChild) {
+                        let firstNode = node.firstChild.resolvedType.symbol.node;
+                        if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo()) {
+                            this.code.append(`${turboTargetPointer}, `);
+                        }
+                    }
                     this.emitCommaSeparatedExpressions(value.nextSibling, null);
                     this.code.append(")");
                 }
@@ -775,14 +813,22 @@ export class TurboJsResult {
                 let memory: string;
                 let offset: number;
                 let shift: number;
-                let resolvedSymbol = argument.symbol.resolvedType.symbol;
-                if (resolvedSymbol.kind == SymbolKind.TYPE_CLASS) {
+                let resolvedType = argument.symbol.resolvedType;
+
+                if(resolvedType.pointerTo){
                     typeSize = 4;
                     memory = `_mem_i32`;
                     offset = 4 + (argument.offset * typeSize);
                     shift = Math.log2(typeSize);
-                } else {
-                    typeSize = resolvedSymbol.byteSize;
+                }
+                else if (resolvedType.symbol.kind == SymbolKind.TYPE_CLASS) {
+                    typeSize = 4;
+                    memory = `_mem_i32`;
+                    offset = 4 + (argument.offset * typeSize);
+                    shift = Math.log2(typeSize);
+                }
+                else {
+                    typeSize = resolvedType.symbol.byteSize;
                     memory = `_mem_${this.getMemoryType(argument.firstChild.stringValue)}`;
                     offset = 4 + (argument.offset * typeSize);
                     shift = Math.log2(typeSize);
@@ -874,8 +920,9 @@ export function turboJsEmit(compiler: Compiler): void {
 
     code.clearIndent(1);
     code.append("}(\n");
-    code.append("   typeof global !== 'undefined' ? global : this,\n");
-    code.append("   typeof exports !== 'undefined' ? exports : this\n");
+    code.append("typeof global !== 'undefined' ? global : this,\n");
+    code.append("typeof exports !== 'undefined' ? exports : this\n");
+    code.clearIndent(1);
     code.append("));\n");
 
     compiler.outputJS = code.finish();
