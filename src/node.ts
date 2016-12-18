@@ -320,7 +320,7 @@ export class Node {
         else {
             child.previousSibling = this.lastChild;
             this.lastChild.nextSibling = child;
-            child.offset = this.firstChild.offset + 1;
+            child.offset = this.lastChild.offset + 1;
         }
 
         this.lastChild = child;

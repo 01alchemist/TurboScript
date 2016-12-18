@@ -1,15 +1,17 @@
 (function(__declare, __exports) {
     __exports = __exports.turbo;
     class Vector3 {
-        constructor(x, y) {
+        constructor(x, y, z) {
             this.y = y;
             this.x = x;
+            this.z = z;
         }
         
         add(b) {
             let c = new Vector3();
             c.x = this.x + b.x;
             c.y = this.y + b.y;
+            c.z = this.z + b.z;
             return c;
         }
     }
@@ -17,7 +19,7 @@
     
     let Vector = {};
     Vector.NAME = "Vector";
-    Vector.SIZE = 12;
+    Vector.SIZE = 16;
     Vector.ALIGN = 4;
     Vector.CLSID = 1266219;
     unsafe._idToType[1266219] = Vector;
@@ -25,14 +27,16 @@
         unsafe._mem_i32[ptr >> 2] = 1266219;
         unsafe._mem_f32[(ptr + 4) >> 2] = 0;
         unsafe._mem_f32[(ptr + 8) >> 2] = 0;
+        unsafe._mem_f32[(ptr + 12) >> 2] = 0;
         return ptr;
     };
         
-    Vector.new = function(x, y) {
+    Vector.new = function(x, y, z) {
         let ptr = unsafe.alloc(Vector.SIZE, Vector.ALIGN);
         Vector.internal_init(ptr);
-        unsafe._mem_f32[(ptr + 8) >> 2] = y;
         unsafe._mem_f32[(ptr + 4) >> 2] = x;
+        unsafe._mem_f32[(ptr + 8) >> 2] = y;
+        unsafe._mem_f32[(ptr + 12) >> 2] = z;
         return ptr;
     };
     
@@ -40,6 +44,7 @@
         let c = new Vector3();
         c.x = unsafe._mem_f32[(ptr + 4) >> 2] + unsafe._mem_f32[(b + 4) >> 2];
         c.y = unsafe._mem_f32[(ptr + 8) >> 2] + unsafe._mem_f32[(b + 8) >> 2];
+        c.z = unsafe._mem_f32[(ptr + 12) >> 2] + unsafe._mem_f32[(b + 12) >> 2];
         return c;
     };
     
@@ -47,6 +52,7 @@
         let c = new Vector3();
         c.x = unsafe._mem_f32[(ptr + 4) >> 2] + b.x;
         c.y = unsafe._mem_f32[(ptr + 8) >> 2] + b.y;
+        c.z = unsafe._mem_f32[(ptr + 12) >> 2] + b.z;
         return c;
     };
     

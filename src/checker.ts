@@ -204,6 +204,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         context.ushortType = parentScope.findLocal("ushort", ScopeHint.NORMAL).resolvedType;
 
         context.float32Type = parentScope.findLocal("float32", ScopeHint.NORMAL).resolvedType;
+        context.float64Type = parentScope.findLocal("float64", ScopeHint.NORMAL).resolvedType;
 
         prepareNativeType(context.booleanType, 1, 0);
         prepareNativeType(context.byteType, 1, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
@@ -216,6 +217,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         prepareNativeType(context.ushortType, 2, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
 
         prepareNativeType(context.float32Type, 4, SYMBOL_FLAG_NATIVE_FLOAT);
+        prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_FLOAT);
     }
 }
 
