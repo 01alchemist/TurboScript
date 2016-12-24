@@ -9,7 +9,7 @@ import {
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    createInterface, NODE_FLAG_UNSAFE_TURBO
+    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL
 } from "./node";
 
 export enum Precedence {
@@ -1316,6 +1316,7 @@ class ParserContext {
             else if (this.eat(TokenKind.STATIC)) flag = NODE_FLAG_STATIC;
             else if (this.eat(TokenKind.UNSAFE)) flag = NODE_FLAG_UNSAFE;
             else if (this.eat(TokenKind.UNSAFE_TURBO)) flag = NODE_FLAG_UNSAFE_TURBO;
+            else if (this.eat(TokenKind.VIRTUAL)) flag = NODE_FLAG_VIRTUAL;
             else return firstFlag;
 
             var link = new NodeFlag();
@@ -1354,6 +1355,19 @@ class ParserContext {
         return node.withRange(spanRanges(token.range, node.range));
     }
 
+    parseVirtual(firstFlag): Node {
+        var token = this.current;
+        this.advance();
+
+        var node = this.parseFunction(firstFlag, null);
+        if (node == null) {
+            return null;
+        }
+
+        node.flags = node.flags | NODE_FLAG_VIRTUAL;
+        return node.withRange(spanRanges(token.range, node.range));
+    }
+
     parseStatement(mode: StatementMode): Node {
         var firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
 
@@ -1361,6 +1375,7 @@ class ParserContext {
         if (this.peek(TokenKind.UNSAFE_TURBO) && firstFlag == null) return this.parseUnsafeTurbo();
         if (this.peek(TokenKind.CONST) || this.peek(TokenKind.LET) || this.peek(TokenKind.VAR)) return this.parseVariables(firstFlag, null);
         if (this.peek(TokenKind.FUNCTION)) return this.parseFunction(firstFlag, null);
+        if (this.peek(TokenKind.VIRTUAL)) return this.parseVirtual(firstFlag);
         if (this.peek(TokenKind.CLASS)) return this.parseClass(firstFlag);
         if (this.peek(TokenKind.INTERFACE)) return this.parseInterface(firstFlag);
         if (this.peek(TokenKind.ENUM)) return this.parseEnum(firstFlag);

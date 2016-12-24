@@ -22,7 +22,16 @@ export class Vector3{
 }
 
 @unsafe
-export class Vector {
+export class Base {
+
+    @virtual
+    add(b:Vec3):Vector3 {
+        return null;
+    }
+}
+
+@unsafe
+export class Vec3 extends Base{
 
     x: float32;
     y: float32;
@@ -34,7 +43,8 @@ export class Vector {
         this.z = z;
     }
 
-    add(b:Vector):Vector3 {
+    @virtual
+    add(b:Vec3):Vector3 {
         let c = new Vector3();
         c.x = this.x + b.x;
         c.y = this.y + b.y;
@@ -63,23 +73,23 @@ export class Vector {
 
 @unsafe
 export class Shape {
-    v1:Vector;
+    v1:Vec3;
 
-    constructor(v1:Vector):void {
-        this.v1 = v1 == null? new Vector() : v1;
+    constructor(v1:Vec3):void {
+        this.v1 = v1 == null? new Vec3() : v1;
     }
 }
 
 @unsafe
 export class Triangle {
-    v1:Vector;
+    v1:Vec3;
 
-    constructor(v1:Vector):void {
-        this.v1 = v1 == null? new Vector() : v1;
+    constructor(v1:Vec3):void {
+        this.v1 = v1 == null? new Vec3() : v1;
     }
 
     normal():Vector3{
-        let b = new Vector();
+        let b = new Vec3();
         let c = this.v1.add(b);
         return c;
     }
@@ -90,15 +100,15 @@ export class Triangle {
     }
 }
 
-@unsafe
-export class Mesh {
-    unsafe triangles:*Triangle;
+// @unsafe
+// export class Mesh {
+//     triangles:Triangle[];
 
-    unsafe constructor(data:*Triangle):void {
-        this.triangles = data;
-    }
+//     constructor(data:Triangle[]):void {
+//         this.triangles = data;
+//     }
 
-    unsafe normal():void{
-        log(this.triangles as string);
-    }
-}
+//     normal():void{
+//         log(this.triangles as string);
+//     }
+// }

@@ -6,10 +6,10 @@
   "directories": {
     "test": "tests"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^6.0.52",
+    "lite-server": "^2.2.2",
     "ts-node": "^1.7.2",
     "typescript": "^2.1.4"
   },

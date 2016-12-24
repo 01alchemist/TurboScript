@@ -44,15 +44,17 @@ export class StringBuilder {
     indent: int32 = 0;
     next: StringBuilder;
     _text: string;
+    chunks: string[] = [];
 
     clear(): void {
         this._text = "";
     }
 
-    clearIndent(delta: number=0): void {
+    clearIndent(delta: number = 0): void {
         this._text = this._text.substr(0, this._text.length - (delta * 4));
     }
-    emitIndent(delta: number=0): void {
+
+    emitIndent(delta: number = 0): void {
         if (delta < 0) {
             this._text = this._text.substr(0, this._text.length + (delta * 4));
         }
@@ -74,6 +76,12 @@ export class StringBuilder {
         return this;
     }
 
+    breakChunk(): number {
+        this.chunks.push(this._text);
+        this._text = "";
+        return this.chunks.length - 1;
+    }
+
     append(text: string, indent: number = 0): StringBuilder {
         this.indent += indent;
         let lines: string[] = text.split("\n");
@@ -92,6 +100,15 @@ export class StringBuilder {
     finish(): string {
         this.next = stringBuilderPool;
         stringBuilderPool = this;
-        return this._text;
+        if (this.chunks.length > 0) {
+            let code = "";
+            this.chunks.forEach((chunk:string) => {
+                code += chunk;
+            });
+            return code + this._text;
+        } else {
+            return this._text;
+        }
     }
+
 }

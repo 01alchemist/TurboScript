@@ -16,8 +16,9 @@ import {Compiler} from "./compiler";
 
 let turboJsOptimiztion: uint32 = 0;
 let classMap: Map<string, any> = new Map<string, any>();
+let virtualMap: Map<string, any> = new Map<string, any>();
 let currentClass: string;
-let turboTargetPointer:string; //to store temporary pointer for variable access rewrite
+let turboTargetPointer: string; //to store temporary pointer for variable access rewrite
 
 export class TurboJsResult {
     context: CheckContext;
@@ -121,8 +122,12 @@ export class TurboJsResult {
         }
     }
 
-    emitCommaSeparatedExpressions(start: Node, stop: Node): void {
+    emitCommaSeparatedExpressions(start: Node, stop: Node, needComma: boolean = false): void {
         while (start != stop) {
+            if (needComma) {
+                this.code.append(" , ");
+                needComma = false;
+            }
             this.emitExpression(start, Precedence.LOWEST);
             start = start.nextSibling;
 
@@ -271,32 +276,32 @@ export class TurboJsResult {
 
             let resolvedNode = null;
 
-            if(node.resolvedType.pointerTo){
+            if (node.resolvedType.pointerTo) {
                 resolvedNode = node.resolvedType.pointerTo.symbol.node;
-            }else{
+            } else {
                 resolvedNode = node.resolvedType.symbol.node;
             }
 
             if (resolvedTargetNode.isDeclareOrTurbo()) {
 
-                if(node.symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
-                    let ref:string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
-                    let memory:string = classMap.get(currentClass).members[node.symbol.name].memory;
-                    let offset:number = classMap.get(currentClass).members[node.symbol.name].offset;
-                    let shift:number = classMap.get(currentClass).members[node.symbol.name].shift;
+                if (node.symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
+                    let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
+                    let memory: string = classMap.get(currentClass).members[node.symbol.name].memory;
+                    let offset: number = classMap.get(currentClass).members[node.symbol.name].offset;
+                    let shift: number = classMap.get(currentClass).members[node.symbol.name].shift;
 
                     //check if
-                    if(node.parent.kind == NodeKind.DOT){
+                    if (node.parent.kind == NodeKind.DOT) {
                         //store the variable pointer, we need to move it as function argument
                         turboTargetPointer = `unsafe.${memory}[(${ref} + ${offset}) >> ${shift}]`;
                         //emit class name for static call
                         this.code.append(`${resolvedNode.symbol.name}`);
-                    }else {
+                    } else {
                         this.code.append(`unsafe.${memory}[(${ref} + ${offset}) >> ${shift}]`);
                     }
                 }
 
-                else if(node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+                else if (node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
                     this.emitExpression(dotTarget, Precedence.MEMBER);
                     this.code.append(".");
                     this.emitSymbolName(node.symbol);
@@ -350,13 +355,15 @@ export class TurboJsResult {
 
                 if (value.symbol == null || !value.symbol.isGetter()) {
                     this.code.append("(");
-                    if(node.firstChild) {
+                    let needComma = false;
+                    if (node.firstChild) {
                         let firstNode = node.firstChild.resolvedType.symbol.node;
                         if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo()) {
-                            this.code.append(`${turboTargetPointer}, `);
+                            this.code.append(`${turboTargetPointer}`);
+                            needComma = true;
                         }
                     }
-                    this.emitCommaSeparatedExpressions(value.nextSibling, null);
+                    this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
                     this.code.append(")");
                 }
             }
@@ -460,7 +467,12 @@ export class TurboJsResult {
 
     emitStatement(node: Node): void {
 
-        if (node.kind == NodeKind.CLASS) {
+        if (node.kind == NodeKind.EXTENDS) {
+            console.log("Extends found");
+            this.code.append(" /*extends*/ ")
+        }
+
+        else if (node.kind == NodeKind.CLASS) {
 
             currentClass = node.symbol.name;
             let classDef = this.getClassDef(node);
@@ -475,31 +487,14 @@ export class TurboJsResult {
                     this.code.append(`${classDef.name}.SIZE = ${classDef.size};\n`);
                     this.code.append(`${classDef.name}.ALIGN = ${classDef.align};\n`);
                     this.code.append(`${classDef.name}.CLSID = ${classDef.clsid};\n`);
-                    this.code.append(`unsafe._idToType[${classDef.clsid}] = ${classDef.name};\n`)
 
-                    this.code.append(`${classDef.name}.internal_init = function(ptr) {\n`, 1);
-
-                    this.code.append(`unsafe._mem_i32[ptr >> 2] = ${classDef.clsid};\n`);
-
-                    for (let key in classDef.members) {
-                        let member = classDef.members[key];
-
-                        this.code.append(`unsafe.${member.memory}[(ptr + ${member.offset}) >> ${member.shift}] = `);
-
-                        this.emitExpression(member.value, Precedence.LOWEST);
-                        this.code.append(";\n");
+                    if (classDef.base) {
+                        this.code.append(`${classDef.name}.BASE = "${classDef.base}";\n`);
                     }
 
-                    this.code.append(`return ptr;\n`);
+                    this.code.append(`unsafe._idToType[${classDef.name}.CLSID] = ${classDef.name};\n`);
 
-                    classMap.set(node.symbol.name, classDef);
-                    this.code.clearIndent(1);
-                    // this.code.emitIndent(-1);
-                    this.code.append("};\n");
-                    this.code.indent -= 1;
                 } else {
-                    // this.code.append(`let ${classDef.name} = (function(){\n`, 1);
-                    // this.code.append(`function ${classDef.name}(){\n`, 1);
                     this.code.append(`class ${classDef.name} {`);
                 }
 
@@ -510,9 +505,9 @@ export class TurboJsResult {
             let child = node.firstChild;
             while (child != null) {
                 if (child.kind == NodeKind.FUNCTION) {
-                    if(!isTurbo)this.code.indent += 1;
+                    if (!isTurbo) this.code.indent += 1;
                     this.emitStatement(child);
-                    if(!isTurbo)this.code.indent -= 1;
+                    if (!isTurbo) this.code.indent -= 1;
                 }
                 child = child.nextSibling;
             }
@@ -520,10 +515,6 @@ export class TurboJsResult {
             if (!node.isDeclare() && !isTurbo) {
                 this.code.clearIndent(1);
                 this.code.append("}\n");
-
-                // this.code.append(`return ${classDef.name};\n`);
-                // this.code.append(`}());\n`);
-
             }
             if (node.isExport()) {
                 this.code.append(`__exports.${classDef.name} = ${classDef.name};\n`);
@@ -554,10 +545,14 @@ export class TurboJsResult {
                     if (isTurbo) {
                         this.emitSymbolName(symbol.parent());
                         this.code.append(".");
-                        this.emitSymbolName(symbol);
+                        if (node.isVirtual()) {
+                            this.code.append(symbol.name + "_impl");
+                        } else {
+                            this.emitSymbolName(symbol);
+                        }
                         this.code.append(" = function");
                         needsSemicolon = true;
-                    }else{
+                    } else {
                         this.emitSymbolName(symbol);
                     }
                 }
@@ -582,39 +577,65 @@ export class TurboJsResult {
             let returnType = node.functionReturnType();
             let child = node.functionFirstArgumentIgnoringThis();
             let needComma = false;
+            let signature = "";
 
             if (!isConstructor && isTurbo) {
                 this.code.append("ptr");
+                signature += "ptr";
                 needComma = true;
             }
+
 
             while (child != returnType) {
                 assert(child.kind == NodeKind.VARIABLE);
                 if (needComma) {
                     this.code.append(", ");
+                    signature += ",";
                     needComma = false;
                 }
                 this.emitSymbolName(child.symbol);
+                signature += child.symbol.name;
                 child = child.nextSibling;
                 if (child != returnType) {
                     this.code.append(", ");
+                    signature += ", ";
                 }
             }
 
             this.code.append(") ");
 
+            let parentName: string = symbol.parent().name;
+            let classDef = classMap.get(parentName);
+
             if (isConstructor && isTurbo) {
-                let parentName: string = symbol.parent().name;
                 this.code.append("{\n", 1);
                 this.code.append(`let ptr = unsafe.alloc(${parentName}.SIZE, ${parentName}.ALIGN);\n`);
-                this.code.append(`${parentName}.internal_init(ptr);\n`);
+                this.code.append(`unsafe._mem_i32[ptr >> 2] = ${classDef.name}.CLSID;\n`);
+                this.code.append(`${parentName}.init_mem(ptr, `);
+                this.code.append(`${signature});\n`);
+                this.code.append("return ptr;\n", -1);
+                this.code.append("};\n\n");
+
+                this.code.append(`${classDef.name}.init_mem = function(ptr, `);
+                this.code.append(`${signature}) {\n`, 1);
+            }
+
+            if (node.isVirtual()) {
+                let chunkIndex = this.code.breakChunk();
+                this.updateVirtualTable(node, chunkIndex, classDef.base, signature);
             }
 
             this.emitBlock(node.functionBody(), !isConstructor || !isTurbo);
 
+            if (node.isVirtual()) {
+                this.code.breakChunk();
+            }
+
             if (isConstructor && isTurbo) {
-                this.code.append("return ptr;\n", -1);
+                this.code.append(`return ptr;\n`);
+                this.code.clearIndent(1);
                 this.code.append("}");
+                this.code.indent -= 1;
             }
 
             this.code.append(needsSemicolon ? ";\n" : "\n");
@@ -796,8 +817,93 @@ export class TurboJsResult {
         }
     }
 
+    emitVirtuals() {
+
+        this.code.append("\n");
+        this.code.append("//FIXME: Virtuals should emit next to base class virtual function\n");
+
+        virtualMap.forEach((virtual, virtualName) => {
+
+            this.code.append("\n");
+
+            this.code.append(`${virtual.name} = function (${virtual.signature}) {\n`, 1);
+
+            this.code.append("switch (unsafe._mem_i32[ptr >> 2]) {\n", 1);
+
+            for (let impl of virtual.functions) {
+                this.code.append(`case ${impl.parent}.CLSID:\n`, 1);
+                this.code.append(`return ${impl.parent}.${impl.name}_impl(${virtual.signature});\n`);
+                this.code.clearIndent(1);
+                this.code.indent -= 1;
+            }
+
+            this.code.append("default:\n", 1);
+            this.code.append("throw unsafe._badType(ptr);\n");
+            this.code.indent -= 2;
+            this.code.clearIndent(2);
+            this.code.append("}\n");
+            this.code.indent -= 1;
+            this.code.clearIndent(1);
+            this.code.append("};\n");
+            // for (let virtual of vtable) {
+            //     let signature = virtual.signature;
+            //     this.code.append(`${virtual.name} = function (ptr, ${signature}) {\n`);
+            //     this.code.append("        switch (unsafe._mem_i32[ptr >> 2]) {\n");
+            //     let kv = virtual.reverseCases.keysValues();
+            //     for (let [name,cases]=kv.next(); name; [name, cases] = kv.next()) {
+            //         for (let c of cases) {
+            //             this.code.append(`      case ${c}:`);
+            //         }
+            //         this.code.append(`      return ${name}(ptr ${signature});`);
+            //     }
+            //     this.code.append("      default:");
+            //     this.code.append("      " + (virtual.default_ ?
+            //             `return ${virtual.default_}(ptr ${signature})` :
+            //             "throw unsafe._badType(ptr)") + ";");
+            //     this.code.append("  }");
+            //     this.code.append("}");
+            // }
+
+        })
+    }
+
+    updateVirtualTable(node, chunkIndex, baseClassName, signature) {
+        let virtualName = baseClassName ? `${baseClassName}.${node.stringValue}` : `${node.parent.stringValue}.${node.stringValue}`;
+        let virtual = virtualMap.get(virtualName);
+        if (!virtual) {
+            virtual = {
+                name: virtualName,
+                signature: signature,
+                functions: [
+                    {
+                        chunkIndex: chunkIndex,
+                        parent: node.parent.stringValue,
+                        name: node.stringValue,
+                        base: baseClassName || null,
+                        signature: signature
+                    }
+                ]
+            };
+            virtualMap.set(virtualName, virtual);
+        } else {
+            virtual.functions.push({
+                chunkIndex: chunkIndex,
+                parent: node.parent.stringValue,
+                name: node.stringValue,
+                base: baseClassName || null,
+                signature: signature
+            });
+        }
+    }
+
     getClassDef(node: Node) {
-        let def = {
+        let def = classMap.get(node.symbol.name);
+
+        if (def) {
+            return def;
+        }
+
+        def = {
             name: node.symbol.name,
             size: 4,
             align: 4,
@@ -805,6 +911,10 @@ export class TurboJsResult {
             members: {},
             code: ""
         };
+
+        if (node.firstChild && node.firstChild.kind == NodeKind.EXTENDS) {
+            def.base = node.firstChild.firstChild.stringValue;
+        }
 
         let argument = node.firstChild;
         while (argument != null) {
@@ -815,7 +925,7 @@ export class TurboJsResult {
                 let shift: number;
                 let resolvedType = argument.symbol.resolvedType;
 
-                if(resolvedType.pointerTo){
+                if (resolvedType.pointerTo) {
                     typeSize = 4;
                     memory = `_mem_i32`;
                     offset = 4 + (argument.offset * typeSize);
@@ -844,6 +954,8 @@ export class TurboJsResult {
             }
             argument = argument.nextSibling;
         }
+
+        classMap.set(node.symbol.name, def);
 
         return def;
     }
@@ -911,6 +1023,7 @@ export function turboJsEmit(compiler: Compiler): void {
     // code.append("__exports.turbo = turbo;\n");
     code.append("__exports = __exports.turbo;\n");
     result.emitStatements(compiler.global.firstChild);
+    result.emitVirtuals();
     if (result.foundMultiply) {
         code.append("\n");
         code.append("let __imul = Math.imul || function(a, b) {\n");

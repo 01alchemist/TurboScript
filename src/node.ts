@@ -137,6 +137,7 @@ export const NODE_FLAG_STATIC = 1 << 10;
 export const NODE_FLAG_UNSAFE = 1 << 11;
 export const NODE_FLAG_UNSAFE_TURBO = 1 << 12;
 export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13;
+export const NODE_FLAG_VIRTUAL = 1 << 14;
 
 export class NodeFlag {
     flag: int32;
@@ -249,6 +250,10 @@ export class Node {
 
     isDeclare(): boolean {
         return (this.flags & NODE_FLAG_DECLARE) != 0;
+    }
+
+    isVirtual(): boolean {
+        return (this.flags & NODE_FLAG_VIRTUAL) != 0;
     }
 
     isExtern(): boolean {

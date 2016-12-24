@@ -1233,7 +1233,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
     else if (kind == NodeKind.EXTENDS) {
         resolveAsType(context, node.extendsType(), parentScope);
-        context.log.error(node.range, "Subclassing is not implemented yet");
+        //context.log.error(node.range, "Subclassing is not implemented yet");
     }
 
     else if (kind == NodeKind.IMPLEMENTS) {

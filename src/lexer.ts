@@ -85,6 +85,7 @@ export enum TokenKind {
     TRUE,
     UNSAFE,
     UNSAFE_TURBO,
+    VIRTUAL,
     VAR,
     WHILE,
 
@@ -208,6 +209,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.TRUE) return "'true'";
     if (token == TokenKind.UNSAFE) return "'unsafe'";
     if (token == TokenKind.UNSAFE_TURBO) return "'@unsafe'";
+    if (token == TokenKind.VIRTUAL) return "'@virtual'";
     if (token == TokenKind.VAR) return "'var'";
     if (token == TokenKind.WHILE) return "'while'";
 
@@ -337,6 +339,7 @@ export function tokenize(source: Source, log: Log): Token {
 
                 else {
                     if (text == "continue") kind = TokenKind.CONTINUE;
+                    else if (text == "@virtual") kind = TokenKind.VIRTUAL;
                     else if (text == "function") kind = TokenKind.FUNCTION;
                     else if (text == "implements") kind = TokenKind.IMPLEMENTS;
                     else if (text == "interface") kind = TokenKind.INTERFACE;
