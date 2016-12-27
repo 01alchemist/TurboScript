@@ -9,7 +9,7 @@ import {
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createNamespace
+    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createNamespace, createFloat
 } from "./node";
 
 export enum Precedence {
@@ -251,6 +251,15 @@ class ParserContext {
             if (this.peek(TokenKind.INT32)) {
                 var value = createInt(0);
                 if (!this.parseInt(token.range, value)) {
+                    value = createParseError();
+                }
+                this.advance();
+                return value.withRange(token.range);
+            }
+
+            if (this.peek(TokenKind.FLOAT32)) {
+                var value = createFloat(0);
+                if (!this.parseFloat(token.range, value)) {
                     value = createParseError();
                 }
                 this.advance();
@@ -1154,15 +1163,16 @@ class ParserContext {
 
         if (!this.peek(TokenKind.RIGHT_PARENTHESIS)) {
             while (true) {
-                var firstArgumentFlag = this.parseFlags();
+                let firstArgumentFlag = this.parseFlags();
 
-                var argument = this.current;
+                let argument = this.current;
                 if (!this.expect(TokenKind.IDENTIFIER)) {
                     return null;
                 }
 
-                var type: Node;
-                var range = argument.range;
+                let type: Node;
+                let value:Node = null;
+                let range = argument.range;
 
                 if (this.expect(TokenKind.COLON)) {
                     type = this.parseType();
@@ -1186,7 +1196,11 @@ class ParserContext {
                     type = createParseError();
                 }
 
-                var variable = createVariable(argument.range.toString(), type, null);
+                if (this.eat(TokenKind.ASSIGN)) {
+                    value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+                }
+
+                let variable = createVariable(argument.range.toString(), type, value);
                 variable.firstFlag = firstArgumentFlag;
                 variable.flags = allFlags(firstArgumentFlag);
                 node.appendChild(variable.withRange(range).withInternalRange(argument.range));
@@ -1288,7 +1302,7 @@ class ParserContext {
 
                 // TODO: Implement constructors
                 if (parent != null) {
-                    this.log.error(value.range, "Inline initialization of instance variables is not supported yet");
+                    //this.log.error(value.range, "Inline initialization of instance variables is not supported yet");
                 }
             }
 
@@ -1481,6 +1495,15 @@ class ParserContext {
         }
 
         node.intValue = value;
+        node.flags = NODE_FLAG_POSITIVE;
+        return true;
+    }
+
+    parseFloat(range: Range, node: Node): boolean {
+        let source = range.source;
+        let contents = source.contents;
+
+        node.floatValue = parseFloat(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;
     }

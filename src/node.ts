@@ -195,13 +195,48 @@ export class Node {
     lastChild: Node;
     previousSibling: Node;
     nextSibling: Node;
-    intValue: int32;
-    floatValue: float32;
-    stringValue: string;
     resolvedType: Type;
     symbol: Symbol;
     scope: Scope;
     offset: int32;
+
+    private _rawValue: any;
+    private _hasValue: boolean;
+
+    get hasValue(): boolean {
+        return this._hasValue;
+    }
+
+    get rawValue(): any {
+        return typeof this._rawValue === "string"? `"${this._rawValue}"`:this._rawValue;
+    }
+
+    get intValue(): int32 {
+        return this._rawValue;
+    }
+
+    set intValue(newValue: int32) {
+        this._hasValue = true;
+        this._rawValue = newValue;
+    }
+
+    get floatValue(): float32 {
+        return this._rawValue;
+    }
+
+    set floatValue(newValue: float32) {
+        this._hasValue = true;
+        this._rawValue = newValue;
+    }
+
+    get stringValue(): string {
+        return this._rawValue;
+    }
+
+    set stringValue(newValue: string) {
+        this._hasValue = true;
+        this._rawValue = newValue;
+    }
 
     become(node: Node): void {
         assert(node != this);

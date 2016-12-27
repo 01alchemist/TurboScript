@@ -594,6 +594,9 @@ export class TurboJsResult {
                     needComma = false;
                 }
                 this.emitSymbolName(child.symbol);
+                if(child.firstChild != child.lastChild && child.lastChild.hasValue){
+                    this.code.append(` = ${child.lastChild.rawValue}`);
+                }
                 signature += child.symbol.name;
                 child = child.nextSibling;
                 if (child != returnType) {

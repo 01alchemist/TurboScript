@@ -1,7 +1,6 @@
 (function(__declare, __exports) {
-    __exports = __exports.turbo;
     class Vector3 {
-        constructor(x, y, z) {
+        constructor(x = 0, y = 0, z = 0) {
             this.y = y;
             this.x = x;
             this.z = z;
@@ -37,7 +36,7 @@
     Vec3.BASE = "Base";
     unsafe._idToType[Vec3.CLSID] = Vec3;
     
-    Vec3.new = function(x, y, z) {
+    Vec3.new = function(x = 0, y = 0, z = 0) {
         let ptr = unsafe.alloc(Vec3.SIZE, Vec3.ALIGN);
         unsafe._mem_i32[ptr >> 2] = Vec3.CLSID;
         Vec3.init_mem(ptr, x, y, z);
@@ -139,6 +138,6 @@
     };
 }(
     typeof global !== 'undefined' ? global : this,
-    typeof exports !== 'undefined' ? exports : this
+    typeof exports !== 'undefined' ? exports : turbo
 ));
     

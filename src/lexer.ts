@@ -242,11 +242,12 @@ export function isNumber(c: string): boolean {
     return c >= '0' && c <= '9';
 }
 
-export function isDigit(c: string, base: byte): boolean {
+export function isDigit(c: any, base: byte): boolean {
     if (base == 16) {
         return isNumber(c) || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f';
     }
-    return c >= '0' && c < '0' + base;
+    //return c >= '0' && c < '0' + base;
+    return !isNaN(c);
 }
 
 export function tokenize(source: Source, log: Log): Token {
@@ -350,9 +351,12 @@ export function tokenize(source: Source, log: Log): Token {
             }
         }
 
-        // Integer
+        // Integer or Float
         else if (isNumber(c)) {
-            kind = TokenKind.INT32;
+
+            let isFloat: boolean = false;
+
+            //kind = TokenKind.INT32;
 
             if (i < limit) {
                 var next = contents[i];
@@ -369,10 +373,16 @@ export function tokenize(source: Source, log: Log): Token {
                     }
                 }
 
+                let floatFound:boolean = false;
                 // Scan the payload
-                while (i < limit && isDigit(contents[i], base)) {
+                while (i < limit && (isDigit(contents[i], base) || (floatFound = contents[i] === "."))) {
                     i = i + 1;
+                    if(floatFound){
+                        isFloat = true;
+                    }
                 }
+
+                kind = isFloat ? TokenKind.FLOAT32 : TokenKind.INT32;
 
                 // Extra letters after the end is an error
                 if (i < limit && (isAlpha(contents[i]) || isNumber(contents[i]))) {
@@ -383,7 +393,7 @@ export function tokenize(source: Source, log: Log): Token {
                     }
 
                     log.error(createRange(source, start, i), StringBuilder_new()
-                        .append("Invalid integer literal: '")
+                        .append(`Invalid ${isFloat ? "float" : "integer"} literal: '`)
                         .appendSlice(contents, start, i)
                         .appendChar('\'')
                         .finish());

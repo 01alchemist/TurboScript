@@ -932,6 +932,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         node.resolvedType = node.intValue < 0 && !node.isPositive() ? context.uint32Type : context.int32Type;
     }
 
+    else if (kind == NodeKind.FLOAT32) {
+        // Use the positive flag to differentiate between -2147483648 and 2147483648
+        node.resolvedType = context.float32Type;
+    }
+
     else if (kind == NodeKind.STRING) {
         node.resolvedType = context.stringType;
     }

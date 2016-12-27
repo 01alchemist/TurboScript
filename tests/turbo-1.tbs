@@ -6,7 +6,7 @@ export class Vector3{
     y: float32;
     z: float32;
 
-    constructor(x: float32, y:float32, z:float32): void {
+    constructor(x: float32 = 0, y:float32 = 0, z:float32 = 0): void {
         this.y = y;
         this.x = x;
         this.z = z;
@@ -37,7 +37,7 @@ export class Vec3 extends Base{
     y: float32;
     z: float32;
 
-    constructor(x: float32, y:float32, z:float32): void {
+    constructor(x: float32 = 0, y:float32 = 0, z:float32 = 0): void {
         this.x = x;
         this.y = y;
         this.z = z;
