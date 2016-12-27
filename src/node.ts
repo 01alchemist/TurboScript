@@ -12,6 +12,7 @@ export enum NodeKind {
     EXTENDS,
     FILE,
     GLOBAL,
+    NAMESPACE,
     IMPLEMENTS,
     PARAMETER,
     PARAMETERS,
@@ -835,6 +836,13 @@ export function createExpression(value: Node): Node {
 export function createBlock(): Node {
     var node = new Node();
     node.kind = NodeKind.BLOCK;
+    return node;
+}
+
+export function createNamespace(name: string): Node {
+    var node = new Node();
+    node.kind = NodeKind.NAMESPACE;
+    node.stringValue = name;
     return node;
 }
 

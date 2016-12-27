@@ -14,7 +14,7 @@ import {Compiler} from "./compiler";
 //   CAST_TO_INT,
 // }
 
-let turboJsOptimiztion: uint32 = 0;
+let turboJsOptimiztion: uint8 = 0;
 let classMap: Map<string, any> = new Map<string, any>();
 let virtualMap: Map<string, any> = new Map<string, any>();
 let currentClass: string;
@@ -1021,7 +1021,7 @@ export function turboJsEmit(compiler: Compiler): void {
     code.emitIndent(1);
     // code.append("let turbo = {};\n");
     // code.append("__exports.turbo = turbo;\n");
-    code.append("__exports = __exports.turbo;\n");
+    //code.append("__exports = __exports.turbo;\n");
     result.emitStatements(compiler.global.firstChild);
     result.emitVirtuals();
     if (result.foundMultiply) {
@@ -1034,7 +1034,7 @@ export function turboJsEmit(compiler: Compiler): void {
     code.clearIndent(1);
     code.append("}(\n");
     code.append("typeof global !== 'undefined' ? global : this,\n");
-    code.append("typeof exports !== 'undefined' ? exports : this\n");
+    code.append("typeof exports !== 'undefined' ? exports : turbo\n");
     code.clearIndent(1);
     code.append("));\n");
 

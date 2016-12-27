@@ -9,7 +9,7 @@ import {
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL
+    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createNamespace
 } from "./node";
 
 export enum Precedence {
@@ -688,6 +688,28 @@ class ParserContext {
         }
 
         return node.withRange(spanRanges(open.range, close.range));
+    }
+
+    parseNamespace(firstFlag: NodeFlag): Node {
+        var token = this.current;
+        assert(token.kind == TokenKind.NAMESPACE);
+        this.advance();
+
+        var name = this.current;
+        if (!this.expect(TokenKind.IDENTIFIER)) {
+            return null;
+        }
+
+        var node = createNamespace(name.range.toString());
+        node.firstFlag = firstFlag;
+        node.flags = allFlags(firstFlag);
+
+        var close = this.current;
+        if (!this.expect(TokenKind.RIGHT_BRACE)) {
+            return null;
+        }
+
+        return node.withRange(spanRanges(token.range, close.range)).withInternalRange(name.range);
     }
 
     parseClass(firstFlag: NodeFlag): Node {
@@ -1376,6 +1398,7 @@ class ParserContext {
         if (this.peek(TokenKind.CONST) || this.peek(TokenKind.LET) || this.peek(TokenKind.VAR)) return this.parseVariables(firstFlag, null);
         if (this.peek(TokenKind.FUNCTION)) return this.parseFunction(firstFlag, null);
         if (this.peek(TokenKind.VIRTUAL)) return this.parseVirtual(firstFlag);
+        if (this.peek(TokenKind.NAMESPACE)) return this.parseNamespace(firstFlag);
         if (this.peek(TokenKind.CLASS)) return this.parseClass(firstFlag);
         if (this.peek(TokenKind.INTERFACE)) return this.parseInterface(firstFlag);
         if (this.peek(TokenKind.ENUM)) return this.parseEnum(firstFlag);

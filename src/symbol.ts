@@ -8,6 +8,7 @@ import {alignToNextMultipleOf} from "./imports";
 export enum SymbolKind {
     TYPE_INTERFACE,
     TYPE_CLASS,
+    TYPE_NAMESPACE,
     TYPE_ENUM,
     TYPE_GLOBAL,
     TYPE_NATIVE,

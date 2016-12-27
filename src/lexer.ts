@@ -55,6 +55,7 @@ export enum TokenKind {
     ALIGNOF,
     AS,
     BREAK,
+    NAMESPACE,
     CLASS,
     CONST,
     CONTINUE,
@@ -179,6 +180,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.ALIGNOF) return "'alignof'";
     if (token == TokenKind.AS) return "'as'";
     if (token == TokenKind.BREAK) return "'break'";
+    if (token == TokenKind.NAMESPACE) return "'namespace'";
     if (token == TokenKind.CLASS) return "'class'";
     if (token == TokenKind.CONST) return "'const'";
     if (token == TokenKind.CONTINUE) return "'continue'";
