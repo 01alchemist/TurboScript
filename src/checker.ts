@@ -260,7 +260,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
     var node = symbol.node;
     // forbidFlag(context, node, NODE_FLAG_EXPORT, "Unsupported flag 'export'");
     forbidFlag(context, node, NODE_FLAG_PROTECTED, "Unsupported flag 'protected'");
-    forbidFlag(context, node, NODE_FLAG_STATIC, "Unsupported flag 'static'");
+    //forbidFlag(context, node, NODE_FLAG_STATIC, "Unsupported flag 'static'");
 
     // Class
     if (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE) {
@@ -1086,7 +1086,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         resolve(context, target, parentScope);
 
         if (target.resolvedType != context.errorType) {
-            if (target.isType() && target.resolvedType.isEnum() ||
+            if (target.isType() && (target.resolvedType.isEnum() || target.resolvedType.hasInstanceMembers())||
                 !target.isType() && target.resolvedType.hasInstanceMembers()) {
                 var name = node.stringValue;
 
@@ -1373,7 +1373,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
         // TODO: Constructors
         if (type.nextSibling != null) {
-            context.log.error(node.internalRange, "Constructors with arguments are not supported yet");
+            //context.log.error(node.internalRange, "Constructors with arguments are not supported yet");
         }
     }
 
@@ -1460,6 +1460,21 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 if (kind == NodeKind.COMPLEMENT) output = ~input;
                 else if (kind == NodeKind.NEGATIVE) output = -input;
                 node.becomeIntegerConstant(output);
+            }
+        }
+
+        // Special-case integer types
+        else if (value.resolvedType.isFloat()) {
+
+            node.resolvedType = context.float32Type;
+
+            // Automatically fold constants
+            if (value.kind == NodeKind.FLOAT32) {
+                var input = value.intValue;
+                var output = input;
+                if (kind == NodeKind.COMPLEMENT) output = ~input;
+                else if (kind == NodeKind.NEGATIVE) output = -input;
+                node.becomeFloatConstant(output);
             }
         }
 

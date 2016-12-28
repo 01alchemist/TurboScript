@@ -9,11 +9,6 @@ import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
 import {SymbolKind, Symbol} from "./symbol";
 import {Compiler} from "./compiler";
 
-// enum EmitBinary {
-//   NORMAL,
-//   CAST_TO_INT,
-// }
-
 let turboJsOptimiztion: uint8 = 0;
 let classMap: Map<string, any> = new Map<string, any>();
 let virtualMap: Map<string, any> = new Map<string, any>();
@@ -62,7 +57,7 @@ export class TurboJsResult {
 
     emitUnary(node: Node, parentPrecedence: Precedence, operator: string): void {
         let isPostfix = isUnaryPostfix(node.kind);
-        let shouldCastToInt = node.kind == NodeKind.NEGATIVE && !jsKindCastsOperandsToInt(node.parent.kind);
+        let shouldCastToInt = !node.resolvedType.isFloat() && node.kind == NodeKind.NEGATIVE && !jsKindCastsOperandsToInt(node.parent.kind);
         let isUnsigned = node.isUnsignedOperator();
         let operatorPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : isPostfix ? Precedence.UNARY_POSTFIX : Precedence.UNARY_PREFIX;
 
@@ -271,8 +266,14 @@ export class TurboJsResult {
 
         else if (node.kind == NodeKind.DOT) {
             let dotTarget = node.dotTarget();
-            let targetSymbolName: string = dotTarget.symbol.name;
             let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
+            let targetSymbolName: string;
+
+            if (dotTarget.symbol) {
+                targetSymbolName = dotTarget.symbol.name;
+            } else {
+                targetSymbolName = "(::unknown::)";
+            }
 
             let resolvedNode = null;
 
@@ -284,8 +285,9 @@ export class TurboJsResult {
 
             if (resolvedTargetNode.isDeclareOrTurbo()) {
 
+                let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
+
                 if (node.symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
-                    let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
                     let memory: string = classMap.get(currentClass).members[node.symbol.name].memory;
                     let offset: number = classMap.get(currentClass).members[node.symbol.name].offset;
                     let shift: number = classMap.get(currentClass).members[node.symbol.name].shift;
@@ -302,7 +304,8 @@ export class TurboJsResult {
                 }
 
                 else if (node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
-                    this.emitExpression(dotTarget, Precedence.MEMBER);
+                    turboTargetPointer = ref;
+                    this.code.append(resolvedTargetNode.stringValue);
                     this.code.append(".");
                     this.emitSymbolName(node.symbol);
                 }
@@ -358,7 +361,7 @@ export class TurboJsResult {
                     let needComma = false;
                     if (node.firstChild) {
                         let firstNode = node.firstChild.resolvedType.symbol.node;
-                        if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo()) {
+                        if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo() && turboTargetPointer) {
                             this.code.append(`${turboTargetPointer}`);
                             needComma = true;
                         }
@@ -371,15 +374,28 @@ export class TurboJsResult {
 
         else if (node.kind == NodeKind.NEW) {
             let resolvedNode = node.resolvedType.symbol.node;
+            let type = node.newType();
             if (resolvedNode.isDeclareOrTurbo()) {
-                this.emitExpression(node.newType(), Precedence.UNARY_POSTFIX);
+                this.emitExpression(type, Precedence.UNARY_POSTFIX);
                 this.code.append(".new");
-                this.code.append("()");
             } else {
                 this.code.append("new ");
-                this.emitExpression(node.newType(), Precedence.UNARY_POSTFIX);
-                this.code.append("()");
+                this.emitExpression(type, Precedence.UNARY_POSTFIX);
             }
+
+            this.code.append("(");
+            let valueNode = type.nextSibling;
+            while (valueNode) {
+                this.code.append(`${valueNode.rawValue}`);
+
+                if (valueNode.nextSibling) {
+                    this.code.append(",");
+                    valueNode = valueNode.nextSibling;
+                } else {
+                    valueNode = null;
+                }
+            }
+            this.code.append(")");
 
         }
 
@@ -413,23 +429,63 @@ export class TurboJsResult {
                 node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
             );
         }
-        else if (node.kind == NodeKind.ASSIGN) this.emitBinary(node, parentPrecedence, " = ", Precedence.ASSIGN, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.BITWISE_AND) this.emitBinary(node, parentPrecedence, " & ", Precedence.BITWISE_AND, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.BITWISE_OR) this.emitBinary(node, parentPrecedence, " | ", Precedence.BITWISE_OR, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.BITWISE_XOR) this.emitBinary(node, parentPrecedence, " ^ ", Precedence.BITWISE_XOR, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.DIVIDE) this.emitBinary(node, parentPrecedence, " / ", Precedence.MULTIPLY, EmitBinary.CAST_TO_INT);
-        else if (node.kind == NodeKind.EQUAL) this.emitBinary(node, parentPrecedence, " === ", Precedence.EQUAL, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.GREATER_THAN) this.emitBinary(node, parentPrecedence, " > ", Precedence.COMPARE, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.GREATER_THAN_EQUAL) this.emitBinary(node, parentPrecedence, " >= ", Precedence.COMPARE, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.LESS_THAN) this.emitBinary(node, parentPrecedence, " < ", Precedence.COMPARE, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.LESS_THAN_EQUAL) this.emitBinary(node, parentPrecedence, " <= ", Precedence.COMPARE, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.LOGICAL_AND) this.emitBinary(node, parentPrecedence, " && ", Precedence.LOGICAL_AND, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.LOGICAL_OR) this.emitBinary(node, parentPrecedence, " || ", Precedence.LOGICAL_OR, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.NOT_EQUAL) this.emitBinary(node, parentPrecedence, " !== ", Precedence.EQUAL, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.REMAINDER) this.emitBinary(node, parentPrecedence, " % ", Precedence.MULTIPLY, EmitBinary.CAST_TO_INT);
-        else if (node.kind == NodeKind.SHIFT_LEFT) this.emitBinary(node, parentPrecedence, " << ", Precedence.SHIFT, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.SHIFT_RIGHT) this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", Precedence.SHIFT, EmitBinary.NORMAL);
-        else if (node.kind == NodeKind.SUBTRACT) this.emitBinary(node, parentPrecedence, " - ", Precedence.ADD, EmitBinary.CAST_TO_INT);
+        else if (node.kind == NodeKind.ASSIGN) {
+            this.emitBinary(node, parentPrecedence, " = ", Precedence.ASSIGN, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.BITWISE_AND) {
+            this.emitBinary(node, parentPrecedence, " & ", Precedence.BITWISE_AND, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.BITWISE_OR) {
+            this.emitBinary(node, parentPrecedence, " | ", Precedence.BITWISE_OR, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.BITWISE_XOR) {
+            this.emitBinary(node, parentPrecedence, " ^ ", Precedence.BITWISE_XOR, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.DIVIDE) {
+            this.emitBinary(node, parentPrecedence, " / ", Precedence.MULTIPLY,
+                node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
+            );
+        }
+        else if (node.kind == NodeKind.EQUAL) {
+            this.emitBinary(node, parentPrecedence, " === ", Precedence.EQUAL, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.GREATER_THAN) {
+            this.emitBinary(node, parentPrecedence, " > ", Precedence.COMPARE, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.GREATER_THAN_EQUAL) {
+            this.emitBinary(node, parentPrecedence, " >= ", Precedence.COMPARE, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.LESS_THAN) {
+            this.emitBinary(node, parentPrecedence, " < ", Precedence.COMPARE, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.LESS_THAN_EQUAL) {
+            this.emitBinary(node, parentPrecedence, " <= ", Precedence.COMPARE, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.LOGICAL_AND) {
+            this.emitBinary(node, parentPrecedence, " && ", Precedence.LOGICAL_AND, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.LOGICAL_OR) {
+            this.emitBinary(node, parentPrecedence, " || ", Precedence.LOGICAL_OR, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.NOT_EQUAL) {
+            this.emitBinary(node, parentPrecedence, " !== ", Precedence.EQUAL, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.REMAINDER) {
+            this.emitBinary(node, parentPrecedence, " % ", Precedence.MULTIPLY,
+                node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
+            );
+        }
+        else if (node.kind == NodeKind.SHIFT_LEFT) {
+            this.emitBinary(node, parentPrecedence, " << ", Precedence.SHIFT, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.SHIFT_RIGHT) {
+            this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", Precedence.SHIFT, EmitBinary.NORMAL);
+        }
+        else if (node.kind == NodeKind.SUBTRACT) {
+            this.emitBinary(node, parentPrecedence, " - ", Precedence.ADD,
+                node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
+            );
+        }
 
         else if (node.kind == NodeKind.MULTIPLY) {
             let left = node.binaryLeft();
@@ -440,20 +496,28 @@ export class TurboJsResult {
                 this.code.append("(");
             }
 
-            this.code.append("__imul(");
-            this.emitExpression(left, Precedence.LOWEST);
-            this.code.append(", ");
-            this.emitExpression(right, Precedence.LOWEST);
-            this.code.append(")");
+            if(left.intValue && right.intValue){
+                this.code.append("__imul(");
+                this.emitExpression(left, Precedence.LOWEST);
+                this.code.append(", ");
+                this.emitExpression(right, Precedence.LOWEST);
+                this.code.append(")");
+
+                if (isUnsigned) {
+                    this.code.append(" >>> 0");
+
+                    if (parentPrecedence > Precedence.SHIFT) {
+                        this.code.append(")");
+                    }
+                }
+
+            }else{
+                this.emitExpression(left, Precedence.LOWEST);
+                this.code.append(" * ");
+                this.emitExpression(right, Precedence.LOWEST);
+            }
             this.foundMultiply = true;
 
-            if (isUnsigned) {
-                this.code.append(" >>> 0");
-
-                if (parentPrecedence > Precedence.SHIFT) {
-                    this.code.append(")");
-                }
-            }
         }
 
         else {
@@ -553,6 +617,9 @@ export class TurboJsResult {
                         this.code.append(" = function");
                         needsSemicolon = true;
                     } else {
+                        if (node.isStatic()) {
+                            this.code.append("static ");
+                        }
                         this.emitSymbolName(symbol);
                     }
                 }
@@ -561,9 +628,8 @@ export class TurboJsResult {
             else if (node.isExport()) {
                 this.code.append("let ");
                 this.emitSymbolName(symbol);
-                this.code.append(" = __exports.");
+                this.code.append(" = function ");
                 this.emitSymbolName(symbol);
-                this.code.append(" = function");
                 needsSemicolon = true;
             }
 
@@ -579,7 +645,7 @@ export class TurboJsResult {
             let needComma = false;
             let signature = "";
 
-            if (!isConstructor && isTurbo) {
+            if (!isConstructor && isTurbo && !node.isStatic()) {
                 this.code.append("ptr");
                 signature += "ptr";
                 needComma = true;
@@ -594,7 +660,7 @@ export class TurboJsResult {
                     needComma = false;
                 }
                 this.emitSymbolName(child.symbol);
-                if(child.firstChild != child.lastChild && child.lastChild.hasValue){
+                if (child.firstChild != child.lastChild && child.lastChild.hasValue) {
                     this.code.append(` = ${child.lastChild.rawValue}`);
                 }
                 signature += child.symbol.name;
@@ -607,7 +673,8 @@ export class TurboJsResult {
 
             this.code.append(") ");
 
-            let parentName: string = symbol.parent().name;
+            let parent = symbol.parent();
+            let parentName: string = parent? parent.name : "";
             let classDef = classMap.get(parentName);
 
             if (isConstructor && isTurbo) {
@@ -642,6 +709,15 @@ export class TurboJsResult {
             }
 
             this.code.append(needsSemicolon ? ";\n" : "\n");
+
+            if(node.isExport()){
+                this.code.append("__exports.");
+                this.emitSymbolName(symbol);
+                this.code.append(" = ");
+                this.emitSymbolName(symbol);
+                this.code.append(";\n");
+            }
+
             this.emitNewlineAfter(node);
         }
 

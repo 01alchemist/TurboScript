@@ -1,0 +1,70 @@
+export class Vector3{
+    x: float32;
+    y: float32;
+    z: float32;
+
+    constructor(x: float32 = 0, y:float32 = 0, z:float32 = 0): void {
+        this.y = y;
+        this.x = x;
+        this.z = z;
+    }
+
+    // add(b:Vector3):Vector3{
+    //     let a:float32 = 0.0;
+    //     let c = new Vector3(a,a,a);
+    //     c.x = this.x + b.x;
+    //     c.y = this.y + b.y;
+    //     c.z = this.z + b.z;
+    //     return c;
+    // }
+    //
+    // toString():string {
+    //     let x = this.x;
+    //     let y = this.y;
+    //     return `{"x":${x},"y":${y}}`;
+    // }
+}
+
+@unsafe
+export class Vec3{
+
+    x: float32;
+    y: float32;
+    z: float32;
+
+    constructor(x: float32 = 0, y:float32 = 0, z:float32 = 0): void {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    add(b:Vec3):Vector3 {
+        let c = new Vector3();
+        c.x = this.x + b.x;
+        c.y = this.y + b.y;
+        c.z = this.z + b.z;
+        return c;
+    }
+
+    // add_vector3(b:Vector3):Vector3 {
+    //     let c = new Vector3();
+    //     c.x = this.x + b.x;
+    //     c.y = this.y + b.y;
+    //     c.z = this.z + b.z;
+    //     return c;
+    // }
+
+    toString():string {
+        let x = this.x;
+        let y = this.y;
+        return `{"x":${x},"y":${y}}`;
+    }
+}
+
+export function main():void {
+
+    let v1 = new Vec3();
+    let v2 = new Vec3();
+    let v3 = new Vector3();
+    let v4 = v1.add(v2);
+}

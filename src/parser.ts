@@ -1485,10 +1485,10 @@ class ParserContext {
             var baseValue = Math.imul(value, base) >>> 0;
 
             // Check for overflow (unsigned integer overflow supposedly doesn't result in undefined behavior)
-            if (baseValue / base >>> 0 !== value || baseValue > 4294967295 - digit >>> 0) {
-                this.log.error(range, "Integer literal is too big to fit in 32 bits");
-                return false;
-            }
+            // if (baseValue / base >>> 0 !== value || baseValue > 4294967295 - digit >>> 0) {
+            //     this.log.error(range, "Integer literal is too big to fit in 32 bits");
+            //     return false;
+            // }
 
             value = baseValue + digit;
             i = i + 1;

@@ -1,0 +1,401 @@
+declare function log(v: string): void;
+declare class Vector3 {
+    x: float32;
+    y: float32;
+    z: float32;
+
+    add(b: Vector3): Vector3;
+
+    sub(b: Vector3): Vector3;
+
+    mul(b: Vector3): Vector3;
+
+    div(b: Vector3): Vector3;
+
+    addScalar(f: float32): Vector3;
+
+    subScalar(f: float32): Vector3;
+
+    mulScalar(f: float32): Vector3;
+
+    divScalar(f: float32): Vector3;
+}
+declare class Math {
+    static random(): float32;
+
+    static sqrt(value: float32): float32;
+
+    static abs(value: float32): float32;
+
+    static floor(value: float32): float32;
+
+    static min(a: float32, b: float32): float32;
+
+    static max(a: float32, b: float32): float32;
+
+    static pow(value: float32, factor: float32): float32;
+}
+@unsafe
+export class Vec3 {
+
+    x: float32;
+    y: float32;
+    z: float32;
+
+    constructor(x: float32 = 0.0, y: float32 = 0.0, z: float32 = 0.0): void {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    toString(): string {
+        let x = this.x;
+        let y = this.y;
+        let z = this.z;
+        return `{ x:${x}, y:${y}, z:${z} }`;
+    }
+
+    length(): float32 {
+        return Math.sqrt((this.x * this.x) + (this.y * this.y) + (this.z * this.z));
+    }
+
+    static lengthN(a: Vec3, n: float32): float32 {
+        if (n == 2.0) {
+            return a.length();
+        }
+        a.abs(a);
+        return Math.pow(
+            Math.pow(a.x, n) + Math.pow(a.y, n) + Math.pow(a.z, n),
+            1.0 / n
+        );
+    }
+
+    dot(b: Vec3): float32 {
+        return (this.x * b.x) + (this.y * b.y) + (this.z * b.z);
+    }
+
+    dot_vector3(b: Vector3): float32 {
+        return (this.x * b.x) + (this.y * b.y) + (this.z * b.z);
+    }
+
+    cross(b: Vec3): Vec3 {
+        let x: float32 = (this.y * b.z) - (this.z * b.y);
+        let y: float32 = (this.z * b.x) - (this.x * b.z);
+        let z: float32 = (this.x * b.y) - (this.y * b.x);
+        return new Vec3(x, y, z);
+    }
+
+    normalize(c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        let d: float32 = this.length();
+        c.x = this.x / d;
+        c.y = this.y / d;
+        c.z = this.z / d;
+        return c;
+    }
+
+    negate(c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = -this.x;
+        c.y = -this.y;
+        c.z = -this.z;
+        return c;
+    }
+
+    abs(c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = Math.abs(this.x);
+        c.y = Math.abs(this.y);
+        c.z = Math.abs(this.z);
+        return c;
+    }
+
+    add(b: Vec3, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x + b.x;
+        c.y = this.y + b.y;
+        c.z = this.z + b.z;
+        return c;
+    }
+
+    add_vector3(b: Vector3): Vector3 {
+        let c = new Vector3();
+        c.x = this.x + b.x;
+        c.y = this.y + b.y;
+        c.z = this.z + b.z;
+        return c;
+    }
+
+    addScalar(f: float32, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x + f;
+        c.y = this.y + f;
+        c.z = this.z + f;
+        return c;
+    }
+
+    addScalar_vector3(f: float32): Vector3 {
+        let c = new Vector3();
+        c.x = this.x + f;
+        c.y = this.y + f;
+        c.z = this.z + f;
+        return c;
+    }
+
+    sub(b: Vec3, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x - b.x;
+        c.y = this.y - b.y;
+        c.z = this.z - b.z;
+        return c;
+    }
+
+    sub_vector3(b: Vector3): Vector3 {
+        let c = new Vector3();
+        c.x = this.x - b.x;
+        c.y = this.y - b.y;
+        c.z = this.z - b.z;
+        return c;
+    }
+
+    subScalar(f: float32, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x - f;
+        c.y = this.y - f;
+        c.z = this.z - f;
+        return c;
+    }
+
+    subScalar_vector3(f: float32): Vector3 {
+        let c = new Vector3();
+        c.x = this.x - f;
+        c.y = this.y - f;
+        c.z = this.z - f;
+        return c;
+    }
+
+    mul(b: Vec3, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x * b.x;
+        c.y = this.y * b.y;
+        c.z = this.z * b.z;
+        return c;
+    }
+
+    mul_vector3(b: Vector3): Vector3 {
+        let c = new Vector3();
+        c.x = this.x * b.x;
+        c.y = this.y * b.y;
+        c.z = this.z * b.z;
+        return c;
+    }
+
+    mulScalar(f: float32, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x * f;
+        c.y = this.y * f;
+        c.z = this.z * f;
+        return c;
+    }
+
+    mulScalar_vector3(f: float32): Vector3 {
+        let c = new Vector3();
+        c.x = this.x * f;
+        c.y = this.y * f;
+        c.z = this.z * f;
+        return c;
+    }
+
+    div(b: Vec3, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x / b.x;
+        c.y = this.y / b.y;
+        c.z = this.z / b.z;
+        return c;
+    }
+
+    div_vector3(b: Vector3): Vector3 {
+        let c = new Vector3();
+        c.x = this.x / b.x;
+        c.y = this.y / b.y;
+        c.z = this.z / b.z;
+        return c;
+    }
+
+    divScalar(f: float32, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x / f;
+        c.y = this.y / f;
+        c.z = this.z / f;
+        return c;
+    }
+
+    divScalar_vector3(f: float32): Vector3 {
+        let c = new Vector3();
+        c.x = this.x / f;
+        c.y = this.y / f;
+        c.z = this.z / f;
+        return c;
+    }
+
+    mod(b: Vec3, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x - b.x * Math.floor(this.x / b.x);
+        c.y = this.y - b.y * Math.floor(this.y / b.y);
+        c.z = this.z - b.z * Math.floor(this.z / b.z);
+        return c;
+    }
+
+    mod_vector3(b: Vector3): Vector3 {
+        let c = new Vector3();
+        c.x = this.x - b.x * Math.floor(this.x / b.x);
+        c.y = this.y - b.y * Math.floor(this.y / b.y);
+        c.z = this.z - b.z * Math.floor(this.z / b.z);
+        return c;
+    }
+
+    min(b: Vec3, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = Math.min(this.x, b.x);
+        c.y = Math.min(this.y, b.y);
+        c.z = Math.min(this.z, b.z);
+        return c;
+    }
+
+    max(b: Vec3, c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = Math.max(this.x, b.x);
+        c.y = Math.max(this.y, b.y);
+        c.z = Math.max(this.z, b.z);
+        return c;
+    }
+
+    minAxis(c: Vec3 = null): Vec3 {
+        c = c != null ? c : new Vec3();
+        let x: float32 = Math.abs(this.x);
+        let y: float32 = Math.abs(this.y);
+        let z: float32 = Math.abs(this.z);
+
+        if (x <= y && x <= z) {
+            c.x = 1.0;
+            c.y = 0.0;
+            c.z = 0.0;
+        } else if (y <= x && y <= z) {
+            c.x = 0.0;
+            c.y = 1.0;
+            c.x = 0.0;
+        }
+        c.x = 0.0;
+        c.y = 0.0;
+        c.x = 1.0;
+        return c;
+    }
+
+    minComponent(): float32 {
+        return Math.min(Math.min(this.x, this.y), this.z);
+    }
+
+    maxComponent(): float32 {
+        return Math.max(Math.max(this.x, this.y), this.z);
+    }
+
+    reflect(b: Vector3): Vector3 {
+        return b.sub(this.mulScalar_vector3(2.0 * this.dot_vector3(b)));
+    }
+
+    refract(b: Vector3, n1: float32, n2: float32): Vector3 {
+        let nr: float32 = n1 / n2;
+        let cosI: float32 = -this.dot_vector3(b);
+        let sinT2: float32 = nr * nr * (1.0 - cosI * cosI);
+        if (sinT2 > 1.0) {
+            return new Vector3(0.0, 0.0, 0.0);
+        }
+        let cosT: float32 = Math.sqrt(1.0 - sinT2);
+        return b.mulScalar(nr).add(this.mulScalar_vector3(nr * cosI - cosT));
+    }
+
+    reflectance(b: Vector3, n1: float32, n2: float32): float32 {
+        let nr: float32 = n1 / n2;
+        let cosI: float32 = -this.dot_vector3(b);
+        let sinT2: float32 = nr * nr * (1.0 - cosI * cosI);
+        if (sinT2 > 1.0) {
+            return 1.0;
+        }
+        let cosT: float32 = Math.sqrt(1.0 - sinT2);
+        let rOrth: float32 = (n1 * cosI - n2 * cosT) / (n1 * cosI + n2 * cosT);
+        let rPar: float32 = (n2 * cosI - n1 * cosT) / (n2 * cosI + n1 * cosT);
+        return (rOrth * rOrth + rPar * rPar) / 2.0;
+    }
+
+    //--------------------------------
+    // x x x x x x x x x x x x x x x x
+    //--------------------------------
+
+
+    pow(f: float32): Vector3 {
+        return new Vector3(Math.pow(this.x, f), Math.pow(this.y, f), Math.pow(this.z, f));
+    }
+
+    isEqual(b: Vec3): boolean {
+        return this.x == b.x && this.y == b.y && this.z == b.z;
+    }
+
+    static ZERO: Vec3 = new Vec3();
+    static ONE: Vec3 = new Vec3(1.0, 1.0, 1.0);
+    static NegativeONE: Vec3 = new Vec3(-1.0, -1.0, -1.0);
+
+    isZero(): boolean {
+        return this.x == 0.0 && this.y == 0.0 && this.z == 0.0;
+    }
+
+    set(x: float32, y: float32, z: float32): Vec3 {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+    }
+
+    setFromJSON(json: Vec3): Vec3 {
+        this.x = json.x;
+        this.y = json.y;
+        this.z = json.z;
+        return this;
+    }
+
+    /*setFromArray(d: float32[]):Vec3 {
+     this.x = d[0];
+     this.y = d[1];
+     this.z = d[2];
+     return this;
+     }*/
+
+    copy(b: Vec3): Vec3 {
+        this.x = b.x;
+        this.y = b.y;
+        this.z = b.z;
+        return this;
+    }
+
+    clone(c: Vec3): Vec3 {
+        c = c != null ? c : new Vec3();
+        c.x = this.x;
+        c.y = this.y;
+        c.z = this.z;
+        return this;
+    }
+
+    static randomUnitVec3(): Vec3 {
+
+        let x: float32 = Math.random() * 2.0 - 1.0;
+        let y: float32 = Math.random() * 2.0 - 1.0;
+        let z: float32 = Math.random() * 2.0 - 1.0;
+
+        while (x * x + y * y + z * z > 1.0) {
+            x = Math.random() * 2.0 - 1.0;
+            y = Math.random() * 2.0 - 1.0;
+            z = Math.random() * 2.0 - 1.0;
+        }
+        let v: Vec3 = new Vec3(x, y, z);
+        return v.normalize(v);
+    }
+}

@@ -7,7 +7,8 @@
         }
         
         add(b) {
-            let c = new Vector3();
+            let a = 0;
+            let c = new Vector3(a,a,a);
             c.x = this.x + b.x;
             c.y = this.y + b.y;
             c.z = this.z + b.z;

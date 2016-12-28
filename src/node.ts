@@ -202,17 +202,26 @@ export class Node {
 
     private _rawValue: any;
     private _hasValue: boolean;
+    private _hasStringValue: boolean;
 
     get hasValue(): boolean {
         return this._hasValue;
     }
 
     get rawValue(): any {
-        return typeof this._rawValue === "string"? `"${this._rawValue}"`:this._rawValue;
+        if(this._hasStringValue){
+            return `"${this._rawValue}"`;
+        }else{
+            return this._rawValue;
+        }
     }
 
     get intValue(): int32 {
-        return this._rawValue;
+        let n = this._rawValue;
+        if(Number(n) === n && n % 1 === 0){
+            return this._rawValue;
+        }
+        return null;
     }
 
     set intValue(newValue: int32) {
@@ -234,6 +243,16 @@ export class Node {
     }
 
     set stringValue(newValue: string) {
+        this._hasValue = true;
+        this._hasStringValue = true;
+        this._rawValue = newValue;
+    }
+
+    get referenceValue(): string {
+        return this._rawValue;
+    }
+
+    set referenceValue(newValue: string) {
         this._hasValue = true;
         this._rawValue = newValue;
     }
@@ -257,7 +276,7 @@ export class Node {
     becomeSymbolReference(symbol: Symbol): void {
         this.kind = NodeKind.NAME;
         this.symbol = symbol;
-        this.stringValue = symbol.name;
+        this.referenceValue = symbol.name;
         this.resolvedType = symbol.resolvedType;
         this.removeChildren();
     }
@@ -266,6 +285,13 @@ export class Node {
         this.kind = NodeKind.INT32;
         this.symbol = null;
         this.intValue = value;
+        this.removeChildren();
+    }
+
+    becomeFloatConstant(value: float32): void {
+        this.kind = NodeKind.FLOAT32;
+        this.symbol = null;
+        this.floatValue = value;
         this.removeChildren();
     }
 
@@ -302,6 +328,10 @@ export class Node {
 
     isTurbo(): boolean {
         return (this.flags & NODE_FLAG_UNSAFE_TURBO) != 0;
+    }
+
+    isStatic(): boolean {
+        return (this.flags & NODE_FLAG_STATIC) != 0;
     }
 
     isDeclareOrTurbo(): boolean {
@@ -842,7 +872,7 @@ export function createString(value: string): Node {
 export function createName(value: string): Node {
     var node = new Node();
     node.kind = NodeKind.NAME;
-    node.stringValue = value;
+    node.referenceValue = value;
     return node;
 }
 
