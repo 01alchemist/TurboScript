@@ -1,3 +1,0 @@
-extern function main(): int32 {
-    return 1;
-}

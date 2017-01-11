@@ -243,6 +243,7 @@ export function isNumber(c: string): boolean {
 }
 
 export function isDigit(c: any, base: byte): boolean {
+    if(c.trim() == "") return false;
     if (base == 16) {
         return isNumber(c) || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f';
     }

@@ -100,7 +100,7 @@ declare class string {
       }
 
       // Treat this like an unsigned integer prefixed by '-' if it's negative
-      return internalIntToString((this < 0 ? -this : this), this < 0);
+      return internalIntToString((this < 0 ? -this : this) as uint32, this < 0);
     }
   }
 

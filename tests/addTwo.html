@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Empty test</title>
+</head>
+<body>
+<script>
+
+    var mod;
+    var modRef;
+
+    async function init() {
+        let data = await fetch("addTwo.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try{
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                mod = new WebAssembly.Instance(compiled);
+                console.log(mod);
+            })
+
+        }catch (e){
+            console.error(e);
+        }
+    }
+
+    async function initRef() {
+        let data = await fetch("reference/addTwo.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try{
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                modRef = new WebAssembly.Instance(compiled);
+            })
+
+        }catch (e){
+            console.error(e);
+        }
+    }
+    init();
+    initRef();
+</script>
+</body>
+</html>

@@ -48,7 +48,7 @@ export class ByteArray {
     _data: Uint8Array;
     _length: number;
 
-    constructor(){
+    constructor() {
         this._length = 0;
         this._data = new Uint8Array(0);
     }
@@ -67,7 +67,7 @@ export class ByteArray {
     }
 
     set(index: number, value: byte): void {
-        assert((index) < (this._length));
+        //assert((index) < (this._length));
         this._data[index] = value;
     }
 
@@ -80,11 +80,21 @@ export class ByteArray {
     resize(length: number): void {
         if (length > (this._data != null ? this._data.length : 0)) {
             var capacity = length * 2;
-            var data = Uint8Array_new(capacity);
+            console.log("capacity", capacity);
+            var data = new Uint8Array(capacity);
             if (this._data != null) data.set(this._data);
             this._data = data;
         }
 
         this._length = length;
+    }
+
+    copy(source: ByteArray, offset?:number): ByteArray {
+        let data = new Uint8Array(this._data.length + source._data.length);
+        data.set(this._data);
+        data.set(source._data, this._length);
+        this._data = data;
+        this._length = this._length + source.length();
+        return this;
     }
 }

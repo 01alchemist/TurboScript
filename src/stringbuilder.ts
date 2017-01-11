@@ -67,12 +67,14 @@ export class StringBuilder {
     }
 
     appendChar(c: string): StringBuilder {
-        this._text = StringBuilder_appendChar(this._text, c);
+        // this._text = StringBuilder_appendChar(this._text, c);
+        this._text += c;
         return this;
     }
 
     appendSlice(text: string, start: int32, end: int32): StringBuilder {
-        this._text = StringBuilder_append(this._text, text.slice(start, end));
+        // this._text = StringBuilder_append(this._text, text.slice(start, end));
+        this._text += text.slice(start, end);
         return this;
     }
 

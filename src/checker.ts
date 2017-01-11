@@ -15,6 +15,7 @@ import {Log, Range, spanRanges} from "./log";
 import {Scope, ScopeHint, FindNested} from "./scope";
 import {StringBuilder_new} from "./stringbuilder";
 import {alignToNextMultipleOf, isPositivePowerOf2} from "./imports";
+import {MAX_UINT32_VALUE, MIN_INT32_VALUE, MAX_INT32_VALUE} from "./const";
 /**
  * Author : Nidin Vinayakan
  */
@@ -653,8 +654,8 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         // Only allow lossless conversions implicitly
         if (kind == ConversionKind.EXPLICIT || from.symbol.byteSize < to.symbol.byteSize ||
             node.kind == NodeKind.INT32 && (to.isUnsigned()
-                ? node.intValue >= 0 && node.intValue <= mask
-                : node.intValue >= (~mask >> 1) && node.intValue <= (mask >> 1))) {
+                ? node.intValue >= 0 && node.intValue <= MAX_UINT32_VALUE
+                : node.intValue >= MIN_INT32_VALUE && node.intValue <= MAX_INT32_VALUE)) {
             return true;
         }
     }
@@ -675,7 +676,7 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         // Only allow lossless conversions implicitly
         if (kind == ConversionKind.EXPLICIT || from.symbol.byteSize < to.symbol.byteSize ||
             node.kind == NodeKind.INT32 && (to.isUnsigned()
-                ? node.intValue >= 0 && node.intValue <= mask
+                ? node.intValue >= 0
                 : node.intValue >= (~mask >> 1) && node.intValue <= (mask >> 1))) {
             return true;
         }

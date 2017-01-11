@@ -8,8 +8,8 @@ export function libraryWasm(): string {
 
   extern unsafe function malloc(sizeOf: uint32): *byte {
     // Align all allocations to 8 bytes
-    var offset = ((currentHeapPointer + 7) & ~7) as *byte;
-    sizeOf = (sizeOf + 7) & ~7;
+    var offset = ((currentHeapPointer as uint32 + 7) & ~7 as uint32) as *byte;
+    sizeOf = (sizeOf + 7) & ~7 as uint32;
 
     // Use a simple bump allocator for now
     var limit = offset + sizeOf;
@@ -32,9 +32,9 @@ export function libraryWasm(): string {
     }
 
     // Optimized aligned copy
-    if (length >= 16 && (source) % 4 == (target) % 4) {
+    if (length >= 16 && (source as uint32) % 4 == (target as uint32) % 4) {
       // Pick off the beginning
-      while ((target) % 4 != 0) {
+      while ((target as uint32) % 4 != 0) {
         *target = *source;
         target = target + 1;
         source = source + 1;
@@ -75,7 +75,7 @@ export function libraryWasm(): string {
 
     // Return the first non-zero difference
     while (length > 0) {
-      var delta = *a - *b;
+      var delta = *a as int32 - *b as int32;
       if (delta != 0) {
         return delta;
       }
@@ -106,25 +106,25 @@ export function libraryWasm(): string {
 
   declare class sbyte {
     toString(): string {
-      return (this).toString();
+      return (this as int32).toString();
     }
   }
 
   declare class byte {
     toString(): string {
-      return (this).toString();
+      return (this as uint32).toString();
     }
   }
 
   declare class short {
     toString(): string {
-      return (this).toString();
+      return (this as int32).toString();
     }
   }
 
   declare class ushort {
     toString(): string {
-      return (this).toString();
+      return (this as uint32).toString();
     }
   }
 
@@ -136,7 +136,7 @@ export function libraryWasm(): string {
       }
 
       // Treat this like an unsigned integer prefixed by '-' if it's negative
-      return internalIntToString((this < 0 ? -this : this), this < 0);
+      return internalIntToString((this < 0 ? -this : this) as uint32, this < 0);
     }
   }
 
@@ -146,35 +146,29 @@ export function libraryWasm(): string {
     }
   }
 
-    declare class float32 {
-        toString(): string {
-            return "C Float to string not implemented";
-        }
+  declare class int64 {
+    toString(): string {
+        return "Not implemented";
     }
-    declare class float64 {
-        toString(): string {
-            return "C Float to string not implemented";
-        }
+  }
+
+  declare class uint64 {
+    toString(): string {
+      return "Not implemented";
     }
-    
-    /*function internalFloatToString(value: float32): string {
-        // Extract integer part
-        var ipart:int32 = value;
-    
-        // Extract floating part
-        var fpart:float32 = value - (ipart as float32);
-    
-        // convert integer part to string
-        var intStr:string = internalIntToString((ipart < 0 ? -ipart : ipart), ipart < 0);
-    
-        // check for display option after point
-        // Get the value of fraction part upto given no.
-        // of points after dot. The third parameter is needed
-        // to handle cases like 233.007
-        fpart = fpart * Math.pow(10, 10);
-    
-        return intStr + "." + internalIntToString((fpart), false);
-    }*/
+  }
+
+  declare class float32 {
+    toString(): string {
+        return "Not implemented";
+    }
+  }
+
+  declare class float64 {
+    toString(): string {
+      return "Not implemented";
+    }
+  }
 
   function internalIntToString(value: uint32, sign: boolean): string {
     // Avoid allocation for common cases
@@ -192,7 +186,7 @@ export function libraryWasm(): string {
             value >= 100000 ? 6 : 5 :
           value >= 100 ?
             value >= 1000 ? 4 : 3 :
-            value >= 10 ? 2 : 1));
+            value >= 10 ? 2 : 1)) as uint32;
 
       var ptr = string_new(length) as *byte;
       var end = ptr + 4 + length * 2;
@@ -235,7 +229,7 @@ export function libraryWasm(): string {
     }
 
     operator [] (index: int32): ushort {
-      if (index < this.length) {
+      if (index as uint32 < this.length as uint32) {
         unsafe {
           return *((this as *byte + 4 + index * 2) as *ushort);
         }
@@ -249,7 +243,7 @@ export function libraryWasm(): string {
         if (this as *byte == null || other as *byte == null) return false;
         var length = this.length;
         if (length != other.length) return false;
-        return memcmp(this as *byte + 4, other as *byte + 4, length * 2) == 0;
+        return memcmp(this as *byte + 4, other as *byte + 4, length as uint32 * 2) == 0;
       }
     }
 
@@ -266,7 +260,7 @@ export function libraryWasm(): string {
       else if (end > length) end = length;
 
       unsafe {
-        var range = (end - start);
+        var range = (end - start) as uint32;
         var ptr = string_new(range);
         memcpy(ptr as *byte + 4, this as *byte + 4 + start * 2, range * 2);
         return ptr;
@@ -277,7 +271,7 @@ export function libraryWasm(): string {
       var textLength = text.length;
       if (this.length < textLength) return false;
       unsafe {
-        return memcmp(this as *byte + 4, text as *byte + 4, textLength * 2) == 0;
+        return memcmp(this as *byte + 4, text as *byte + 4, textLength as uint32 * 2) == 0;
       }
     }
 
@@ -286,7 +280,7 @@ export function libraryWasm(): string {
       var textLength = text.length;
       if (thisLength < textLength) return false;
       unsafe {
-        return memcmp(this as *byte + 4 + (thisLength - textLength) * 2, text as *byte + 4, textLength * 2) == 0;
+        return memcmp(this as *byte + 4 + (thisLength - textLength) * 2, text as *byte + 4, textLength as uint32 * 2) == 0;
       }
     }
 
@@ -297,7 +291,7 @@ export function libraryWasm(): string {
         var i = 0;
         while (i < thisLength - textLength) {
           unsafe {
-            if (memcmp(this as *byte + 4 + i * 2, text as *byte + 4, textLength * 2) == 0) {
+            if (memcmp(this as *byte + 4 + i * 2, text as *byte + 4, textLength as uint32 * 2) == 0) {
               return i;
             }
           }
@@ -314,7 +308,7 @@ export function libraryWasm(): string {
         var i = thisLength - textLength;
         while (i >= 0) {
           unsafe {
-            if (memcmp(this as *byte + 4 + i * 2, text as *byte + 4, textLength * 2) == 0) {
+            if (memcmp(this as *byte + 4 + i * 2, text as *byte + 4, textLength as uint32 * 2) == 0) {
               return i;
             }
           }
@@ -354,22 +348,6 @@ export function libraryWasm(): string {
   declare class uint32 {
     toString(): string;
   }
-
-    declare class int64 {
-        toString(): string;
-    }
-    
-    declare class uint64 {
-        toString(): string;
-    }
-    
-    declare class float32 {
-        toString(): string;
-    }
-    
-    declare class float64 {
-        toString(): string;
-    }
 
   declare class string {
     charAt(index: int32): string;
@@ -427,7 +405,7 @@ export function libraryWasm(): string {
       }
 
       // Encode UTF-16
-      utf16_length = utf16_length + (codePoint < 0x10000 ? 1 : 2);
+      utf16_length = utf16_length + (codePoint < 0x10000 ? 1 : 2) as uint32;
     }
 
     var output = string_new(utf16_length);
@@ -491,7 +469,7 @@ export function libraryWasm(): string {
       if (i < utf16_length && a >= 0xD800 && a <= 0xDBFF) {
         var b = *(utf16 + i);
         i = i + 1;
-        codePoint = (a << 10) + b + (0x10000 - (0xD800 << 10) - 0xDC00);
+        codePoint = (a << 10) + b + (0x10000 - (0xD800 << 10) - 0xDC00) as uint32;
       } else {
         codePoint = a;
       }
@@ -501,7 +479,7 @@ export function libraryWasm(): string {
         codePoint < 0x80 ? 1 :
         codePoint < 0x800 ? 2 :
         codePoint < 0x10000 ? 3 :
-        4);
+        4) as uint32;
     }
 
     var utf8 = malloc(utf8_length + 1);
@@ -518,30 +496,30 @@ export function libraryWasm(): string {
       if (i < utf16_length && a >= 0xD800 && a <= 0xDBFF) {
         var b = *(utf16 + i);
         i = i + 1;
-        codePoint = (a << 10) + b + (0x10000 - (0xD800 << 10) - 0xDC00);
+        codePoint = (a << 10) + b + (0x10000 - (0xD800 << 10) - 0xDC00) as uint32;
       } else {
         codePoint = a;
       }
 
       // Encode UTF-8
       if (codePoint < 0x80) {
-        *next = codePoint;
+        *next = codePoint as byte;
       } else {
         if (codePoint < 0x800) {
-          *next = (((codePoint >> 6) & 0x1F) | 0xC0);
+          *next = (((codePoint >> 6) & 0x1F) | 0xC0) as byte;
         } else {
           if (codePoint < 0x10000) {
-            *next = (((codePoint >> 12) & 0x0F) | 0xE0);
+            *next = (((codePoint >> 12) & 0x0F) | 0xE0) as byte;
           } else {
-            *next = (((codePoint >> 18) & 0x07) | 0xF0);
+            *next = (((codePoint >> 18) & 0x07) | 0xF0) as byte;
             next = next + 1;
-            *next = (((codePoint >> 12) & 0x3F) | 0x80);
+            *next = (((codePoint >> 12) & 0x3F) | 0x80) as byte;
           }
           next = next + 1;
-          *next = (((codePoint >> 6) & 0x3F) | 0x80);
+          *next = (((codePoint >> 6) & 0x3F) | 0x80) as byte;
         }
         next = next + 1;
-        *next = ((codePoint & 0x3F) | 0x80);
+        *next = ((codePoint & 0x3F) | 0x80) as byte;
       }
       next = next + 1;
     }
@@ -551,14 +529,6 @@ export function libraryWasm(): string {
 
     return utf8;
   }
-
-#endif
-
-#if TURBO_JS
-
-    function turbo_js():int32 {
-        return 1;
-    }
 
 #endif
 `;

@@ -14,6 +14,7 @@ import {turboJsEmit} from "./turbojs";
 import {wasmEmit} from "./wasm";
 import {libraryTurbo} from "./libraryturbo";
 import {libraryWasm} from "./librarywasm";
+import {libraryDummy} from "./librarydummy";
 /**
  * Author: Nidin Vinayakan
  */
@@ -47,11 +48,11 @@ export class Compiler {
         this.preprocessor = new Preprocessor();
         this.target = target;
         this.outputName = outputName;
-        // if (target == CompileTarget.TURBO_JAVASCRIPT) {
+        if (target == CompileTarget.TURBO_JAVASCRIPT) {
             this.librarySource = this.addInput("<native>", libraryTurbo());
-        // }else{
-        //     this.librarySource = this.addInput("<native>", libraryWasm());
-        // }
+        }else{
+            this.librarySource = this.addInput("<native>", libraryDummy());
+        }
         this.librarySource.isLibrary = true;
         this.createGlobals();
 
