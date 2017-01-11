@@ -16,7 +16,11 @@
         try{
             WebAssembly.compile(wasmBytes).then(function (compiled) {
                 mod = new WebAssembly.Instance(compiled);
-                console.log(mod);
+
+                console.log("TurboScript WASM");
+                console.log("----------------");
+                console.log(`mod.exports.addTwo(1,1) => ${mod.exports.addTwo(1,1)}`);
+                console.log("\n");
             })
 
         }catch (e){
@@ -30,6 +34,10 @@
         try{
             WebAssembly.compile(wasmBytes).then(function (compiled) {
                 modRef = new WebAssembly.Instance(compiled);
+                console.log("Reference WASM");
+                console.log("----------------");
+                console.log(`modRef.exports.addTwo(1,1) => ${modRef.exports.addTwo(1,1)}`);
+                console.log("\n");
             })
 
         }catch (e){

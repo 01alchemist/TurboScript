@@ -80,7 +80,6 @@ export class ByteArray {
     resize(length: number): void {
         if (length > (this._data != null ? this._data.length : 0)) {
             var capacity = length * 2;
-            console.log("capacity", capacity);
             var data = new Uint8Array(capacity);
             if (this._data != null) data.set(this._data);
             this._data = data;
