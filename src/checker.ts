@@ -24,6 +24,7 @@ export class CheckContext {
     target: CompileTarget;
     pointerByteSize: int32;
     isUnsafeAllowed: boolean;
+    enclosingModule: Symbol;
     enclosingClass: Symbol;
     currentReturnType: Type;
     nextGlobalVariableOffset: int32;
@@ -79,10 +80,26 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         var parentKind = node.parent.kind;
 
         // Validate node placement
-        if (kind != NodeKind.VARIABLE && kind != NodeKind.VARIABLES && (kind != NodeKind.FUNCTION || parentKind != NodeKind.CLASS) &&
-            (parentKind == NodeKind.FILE) != (kind == NodeKind.CLASS || kind == NodeKind.ENUM || kind == NodeKind.FUNCTION || kind == NodeKind.CONSTANTS)) {
+        if (kind != NodeKind.VARIABLE && kind != NodeKind.VARIABLES &&
+            (kind != NodeKind.FUNCTION || parentKind != NodeKind.CLASS) &&
+            (parentKind == NodeKind.FILE) != (parentKind == NodeKind.MODULE || kind == NodeKind.MODULE || kind == NodeKind.CLASS || kind == NodeKind.ENUM || kind == NodeKind.FUNCTION || kind == NodeKind.CONSTANTS)) {
             context.log.error(node.range, "This statement is not allowed here");
         }
+    }
+
+    // Module
+    if (kind == NodeKind.MODULE) {
+        assert(node.symbol == null);
+        var symbol = new Symbol();
+        symbol.kind = SymbolKind.TYPE_MODULE;
+        symbol.name = node.stringValue;
+        symbol.resolvedType = new Type();
+        symbol.resolvedType.symbol = symbol;
+        symbol.flags = SYMBOL_FLAG_IS_REFERENCE;
+        addScopeToSymbol(symbol, parentScope);
+        linkSymbolToNode(symbol, node);
+        parentScope.define(context.log, symbol, ScopeHint.NORMAL);
+        parentScope = symbol.scope;
     }
 
     // Class
@@ -262,8 +279,16 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
     forbidFlag(context, node, NODE_FLAG_PROTECTED, "Unsupported flag 'protected'");
     //forbidFlag(context, node, NODE_FLAG_STATIC, "Unsupported flag 'static'");
 
+    // Module
+    if (symbol.kind == SymbolKind.TYPE_MODULE) {
+        forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a module");
+        forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a module");
+        forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a module");
+        forbidFlag(context, node, NODE_FLAG_PRIVATE, "Cannot use 'private' on a module");
+    }
+
     // Class
-    if (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE) {
+    else if (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE) {
         forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a class");
         forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a class");
         forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a class");
@@ -429,7 +454,9 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         // Imported functions require a modifier for consistency with TypeScript
         else if (body == null) {
             forbidFlag(context, node, NODE_FLAG_EXTERN, "Cannot use 'extern' on an unimplemented function");
-            requireFlag(context, node, NODE_FLAG_DECLARE, "Declared functions must be prefixed with 'declare'");
+            if(!node.parent || !node.parent.isDeclare()){
+                requireFlag(context, node, NODE_FLAG_DECLARE, "Declared functions must be prefixed with 'declare'");
+            }
         }
 
         else {
@@ -825,6 +852,17 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
     if (kind == NodeKind.FILE || kind == NodeKind.GLOBAL) {
         resolveChildren(context, node, parentScope);
+    }
+
+    else if (kind == NodeKind.MODULE) {
+        var oldEnclosingModule = context.enclosingModule;
+        initializeSymbol(context, node.symbol);
+        context.enclosingModule = node.symbol;
+        resolveChildren(context, node, node.scope);
+        // if (node.symbol.kind == SymbolKind.TYPE_MODULE) {
+        //     node.symbol.determineClassLayout(context);
+        // }
+        context.enclosingModule = oldEnclosingModule;
     }
 
     else if (kind == NodeKind.CLASS) {

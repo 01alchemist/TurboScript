@@ -9,7 +9,7 @@ import {
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createNamespace, createFloat
+    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat
 } from "./node";
 
 export enum Precedence {
@@ -699,9 +699,9 @@ class ParserContext {
         return node.withRange(spanRanges(open.range, close.range));
     }
 
-    parseNamespace(firstFlag: NodeFlag): Node {
+    parseModule(firstFlag: NodeFlag): Node {
         var token = this.current;
-        assert(token.kind == TokenKind.NAMESPACE);
+        assert(token.kind == TokenKind.MODULE);
         this.advance();
 
         var name = this.current;
@@ -709,9 +709,104 @@ class ParserContext {
             return null;
         }
 
-        var node = createNamespace(name.range.toString());
+        var node = createModule(name.range.toString());
         node.firstFlag = firstFlag;
         node.flags = allFlags(firstFlag);
+
+        // Type parameters
+        if (this.peek(TokenKind.LESS_THAN)) {
+            var parameters = this.parseParameters();
+            if (parameters == null) {
+                return null;
+            }
+            node.appendChild(parameters);
+        }
+
+        if (!this.expect(TokenKind.LEFT_BRACE)) {
+            return null;
+        }
+
+        while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
+            var childFlags = this.parseFlags();
+            var childName = this.current;
+            var oldKind = childName.kind;
+
+            // Support contextual keywords
+            if (isKeyword(childName.kind)) {
+                childName.kind = TokenKind.IDENTIFIER;
+                this.advance();
+            }
+
+            // The identifier must come first without any keyword
+            if (!this.expect(TokenKind.IDENTIFIER)) {
+                return null;
+            }
+
+            var text = childName.range.toString();
+
+            // Support operator definitions
+            if (text == "operator" && !this.peek(TokenKind.LEFT_PARENTHESIS) && !this.peek(TokenKind.IDENTIFIER)) {
+                childName.kind = TokenKind.OPERATOR;
+                this.current = childName;
+                if (this.parseFunction(childFlags, node) == null) {
+                    return null;
+                }
+                continue;
+            }
+
+            // Is there another identifier after the first one?
+            else if (this.peek(TokenKind.IDENTIFIER)) {
+                var isGet = text == "get";
+                var isSet = text == "set";
+
+                // The "get" and "set" flags are contextual
+                if (isGet || isSet) {
+                    childFlags = appendFlag(childFlags, isGet ? NODE_FLAG_GET : NODE_FLAG_SET, childName.range);
+
+                    // Get the real identifier
+                    childName = this.current;
+                    this.advance();
+                }
+
+                // Recover from an extra "function" token
+                else if (oldKind == TokenKind.FUNCTION) {
+                    this.log.error(childName.range, "Instance functions don't need the 'function' keyword");
+
+                    // Get the real identifier
+                    childName = this.current;
+                    this.advance();
+                }
+
+                // Recover from an extra variable tokens
+                else if (oldKind == TokenKind.CONST || oldKind == TokenKind.LET || oldKind == TokenKind.VAR) {
+                    this.log.error(childName.range, StringBuilder_new()
+                        .append("Instance variables don't need the '")
+                        .append(childName.range.toString())
+                        .append("' keyword")
+                        .finish());
+
+                    // Get the real identifier
+                    childName = this.current;
+                    this.advance();
+                }
+            }
+
+            // Function
+            if (this.peek(TokenKind.LEFT_PARENTHESIS) || this.peek(TokenKind.LESS_THAN)) {
+                this.current = childName;
+                if (this.parseFunction(childFlags, node) == null) {
+                    return null;
+                }
+            }
+
+            // Variable
+            else {
+                this.current = childName;
+                if (this.parseVariables(childFlags, node) == null) {
+                    return null;
+                }
+            }
+        }
 
         var close = this.current;
         if (!this.expect(TokenKind.RIGHT_BRACE)) {
@@ -1412,7 +1507,7 @@ class ParserContext {
         if (this.peek(TokenKind.CONST) || this.peek(TokenKind.LET) || this.peek(TokenKind.VAR)) return this.parseVariables(firstFlag, null);
         if (this.peek(TokenKind.FUNCTION)) return this.parseFunction(firstFlag, null);
         if (this.peek(TokenKind.VIRTUAL)) return this.parseVirtual(firstFlag);
-        if (this.peek(TokenKind.NAMESPACE)) return this.parseNamespace(firstFlag);
+        if (this.peek(TokenKind.MODULE)) return this.parseModule(firstFlag);
         if (this.peek(TokenKind.CLASS)) return this.parseClass(firstFlag);
         if (this.peek(TokenKind.INTERFACE)) return this.parseInterface(firstFlag);
         if (this.peek(TokenKind.ENUM)) return this.parseEnum(firstFlag);
@@ -1463,17 +1558,17 @@ class ParserContext {
         var base: uint32 = 10;
 
         // Handle binary, octal, and hexadecimal prefixes
-        if (contents[i] == '0' && i + 1 < limit) {
-            var c = contents[i + 1];
-            if (c == 'b' || c == 'B') base = 2;
-            else if (c == 'o' || c == 'O') base = 8;
-            else if (c == 'x' || c == 'X') base = 16;
-            else {
-                this.log.error(range, "Use the '0o' prefix for octal integers");
-                return false;
-            }
-            if (base != 10) i = i + 2;
-        }
+        // if (contents[i] == '0' && i + 1 < limit) {
+        //     var c = contents[i + 1];
+        //     if (c == 'b' || c == 'B') base = 2;
+        //     else if (c == 'o' || c == 'O') base = 8;
+        //     else if (c == 'x' || c == 'X') base = 16;
+        //     else {
+        //         this.log.error(range, "Use the '0o' prefix for octal integers");
+        //         return false;
+        //     }
+        //     if (base != 10) i = i + 2;
+        // }
 
         while (i < limit) {
             let c: string = contents[i];

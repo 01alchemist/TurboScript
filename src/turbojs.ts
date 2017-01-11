@@ -536,6 +536,10 @@ export class TurboJsResult {
             this.code.append(" /*extends*/ ")
         }
 
+        else if (node.kind == NodeKind.MODULE) {
+
+        }
+
         else if (node.kind == NodeKind.CLASS) {
 
             currentClass = node.symbol.name;

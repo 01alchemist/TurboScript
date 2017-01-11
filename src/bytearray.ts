@@ -48,6 +48,11 @@ export class ByteArray {
     _data: Uint8Array;
     _length: number;
 
+    constructor(){
+        this._length = 0;
+        this._data = new Uint8Array(0);
+    }
+
     length(): number {
         return this._length;
     }

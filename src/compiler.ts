@@ -12,7 +12,8 @@ import {cEmit} from "./c";
 import {jsEmit} from "./js";
 import {turboJsEmit} from "./turbojs";
 import {wasmEmit} from "./wasm";
-import {library} from "./libraryjs";
+import {libraryTurbo} from "./libraryturbo";
+import {libraryWasm} from "./librarywasm";
 /**
  * Author: Nidin Vinayakan
  */
@@ -46,7 +47,11 @@ export class Compiler {
         this.preprocessor = new Preprocessor();
         this.target = target;
         this.outputName = outputName;
-        this.librarySource = this.addInput("<native>", library());
+        // if (target == CompileTarget.TURBO_JAVASCRIPT) {
+            this.librarySource = this.addInput("<native>", libraryTurbo());
+        // }else{
+        //     this.librarySource = this.addInput("<native>", libraryWasm());
+        // }
         this.librarySource.isLibrary = true;
         this.createGlobals();
 

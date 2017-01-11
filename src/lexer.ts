@@ -55,7 +55,7 @@ export enum TokenKind {
     ALIGNOF,
     AS,
     BREAK,
-    NAMESPACE,
+    MODULE,
     CLASS,
     CONST,
     CONTINUE,
@@ -180,7 +180,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.ALIGNOF) return "'alignof'";
     if (token == TokenKind.AS) return "'as'";
     if (token == TokenKind.BREAK) return "'break'";
-    if (token == TokenKind.NAMESPACE) return "'namespace'";
+    if (token == TokenKind.MODULE) return "'module'";
     if (token == TokenKind.CLASS) return "'class'";
     if (token == TokenKind.CONST) return "'const'";
     if (token == TokenKind.CONTINUE) return "'continue'";
@@ -323,6 +323,7 @@ export function tokenize(source: Source, log: Log): Token {
 
                 else if (length == 6) {
                     if (text == "export") kind = TokenKind.EXPORT;
+                    else if (text == "module") kind = TokenKind.MODULE;
                     else if (text == "extern") kind = TokenKind.EXTERN;
                     else if (text == "import") kind = TokenKind.IMPORT;
                     else if (text == "public") kind = TokenKind.PUBLIC;

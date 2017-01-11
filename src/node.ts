@@ -12,7 +12,6 @@ export enum NodeKind {
     EXTENDS,
     FILE,
     GLOBAL,
-    NAMESPACE,
     IMPLEMENTS,
     PARAMETER,
     PARAMETERS,
@@ -21,6 +20,7 @@ export enum NodeKind {
         // Statements
     BLOCK,
     BREAK,
+    MODULE,
     CLASS,
     INTERFACE,
     CONSTANTS,
@@ -904,9 +904,9 @@ export function createBlock(): Node {
     return node;
 }
 
-export function createNamespace(name: string): Node {
+export function createModule(name: string): Node {
     var node = new Node();
-    node.kind = NodeKind.NAMESPACE;
+    node.kind = NodeKind.MODULE;
     node.stringValue = name;
     return node;
 }

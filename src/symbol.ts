@@ -6,9 +6,9 @@ import {Range} from "./log";
 import {alignToNextMultipleOf} from "./imports";
 
 export enum SymbolKind {
+    TYPE_MODULE,
     TYPE_INTERFACE,
     TYPE_CLASS,
-    TYPE_NAMESPACE,
     TYPE_ENUM,
     TYPE_GLOBAL,
     TYPE_NATIVE,
@@ -23,6 +23,9 @@ export enum SymbolKind {
     VARIABLE_LOCAL,
 }
 
+export function isModule(kind: SymbolKind): boolean {
+    return kind == SymbolKind.TYPE_MODULE;
+}
 export function isType(kind: SymbolKind): boolean {
     return kind >= SymbolKind.TYPE_CLASS && kind <= SymbolKind.TYPE_NATIVE;
 }

@@ -1,0 +1,3 @@
+declare module SIMD{
+    Float32x4():int32;
+}
