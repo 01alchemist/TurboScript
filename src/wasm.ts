@@ -275,7 +275,7 @@ class SectionBuffer {
         this.data = new ByteArray();
     }
 
-    publish(array:ByteArray) {
+    publish(array: ByteArray) {
         wasmWriteVarUnsigned(array, this.id);//section code
         wasmWriteVarUnsigned(array, this.data.length());//size of this section in bytes
         if (this.id == 0) {
@@ -318,7 +318,7 @@ class WasmFunction {
     symbol: Symbol;
     signatureIndex: int32;
     isExported: boolean;
-    intLocalCount: int32 = 0;
+    localCount: int32 = 0;
     next: WasmFunction;
 }
 
@@ -329,10 +329,18 @@ class WasmImport {
     next: WasmImport;
 }
 
+class WasmGlobal {
+    symbol: Symbol;
+    next: WasmGlobal;
+}
+
 class WasmModule {
     firstImport: WasmImport;
     lastImport: WasmImport;
     importCount: int32 = 0;
+    globalCount: int32 = 0;
+    firstGlobal: WasmGlobal;
+    lastGlobal: WasmGlobal;
 
     firstFunction: WasmFunction;
     lastFunction: WasmFunction;
@@ -371,6 +379,19 @@ class WasmModule {
 
         this.importCount = this.importCount + 1;
         return result;
+    }
+
+    allocateGlobal(symbol: Symbol): WasmGlobal {
+        var global = new WasmGlobal();
+        global.symbol = symbol;
+        symbol.offset = this.globalCount;
+
+        if (this.firstGlobal == null) this.firstGlobal = global;
+        else this.lastGlobal.next = global;
+        this.lastGlobal = global;
+
+        this.globalCount = this.globalCount + 1;
+        return global;
     }
 
     allocateFunction(symbol: Symbol, signatureIndex: int32): WasmFunction {
@@ -419,14 +440,14 @@ class WasmModule {
         ByteArray_append32(array, WASM_VERSION);
 
         this.emitSignatures(array);
-        // this.emitImportTable(array);
+        this.emitImportTable(array);
         this.emitFunctionDeclarations(array);
-        // this.emitTables(array);
+        this.emitTables(array);
         // this.emitMemory(array);
-        // this.emitGlobalDeclarations(array);
+        this.emitGlobalDeclarations(array);
         this.emitExportTable(array);
         //FIXME Get proper start function index
-        //this.emitStartFunctionDeclaration(array, start_fun_index);
+        // this.emitStartFunctionDeclaration(array, start_fun_index);
         this.emitElements(array);
         this.emitFunctionBodies(array);
         // this.emitDataSegments(array);
@@ -526,7 +547,24 @@ class WasmModule {
     }
 
     emitGlobalDeclarations(array: ByteArray): void {
-        //TODO
+        var section = wasmStartSection(array, WasmSection.Global, "global");
+        wasmWriteVarUnsigned(section.data, this.globalCount);
+
+        let global = this.firstGlobal;
+        while (global) {
+            if (global.symbol.resolvedType.isFloat()) {
+                section.data.append(WasmType.F32); //content_type
+            } else {
+                section.data.append(WasmType.I32); //content_type
+            }
+            wasmWriteVarUnsigned(section.data, 0); //mutability, 0 if immutable, 1 if mutable. MVP only support immutable global variables
+            wasmWriteVarUnsigned(section.data, WASM_OPCODE_I32_CONST);
+            wasmWriteVarUnsigned(section.data, global.symbol.node.variableValue().rawValue); //const value
+            wasmWriteVarUnsigned(section.data, WASM_OPCODE_END);
+            global = global.next;
+        }
+
+        wasmFinishSection(array, section);
     }
 
     emitExportTable(array: ByteArray): void {
@@ -580,12 +618,12 @@ class WasmModule {
 
         let fn = this.firstFunction;
         while (fn != null) {
-            let bodyData:ByteArray = new ByteArray();
+            let bodyData: ByteArray = new ByteArray();
 
-            if (fn.intLocalCount > 0) {
+            if (fn.localCount > 0) {
                 wasmWriteVarUnsigned(bodyData, 1); //local_count
                 //local_entry
-                wasmWriteVarUnsigned(bodyData, fn.intLocalCount); //count
+                wasmWriteVarUnsigned(bodyData, fn.localCount); //count
                 bodyData.append(WasmType.I32); //value_type
             } else {
                 wasmWriteVarUnsigned(bodyData, 0);
@@ -597,7 +635,7 @@ class WasmModule {
                 child = child.nextSibling;
             }
 
-            wasmWriteVarUnsigned(bodyData, 0x0b); //end, 0x0b, indicating the end of the body
+            wasmWriteVarUnsigned(bodyData, WASM_OPCODE_END); //end, 0x0b, indicating the end of the body
 
             //Copy and finish body
             wasmWriteVarUnsigned(section.data, bodyData.length());
@@ -622,18 +660,18 @@ class WasmModule {
         var section = wasmStartSection(array, WasmSection.Data, "data_segments");
 
         // This only writes one single section containing everything
-        wasmWriteVarUnsigned(array, 1);
+        wasmWriteVarUnsigned(section.data, 1);
 
         //data_segment
-        wasmWriteVarUnsigned(array, 0); //index, the linear memory index (0 in the MVP)
+        wasmWriteVarUnsigned(section.data, 0); //index, the linear memory index (0 in the MVP)
 
         //offset, an i32 initializer expression that computes the offset at which to place the data
         //FIXME: This could be wrong
-        wasmWriteVarUnsigned(array, WASM_OPCODE_I32_CONST);
-        wasmWriteVarUnsigned(array, array.length() + 5); //const value
-        wasmWriteVarUnsigned(array, 0x0b); //end opcode
+        wasmWriteVarUnsigned(section.data, WASM_OPCODE_I32_CONST);
+        wasmWriteVarUnsigned(section.data, array.length() + 5); //const value
+        wasmWriteVarUnsigned(section.data, WASM_OPCODE_END); //end opcode
 
-        wasmWriteVarUnsigned(array, initializerLength); //size, size of data (in bytes)
+        wasmWriteVarUnsigned(section.data, initializerLength); //size, size of data (in bytes)
 
         // Emit the range of the memory initializer
         // wasmWriteVarUnsigned(array, WASM_MEMORY_INITIALIZER_BASE);
@@ -643,7 +681,7 @@ class WasmModule {
         // Copy the entire memory initializer (also includes zero-initialized data for now)
         var i = 0;
         while (i < initializerLength) {
-            array.append(memoryInitializer.get(i));
+            section.data.append(memoryInitializer.get(i));
             i = i + 1;
         }
 
@@ -700,6 +738,8 @@ class WasmModule {
                 else if (sizeOf == 2) ByteArray_set16(memoryInitializer, symbol.offset, value);
                 else if (sizeOf == 4) ByteArray_set32(memoryInitializer, symbol.offset, value);
                 else assert(false);
+
+                let global = this.allocateGlobal(symbol);
 
                 // Make sure the heap offset is tracked
                 if (symbol.name == "currentHeapPointer") {
@@ -761,7 +801,7 @@ class WasmModule {
 
             // Assign local variable offsets
             wasmAssignLocalVariableOffsets(body, shared);
-            fn.intLocalCount = shared.intLocalCount;
+            fn.localCount = shared.localCount;
         }
 
         var child = node.firstChild;
@@ -827,7 +867,11 @@ class WasmModule {
         }
 
         else if (sizeOf == 4) {
-            array.append(WASM_OPCODE_I32_STORE);
+            if (type.isFloat()) {
+                array.append(WASM_OPCODE_F32_STORE);
+            } else {
+                array.append(WASM_OPCODE_I32_STORE);
+            }
             wasmWriteVarUnsigned(array, 2);
         }
 
@@ -856,15 +900,15 @@ class WasmModule {
 
         if (node.kind == NodeKind.BLOCK) {
             array.append(WASM_OPCODE_BLOCK);
-            var offset = array.length();
-            wasmWriteVarUnsigned(array, ~0);
+            var blockData = new ByteArray();
             var count = 0;
             var child = node.firstChild;
             while (child != null) {
-                count = count + this.emitNode(array, child);
+                count = count + this.emitNode(blockData, child);
                 child = child.nextSibling;
             }
-            wasmPatchVarUnsigned(array, offset, count, ~0);
+            wasmWriteVarUnsigned(array, count);
+            array.copy(blockData);
         }
 
         else if (node.kind == NodeKind.WHILE) {
@@ -877,33 +921,33 @@ class WasmModule {
             }
 
             array.append(WASM_OPCODE_LOOP);
-            var offset = array.length();
-            wasmWriteVarUnsigned(array, ~0);
+            var blockData = new ByteArray();
             var count = 0;
 
             // Emit the condition as "loop { if (!condition) break; }" as long as it's not a "while (true)" loop
             if (value.kind != NodeKind.BOOLEAN) {
-                array.append(WASM_OPCODE_BR_IF);
-                wasmWriteVarUnsigned(array, 1); // Break out of the immediately enclosing loop
-                array.append(WASM_OPCODE_NOP); // This is a statement, not an expression
-                array.append(WASM_OPCODE_I32_EQZ); // The conditional is flipped
-                this.emitNode(array, value);
+                blockData.append(WASM_OPCODE_BR_IF);
+                wasmWriteVarUnsigned(blockData, 1); // Break out of the immediately enclosing loop
+                blockData.append(WASM_OPCODE_NOP); // This is a statement, not an expression
+                blockData.append(WASM_OPCODE_I32_EQZ); // The conditional is flipped
+                this.emitNode(blockData, value);
                 count = count + 1;
             }
 
             var child = body.firstChild;
             while (child != null) {
-                count = count + this.emitNode(array, child);
+                count = count + this.emitNode(blockData, child);
                 child = child.nextSibling;
             }
 
             // Jump back to the top (this doesn't happen automatically)
-            array.append(WASM_OPCODE_BR);
-            wasmWriteVarUnsigned(array, 0); // Continue back to the immediately enclosing loop
-            array.append(WASM_OPCODE_NOP); // This is a statement, not an expression
+            blockData.append(WASM_OPCODE_BR);
+            wasmWriteVarUnsigned(blockData, 0); // Continue back to the immediately enclosing loop
+            blockData.append(WASM_OPCODE_NOP); // This is a statement, not an expression
             count = count + 1;
 
-            wasmPatchVarUnsigned(array, offset, count, ~0);
+            wasmWriteVarUnsigned(array, count);
+            array.copy(blockData);
         }
 
         else if (node.kind == NodeKind.BREAK || node.kind == NodeKind.CONTINUE) {
@@ -999,7 +1043,9 @@ class WasmModule {
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                this.emitLoadFromMemory(array, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset);
+                array.append(WASM_OPCODE_GET_GLOBAL);
+                wasmWriteVarUnsigned(array, symbol.offset);
+                //this.emitLoadFromMemory(array, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset);
             }
 
             else {
@@ -1149,7 +1195,7 @@ class WasmModule {
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                this.emitStoreToMemory(array, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset, right);
+                //this.emitStoreToMemory(array, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset, right);
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT || symbol.kind == SymbolKind.VARIABLE_LOCAL) {
@@ -1183,8 +1229,10 @@ class WasmModule {
             var isUnsigned = node.isUnsignedOperator();
 
             if (node.kind == NodeKind.ADD) {
-                var left = node.binaryLeft();
-                var right = node.binaryRight();
+                let left = node.binaryLeft();
+                let right = node.binaryRight();
+
+                let isFloat: boolean = left.resolvedType.isFloat() || right.resolvedType.isFloat();
 
                 this.emitNode(array, left);
 
@@ -1230,7 +1278,11 @@ class WasmModule {
                     }
                 }
 
-                array.append(WASM_OPCODE_I32_ADD);
+                if (isFloat) {
+                    array.append(WASM_OPCODE_F32_ADD);
+                } else {
+                    array.append(WASM_OPCODE_I32_ADD);
+                }
             }
 
             else if (node.kind == NodeKind.BITWISE_AND) this.emitBinaryExpression(array, node, WASM_OPCODE_I32_AND);
@@ -1261,8 +1313,12 @@ class WasmModule {
     getWasmType(type: Type): WasmType {
         var context = this.context;
 
-        if (type == context.booleanType || type.isInteger() || type.isFloat() || type.isReference()) {
+        if (type == context.booleanType || type.isInteger() || type.isReference()) {
             return WasmType.I32;
+        }
+
+        if (type.isFloat()) {
+            return WasmType.F32;
         }
 
         if (type == context.voidType) {
@@ -1272,21 +1328,6 @@ class WasmModule {
         assert(false);
         return WasmType.VOID;
     }
-}
-
-function wasmPatchVarUnsigned(array: ByteArray, offset: int32, value: int32, maxValue: int32): void {
-    let b = 0;
-    value |= 0;
-
-    do {
-        b = value & 0x7F;
-        value >>>= 7;
-        if (value)
-            b |= 0x80;
-
-        array.set(offset, b);
-        offset += 1;
-    } while (value);
 }
 
 function wasmWriteVarUnsigned(array: ByteArray, value: uint32): void {
@@ -1352,7 +1393,7 @@ function wasmFinishSection(array: ByteArray, section: SectionBuffer): void {
 }
 
 function wasmWrapType(id: WasmType): WasmWrappedType {
-    assert(id == WasmType.VOID || id == WasmType.I32);
+    assert(id == WasmType.VOID || id == WasmType.I32 || id == WasmType.F32);
     var type = new WasmWrappedType();
     type.id = id;
     return type;
@@ -1360,7 +1401,7 @@ function wasmWrapType(id: WasmType): WasmWrappedType {
 
 class WasmSharedOffset {
     nextLocalOffset: int32;
-    intLocalCount: int32 = 0;
+    localCount: int32 = 0;
 }
 
 function wasmAssignLocalVariableOffsets(node: Node, shared: WasmSharedOffset): void {
@@ -1368,7 +1409,7 @@ function wasmAssignLocalVariableOffsets(node: Node, shared: WasmSharedOffset): v
         assert(node.symbol.kind == SymbolKind.VARIABLE_LOCAL);
         node.symbol.offset = shared.nextLocalOffset;
         shared.nextLocalOffset = shared.nextLocalOffset + 1;
-        shared.intLocalCount = shared.intLocalCount + 1;
+        shared.localCount = shared.localCount + 1;
     }
 
     var child = node.firstChild;

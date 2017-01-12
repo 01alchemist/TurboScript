@@ -63,8 +63,8 @@ export class Symbol {
     next: Symbol;
     state: SymbolState = SymbolState.UNINITIALIZED;
     flags: int32;
-    byteSize: int32;
-    maxAlignment: int32;
+    byteSize: int32 = 0;
+    maxAlignment: int32 = 0;
     rename: string;
 
     // The "offset" variable is used to store kind-specific information

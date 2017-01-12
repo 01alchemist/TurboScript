@@ -51,6 +51,7 @@ export class Compiler {
         if (target == CompileTarget.TURBO_JAVASCRIPT) {
             this.librarySource = this.addInput("<native>", libraryTurbo());
         }else{
+            // this.librarySource = this.addInput("<native>", libraryWasm());
             this.librarySource = this.addInput("<native>", libraryDummy());
         }
         this.librarySource.isLibrary = true;

@@ -1,0 +1,17 @@
+class Vec3 {
+    x: float32;
+    y: float32;
+    z: float32;
+
+    constructor(x: float32, y: float32, z: float32):Vec3 {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+    }
+
+}
+
+function newVec3(x: float32, y: float32, z: float32): Vec3 {
+    return new Vec3(x, y, z);
+}

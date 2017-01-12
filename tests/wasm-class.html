@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>addTwo test</title>
+</head>
+<body>
+<script>
+
+    var mod;
+
+    async function init() {
+        let data = await fetch("wasm-class.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try{
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                mod = new WebAssembly.Instance(compiled);
+
+                console.log("TurboScript WASM");
+                console.log("----------------");
+                console.log(`mod.exports.newVec3(1,1) => ${mod.exports.newVec3(1, 1 ,1)}`);
+                console.log("\n");
+            })
+
+        }catch (e){
+            console.error(e);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
