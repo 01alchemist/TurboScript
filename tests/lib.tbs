@@ -5,20 +5,20 @@ unsafe var originalHeapPointer: *byte = null;
 export unsafe function malloc(sizeOf: uint32): *byte {
     // Align all allocations to 8 bytes
     var offset = ((currentHeapPointer as uint32 + 7) & ~7 as uint32) as *byte;
-    // sizeOf = (sizeOf + 7) & ~7 as uint32;
+    sizeOf = (sizeOf + 7) & ~7 as uint32;
 
     // Use a simple bump allocator for now
-    // var limit = offset + sizeOf;
-    // currentHeapPointer = limit;
+    var limit = offset + sizeOf;
+    currentHeapPointer = limit;
 
     // Make sure the memory starts off at zero
-    // var ptr = offset;
-    // while (ptr < limit) {
-    //   *(ptr as *int32) = 0;
-    //   ptr = ptr + 4;
-    // }
+    var ptr = offset;
+    while (ptr < limit) {
+      *(ptr as *int32) = 0;
+      ptr = ptr + 4;
+    }
 
-    return offset;
+    return currentHeapPointer;
 }
 //
 // unsafe function memcpy(target: *byte, source: *byte, length: uint32): void {

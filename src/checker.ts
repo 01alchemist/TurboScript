@@ -922,7 +922,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             // Variable initializers must be compile-time constants
             if (symbol.kind == SymbolKind.VARIABLE_GLOBAL && value.kind != NodeKind.INT32 && value.kind != NodeKind.BOOLEAN && value.kind != NodeKind.NULL) {
-                context.log.error(value.range, "Global initializers must be compile-time constants");
+                //context.log.error(value.range, "Global initializers must be compile-time constants");
             }
         }
 

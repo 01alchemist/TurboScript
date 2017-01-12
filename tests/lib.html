@@ -24,6 +24,24 @@
     }
 
     init();
+
+    var modFixed;
+
+    async function initFixed() {
+        let data = await fetch("lib-fixed.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try{
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                modFixed = new WebAssembly.Instance(compiled);
+                console.log("WASM Compiled!");
+            })
+
+        }catch (e){
+            console.error(e);
+        }
+    }
+
+    initFixed();
 </script>
 </body>
 </html>
