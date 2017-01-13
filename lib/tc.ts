@@ -66,7 +66,7 @@ function IO_writeTextFile(path, contents) {
 
 function IO_writeBinaryFile(path, contents) {
     try {
-        fs.writeFileSync(path, new Buffer(contents._data.subarray(0, contents._length)));
+        fs.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
         return true;
     } catch (e) {
         return false;

@@ -5,10 +5,12 @@
 //     }
 //     return step;
 // }
-export function test(loop: float32): float32 {
+export function test(loop: float32): int32 {
     let step:float32 = 0.005;
+    let count:int32 = 0;
     while(loop > step) {
-        step = step + 1.0;
+        step = step + 0.001;
+        count = count + 1;
     }
-    return loop;
+    return count;
 }

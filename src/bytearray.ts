@@ -16,29 +16,29 @@ export function ByteArray_append32(array: ByteArray, value: number): void {
     array.append((value >> 16));
     array.append((value >> 24));
 }
-
-export function ByteArray_append64(array: ByteArray, value: int64): void {
-    array.append(value);
-    array.append((value >> 8));
-    array.append((value >> 16));
-    array.append((value >> 24));
-    array.append((value >> 32));
-    array.append((value >> 40));
-    array.append((value >> 48));
-    array.append((value >> 56));
-}
-
-declare function Uint8Array_new(length: number): Uint8Array;
-
-export function ByteArray_setString(array: ByteArray, index: number, text: string): void {
+//
+// export function ByteArray_append64(array: ByteArray, value: int64): void {
+//     array.append(value);
+//     array.append((value >> 8));
+//     array.append((value >> 16));
+//     array.append((value >> 24));
+//     array.append((value >> 32));
+//     array.append((value >> 40));
+//     array.append((value >> 48));
+//     array.append((value >> 56));
+// }
+//
+// declare function Uint8Array_new(length: number): Uint8Array;
+//
+export function ByteArray_setString(data: ByteArray, index: number, text: string): void {
     var length = text.length;
-    assert(index >= 0 && index + length * 2 <= array.length());
-    var data = array._data;
+    assert(index >= 0 && index + length * 2 <= data.length);
+    var array = data.array;
     var i = 0;
     while (i < length) {
         var c = text.charCodeAt(i);
-        data[index] = c;
-        data[index + 1] = (c >> 8);
+        array[index] = c;
+        array[index + 1] = (c >> 8);
         index = index + 2;
         i = i + 1;
     }
@@ -69,12 +69,13 @@ export class ByteArray {
     static SIZE_OF_FLOAT32: number = 4;
     static SIZE_OF_FLOAT64: number = 8;
 
-    private BUFFER_EXT_SIZE: number = 64;//Buffer expansion size
+    private BUFFER_EXT_SIZE: number = 1024;//Buffer expansion size
 
     private _array: Uint8Array = null;
-    get array(): Uint8Array{
+    get array(): Uint8Array {
         return this._array.subarray(0, this.length);
     };
+
     public data: DataView;
     private _position: number;
     public write_position: number;
@@ -96,7 +97,7 @@ export class ByteArray {
             this._array = new Uint8Array(this.data.buffer, this.data.byteOffset, this.data.byteLength);
         }
         this._position = 0;
-        this.endian = ByteArray.BIG_ENDIAN;
+        this.endian = ByteArray.LITTLE_ENDIAN;
     }
 
     get(index: number): byte {
@@ -113,24 +114,32 @@ export class ByteArray {
         let index = this.position;
         this.resize(index + 1);
         this._array[index] = value;
+        this.position++;
     }
 
-    resize(length: number): void {
+    resize(length: number): ByteArray {
         if (length > this.data.byteLength) {
             let capacity = length * 2;
             let data = new Uint8Array(capacity);
             data.set(this.array);
             this.setArray(data);
         }
-        this.length = length;
+        //this.length = length;
+        return this;
     }
 
     copy(source: ByteArray, offset: number = 0, length: number = 0): ByteArray {
-        let array = new Uint8Array(this.length + source.length);
-        array.set(this.array);
-        array.set(source.array, this.length);
-        this.setArray(array);
-        this.position = this.length + source.length;
+
+        offset = offset > 0 ? offset : this.length;
+
+        if (source.length > this.bytesAvailable) {
+            this.resize(this.length + source.length);
+            this._array.set(source.array, offset);
+        } else {
+            this._array.set(source.array, offset);
+        }
+
+        this.position = offset + source.length;
         return this;
     }
 
@@ -221,6 +230,7 @@ export class ByteArray {
             this.append(b);
         } while (value);
     }
+
     /**
      * Write signed Little Endian Base 128
      */
@@ -247,6 +257,21 @@ export class ByteArray {
         } while (true);
     }
 
+    /**
+     * Write WASM String
+     */
+    writeWasmString(value: string) {
+        let length = value.length;
+        this.writeUnsignedLEB128(length);
+        let index = this.length;
+        this.resize(index + length);
+        let i = 0;
+        while (i < length) {
+            this.set(index + i, value.charCodeAt(i));
+            i = i + 1;
+        }
+        this.position = index + length;
+    }
 
     /**
      * Reads a Boolean value from the byte stream. A single byte is read,
@@ -345,15 +370,15 @@ export class ByteArray {
      *   The returned value is in the range −(2^63) to 2^63 − 1
      * @return    A 64-bit signed integer between −(2^63) to 2^63 − 1
      */
-    public readInt64(): Int64 {
-        if (!this.validate(ByteArray.SIZE_OF_UINT32)) return null;
-
-        var low = this.data.getInt32(this.position, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_INT32;
-        var high = this.data.getInt32(this.position, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_INT32;
-        return new Int64(low, high);
-    }
+    // public readInt64(): Int64 {
+    //     if (!this.validate(ByteArray.SIZE_OF_UINT32)) return null;
+    //
+    //     var low = this.data.getInt32(this.position, this.endian == ByteArray.LITTLE_ENDIAN);
+    //     this.position += ByteArray.SIZE_OF_INT32;
+    //     var high = this.data.getInt32(this.position, this.endian == ByteArray.LITTLE_ENDIAN);
+    //     this.position += ByteArray.SIZE_OF_INT32;
+    //     return new Int64(low, high);
+    // }
 
     /**
      * Reads a multibyte string of specified length from the byte stream using the
@@ -461,15 +486,15 @@ export class ByteArray {
      *   The returned value is in the range 0 to 2^64 − 1.
      * @return    A 64-bit unsigned integer between 0 and 2^64 − 1
      */
-    public readUnsignedInt64(): UInt64 {
-        if (!this.validate(ByteArray.SIZE_OF_UINT32)) return null;
-
-        var low = this.data.getUint32(this.position, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_UINT32;
-        var high = this.data.getUint32(this.position, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_UINT32;
-        return new UInt64(low, high);
-    }
+    // public readUnsignedInt64(): UInt64 {
+    //     if (!this.validate(ByteArray.SIZE_OF_UINT32)) return null;
+    //
+    //     var low = this.data.getUint32(this.position, this.endian == ByteArray.LITTLE_ENDIAN);
+    //     this.position += ByteArray.SIZE_OF_UINT32;
+    //     var high = this.data.getUint32(this.position, this.endian == ByteArray.LITTLE_ENDIAN);
+    //     this.position += ByteArray.SIZE_OF_UINT32;
+    //     return new UInt64(low, high);
+    // }
 
     /**
      * Reads an unsigned 16-bit integer from the byte stream.

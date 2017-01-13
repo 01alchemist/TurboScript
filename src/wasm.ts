@@ -70,7 +70,7 @@ class SectionBuffer {
         array.writeUnsignedLEB128(this.id);//section code
         array.writeUnsignedLEB128(this.data.length);//size of this section in bytes
         if (this.id == 0) {
-            wasmWriteLengthPrefixedASCII(array, this.name);
+            array.writeWasmString(this.name);
         }
         array.copy(this.data);
     }
@@ -234,8 +234,8 @@ class WasmModule {
     }
 
     emitModule(array: ByteArray): void {
-        ByteArray_append32(array, WASM_MAGIC);
-        ByteArray_append32(array, WASM_VERSION);
+        array.writeUnsignedInt(WASM_MAGIC);
+        array.writeUnsignedInt(WASM_VERSION);
 
         this.emitSignatures(array);
         this.emitImportTable(array);
@@ -303,8 +303,8 @@ class WasmModule {
         var current = this.firstImport;
         while (current != null) {
             array.writeUnsignedLEB128(current.signatureIndex);
-            wasmWriteLengthPrefixedASCII(array, current.module);
-            wasmWriteLengthPrefixedASCII(array, current.name);
+            array.writeWasmString(current.module);
+            array.writeWasmString(current.name);
             current = current.next;
         }
 
@@ -402,7 +402,7 @@ class WasmModule {
         fn = this.firstFunction;
         while (fn != null) {
             if (fn.isExported) {
-                wasmWriteLengthPrefixedASCII(section.data, fn.symbol.name);
+                section.data.writeWasmString(fn.symbol.name);
                 section.data.writeUnsignedLEB128(WasmExternalKind.Function);
                 section.data.writeUnsignedLEB128(i);
             }
@@ -523,7 +523,7 @@ class WasmModule {
                     .append(name)
                     .finish();
             }
-            wasmWriteLengthPrefixedASCII(array, name);
+            array.writeWasmString(name);
             array.writeUnsignedLEB128(0); // No local variables for now
             fn = fn.next;
         }
@@ -1269,17 +1269,17 @@ class WasmModule {
 //     } while (true);
 // }
 
-function wasmWriteLengthPrefixedASCII(array: ByteArray, value: string): void {
-    var length = value.length;
-    array.writeUnsignedLEB128(length);
-    var index = array.length;
-    array.resize(index + length);
-    var i = 0;
-    while (i < length) {
-        array.set(index + i, value.charCodeAt(i));
-        i = i + 1;
-    }
-}
+// function wasmWriteLengthPrefixedASCII(array: ByteArray, value: string): void {
+//     var length = value.length;
+//     array.writeUnsignedLEB128(length);
+//     var index = array.length;
+//     array.resize(index + length);
+//     var i = 0;
+//     while (i < length) {
+//         array.set(index + i, value.charCodeAt(i));
+//         i = i + 1;
+//     }
+// }
 
 function wasmStartSection(array: ByteArray, id: int32, name: string): SectionBuffer {
     let section: SectionBuffer = new SectionBuffer(id, name);
