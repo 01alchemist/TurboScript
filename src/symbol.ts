@@ -50,8 +50,10 @@ export const SYMBOL_FLAG_IS_REFERENCE = 1 << 2;
 export const SYMBOL_FLAG_IS_UNARY_OPERATOR = 1 << 3;
 export const SYMBOL_FLAG_IS_UNSIGNED = 1 << 4;
 export const SYMBOL_FLAG_NATIVE_INTEGER = 1 << 5;
-export const SYMBOL_FLAG_NATIVE_FLOAT = 1 << 6;
-export const SYMBOL_FLAG_USED = 1 << 7;
+export const SYMBOL_FLAG_NATIVE_LONG = 1 << 6;
+export const SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7;
+export const SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8;
+export const SYMBOL_FLAG_USED = 1 << 9;
 
 export class Symbol {
     kind: SymbolKind;

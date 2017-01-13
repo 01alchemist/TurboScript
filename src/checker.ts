@@ -1,7 +1,7 @@
 import {
     Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
     SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
-    SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable
+    SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE
 } from "./symbol";
 import {Type, ConversionKind} from "./type";
 import {
@@ -227,7 +227,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         prepareNativeType(context.booleanType, 1, 0);
         prepareNativeType(context.byteType, 1, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
         prepareNativeType(context.int32Type, 4, SYMBOL_FLAG_NATIVE_INTEGER);
-        // prepareNativeType(context.int64Type, 8, SYMBOL_FLAG_NATIVE_INTEGER);
+        // prepareNativeType(context.int64Type, 8, SYMBOL_FLAG_NATIVE_LONG);
         prepareNativeType(context.sbyteType, 1, SYMBOL_FLAG_NATIVE_INTEGER);
         prepareNativeType(context.shortType, 2, SYMBOL_FLAG_NATIVE_INTEGER);
         prepareNativeType(context.stringType, 4, SYMBOL_FLAG_IS_REFERENCE);
@@ -235,7 +235,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         prepareNativeType(context.ushortType, 2, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
 
         prepareNativeType(context.float32Type, 4, SYMBOL_FLAG_NATIVE_FLOAT);
-        prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_FLOAT);
+        prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_DOUBLE);
     }
 }
 
@@ -513,8 +513,12 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                 resolveAsExpression(context, value, symbol.scope);
                 checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), ConversionKind.IMPLICIT);
 
-                if (value.kind == NodeKind.INT32 || value.kind == NodeKind.BOOLEAN) {
+                if (value.kind == NodeKind.INT32 || value.kind == NodeKind.INT64 || value.kind == NodeKind.BOOLEAN) {
                     symbol.offset = value.intValue;
+                }
+
+                else if (value.kind == NodeKind.FLOAT32 || value.kind == NodeKind.FLOAT64) {
+                    symbol.offset = value.floatValue;
                 }
 
                 else if (value.resolvedType != context.errorType) {
@@ -660,26 +664,19 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         }
     }
 
-    // Check float to integer conversions
-    else if (to.isInteger() && from.isFloat()) {
-        return true;
+    else if (from.isInteger() && to.isFloat()) {
+        //TODO Allow lossless conversions implicitly
+        return false;
     }
     else if (from.isFloat() && to.isInteger()) {
-        //FIXME This is a copy of integer to integer conversion check
-        let mask = to.integerBitMask(context);
-
-        // Allow implicit conversions between enums and int32
-        if (from.isEnum() && to == from.underlyingType(context)) {
-            return true;
-        }
-
-        // Only allow lossless conversions implicitly
-        if (kind == ConversionKind.EXPLICIT || from.symbol.byteSize < to.symbol.byteSize ||
-            node.kind == NodeKind.INT32 && (to.isUnsigned()
-                ? node.intValue >= 0
-                : node.intValue >= (~mask >> 1) && node.intValue <= (mask >> 1))) {
-            return true;
-        }
+        //TODO Allow lossless conversions implicitly
+        return false;
+    }
+    else if (from.isFloat() && to.isDouble()) {
+        return true;
+    }
+    else if (from.isDouble() && to.isFloat()) {
+        return false;
     }
 
     return false;
@@ -1503,13 +1500,28 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         // Special-case integer types
+        else if (value.resolvedType.isDouble()) {
+
+            node.resolvedType = context.float64Type;
+
+            // Automatically fold constants
+            if (value.kind == NodeKind.FLOAT64) {
+                var input = value.doubleValue;
+                var output = input;
+                if (kind == NodeKind.COMPLEMENT) output = ~input;
+                else if (kind == NodeKind.NEGATIVE) output = -input;
+                node.becomeDoubleConstant(output);
+            }
+        }
+
+        // Special-case integer types
         else if (value.resolvedType.isFloat()) {
 
             node.resolvedType = context.float32Type;
 
             // Automatically fold constants
             if (value.kind == NodeKind.FLOAT32) {
-                var input = value.intValue;
+                var input = value.floatValue;
                 var output = input;
                 if (kind == NodeKind.COMPLEMENT) output = ~input;
                 else if (kind == NodeKind.NEGATIVE) output = -input;
@@ -1656,7 +1668,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         // Operators for float are hard-coded
-        else if (leftType.isFloat() && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
+        else if ((leftType.isFloat() || leftType.isDouble()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
             // Arithmetic operators
             if (kind == NodeKind.ADD ||
                 kind == NodeKind.SUBTRACT ||
@@ -1674,7 +1686,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 // node.resolvedType = commonType;
 
                 // Automatically fold constants
-                if (left.kind == NodeKind.FLOAT32 && right.kind == NodeKind.FLOAT32) {
+                if ((left.kind == NodeKind.FLOAT32 || left.kind == NodeKind.FLOAT64) &&
+                    (right.kind == NodeKind.FLOAT32 || right.kind == NodeKind.FLOAT64)) {
                     var inputLeft = left.floatValue;
                     var inputRight = right.floatValue;
                     var output = 0;

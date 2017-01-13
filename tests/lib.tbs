@@ -20,7 +20,7 @@ export unsafe function malloc(sizeOf: uint32): *byte {
 
     return currentHeapPointer;
 }
-//
+
 // unsafe function memcpy(target: *byte, source: *byte, length: uint32): void {
 //     // No-op if either of the inputs are null
 //     if (source == null || target == null) {

@@ -1,0 +1,33 @@
+// var int32Count:int32 = 0;
+// var uint32Count:uint32 = 0;
+// var f32Count:float32 = 0.0;
+var f64Count:float64 = 0.0;
+
+// export function incrementInt32():int32{
+//     int32Count = int32Count + 1;
+//     return int32Count;
+// }
+// export function getInt32Count():int32{
+//     return int32Count;
+// }
+// export function incrementUint32():uint32{
+//     uint32Count = uint32Count + 1;
+//     return uint32Count;
+// }
+// export function getUint32Count():uint32{
+//     return uint32Count;
+// }
+// export function incrementF32():float32{
+//     f32Count = f32Count + 0.1;
+//     return f32Count;
+// }
+// export function getF32Count():float32{
+//     return f32Count;
+// }
+export function incrementF64():float64{
+    f64Count = f64Count + 0.1;
+    return f64Count;
+}
+export function getF64Count():float64{
+    return f64Count;
+}

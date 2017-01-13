@@ -1,6 +1,6 @@
 import {
     Symbol, SymbolKind, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED,
-    SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_IS_REFERENCE
+    SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_DOUBLE
 } from "./symbol";
 import {CheckContext} from "./checker";
 import {StringBuilder_new} from "./stringbuilder";
@@ -29,12 +29,20 @@ export class Type {
         return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_NATIVE_INTEGER) != 0 || this.isEnum();
     }
 
+    isLong(): boolean {
+        return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_NATIVE_LONG) != 0;
+    }
+
     isUnsigned(): boolean {
         return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_UNSIGNED) != 0;
     }
 
     isFloat(): boolean {
-        return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_NATIVE_FLOAT) != 0 || this.isEnum();
+        return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_NATIVE_FLOAT) != 0;
+    }
+
+    isDouble(): boolean {
+        return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_NATIVE_DOUBLE) != 0;
     }
 
     isReference(): boolean {

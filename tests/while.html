@@ -27,25 +27,7 @@
             console.error(e);
         }
     }
-
-    async function initRef() {
-        let data = await fetch("reference/if.wasm");
-        let wasmBytes = await data.arrayBuffer();
-        try{
-            WebAssembly.compile(wasmBytes).then(function (compiled) {
-                modRef = new WebAssembly.Instance(compiled);
-                console.log("Reference WASM");
-                console.log("----------------");
-                console.log(`modRef.exports.test(100) => ${modRef.exports.test(100)}`);
-                console.log("\n");
-            })
-
-        }catch (e){
-            console.error(e);
-        }
-    }
     init();
-    initRef();
 </script>
 </body>
 </html>

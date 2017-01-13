@@ -581,12 +581,13 @@ export class ByteArray {
      * Writes a Boolean value. A single byte is written according to the value parameter,
      * either 1 if true or 0 if false.
      * @param    value    A Boolean value determining which byte is written. If the parameter is true,
-     *   the method writes a 1; if false, the method writes a 0.
+     *           the method writes a 1; if false, the method writes a 0.
+     * @param    offset   optional start position to write
      */
-    public writeBoolean(value: boolean): void {
+    public writeBoolean(value: boolean, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_BOOLEAN);
 
-        this.data.setUint8(this.position++, value ? 1 : 0);
+        this.data.setUint8(offset ? offset : this.position++, value ? 1 : 0);
     }
 
     /**
@@ -594,17 +595,18 @@ export class ByteArray {
      * The low 8 bits of the
      * parameter are used. The high 24 bits are ignored.
      * @param    value    A 32-bit integer. The low 8 bits are written to the byte stream.
+     * @param    offset   optional start position to write
      */
-    public writeByte(value: number): void {
+    public writeByte(value: number, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_INT8);
 
-        this.data.setInt8(this.position++, value);
+        this.data.setInt8(offset ? offset : this.position++, value);
     }
 
-    public writeUnsignedByte(value: number): void {
+    public writeUnsignedByte(value: number, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_UINT8);
 
-        this.data.setUint8(this.position++, value);
+        this.data.setUint8(offset ? offset : this.position++, value);
     }
 
     /**
@@ -637,34 +639,43 @@ export class ByteArray {
     /**
      * Writes an IEEE 754 double-precision (64-bit) floating-point number to the byte stream.
      * @param    value    A double-precision (64-bit) floating-point number.
+     * @param    offset   optional start position to write
      */
-    public writeDouble(value: number): void {
+    public writeDouble(value: number, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_FLOAT64);
 
-        this.data.setFloat64(this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_FLOAT64;
+        this.data.setFloat64(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        if(!offset){
+            this.position += ByteArray.SIZE_OF_FLOAT64;
+        }
     }
 
     /**
      * Writes an IEEE 754 single-precision (32-bit) floating-point number to the byte stream.
      * @param    value    A single-precision (32-bit) floating-point number.
+     * @param    offset   optional start position to write
      */
-    public writeFloat(value: number): void {
+    public writeFloat(value: number, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_FLOAT32);
 
-        this.data.setFloat32(this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_FLOAT32;
+        this.data.setFloat32(offset ? offset: this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        if(!offset){
+            this.position += ByteArray.SIZE_OF_FLOAT32;
+        }
     }
 
     /**
      * Writes a 32-bit signed integer to the byte stream.
      * @param    value    An integer to write to the byte stream.
+     * @param    offset   optional start position to write
      */
-    public writeInt(value: number): void {
+    public writeInt(value: number, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_INT32);
 
-        this.data.setInt32(this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_INT32;
+        this.data.setInt32(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        if(!offset){
+            this.position += ByteArray.SIZE_OF_INT32;
+        }
     }
 
     /**
@@ -682,30 +693,38 @@ export class ByteArray {
      * Writes a 16-bit integer to the byte stream. The low 16 bits of the parameter are used.
      * The high 16 bits are ignored.
      * @param    value    32-bit integer, whose low 16 bits are written to the byte stream.
+     * @param    offset   optional start position to write
      */
-    public writeShort(value: number): void {
+    public writeShort(value: number, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_INT16);
 
-        this.data.setInt16(this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_INT16;
+        this.data.setInt16(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        if(!offset){
+            this.position += ByteArray.SIZE_OF_INT16;
+        }
     }
 
-    public writeUnsignedShort(value: number): void {
+    public writeUnsignedShort(value: number, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_UINT16);
 
-        this.data.setUint16(this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_UINT16;
+        this.data.setUint16(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        if(!offset){
+            this.position += ByteArray.SIZE_OF_UINT16;
+        }
     }
 
     /**
      * Writes a 32-bit unsigned integer to the byte stream.
      * @param    value    An unsigned integer to write to the byte stream.
+     * @param    offset   optional start position to write
      */
-    public writeUnsignedInt(value: number): void {
+    public writeUnsignedInt(value: number, offset?:number): void {
         this.validateBuffer(ByteArray.SIZE_OF_UINT32);
 
-        this.data.setUint32(this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_UINT32;
+        this.data.setUint32(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        if(!offset){
+            this.position += ByteArray.SIZE_OF_UINT32;
+        }
     }
 
     /**
@@ -713,25 +732,32 @@ export class ByteArray {
      * is written first, as a 16-bit integer, followed by the bytes representing the
      * characters of the string.
      * @param    value    The string value to be written.
+     * @param    offset   optional start position to write
      */
-    public writeUTF(value: string): void {
-        var utf8bytes: Uint8Array = this.encodeUTF8(value);
-        var length: number = utf8bytes.length;
+    public writeUTF(value: string, offset?:number): void {
+        let utf8bytes: Uint8Array = this.encodeUTF8(value);
+        let length: number = utf8bytes.length;
 
         this.validateBuffer(ByteArray.SIZE_OF_UINT16 + length);
 
-        this.data.setUint16(this.position, length, this.endian === ByteArray.LITTLE_ENDIAN);
-        this.position += ByteArray.SIZE_OF_UINT16;
-        this.writeUint8Array(utf8bytes);
+        this.data.setUint16(offset ? offset : this.position, length, this.endian === ByteArray.LITTLE_ENDIAN);
+        if(!offset){
+            this.position += ByteArray.SIZE_OF_UINT16;
+            this.writeUint8Array(utf8bytes);
+        }else{
+            offset += ByteArray.SIZE_OF_UINT16;
+            this.writeUint8Array(utf8bytes, offset);
+        }
     }
 
     /**
      * Writes a UTF-8 string to the byte stream. Similar to the writeUTF() method,
      * but writeUTFBytes() does not prefix the string with a 16-bit length word.
      * @param    value    The string value to be written.
+     * @param    offset   optional start position to write
      */
-    public writeUTFBytes(value: string): void {
-        this.writeUint8Array(this.encodeUTF8(value));
+    public writeUTFBytes(value: string, offset?:number): void {
+        this.writeUint8Array(this.encodeUTF8(value), offset);
     }
 
     public toString(): string {
@@ -745,102 +771,134 @@ export class ByteArray {
     /**
      * Writes a Uint8Array to the byte stream.
      * @param    _bytes    The Uint8Array to be written.
+     * @param    offset   optional start position to write
      */
-    public writeUint8Array(_bytes: Uint8Array): void {
-        this.validateBuffer(this.position + _bytes.length);
+    public writeUint8Array(_bytes: Uint8Array, offset?:number): void {
+        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
 
-        for (var i = 0; i < _bytes.length; i++) {
-            this.data.setUint8(this.position++, _bytes[i]);
+        for (let i = 0; i < _bytes.length; i++) {
+            this.data.setUint8(offset ? offset++ : this.position++, _bytes[i]);
         }
     }
 
     /**
      * Writes a Uint16Array to the byte stream.
      * @param    _bytes    The Uint16Array to be written.
+     * @param    offset   optional start position to write
      */
-    public writeUint16Array(_bytes: Uint16Array): void {
-        this.validateBuffer(this.position + _bytes.length);
+    public writeUint16Array(_bytes: Uint16Array, offset?:number): void {
+        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
 
-        for (var i = 0; i < _bytes.length; i++) {
-            this.data.setUint16(this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            this.position += ByteArray.SIZE_OF_UINT16;
+        for (let i = 0; i < _bytes.length; i++) {
+            this.data.setUint16(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            if(!offset){
+                this.position += ByteArray.SIZE_OF_UINT16;
+            }else{
+                offset += ByteArray.SIZE_OF_UINT16;
+            }
         }
     }
 
     /**
      * Writes a Uint32Array to the byte stream.
      * @param    _bytes    The Uint32Array to be written.
+     * @param    offset   optional start position to write
      */
-    public writeUint32Array(_bytes: Uint32Array): void {
-        this.validateBuffer(this.position + _bytes.length);
+    public writeUint32Array(_bytes: Uint32Array, offset?:number): void {
+        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
 
-        for (var i = 0; i < _bytes.length; i++) {
-            this.data.setUint32(this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            this.position += ByteArray.SIZE_OF_UINT32;
+        for (let i = 0; i < _bytes.length; i++) {
+            this.data.setUint32(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            if(!offset){
+                this.position += ByteArray.SIZE_OF_UINT32;
+            }else{
+                offset += ByteArray.SIZE_OF_UINT32;
+            }
         }
     }
 
     /**
      * Writes a Int8Array to the byte stream.
      * @param    _bytes    The Int8Array to be written.
+     * @param    offset   optional start position to write
      */
-    public writeInt8Array(_bytes: Int8Array): void {
-        this.validateBuffer(this.position + _bytes.length);
+    public writeInt8Array(_bytes: Int8Array, offset?:number): void {
+        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
 
-        for (var i = 0; i < _bytes.length; i++) {
-            this.data.setInt8(this.position++, _bytes[i]);
+        for (let i = 0; i < _bytes.length; i++) {
+            this.data.setInt8(offset ? offset++ : this.position++, _bytes[i]);
         }
     }
 
     /**
      * Writes a Int16Array to the byte stream.
      * @param    _bytes    The Int16Array to be written.
+     * @param    offset   optional start position to write
      */
-    public writeInt16Array(_bytes: Int16Array): void {
-        this.validateBuffer(this.position + _bytes.length);
+    public writeInt16Array(_bytes: Int16Array, offset?:number): void {
+        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
 
-        for (var i = 0; i < _bytes.length; i++) {
-            this.data.setInt16(this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            this.position += ByteArray.SIZE_OF_INT16;
+        for (let i = 0; i < _bytes.length; i++) {
+            this.data.setInt16(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            if(!offset){
+                this.position += ByteArray.SIZE_OF_INT16;
+            }else{
+                offset += ByteArray.SIZE_OF_INT16;
+            }
         }
     }
 
     /**
      * Writes a Int32Array to the byte stream.
      * @param    _bytes    The Int32Array to be written.
+     * @param    offset   optional start position to write
      */
-    public writeInt32Array(_bytes: Int32Array): void {
-        this.validateBuffer(this.position + _bytes.length);
+    public writeInt32Array(_bytes: Int32Array, offset?:number): void {
+        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
 
-        for (var i = 0; i < _bytes.length; i++) {
-            this.data.setInt32(this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            this.position += ByteArray.SIZE_OF_INT32;
+        for (let i = 0; i < _bytes.length; i++) {
+            this.data.setInt32(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            if(!offset){
+                this.position += ByteArray.SIZE_OF_INT32;
+            }else{
+                offset += ByteArray.SIZE_OF_INT32;
+            }
         }
     }
 
     /**
      * Writes a Float32Array to the byte stream.
      * @param    _bytes    The Float32Array to be written.
+     * @param    offset   optional start position to write
      */
-    public writeFloat32Array(_bytes: Float32Array): void {
-        this.validateBuffer(this.position + _bytes.length);
+    public writeFloat32Array(_bytes: Float32Array, offset?:number): void {
+        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
 
-        for (var i = 0; i < _bytes.length; i++) {
-            this.data.setFloat32(this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            this.position += ByteArray.SIZE_OF_FLOAT32;
+        for (let i = 0; i < _bytes.length; i++) {
+            this.data.setFloat32(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            if(!offset){
+                this.position += ByteArray.SIZE_OF_FLOAT32;
+            }else{
+                offset += ByteArray.SIZE_OF_FLOAT32;
+            }
         }
     }
 
     /**
      * Writes a Float64Array to the byte stream.
      * @param    _bytes    The Float64Array to be written.
+     * @param    offset   optional start position to write
      */
-    public writeFloat64Array(_bytes: Float64Array): void {
-        this.validateBuffer(this.position + _bytes.length);
+    public writeFloat64Array(_bytes: Float64Array, offset?:number): void {
+        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
 
         for (var i = 0; i < _bytes.length; i++) {
-            this.data.setFloat64(this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            this.position += ByteArray.SIZE_OF_FLOAT64;
+            this.data.setFloat64(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            if(!offset){
+                this.position += ByteArray.SIZE_OF_FLOAT64;
+            } else {
+                offset += ByteArray.SIZE_OF_FLOAT64;
+            }
         }
     }
 

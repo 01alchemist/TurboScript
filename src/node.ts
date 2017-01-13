@@ -229,11 +229,31 @@ export class Node {
         this._rawValue = newValue;
     }
 
+    get longValue(): int64 {
+        //TODO: Implement Int64
+        return this._rawValue;
+    }
+
+    set longValue(newValue: int64) {
+        //TODO: Implement Int64
+        this._hasValue = true;
+        this._rawValue = newValue;
+    }
+
     get floatValue(): float32 {
         return this._rawValue;
     }
 
     set floatValue(newValue: float32) {
+        this._hasValue = true;
+        this._rawValue = newValue;
+    }
+
+    get doubleValue(): float64 {
+        return this._rawValue;
+    }
+
+    set doubleValue(newValue: float64) {
         this._hasValue = true;
         this._rawValue = newValue;
     }
@@ -292,6 +312,13 @@ export class Node {
         this.kind = NodeKind.FLOAT32;
         this.symbol = null;
         this.floatValue = value;
+        this.removeChildren();
+    }
+
+    becomeDoubleConstant(value: float64): void {
+        this.kind = NodeKind.FLOAT64;
+        this.symbol = null;
+        this.doubleValue = value;
         this.removeChildren();
     }
 
