@@ -15,6 +15,11 @@ const WASM_SET_MAX_MEMORY = false;
 const WASM_MAX_MEMORY = 1024 * 1024 * 1024;
 const WASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
 
+enum Bitness{
+    x32,
+    x64
+}
+
 enum WasmType {
     VOID = 0,
     I32 = 0x7f,
@@ -154,6 +159,10 @@ class WasmModule {
     mallocFunctionIndex: int32;
     context: CheckContext;
 
+    constructor(public bitness:Bitness){
+
+    }
+
     growMemoryInitializer(): void {
         let array = this.memoryInitializer;
         let current = array.length;
@@ -242,7 +251,7 @@ class WasmModule {
         this.emitFunctionDeclarations(array);
         // this.emitTables(array);
         this.emitMemory(array);
-        this.emitGlobalDeclarations(array);
+        // this.emitGlobalDeclarations(array);
         this.emitExportTable(array);
         //FIXME Get proper start function index
         // this.emitStartFunctionDeclaration(array, start_fun_index);
@@ -355,24 +364,27 @@ class WasmModule {
 
         let global = this.firstGlobal;
         while (global) {
-            let isFloat: boolean = global.symbol.resolvedType.isFloat();
+            let dataType:string = typeToDataType(global.symbol.resolvedType);
             let value = global.symbol.node.variableValue();
-            section.data.append(isFloat ? WasmType.F32 : WasmType.I32); //content_type
+            // if(value.resolvedType != global.symbol.resolvedType){
+            //     value.becomeTypeOf();
+            // }
+            section.data.append(WasmType[dataType]); //content_type
             section.data.writeUnsignedLEB128(0); //mutability, 0 if immutable, 1 if mutable. MVP only support immutable global variables
             if (value) {
                 if (value.rawValue) {
-                    if (isFloat) {
-                        section.data.writeUnsignedLEB128(WasmOpcode.F32_CONST);
-                        section.data.writeFloat(value.rawValue); //const value
-                    } else {
-                        section.data.writeUnsignedLEB128(WasmOpcode.I32_CONST);
-                        section.data.writeUnsignedLEB128(value.rawValue); //const value
-                    }
+                    section.data.writeUnsignedLEB128(WasmOpcode[`${dataType}_CONST`]);
+                    switch (dataType){
+                        case "I32": section.data.writeUnsignedLEB128(value.rawValue);break;
+                        case "F32": section.data.writeFloat(value.rawValue);break;
+                        case "F64": section.data.writeDouble(value.rawValue);break;
+                        // case "F64": section.data.writeFloat(value.rawValue);break;
+                    } //const value
                 } else {
                     this.emitNode(section.data, value); //const value
                 }
             } else {
-                section.data.writeUnsignedLEB128(isFloat ? WasmOpcode.F32_CONST : WasmOpcode.I32_CONST);
+                section.data.writeUnsignedLEB128(WasmOpcode[`${dataType}_CONST`]);
                 section.data.writeUnsignedLEB128(0); //const value
             }
             section.data.writeUnsignedLEB128(WasmOpcode.END);
@@ -583,6 +595,7 @@ class WasmModule {
                 else if (sizeOf == 8) {
                     if (symbol.resolvedType.isDouble()) {
                         memoryInitializer.writeDouble(value.rawValue, symbol.offset);
+                        // memoryInitializer.writeFloat(value.rawValue, symbol.offset);
                     } else {
                         //TODO Implement Int64 write
                         if (symbol.resolvedType.isUnsigned()) {
@@ -717,7 +730,7 @@ class WasmModule {
             else {
                 array.append(WasmOpcode.I64_LOAD);
             }
-            array.writeUnsignedLEB128(4);
+            array.writeUnsignedLEB128(3);
         }
 
         else {
@@ -775,7 +788,7 @@ class WasmModule {
             else {
                 array.append(WasmOpcode.I64_STORE);
             }
-            array.writeUnsignedLEB128(4);
+            array.writeUnsignedLEB128(3);
         }
 
         else {
@@ -979,7 +992,7 @@ class WasmModule {
 
         else if (node.kind == NodeKind.FLOAT64) {
             array.append(WasmOpcode.F64_CONST);
-            array.writeFloat(node.doubleValue);
+            array.writeDouble(node.doubleValue);
         }
 
         else if (node.kind == NodeKind.STRING) {
@@ -1153,11 +1166,16 @@ class WasmModule {
             let isDouble: boolean = left.resolvedType.isDouble() || right.resolvedType.isDouble();
 
             let dataTypeLeft: string = typeToDataType(left.resolvedType);
-            //let dataTypeRight: string = typeToDataType(right.resolvedType);
+            let dataTypeRight: string = typeToDataType(right.resolvedType);
+            //FIXME: This should handle in checker
+            if(left.resolvedType.symbol.name == "float64"){
+                right.kind  = NodeKind.FLOAT64;
+            }
+            else if(left.resolvedType.symbol.name == "int64"){
+                right.kind  = NodeKind.INT64;
+            }
 
             if (node.kind == NodeKind.ADD) {
-                // let left = node.binaryLeft();
-                // let right = node.binaryRight();
 
                 this.emitNode(array, left);
 
@@ -1216,6 +1234,7 @@ class WasmModule {
                         else if (right.kind == NodeKind.FLOAT64) {
                             array.append(WasmOpcode.F64_CONST);
                             array.writeDouble(right.doubleValue);
+                            // array.writeFloat(right.doubleValue);
                         }
                     }
 
@@ -1313,15 +1332,19 @@ class WasmModule {
     getWasmType(type: Type): WasmType {
         var context = this.context;
 
-        if (type == context.booleanType || type.isInteger() || type.isReference()) {
+        if (type == context.booleanType || type.isInteger() || (this.bitness == Bitness.x32 && type.isReference())) {
             return WasmType.I32;
         }
 
-        if (type.isFloat()) {
-            return WasmType.F32;
+        else if (type.isLong() || (this.bitness == Bitness.x64 && type.isReference())) {
+            return WasmType.I64;
         }
 
-        if (type.isDouble()) {
+        else if (type.isDouble()) {
+            return WasmType.F64;
+        }
+
+        else if (type.isFloat()) {
             return WasmType.F32;
         }
 
@@ -1345,7 +1368,7 @@ function wasmFinishSection(array: ByteArray, section: SectionBuffer): void {
 }
 
 function wasmWrapType(id: WasmType): WasmWrappedType {
-    assert(id == WasmType.VOID || id == WasmType.I32 || id == WasmType.F32);
+    assert(id == WasmType.VOID || id == WasmType.I32 || id == WasmType.I64 || id == WasmType.F32 || id == WasmType.F64);
     var type = new WasmWrappedType();
     type.id = id;
     return type;
@@ -1358,10 +1381,10 @@ function symbolToValueType(symbol: Symbol) {
     else if (type.isDouble()) {
         return WasmType.F64;
     }
-    else if (type.isInteger() || type.pointerTo) {
+    else if (type.isInteger() || (this.bitness == Bitness.x32 && type.pointerTo)) {
         return WasmType.I32;
     }
-    else if (type.isLong()) {
+    else if (type.isLong() || (this.bitness == Bitness.x64 && type.pointerTo)) {
         return WasmType.I64;
     }
 }
@@ -1372,10 +1395,10 @@ function typeToDataType(type: Type): string {
     else if (type.isDouble()) {
         return "F64";
     }
-    else if (type.isInteger() || type.pointerTo) {
+    else if (type.isInteger()  || (this.bitness == Bitness.x32 && type.pointerTo)) {
         return "I32";
     }
-    else if (type.isLong()) {
+    else if (type.isLong() || (this.bitness == Bitness.x64 && type.pointerTo)) {
         return "I64";
     }
 }
@@ -1406,8 +1429,8 @@ function wasmAssignLocalVariableOffsets(fn: WasmFunction, node: Node, shared: Wa
     }
 }
 
-export function wasmEmit(compiler: Compiler): void {
-    var module = new WasmModule();
+export function wasmEmit(compiler: Compiler, bitness:Bitness = Bitness.x32): void {
+    let module = new WasmModule(bitness);
     module.context = compiler.context;
     module.memoryInitializer = new ByteArray();
 

@@ -8,7 +8,7 @@ import {
     Node, NodeKind, createVariable, createType, rangeForFlag, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE,
     NODE_FLAG_PUBLIC, NODE_FLAG_GET, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_PROTECTED, NODE_FLAG_EXTERN,
     NODE_FLAG_DECLARE, isExpression, createInt, createboolean, createNull, createMemberReference, createSymbolReference,
-    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary
+    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat
 } from "./node";
 import {CompileTarget} from "./compiler";
 import {Log, Range, spanRanges} from "./log";
@@ -664,6 +664,10 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         }
     }
 
+    else if (from.isInteger() && to.isLong()) {
+        return true;
+    }
+
     else if (from.isInteger() && to.isFloat()) {
         //TODO Allow lossless conversions implicitly
         return false;
@@ -676,7 +680,11 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         return true;
     }
     else if (from.isDouble() && to.isFloat()) {
+        //TODO Allow lossless conversions implicitly
         return false;
+    }
+    else if (from.isDouble() && to.isDouble()) {
+        return true;
     }
 
     return false;
@@ -706,12 +714,17 @@ export function checkStorage(context: CheckContext, target: Node): void {
 }
 
 export function createDefaultValueForType(context: CheckContext, type: Type): Node {
-    if (type.isInteger()) {
+    if (type.isLong()) {
+        return createLong(0);
+    }
+    else if (type.isInteger()) {
         return createInt(0);
     }
-
-    if (type.isFloat()) {
-        return createInt(0);
+    else if (type.isDouble()) {
+        return createDouble(0);
+    }
+    else if (type.isFloat()) {
+        return createFloat(0);
     }
 
     if (type == context.booleanType) {
@@ -915,7 +928,12 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         var value = node.variableValue();
         if (value != null) {
             resolveAsExpression(context, value, parentScope);
+
             checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), ConversionKind.IMPLICIT);
+
+            if(symbol.resolvedType != value.resolvedType){
+                value.becomeValueTypeOf(symbol, context);
+            }
 
             // Variable initializers must be compile-time constants
             if (symbol.kind == SymbolKind.VARIABLE_GLOBAL && value.kind != NodeKind.INT32 && value.kind != NodeKind.BOOLEAN && value.kind != NodeKind.NULL) {
@@ -968,9 +986,16 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         node.resolvedType = node.intValue < 0 && !node.isPositive() ? context.uint32Type : context.int32Type;
     }
 
+    else if (kind == NodeKind.INT64) {
+        node.resolvedType = node.intValue < 0 && !node.isPositive() ? context.uint64Type : context.int64Type;
+    }
+
     else if (kind == NodeKind.FLOAT32) {
-        // Use the positive flag to differentiate between -2147483648 and 2147483648
         node.resolvedType = context.float32Type;
+    }
+
+    else if (kind == NodeKind.FLOAT64) {
+        node.resolvedType = context.float64Type;
     }
 
     else if (kind == NodeKind.STRING) {
@@ -1499,7 +1524,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        // Special-case integer types
+        // Special-case double types
         else if (value.resolvedType.isDouble()) {
 
             node.resolvedType = context.float64Type;
@@ -1514,7 +1539,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        // Special-case integer types
+        // Special-case float types
         else if (value.resolvedType.isFloat()) {
 
             node.resolvedType = context.float32Type;
@@ -1555,14 +1580,19 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (isBinary(kind)) {
-        var left = node.binaryLeft();
-        var right = node.binaryRight();
+        let left = node.binaryLeft();
+        let right = node.binaryRight();
 
         resolveAsExpression(context, left, parentScope);
         resolveAsExpression(context, right, parentScope);
 
-        var leftType = left.resolvedType;
-        var rightType = right.resolvedType;
+        let leftType = left.resolvedType;
+        if((leftType.isDouble() && right.resolvedType.isFloat()) ||
+            (leftType.isLong() && right.resolvedType.isInteger())){
+            right.becomeTypeOf(left, context);
+        }
+
+        let rightType = right.resolvedType;
 
         // Operators "&&" and "||" are hard-coded
         if (kind == NodeKind.LOGICAL_OR || kind == NodeKind.LOGICAL_AND) {
@@ -1667,7 +1697,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        // Operators for float are hard-coded
+        // Operators for float and double are hard-coded
         else if ((leftType.isFloat() || leftType.isDouble()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
             // Arithmetic operators
             if (kind == NodeKind.ADD ||
@@ -1688,9 +1718,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 // Automatically fold constants
                 if ((left.kind == NodeKind.FLOAT32 || left.kind == NodeKind.FLOAT64) &&
                     (right.kind == NodeKind.FLOAT32 || right.kind == NodeKind.FLOAT64)) {
-                    var inputLeft = left.floatValue;
-                    var inputRight = right.floatValue;
-                    var output = 0;
+                    let inputLeft = left.floatValue;
+                    let inputRight = right.floatValue;
+                    let output = 0;
                     if (kind == NodeKind.ADD) output = inputLeft + inputRight;
                     else if (kind == NodeKind.BITWISE_AND) output = inputLeft & inputRight;
                     else if (kind == NodeKind.BITWISE_OR) output = inputLeft | inputRight;
@@ -1702,6 +1732,12 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     else if (kind == NodeKind.SHIFT_RIGHT) output = inputLeft >> inputRight;
                     else if (kind == NodeKind.SUBTRACT) output = inputLeft - inputRight;
                     else return;
+
+                    if(left.kind == NodeKind.FLOAT32){
+                        node.becomeFloatConstant(output);
+                    }else{
+                        node.becomeDoubleConstant(output);
+                    }
                 }
 
                 else {

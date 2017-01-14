@@ -2,6 +2,7 @@ import {Type} from "./type";
 import {Symbol, SymbolKind, isType} from "./symbol";
 import {Range} from "./log";
 import {Scope} from "./scope";
+import {CheckContext} from "./checker";
 
 /**
  * Author: Nidin Vinayakan
@@ -147,7 +148,7 @@ export class NodeFlag {
 }
 
 export function appendFlag(first: NodeFlag, flag: int32, range: Range): NodeFlag {
-    var link = new NodeFlag();
+    let link = new NodeFlag();
     link.flag = flag;
     link.range = range;
 
@@ -157,7 +158,7 @@ export function appendFlag(first: NodeFlag, flag: int32, range: Range): NodeFlag
     }
 
     // Append the flag to the end of the list
-    var secondToLast = first;
+    let secondToLast = first;
     while (secondToLast.next != null) {
         secondToLast = secondToLast.next;
     }
@@ -166,7 +167,7 @@ export function appendFlag(first: NodeFlag, flag: int32, range: Range): NodeFlag
 }
 
 export function allFlags(link: NodeFlag): int32 {
-    var all = 0;
+    let all = 0;
     while (link != null) {
         all = all | link.flag;
         link = link.next;
@@ -275,6 +276,36 @@ export class Node {
     set referenceValue(newValue: string) {
         this._hasValue = true;
         this._rawValue = newValue;
+    }
+
+    becomeTypeOf(node: Node, context:CheckContext): void {
+        this.resolvedType.symbol.byteSize = node.resolvedType.symbol.byteSize;
+        this.resolvedType.symbol.flags = node.resolvedType.symbol.flags;
+        this.resolvedType.symbol.kind = node.resolvedType.symbol.kind;
+        this.resolvedType.symbol.maxAlignment = node.resolvedType.symbol.maxAlignment;
+        this.resolvedType.symbol.name = node.resolvedType.symbol.name;
+
+        switch (node.resolvedType){
+            case context.int64Type: this.kind = NodeKind.INT64;break;
+            case context.float64Type: this.kind = NodeKind.FLOAT64;break;
+        }
+
+        if(node.flags){
+            this.flags = node.flags;
+        }
+    }
+
+    becomeValueTypeOf(symbol: Symbol, context:CheckContext): void {
+        this.resolvedType.symbol.byteSize = symbol.resolvedType.symbol.byteSize;
+        this.resolvedType.symbol.flags = symbol.resolvedType.symbol.flags;
+        this.resolvedType.symbol.kind = symbol.resolvedType.symbol.kind;
+        this.resolvedType.symbol.maxAlignment = symbol.resolvedType.symbol.maxAlignment;
+        this.resolvedType.symbol.name = symbol.resolvedType.symbol.name;
+
+        switch (symbol.resolvedType){
+            case context.int64Type: this.kind = NodeKind.INT64;break;
+            case context.float64Type: this.kind = NodeKind.FLOAT64;break;
+        }
     }
 
     become(node: Node): void {
@@ -398,8 +429,8 @@ export class Node {
     }
 
     childCount(): int32 {
-        var count = 0;
-        var child = this.firstChild;
+        let count = 0;
+        let child = this.firstChild;
         while (child != null) {
             count = count + 1;
             child = child.nextSibling;
@@ -543,7 +574,7 @@ export class Node {
     functionFirstArgument(): Node {
         assert(this.kind == NodeKind.FUNCTION);
         assert(this.childCount() >= 2);
-        var child = this.firstChild;
+        let child = this.firstChild;
         if (child.kind == NodeKind.PARAMETERS) {
             child = child.nextSibling;
         }
@@ -554,7 +585,7 @@ export class Node {
         assert(this.kind == NodeKind.FUNCTION);
         assert(this.childCount() >= 2);
         assert(this.symbol != null);
-        var child = this.functionFirstArgument();
+        let child = this.functionFirstArgument();
         if (this.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
             child = child.nextSibling;
         }
@@ -572,7 +603,7 @@ export class Node {
         assert(this.kind == NodeKind.FUNCTION);
         assert(this.childCount() >= 2);
         assert(this.lastChild.kind == NodeKind.BLOCK || this.lastChild.kind == NodeKind.EMPTY);
-        var body = this.lastChild;
+        let body = this.lastChild;
         return body.kind == NodeKind.BLOCK ? body : null;
     }
 
@@ -643,7 +674,7 @@ export class Node {
         assert(this.kind == NodeKind.VARIABLE);
         assert(this.childCount() <= 2);
         assert(isExpression(this.firstChild) || this.firstChild.kind == NodeKind.EMPTY);
-        var type = this.firstChild;
+        let type = this.firstChild;
         return type.kind != NodeKind.EMPTY ? type : null;
     }
 
@@ -750,11 +781,11 @@ export class Node {
             return false;
         }
 
-        var value = this.callValue();
-        var symbol = value.symbol;
+        let value = this.callValue();
+        let symbol = value.symbol;
 
         if (value.kind == NodeKind.DOT && symbol.node.isOperator() && symbol.node.isDeclare()) {
-            var binaryKind = NodeKind.NULL;
+            let binaryKind = NodeKind.NULL;
 
             if (symbol.name == "%") binaryKind = NodeKind.REMAINDER;
             else if (symbol.name == "&") binaryKind = NodeKind.BITWISE_AND;
@@ -779,7 +810,7 @@ export class Node {
 
             else if (symbol.name == "[]=") {
                 this.kind = NodeKind.ASSIGN;
-                var target = createIndex(value.remove().dotTarget().remove());
+                let target = createIndex(value.remove().dotTarget().remove());
                 target.appendChild(this.firstChild.remove());
                 this.insertChildBefore(this.firstChild, target);
                 return true;
@@ -792,7 +823,7 @@ export class Node {
 
 export function createNew(type: Node): Node {
     assert(isExpression(type));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.NEW;
     node.appendChild(type);
     return node;
@@ -802,7 +833,7 @@ export function createHook(test: Node, primary: Node, secondary: Node): Node {
     assert(isExpression(test));
     assert(isExpression(primary));
     assert(isExpression(secondary));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.HOOK;
     node.appendChild(test);
     node.appendChild(primary);
@@ -812,33 +843,33 @@ export function createHook(test: Node, primary: Node, secondary: Node): Node {
 
 export function createIndex(target: Node): Node {
     assert(isExpression(target));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.INDEX;
     node.appendChild(target);
     return node;
 }
 
 export function createNull(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.NULL;
     return node;
 }
 
 export function createUndefined(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.UNDEFINED;
     return node;
 }
 
 export function createThis(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.THIS;
     return node;
 }
 
 export function createAddressOf(value: Node): Node {
     assert(isExpression(value));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.ADDRESS_OF;
     node.appendChild(value);
     return node;
@@ -846,7 +877,7 @@ export function createAddressOf(value: Node): Node {
 
 export function createDereference(value: Node): Node {
     assert(isExpression(value));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.DEREFERENCE;
     node.appendChild(value);
     return node;
@@ -854,7 +885,7 @@ export function createDereference(value: Node): Node {
 
 export function createAlignOf(type: Node): Node {
     assert(isExpression(type));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.ALIGN_OF;
     node.appendChild(type);
     return node;
@@ -862,42 +893,56 @@ export function createAlignOf(type: Node): Node {
 
 export function createSizeOf(type: Node): Node {
     assert(isExpression(type));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.SIZE_OF;
     node.appendChild(type);
     return node;
 }
 
 export function createboolean(value: boolean): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.BOOLEAN;
     node.intValue = value ? 1 : 0;
     return node;
 }
 
 export function createInt(value: int32): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.INT32;
     node.intValue = value;
     return node;
 }
 
+export function createLong(value: int64): Node {
+    let node = new Node();
+    node.kind = NodeKind.INT64;
+    node.longValue = value;
+    return node;
+}
+
 export function createFloat(value: float32): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.FLOAT32;
     node.floatValue = value;
     return node;
 }
 
+export function createDouble(value: float64): Node {
+    let node = new Node();
+    node.kind = NodeKind.FLOAT64;
+    node.doubleValue = value;
+    return node;
+}
+
 export function createString(value: string): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.STRING;
     node.stringValue = value;
     return node;
 }
 
 export function createName(value: string): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.NAME;
     node.referenceValue = value;
     return node;
@@ -905,55 +950,55 @@ export function createName(value: string): Node {
 
 export function createType(type: Type): Node {
     assert(type != null);
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.TYPE;
     node.resolvedType = type;
     return node;
 }
 
 export function createEmpty(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.EMPTY;
     return node;
 }
 
 export function createExpression(value: Node): Node {
     assert(isExpression(value));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.EXPRESSION;
     node.appendChild(value);
     return node;
 }
 
 export function createBlock(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.BLOCK;
     return node;
 }
 
 export function createModule(name: string): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.MODULE;
     node.stringValue = name;
     return node;
 }
 
 export function createClass(name: string): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.CLASS;
     node.stringValue = name;
     return node;
 }
 
 export function createInterface(name: string): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.INTERFACE;
     node.stringValue = name;
     return node;
 }
 
 export function createEnum(name: string): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.ENUM;
     node.stringValue = name;
     return node;
@@ -963,7 +1008,7 @@ export function createIf(value: Node, trueBranch: Node, falseBranch: Node): Node
     assert(isExpression(value));
     assert(trueBranch.kind == NodeKind.BLOCK);
     assert(falseBranch == null || falseBranch.kind == NodeKind.BLOCK);
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.IF;
     node.appendChild(value);
     node.appendChild(trueBranch);
@@ -976,7 +1021,7 @@ export function createIf(value: Node, trueBranch: Node, falseBranch: Node): Node
 export function createWhile(value: Node, body: Node): Node {
     assert(isExpression(value));
     assert(body.kind == NodeKind.BLOCK);
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.WHILE;
     node.appendChild(value);
     node.appendChild(body);
@@ -985,7 +1030,7 @@ export function createWhile(value: Node, body: Node): Node {
 
 export function createReturn(value: Node): Node {
     assert(value == null || isExpression(value));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.RETURN;
     if (value != null) {
         node.appendChild(value);
@@ -994,39 +1039,39 @@ export function createReturn(value: Node): Node {
 }
 
 export function createVariables(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.VARIABLES;
     return node;
 }
 
 export function createConstants(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.CONSTANTS;
     return node;
 }
 
 export function createParameters(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.PARAMETERS;
     return node;
 }
 
 export function createExtends(type: Node): Node {
     assert(isExpression(type));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.EXTENDS;
     node.appendChild(type);
     return node;
 }
 
 export function createImplements(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.IMPLEMENTS;
     return node;
 }
 
 export function createParameter(name: string): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.PARAMETER;
     node.stringValue = name;
     return node;
@@ -1036,7 +1081,7 @@ export function createVariable(name: string, type: Node, value: Node): Node {
     assert(type == null || isExpression(type));
     assert(value == null || isExpression(value));
 
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.VARIABLE;
     node.stringValue = name;
 
@@ -1049,7 +1094,7 @@ export function createVariable(name: string, type: Node, value: Node): Node {
 }
 
 export function createFunction(name: string): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.FUNCTION;
     node.stringValue = name;
     return node;
@@ -1058,7 +1103,7 @@ export function createFunction(name: string): Node {
 export function createUnary(kind: NodeKind, value: Node): Node {
     assert(isUnary(kind));
     assert(isExpression(value));
-    var node = new Node();
+    let node = new Node();
     node.kind = kind;
     node.appendChild(value);
     return node;
@@ -1068,7 +1113,7 @@ export function createBinary(kind: NodeKind, left: Node, right: Node): Node {
     assert(isBinary(kind));
     assert(isExpression(left));
     assert(isExpression(right));
-    var node = new Node();
+    let node = new Node();
     node.kind = kind;
     node.appendChild(left);
     node.appendChild(right);
@@ -1077,7 +1122,7 @@ export function createBinary(kind: NodeKind, left: Node, right: Node): Node {
 
 export function createCall(value: Node): Node {
     assert(isExpression(value));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.CALL;
     node.appendChild(value);
     return node;
@@ -1086,7 +1131,7 @@ export function createCall(value: Node): Node {
 export function createCast(value: Node, type: Node): Node {
     assert(isExpression(value));
     assert(isExpression(type));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.CAST;
     node.appendChild(value);
     node.appendChild(type);
@@ -1095,7 +1140,7 @@ export function createCast(value: Node, type: Node): Node {
 
 export function createDot(value: Node, name: string): Node {
     assert(isExpression(value));
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.DOT;
     node.stringValue = name;
     node.appendChild(value);
@@ -1103,21 +1148,21 @@ export function createDot(value: Node, name: string): Node {
 }
 
 export function createSymbolReference(symbol: Symbol): Node {
-    var node = createName(symbol.name);
+    let node = createName(symbol.name);
     node.symbol = symbol;
     node.resolvedType = symbol.resolvedType;
     return node;
 }
 
 export function createMemberReference(value: Node, symbol: Symbol): Node {
-    var node = createDot(value, symbol.name);
+    let node = createDot(value, symbol.name);
     node.symbol = symbol;
     node.resolvedType = symbol.resolvedType;
     return node;
 }
 
 export function createParseError(): Node {
-    var node = new Node();
+    let node = new Node();
     node.kind = NodeKind.PARSE_ERROR;
     return node;
 }
