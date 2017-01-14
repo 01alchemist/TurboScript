@@ -257,7 +257,7 @@ class WasmModule {
         // this.emitStartFunctionDeclaration(array, start_fun_index);
         this.emitElements(array);
         this.emitFunctionBodies(array);
-        // this.emitDataSegments(array);
+        this.emitDataSegments(array);
         // this.emitNames(array);
     }
 
@@ -378,7 +378,6 @@ class WasmModule {
                         case "I32": section.data.writeUnsignedLEB128(value.rawValue);break;
                         case "F32": section.data.writeFloat(value.rawValue);break;
                         case "F64": section.data.writeDouble(value.rawValue);break;
-                        // case "F64": section.data.writeFloat(value.rawValue);break;
                     } //const value
                 } else {
                     this.emitNode(section.data, value); //const value
@@ -482,15 +481,15 @@ class WasmModule {
 
     emitDataSegments(array: ByteArray): void {
         this.growMemoryInitializer();
-        var memoryInitializer = this.memoryInitializer;
-        var initializerLength = memoryInitializer.length;
-        var initialHeapPointer = alignToNextMultipleOf(WASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
+        let memoryInitializer = this.memoryInitializer;
+        let initializerLength = memoryInitializer.length;``
+        let initialHeapPointer = alignToNextMultipleOf(WASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
 
         // Pass the initial heap pointer to the "malloc" function
-        ByteArray_set32(memoryInitializer, this.currentHeapPointer, initialHeapPointer);
-        ByteArray_set32(memoryInitializer, this.originalHeapPointer, initialHeapPointer);
+        memoryInitializer.writeUnsignedInt(initialHeapPointer, this.currentHeapPointer);
+        memoryInitializer.writeUnsignedInt(initialHeapPointer, this.originalHeapPointer);
 
-        var section = wasmStartSection(array, WasmSection.Data, "data_segments");
+        let section = wasmStartSection(array, WasmSection.Data, "data_segments");
 
         // This only writes one single section containing everything
         section.data.writeUnsignedLEB128(1);
@@ -501,7 +500,7 @@ class WasmModule {
         //offset, an i32 initializer expression that computes the offset at which to place the data
         //FIXME: This could be wrong
         section.data.writeUnsignedLEB128(WasmOpcode.I32_CONST);
-        section.data.writeUnsignedLEB128(array.length + 5); //const value
+        section.data.writeUnsignedLEB128(initialHeapPointer); //const value
         section.data.writeUnsignedLEB128(WasmOpcode.END); //end opcode
 
         section.data.writeUnsignedLEB128(initializerLength); //size, size of data (in bytes)
@@ -512,11 +511,13 @@ class WasmModule {
 
         //data, sequence of size bytes
         // Copy the entire memory initializer (also includes zero-initialized data for now)
-        var i = 0;
-        while (i < initializerLength) {
-            section.data.append(memoryInitializer.get(i));
-            i = i + 1;
-        }
+        // let i = 0;
+        // while (i < initializerLength) {
+        //     section.data.append(memoryInitializer.get(i));
+        //     i = i + 1;
+        // }
+
+        section.data.copy(memoryInitializer);
 
         wasmFinishSection(array, section);
     }
@@ -525,9 +526,9 @@ class WasmModule {
         var section = wasmStartSection(array, 0, "names");
         array.writeUnsignedLEB128(this.functionCount);
 
-        var fn = this.firstFunction;
+        let fn = this.firstFunction;
         while (fn != null) {
-            var name = fn.symbol.name;
+            let name = fn.symbol.name;
             if (fn.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
                 name = StringBuilder_new()
                     .append(fn.symbol.parent().name)
@@ -595,7 +596,6 @@ class WasmModule {
                 else if (sizeOf == 8) {
                     if (symbol.resolvedType.isDouble()) {
                         memoryInitializer.writeDouble(value.rawValue, symbol.offset);
-                        // memoryInitializer.writeFloat(value.rawValue, symbol.offset);
                     } else {
                         //TODO Implement Int64 write
                         if (symbol.resolvedType.isUnsigned()) {
@@ -1234,7 +1234,6 @@ class WasmModule {
                         else if (right.kind == NodeKind.FLOAT64) {
                             array.append(WasmOpcode.F64_CONST);
                             array.writeDouble(right.doubleValue);
-                            // array.writeFloat(right.doubleValue);
                         }
                     }
 
