@@ -257,7 +257,7 @@ class WasmModule {
         // this.emitStartFunctionDeclaration(array, start_fun_index);
         this.emitElements(array);
         this.emitFunctionBodies(array);
-        this.emitDataSegments(array);
+        // this.emitDataSegments(array);
         // this.emitNames(array);
     }
 
@@ -364,7 +364,7 @@ class WasmModule {
 
         let global = this.firstGlobal;
         while (global) {
-            let dataType:string = typeToDataType(global.symbol.resolvedType);
+            let dataType:string = typeToDataType(global.symbol.resolvedType, this.bitness);
             let value = global.symbol.node.variableValue();
             // if(value.resolvedType != global.symbol.resolvedType){
             //     value.becomeTypeOf();
@@ -453,7 +453,7 @@ class WasmModule {
                 let local = fn.firstLocal;
                 while (local) {
                     bodyData.writeUnsignedLEB128(1); //count
-                    bodyData.append(symbolToValueType(local.symbol)); //value_type
+                    bodyData.append(symbolToValueType(local.symbol, this.bitness)); //value_type
                     local = local.next;
                 }
 
@@ -1168,11 +1168,13 @@ class WasmModule {
             let dataTypeLeft: string = typeToDataType(left.resolvedType);
             let dataTypeRight: string = typeToDataType(right.resolvedType);
             //FIXME: This should handle in checker
-            if(left.resolvedType.symbol.name == "float64"){
-                right.kind  = NodeKind.FLOAT64;
-            }
-            else if(left.resolvedType.symbol.name == "int64"){
-                right.kind  = NodeKind.INT64;
+            if(left.resolvedType.symbol) {
+                if (left.resolvedType.symbol.name == "float64") {
+                    right.kind = NodeKind.FLOAT64;
+                }
+                else if (left.resolvedType.symbol.name == "int64") {
+                    right.kind = NodeKind.INT64;
+                }
             }
 
             if (node.kind == NodeKind.ADD) {
@@ -1372,7 +1374,7 @@ function wasmWrapType(id: WasmType): WasmWrappedType {
     type.id = id;
     return type;
 }
-function symbolToValueType(symbol: Symbol) {
+function symbolToValueType(symbol: Symbol, bitness?:Bitness) {
     let type = symbol.resolvedType;
     if (type.isFloat()) {
         return WasmType.F32;
@@ -1380,24 +1382,24 @@ function symbolToValueType(symbol: Symbol) {
     else if (type.isDouble()) {
         return WasmType.F64;
     }
-    else if (type.isInteger() || (this.bitness == Bitness.x32 && type.pointerTo)) {
+    else if (type.isInteger() || (bitness == Bitness.x32 && type.pointerTo)) {
         return WasmType.I32;
     }
-    else if (type.isLong() || (this.bitness == Bitness.x64 && type.pointerTo)) {
+    else if (type.isLong() || (bitness == Bitness.x64 && type.pointerTo)) {
         return WasmType.I64;
     }
 }
-function typeToDataType(type: Type): string {
+function typeToDataType(type: Type, bitness?:Bitness): string {
     if (type.isFloat()) {
         return "F32";
     }
     else if (type.isDouble()) {
         return "F64";
     }
-    else if (type.isInteger()  || (this.bitness == Bitness.x32 && type.pointerTo)) {
+    else if (type.isInteger()  || (bitness == Bitness.x32 && type.pointerTo)) {
         return "I32";
     }
-    else if (type.isLong() || (this.bitness == Bitness.x64 && type.pointerTo)) {
+    else if (type.isLong() || (bitness == Bitness.x64 && type.pointerTo)) {
         return "I64";
     }
 }

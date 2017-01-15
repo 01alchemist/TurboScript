@@ -296,15 +296,24 @@ export class Node {
     }
 
     becomeValueTypeOf(symbol: Symbol, context:CheckContext): void {
-        this.resolvedType.symbol.byteSize = symbol.resolvedType.symbol.byteSize;
-        this.resolvedType.symbol.flags = symbol.resolvedType.symbol.flags;
-        this.resolvedType.symbol.kind = symbol.resolvedType.symbol.kind;
-        this.resolvedType.symbol.maxAlignment = symbol.resolvedType.symbol.maxAlignment;
-        this.resolvedType.symbol.name = symbol.resolvedType.symbol.name;
+        // let resolvedSymbol = symbol.resolvedType.pointerTo ? symbol.resolvedType.pointerTo.symbol : symbol.resolvedType.symbol;
+        let resolvedSymbol = symbol.resolvedType.symbol;
 
-        switch (symbol.resolvedType){
-            case context.int64Type: this.kind = NodeKind.INT64;break;
-            case context.float64Type: this.kind = NodeKind.FLOAT64;break;
+        if(resolvedSymbol) {
+            this.resolvedType.symbol.byteSize = resolvedSymbol.byteSize;
+            this.resolvedType.symbol.flags = resolvedSymbol.flags;
+            this.resolvedType.symbol.kind = resolvedSymbol.kind;
+            this.resolvedType.symbol.maxAlignment = resolvedSymbol.maxAlignment;
+            this.resolvedType.symbol.name = resolvedSymbol.name;
+
+            switch (symbol.resolvedType) {
+                case context.int64Type:
+                    this.kind = NodeKind.INT64;
+                    break;
+                case context.float64Type:
+                    this.kind = NodeKind.FLOAT64;
+                    break;
+            }
         }
     }
 

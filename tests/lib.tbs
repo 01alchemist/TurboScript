@@ -21,65 +21,65 @@ export unsafe function malloc(sizeOf: uint32): *byte {
     return currentHeapPointer;
 }
 
-// unsafe function memcpy(target: *byte, source: *byte, length: uint32): void {
-//     // No-op if either of the inputs are null
-//     if (source == null || target == null) {
-//       return;
-//     }
-//
-//     // Optimized aligned copy
-//     if (length >= 16 && (source as uint32) % 4 == (target as uint32) % 4) {
-//       // Pick off the beginning
-//       while ((target as uint32) % 4 != 0) {
-//         *target = *source;
-//         target = target + 1;
-//         source = source + 1;
-//         length = length - 1;
-//       }
-//
-//       // Pick off the end
-//       while (length % 4 != 0) {
-//         length = length - 1;
-//         *(target + length) = *(source + length);
-//       }
-//
-//       // Zip over the middle
-//       var end = target + length;
-//       while (target < end) {
-//         *(target as *int32) = *(source as *int32);
-//         target = target + 4;
-//         source = source + 4;
-//       }
-//     }
-//
-//     // Slow unaligned copy
-//     else {
-//       var end = target + length;
-//       while (target < end) {
-//         *target = *source;
-//         target = target + 1;
-//         source = source + 1;
-//       }
-//     }
-// }
-//
-// unsafe function memcmp(a: *byte, b: *byte, length: uint32): int32 {
-//     // No-op if either of the inputs are null
-//     if (a == null || b == null) {
-//       return 0;
-//     }
-//
-//     // Return the first non-zero difference
-//     while (length > 0) {
-//       var delta = *a as int32 - *b as int32;
-//       if (delta != 0) {
-//         return delta;
-//       }
-//       a = a + 1;
-//       b = b + 1;
-//       length = length - 1;
-//     }
-//
-//     // Both inputs are identical
-//     return 0;
-// }
+unsafe function memcpy(target: *byte, source: *byte, length: uint32): void {
+    // No-op if either of the inputs are null
+    if (source == null || target == null) {
+      return;
+    }
+
+    // Optimized aligned copy
+    if (length >= 16 && (source as uint32) % 4 == (target as uint32) % 4) {
+      // Pick off the beginning
+      while ((target as uint32) % 4 != 0) {
+        *target = *source;
+        target = target + 1;
+        source = source + 1;
+        length = length - 1;
+      }
+
+      // Pick off the end
+      while (length % 4 != 0) {
+        length = length - 1;
+        *(target + length) = *(source + length);
+      }
+
+      // Zip over the middle
+      var end = target + length;
+      while (target < end) {
+        *(target as *int32) = *(source as *int32);
+        target = target + 4;
+        source = source + 4;
+      }
+    }
+
+    // Slow unaligned copy
+    else {
+      var end = target + length;
+      while (target < end) {
+        *target = *source;
+        target = target + 1;
+        source = source + 1;
+      }
+    }
+}
+
+unsafe function memcmp(a: *byte, b: *byte, length: uint32): int32 {
+    // No-op if either of the inputs are null
+    if (a == null || b == null) {
+      return 0;
+    }
+
+    // Return the first non-zero difference
+    while (length > 0) {
+      var delta = *a as int32 - *b as int32;
+      if (delta != 0) {
+        return delta;
+      }
+      a = a + 1;
+      b = b + 1;
+      length = length - 1;
+    }
+
+    // Both inputs are identical
+    return 0;
+}
