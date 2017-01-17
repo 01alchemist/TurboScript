@@ -1,8 +1,9 @@
-export function test(a: int32, b:float32, c:float64): int32 {
+export function test(a: int32, b:float32): int32 {
 
-    if(a == 1 && b == 0.0 && c == 0.0){
+    if(a == 1 || b == 0.1){
         return 1;
     }
+    return 0;
 }
 // export function test(a: int32, b:float32, c:float64): int32 {
 //

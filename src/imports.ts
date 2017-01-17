@@ -1,10 +1,10 @@
 // export declare function assert(truth: boolean): void;
-// export declare function Profiler_begin(): void;
-// export declare function Profiler_end(text: string): void;
+// export declare function stdlib.Profiler_begin(): void;
+// export declare function stdlib.Profiler_end(text: string): void;
 
 // export var assert = assert;
-// export var Profiler_begin = Profiler_begin;
-// export var Profiler_end = Profiler_end;
+// export var stdlib.Profiler_begin = stdlib.Profiler_begin;
+// export var stdlib.Profiler_end = stdlib.Profiler_end;
 
 export function isPositivePowerOf2(value: int32): boolean {
     return value > 0 && (value & (value - 1)) == 0;

@@ -5,6 +5,7 @@ import {
 import {CheckContext} from "./checker";
 import {StringBuilder_new} from "./stringbuilder";
 import {ScopeHint} from "./scope";
+import {MAX_UINT32_VALUE} from "./const";
 
 export enum ConversionKind {
     IMPLICIT,

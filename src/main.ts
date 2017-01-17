@@ -1,3 +1,4 @@
+///<reference path="declarations.d.ts" />
 import {ByteArray} from "./bytearray";
 import {Log, DiagnosticKind} from "./log";
 import {StringBuilder_new} from "./stringbuilder";
@@ -10,13 +11,6 @@ export enum Color {
     MAGENTA,
 }
 
-declare function Terminal_setColor(color: Color): void;
-declare function Terminal_write(text: string): void;
-
-declare function IO_readTextFile(path: string): string;
-declare function IO_writeTextFile(path: string, contents: string): boolean;
-declare function IO_writeBinaryFile(path: string, contents: ByteArray): boolean;
-
 export function writeLogToTerminal(log: Log): void {
     var diagnostic = log.first;
 
@@ -26,46 +20,46 @@ export function writeLogToTerminal(log: Log): void {
         // Source
         var builder = StringBuilder_new();
         diagnostic.appendSourceName(builder, location);
-        Terminal_setColor(Color.BOLD);
-        Terminal_write(builder.finish());
+        stdlib.Terminal_setColor(Color.BOLD);
+        stdlib.Terminal_write(builder.finish());
 
         // Kind
         builder = StringBuilder_new();
         diagnostic.appendKind(builder);
-        Terminal_setColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
-        Terminal_write(builder.finish());
+        stdlib.Terminal_setColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
+        stdlib.Terminal_write(builder.finish());
 
         // Message
         builder = StringBuilder_new();
         diagnostic.appendMessage(builder);
-        Terminal_setColor(Color.BOLD);
-        Terminal_write(builder.finish());
+        stdlib.Terminal_setColor(Color.BOLD);
+        stdlib.Terminal_write(builder.finish());
 
         // Line contents
         builder = StringBuilder_new();
         diagnostic.appendLineContents(builder, location);
-        Terminal_setColor(Color.DEFAULT);
-        Terminal_write(builder.finish());
+        stdlib.Terminal_setColor(Color.DEFAULT);
+        stdlib.Terminal_write(builder.finish());
 
         // Range
         builder = StringBuilder_new();
         diagnostic.appendRange(builder, location);
-        Terminal_setColor(Color.GREEN);
-        Terminal_write(builder.finish());
+        stdlib.Terminal_setColor(Color.GREEN);
+        stdlib.Terminal_write(builder.finish());
 
         diagnostic = diagnostic.next;
     }
 
-    Terminal_setColor(Color.DEFAULT);
+    stdlib.Terminal_setColor(Color.DEFAULT);
 }
 
 export function printError(text: string): void {
-    Terminal_setColor(Color.RED);
-    Terminal_write("error: ");
-    Terminal_setColor(Color.BOLD);
-    Terminal_write(text);
-    Terminal_write("\n");
-    Terminal_setColor(Color.DEFAULT);
+    stdlib.Terminal_setColor(Color.RED);
+    stdlib.Terminal_write("error: ");
+    stdlib.Terminal_setColor(Color.BOLD);
+    stdlib.Terminal_write(text);
+    stdlib.Terminal_write("\n");
+    stdlib.Terminal_setColor(Color.DEFAULT);
 }
 
 export class CommandLineArgument {
@@ -91,7 +85,7 @@ export function main_reset(): void {
 }
 
 export function printUsage(): void {
-    Terminal_write(`
+    stdlib.Terminal_write(`
 Usage: thinc [FLAGS] [INPUTS]
 
   --help           Print this message.
@@ -164,7 +158,7 @@ export function main_entry(): int32 {
     // Automatically set the target based on the file extension
     if (target == CompileTarget.NONE) {
         if (output.endsWith(".c")) target = CompileTarget.C;
-        else if (output.endsWith(".js")) target = CompileTarget.JAVASCRIPT;
+        else if (output.endsWith(".js")) target = CompileTarget.TURBO_JAVASCRIPT;
         else if (output.endsWith(".wasm")) target = CompileTarget.WEBASSEMBLY;
         else {
             printError("Missing a target (use either --c, --js, or --wasm)");
@@ -186,7 +180,7 @@ export function main_entry(): int32 {
         } else if (text == "--out") {
             argument = argument.next;
         } else if (!text.startsWith("-")) {
-            var contents = IO_readTextFile(text);
+            var contents = stdlib.IO_readTextFile(text);
             if (contents == null) {
                 printError(StringBuilder_new().append("Cannot read from ").append(text).finish());
                 return 1;
@@ -202,11 +196,11 @@ export function main_entry(): int32 {
 
     // Only emit the output if the compilation succeeded
     if (!compiler.log.hasErrors()) {
-        if (target == CompileTarget.C && IO_writeTextFile(output, compiler.outputC) &&
-            IO_writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
-            target == CompileTarget.JAVASCRIPT && IO_writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.TURBO_JAVASCRIPT && IO_writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.WEBASSEMBLY && IO_writeBinaryFile(output, compiler.outputWASM)) {
+        if (target == CompileTarget.C && stdlib.IO_writeTextFile(output, compiler.outputC) &&
+            stdlib.IO_writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
+            target == CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
+            target == CompileTarget.TURBO_JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
+            target == CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM)) {
             return 0;
         }
 
@@ -216,7 +210,8 @@ export function main_entry(): int32 {
     return 1;
 }
 
-export var turbo = {
-    main_addArgument:main_addArgument,
-    main_entry:main_entry
+export var main = {
+    addArgument:main_addArgument,
+    reset:main_reset,
+    entry:main_entry
 };

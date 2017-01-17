@@ -6,7 +6,9 @@
   "directories": {
     "test": "tests"
   },
-  "dependencies": {},
+  "dependencies": {
+    "systemjs": "^0.19.41"
+  },
   "devDependencies": {
     "@types/node": "^6.0.52",
     "lite-server": "^2.2.2",
@@ -14,8 +16,9 @@
     "typescript": "^2.1.4"
   },
   "scripts": {
-    "build": "tsc -p .",
-    "watch": "tsc -w -p ."
+    "build": "tsc -p ./src",
+    "watch": "tsc -w -p ./src",
+    "build-lib": "tsc -w -p ./lib"
   },
   "repository": {
     "type": "git",

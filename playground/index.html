@@ -1,0 +1,592 @@
+<meta charset="utf8">
+<title>TurboScript Playground</title>
+<style>
+    body {
+        font: 14px/150% verdana;
+        margin: 50px 0 50px 50px;
+        background: #232323;
+        color: #cbcbcb;
+    }
+
+    h1, p {
+        padding-right: 50px;
+        clear: both;
+    }
+
+    h1 {
+        color: #8f7adb;
+    }
+
+    p {
+        max-width: 800px;
+        margin: 0 0 30px 0;
+    }
+
+    h2 {
+        clear: both;
+        margin: 0;
+        height: 50px;
+        line-height: 30px;
+    }
+
+    input {
+        vertical-align: top;
+    }
+
+    a {
+        color: inherit;
+    }
+
+    .not-supported-warning-text {
+        display: none;
+    }
+
+    .wasm-unavailable .wasm-backend-text {
+        color: #BBB;
+    }
+
+    .wasm-unavailable .not-supported-warning-text {
+        display: inline;
+    }
+
+    button {
+        position: absolute;
+        width: 100px;
+        height: 30px;
+        bottom: 51px;
+        right: 51px;
+        background: white;
+        border: 1px solid #BBB;
+        border-top-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+        font: inherit;
+        line-height: 20px;
+        padding: 1px 0;
+        background: linear-gradient(white, #F7F7F7);
+        cursor: pointer;
+        color: black;
+    }
+
+    textarea {
+        width: 100%;
+        height: 400px;
+        min-height: 400px;
+        resize: vertical;
+        margin: 0;
+        border: 1px solid #CCC;
+        border-radius: 5px;
+        padding: 5px;
+    }
+
+    .secondary {
+        margin-top: 50px;
+        position: relative;
+        display: none;
+    }
+
+    .secondary button {
+        top: 0;
+        right: 0;
+    }
+
+    .double-output .secondary {
+        display: block;
+    }
+
+    .double-output textarea {
+        height: 175px;
+        min-height: 175px;
+    }
+
+    button:active:not(:disabled) {
+        background: linear-gradient(#EEE, #F7F7F7);
+        box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        padding: 2px 0 0 0;
+    }
+
+    button:focus, textarea:focus {
+        outline: none;
+        border-color: #8F7ADB;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    }
+
+    textarea:focus + button {
+        border-color: #8F7ADB;
+    }
+
+    button:disabled {
+        color: black;
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    button::-moz-focus-inner {
+        border: none;
+    }
+
+    textarea, code {
+        font: 14px/130% Consolas, monospace;
+        background: #2f2e33;
+        border-color: #34264f;
+        color: #cacaca;
+    }
+
+    section {
+        position: relative;
+        width: 50%;
+        float: left;
+        padding: 0 50px 50px 0;
+        box-sizing: border-box;
+    }
+
+    label[title]:hover:after {
+        content: attr(title);
+        border: 1px solid red;
+        padding: 2px 5px 2px 5px;
+    }
+
+    .coming-soon[title]:hover:after {
+        content: attr(title);
+        border: 1px solid orange;
+        padding: 2px 5px 2px 5px;
+        position: absolute;
+        background: #232323;
+    }
+
+    .spacer {
+        height: 50px;
+    }
+    .footer{
+        bottom:10px;
+        text-align: center;
+    }
+</style>
+<body>
+<h1>TurboScript Playground</h1>
+<div style="line-height: 15px">
+  <pre style="display: inline-block">
+    @             _________
+     \____       /         \
+     /    \     /   ____    \
+     \_    \   /   /    \    \
+       \    \ (    \__/  )    )
+        \    \_\ \______/    /
+         \      \           /___
+          \______\_________/____"-_____
+  </pre>
+    <pre style="display: inline-block">
+ ________  _____  ___  ____
+/_  __/ / / / _ \/ _ )/ __ \
+ / / / /_/ / , _/ _  / /_/ /
+/_/  \____/_/|_/____/\____/
+  </pre>
+</div>
+<p>
+    TurboScript is an experimental programming language for parallel programming for web which compiles to JavaScript
+    and WebAssembly (targeting post-MVP).
+    The syntax is similar to TypeScript (Hardly trying to fill the gaps) and the compiler is <a
+        href="https://github.com/01alchemist/turboscript">open source</a> and written in TypeScript.
+</p>
+
+<p>
+    This is still an experiment and isn't intended for real use yet.
+    The biggest issue is that the generated code currently doesn't delete anything (C/C++ like manual memory management
+    is planned).
+    Also the WebAssembly specification is still being developed and the current binary format may stop working when
+    WebAssembly is officially released.
+    WebAssembly binary format is up-to-date, please feel free to open issues if it stop working or need a new feature.
+</p>
+
+<p>
+    TurboScript if forked from <a href="https://github.com/evanw/thinscript">ThinScript</a> and changed a lot, so there
+    will be no going back.
+</p>
+
+<div class="spacer"></div>
+
+<section>
+    <h2>Input</h2>
+    <textarea id="input" autofocus autocomplete="off" autocorrect="off" autocapitalize="off"
+              spellcheck="false"></textarea>
+</section>
+
+<section>
+    <h2>Output</h2>
+    <textarea id="output" readonly autocomplete="off" autocorrect="off" autocapitalize="off"
+              spellcheck="false"></textarea>
+    <button id="output-button">Download</button>
+    <div class="secondary">
+        <textarea id="secondary-output" readonly autocomplete="off" autocorrect="off" autocapitalize="off"
+                  spellcheck="false"></textarea>
+        <button id="secondary-output-button">Download</button>
+    </div>
+</section>
+
+<p>
+    <b>Compile using:</b>
+    <label><input type="radio" name="backend" id="backend-js" checked> JavaScript</label>
+    <label title="Not yet supported!"><input type="radio" name="backend" id="backend-wasm" disabled> <span
+            class="wasm-backend-text">WebAssembly<span class="not-supported-warning-text"> (not supported by your browser)</span></span></label>
+    <br>
+    <b>Compile to:</b>
+    <label class="coming-soon" title="Coming soon!"><input type="radio" name="target" id="target-js" disabled> JavaScript</label>
+    <label><input type="radio" name="target" id="target-wasm" checked> WebAssembly<span
+            class="not-supported-warning-text"> (not supported by your browser)</span></label>
+    <label title="Not yet supported!"><input type="radio" name="target" id="target-c" disabled> C</label>
+    <br>
+    <b>Compile time:</b>
+    <span id="compile-time"></span>
+</p>
+
+<div class="spacer"></div>
+
+<section>
+    <h2>Terminal</h2>
+    <textarea id="terminal" autocomplete="off" autocorrect="off" autocapitalize="off"
+              spellcheck="false"></textarea>
+    <button id="run-button">Run</button>
+</section>
+
+<section>
+    <h2>Log</h2>
+    <textarea id="log" readonly autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+    <button id="clear" disabled>Clear</button>
+</section>
+<div class="footer">Developed by <a href="https://01alchemist.com">01 Alchemist</a></div>
+</body>
+<script src="../node_modules/systemjs/dist/system.src.js"></script>
+<script src="../bin/turbo.js"></script>
+<script src="common.js"></script>
+<script>
+
+    (function () {
+        var clear = document.getElementById('clear');
+        var input = document.getElementById('input');
+        var output = document.getElementById('output');
+        var outputButton = document.getElementById('output-button');
+        var secondaryOutput = document.getElementById('secondary-output');
+        var secondaryOutputButton = document.getElementById('secondary-output-button');
+        var terminal = document.getElementById('terminal');
+        var terminalButton = document.getElementById('run-button');
+        var log = document.getElementById('log');
+        var compileTime = document.getElementById('compile-time');
+
+        var backendWebAssembly = document.getElementById('backend-wasm');
+        var backendJavaScript = document.getElementById('backend-js');
+
+        var targetC = document.getElementById('target-c');
+        var targetJavaScript = document.getElementById('target-js');
+        var targetWebAssembly = document.getElementById('target-wasm');
+
+        var compiledWebAssembly = null;
+        var compiledJavaScript = null;
+
+        var terminalName = null;
+        var terminalContents = null;
+
+        var outputName = null;
+        var outputContents = null;
+
+        var secondaryOutputName = null;
+        var secondaryOutputContents = null;
+
+        function joinLines(lines) {
+            return lines.join('\n');
+        }
+
+        var example = joinLines([
+                'export function addTwo(a:int32, b:int32): int32 {',
+                '  return a + b;',
+                '}',
+            ]) + '\n';
+
+        function hexdump(bytes) {
+            var text = '';
+            var rows = bytes.length + 15 >>> 4;
+
+            for (var i = 0; i < rows; i++) {
+                if (i > 0) {
+                    text += '\n';
+                }
+
+                var columns = Math.min(16, bytes.length - i * 16);
+
+                for (var j = 0; j < columns; j++) {
+                    text += (0x100 | bytes[i * 16 + j]).toString(16).slice(-2) + ' ';
+                }
+
+                for (var j = columns; j < 16; j++) {
+                    text += '   ';
+                }
+
+                text += '| ';
+
+                for (var j = 0; j < columns; j++) {
+                    var c = bytes[i * 16 + j];
+                    text += c >= 0x20 && c <= 0x7E ? String.fromCharCode(c) : '\xB7';
+                }
+            }
+
+            return text;
+        }
+
+        function compile() {
+            clearLog();
+            var target = targetC.checked ? 'C' : targetJavaScript.checked ? 'JavaScript' : 'WebAssembly';
+            var sources = [{
+                name: '<stdin>',
+                contents: input.value,
+            }];
+
+            var compiled = null;
+
+            try {
+                if (backendWebAssembly.checked) {
+                    compiled = compiledWebAssembly(sources, target, 'compiled');
+                } else {
+                    compiled = compiledJavaScript(sources, target, 'compiled');
+                }
+            } catch (e) {
+                var message = e + '';
+                if (e.stack) {
+                    message = e.stack.indexOf(message) !== -1 ? e.stack : message + '\n' + e.stack;
+                }
+                compiled = {stdout: message, totalTime: 0, success: false};
+            }
+
+            secondaryOutputName = null;
+            secondaryOutputContents = '';
+
+            terminalName = null;
+            terminalContents = '';
+
+            if (!compiled.success) {
+                output.style.borderColor = "#ff0000";
+            } else {
+                output.style.borderColor = "#00ff00";
+            }
+
+            if (compiled.stdout) {
+                output.value = compiled.stdout;
+                outputName = 'log.txt';
+                outputContents = compiled.stdout;
+            }
+
+            else {
+                switch (target) {
+                    case 'C': {
+                        output.value = compiled.secondaryOutput;
+                        outputName = 'compiled.h';
+                        outputContents = compiled.secondaryOutput;
+                        secondaryOutputName = 'compiled.c';
+                        secondaryOutputContents = compiled.output;
+                        terminalName = 'main.c';
+                        terminalContents = joinLines([
+                            '// Compile with "cc compiled.c main.c"',
+                            '',
+                            '#include "compiled.h"',
+                            '#include <stdio.h>',
+                            '',
+                            'void print(const uint16_t *text) {',
+                            '  puts((const char *)utf16_to_cstring(text));',
+                            '}',
+                            '',
+                            'int main() {',
+                            '  return demo();',
+                            '}',
+                        ]);
+                        break;
+                    }
+
+                    case 'JavaScript': {
+                        output.value = compiled.output;
+                        outputName = 'compiled.js';
+                        outputContents = compiled.output;
+                        terminalName = 'main.js';
+                        terminalContents = joinLines([
+                            'function compileAndRunJavaScript(compiled) {',
+                            '  var global = {',
+                            '    print: function(text) {',
+                            '      console.log(text);',
+                            '    },',
+                            '  };',
+                            '  var exports = {};',
+                            '  var code = new Function("global", "exports", compiled)',
+                            '  code(global, exports);',
+                            '  var result = exports.demo();',
+                            '  console.log("result:", result);',
+                            '}',
+                            '',
+                            'compileAndRunJavaScript(' + JSON.stringify(compiled.output) + ');',
+                        ]);
+                        break;
+                    }
+
+                    case 'WebAssembly': {
+                        output.value = hexdump(compiled.output);
+                        outputName = 'compiled.wasm';
+                        outputContents = compiled.output;
+                        terminalName = 'main.js';
+
+                        try {
+                            WebAssembly.compile(compiled.output).then(function (compiled) {
+                                window.exports = new WebAssembly.Instance(compiled).exports;
+                                console.info("WASM Compiled and exports can access by window.exports");
+                                terminalContents = joinLines([
+                                    "//WASM Compiled and exports can access by window.exports",
+                                    "console.log(exports.addTwo(1,1));",
+                                ]);
+                                terminal.textContent = terminalContents;
+                                output.style.borderColor = "#00ff00";
+                            }).catch(function (e) {
+                                output.style.borderColor = "#ff0000";
+                                terminal.textContent = e.message;
+                                console.error(e);
+                            })
+
+                        } catch (e) {
+                            output.style.borderColor = "#ff0000";
+                            terminal.textContent = e.message;
+                            console.error(e);
+                        }
+
+//                        terminalContents = joinLines([
+//                            'function compileAndRunWebAssembly(wasmBytes) {',
+//                            '  var extractLengthPrefixedString = function(ptr) {',
+//                            '    var text = "", length = ints[ptr >> 2], i = ptr + 4 >> 1;',
+//                            '    while (length-- > 0) text += String.fromCharCode(chars[i++]);',
+//                            '    return text;',
+//                            '  };',
+//                            '  var global = {',
+//                            '    print: function(ptr) {',
+//                            '      console.log(extractLengthPrefixedString(ptr));',
+//                            '    },',
+//                            '  };',
+//                            '  WebAssembly.compile(wasmBytes).then(function (compiled) {',
+//                            '     var exports = WebAssembly.Instance(compiled, {global: global}).exports;',
+//                            '     var chars = new Uint16Array(exports.memory);',
+//                            '     var ints = new Int32Array(exports.memory);',
+//                            '     var result = exports.addTwo(1,1);',
+//                            '     console.log("result:", result);',
+//                            '  });',
+//                            '}',
+//                            '',
+//                            'compileAndRunWebAssembly(new Uint8Array([' + Array.prototype.slice.call(compiled.output).join(', ') + ']));',
+//                        ]);
+                        break;
+                    }
+
+                    default: {
+                        throw new Error('Invalid target: ' + target);
+                    }
+                }
+            }
+
+            if (secondaryOutputName !== null) {
+                output.parentNode.classList.add('double-output');
+            } else {
+                output.parentNode.classList.remove('double-output');
+            }
+            secondaryOutput.value = secondaryOutputContents;
+
+            terminal.textContent = terminalContents;
+            terminalButton.textContent = target === 'JavaScript' || target === 'WebAssembly' && supportsWebAssembly() ? 'Run' : 'Download';
+            terminalButton.disabled = terminalName === null;
+
+            compileTime.textContent = compiled.totalTime + 'ms';
+        }
+
+        function triggerDownload(name, contents) {
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob([contents], {type: typeof contents === 'string' ? 'text/plain' : 'application/octet-stream'}));
+            link.download = name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function logAppend() {
+            log.value += (log.value !== '' ? '\n' : '') + '> ' + Array.prototype.map.call(arguments, function (item) {
+                    var text = item + '';
+                    return text === '' || text.indexOf('\n') !== -1 ? JSON.stringify(text) : text;
+                }).join(' ');
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function updateTerminalContent() {
+            terminalContents = terminal.value;
+        }
+
+        function runOrDownloadShim() {
+            if (terminalButton.disabled) {
+                return;
+            }
+
+            if (terminalButton.textContent === 'Download') {
+                triggerDownload(terminalName, terminalContents);
+                return;
+            }
+
+            if (log.value !== '') log.value += '\n';
+            clear.disabled = false;
+
+            try {
+                new Function('terminal', terminalContents)();
+            } catch (e) {
+                logAppend(e + '');
+            }
+        }
+
+        function clearLog() {
+            log.value = '';
+            clear.disabled = true;
+        }
+
+        function supportsWebAssembly() {
+            return typeof WebAssembly !== 'undefined';
+        }
+
+        function main() {
+
+//            window.stdlib = loadStdlibForJavaScript();
+
+            SystemJS.import("main").then((turboMod) => {
+                backendWebAssembly.onchange = compile;
+                backendJavaScript.onchange = compile;
+                targetWebAssembly.onchange = compile;
+                targetJavaScript.onchange = compile;
+                terminal.oninput = updateTerminalContent;
+//                targetC.onchange = compile;
+                input.oninput = compile;
+                outputButton.onclick = function () {
+                    triggerDownload(outputName, outputContents);
+                };
+                secondaryOutputButton.onclick = function () {
+                    triggerDownload(secondaryOutputName, secondaryOutputContents);
+                };
+                terminalButton.onclick = runOrDownloadShim;
+                clear.onclick = clearLog;
+
+                compiledJavaScript = compileJavaScript(turboMod);
+
+//                if (supportsWebAssembly()) {
+//                    compiledWebAssembly = compileWebAssembly(wasm);
+//                    backendWebAssembly.checked = true;
+//                }
+//
+//                else {
+//                    backendJavaScript.checked = true;
+//                    backendWebAssembly.disabled = true;
+//                    document.body.className = 'wasm-unavailable';
+//                }
+
+                input.value = example;
+                input.selectionStart = input.selectionEnd = 0;
+                compile();
+            });
+        }
+        console.log = logAppend;
+        main();
+    })();
+
+</script>

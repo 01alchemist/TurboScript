@@ -51,8 +51,8 @@ export class Compiler {
         if (target == CompileTarget.TURBO_JAVASCRIPT) {
             this.librarySource = this.addInput("<native>", libraryTurbo());
         }else{
-            // this.librarySource = this.addInput("<native>", libraryWasm());
-            this.librarySource = this.addInput("<native>", libraryDummy());
+            this.librarySource = this.addInput("<native>", libraryWasm());
+            // this.librarySource = this.addInput("<native>", libraryDummy());
         }
         this.librarySource.isLibrary = true;
         this.createGlobals();
@@ -109,7 +109,7 @@ export class Compiler {
     }
 
     finish(): boolean {
-        Profiler_begin("lexing");
+        stdlib.Profiler_begin("lexing");
 
         var source = this.firstSource;
         while (source != null) {
@@ -117,8 +117,8 @@ export class Compiler {
             source = source.next;
         }
 
-        Profiler_end("lexing");
-        Profiler_begin("preprocessing");
+        stdlib.Profiler_end("lexing");
+        stdlib.Profiler_begin("preprocessing");
 
         source = this.firstSource;
         while (source != null) {
@@ -126,8 +126,8 @@ export class Compiler {
             source = source.next;
         }
 
-        Profiler_end("preprocessing");
-        Profiler_begin("parsing");
+        stdlib.Profiler_end("preprocessing");
+        stdlib.Profiler_begin("parsing");
 
         source = this.firstSource;
         while (source != null) {
@@ -137,8 +137,8 @@ export class Compiler {
             source = source.next;
         }
 
-        Profiler_end("parsing");
-        Profiler_begin("checking");
+        stdlib.Profiler_end("parsing");
+        stdlib.Profiler_begin("checking");
 
         var global = this.global;
         var context = this.context;
@@ -176,18 +176,18 @@ export class Compiler {
             resolve(context, global, global.scope);
         }
 
-        Profiler_end("checking");
+        stdlib.Profiler_end("checking");
 
         if (this.log.hasErrors()) {
             return false;
         }
 
-        Profiler_begin("shaking");
+        stdlib.Profiler_begin("shaking");
 
         treeShaking(global);
 
-        Profiler_end("shaking");
-        Profiler_begin("emitting");
+        stdlib.Profiler_end("shaking");
+        stdlib.Profiler_begin("emitting");
 
         if (this.target == CompileTarget.C) {
             cEmit(this);
@@ -205,7 +205,7 @@ export class Compiler {
             wasmEmit(this);
         }
 
-        Profiler_end("emitting");
+        stdlib.Profiler_end("emitting");
 
         return true;
     }

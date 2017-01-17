@@ -665,7 +665,7 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     }
 
     else if (from.isInteger() && to.isLong()) {
-        return true;
+        return false;
     }
 
     else if (from.isInteger() && to.isFloat()) {
@@ -682,6 +682,9 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     else if (from.isDouble() && to.isFloat()) {
         //TODO Allow lossless conversions implicitly
         return false;
+    }
+    else if (from.isFloat() && to.isFloat()) {
+        return true;
     }
     else if (from.isDouble() && to.isDouble()) {
         return true;
@@ -803,6 +806,15 @@ export function binaryHasUnsignedArguments(node: Node): boolean {
 
     return leftType.isUnsigned() && rightType.isUnsigned() || leftType.isUnsigned() && right.isNonNegativeInteger() ||
         left.isNonNegativeInteger() && rightType.isUnsigned();
+}
+
+export function isBinaryDouble(node: Node): boolean {
+    var left = node.binaryLeft();
+    var right = node.binaryRight();
+    var leftType = left.resolvedType;
+    var rightType = right.resolvedType;
+
+    return leftType.isDouble() || rightType.isDouble();
 }
 
 export function isSymbolAccessAllowed(context: CheckContext, symbol: Symbol, node: Node, range: Range): boolean {
@@ -1711,9 +1723,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 kind == NodeKind.SHIFT_LEFT ||
                 kind == NodeKind.SHIFT_RIGHT) {
 
-                // checkConversion(context, left, commonType, ConversionKind.IMPLICIT);
-                // checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
-                // node.resolvedType = commonType;
+                let commonType = isBinaryDouble(node) ? context.float64Type : context.float32Type;
+                checkConversion(context, left, commonType, ConversionKind.IMPLICIT);
+                checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
+                node.resolvedType = commonType;
 
                 // Automatically fold constants
                 if ((left.kind == NodeKind.FLOAT32 || left.kind == NodeKind.FLOAT64) &&

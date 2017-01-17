@@ -12,6 +12,6 @@ class Vec3 {
 
 }
 
-function newVec3(x: float32, y: float32, z: float32): Vec3 {
+export function newVec3(x: float32, y: float32, z: float32): Vec3 {
     return new Vec3(x, y, z);
 }

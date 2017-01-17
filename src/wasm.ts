@@ -87,8 +87,8 @@ function wasmAreSignaturesEqual(a: WasmSignature, b: WasmSignature): boolean {
     assert(a.returnType.next == null);
     assert(b.returnType.next == null);
 
-    var x = a.argumentTypes;
-    var y = b.argumentTypes;
+    let x = a.argumentTypes;
+    let y = b.argumentTypes;
 
     while (x != null && y != null) {
         if (x.id != y.id) {
@@ -175,7 +175,7 @@ class WasmModule {
     }
 
     allocateImport(signatureIndex: int32, mod: string, name: string): WasmImport {
-        var result = new WasmImport();
+        let result = new WasmImport();
         result.signatureIndex = signatureIndex;
         result.module = mod;
         result.name = name;
@@ -189,7 +189,7 @@ class WasmModule {
     }
 
     allocateGlobal(symbol: Symbol): WasmGlobal {
-        var global = new WasmGlobal();
+        let global = new WasmGlobal();
         global.symbol = symbol;
         symbol.offset = this.globalCount;
 
@@ -202,7 +202,7 @@ class WasmModule {
     }
 
     allocateFunction(symbol: Symbol, signatureIndex: int32): WasmFunction {
-        var fn = new WasmFunction();
+        let fn = new WasmFunction();
         fn.symbol = symbol;
         fn.signatureIndex = signatureIndex;
 
@@ -218,12 +218,12 @@ class WasmModule {
         assert(returnType != null);
         assert(returnType.next == null);
 
-        var signature = new WasmSignature();
+        let signature = new WasmSignature();
         signature.argumentTypes = argumentTypes;
         signature.returnType = returnType;
 
-        var check = this.firstSignature;
-        var i = 0;
+        let check = this.firstSignature;
+        let i = 0;
 
         while (check != null) {
             if (wasmAreSignaturesEqual(signature, check)) {
@@ -267,13 +267,13 @@ class WasmModule {
             return;
         }
 
-        var section = wasmStartSection(array, WasmSection.Type, "signatures");
+        let section = wasmStartSection(array, WasmSection.Type, "signatures");
         section.data.writeUnsignedLEB128(this.signatureCount);
 
-        var signature = this.firstSignature;
+        let signature = this.firstSignature;
         while (signature != null) {
-            var count = 0;
-            var type = signature.argumentTypes;
+            let count = 0;
+            let type = signature.argumentTypes;
 
             while (type != null) {
                 count = count + 1;
@@ -287,7 +287,7 @@ class WasmModule {
                 section.data.writeUnsignedLEB128(type.id); //value_type, the parameter types of the function
                 type = type.next;
             }
-            var returnTypeId = signature.returnType.id;
+            let returnTypeId = signature.returnType.id;
             if (returnTypeId > 0) {
                 section.data.writeUnsignedLEB128(1); //return_count, the number of results from the function
                 section.data.writeUnsignedLEB128(signature.returnType.id);
@@ -306,10 +306,10 @@ class WasmModule {
             return;
         }
 
-        var section = wasmStartSection(array, WasmSection.Import, "import_table");
+        let section = wasmStartSection(array, WasmSection.Import, "import_table");
         array.writeUnsignedLEB128(this.importCount);
 
-        var current = this.firstImport;
+        let current = this.firstImport;
         while (current != null) {
             array.writeUnsignedLEB128(current.signatureIndex);
             array.writeWasmString(current.module);
@@ -325,10 +325,10 @@ class WasmModule {
             return;
         }
 
-        var section = wasmStartSection(array, WasmSection.Function, "function_declarations");
+        let section = wasmStartSection(array, WasmSection.Function, "function_declarations");
         section.data.writeUnsignedLEB128(this.functionCount);
 
-        var fn = this.firstFunction;
+        let fn = this.firstFunction;
         while (fn != null) {
             section.data.writeUnsignedLEB128(fn.signatureIndex);
             fn = fn.next;
@@ -342,7 +342,7 @@ class WasmModule {
     }
 
     emitMemory(array: ByteArray): void {
-        var section = wasmStartSection(array, WasmSection.Memory, "memory");
+        let section = wasmStartSection(array, WasmSection.Memory, "memory");
         section.data.writeUnsignedLEB128(1); //indicating the number of memories defined by the module, In the MVP, the number of memories must be no more than 1.
         //resizable_limits
         section.data.writeUnsignedLEB128(WASM_SET_MAX_MEMORY ? 0x1 : 0); //flags, bit 0x1 is set if the maximum field is present
@@ -523,7 +523,7 @@ class WasmModule {
     }
 
     emitNames(array: ByteArray): void {
-        var section = wasmStartSection(array, 0, "names");
+        let section = wasmStartSection(array, 0, "names");
         array.writeUnsignedLEB128(this.functionCount);
 
         let fn = this.firstFunction;
@@ -546,12 +546,12 @@ class WasmModule {
 
     prepareToEmit(node: Node): void {
         if (node.kind == NodeKind.STRING) {
-            var text = node.stringValue;
-            var length = text.length;
-            var offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
+            let text = node.stringValue;
+            let length = text.length;
+            let offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
             node.intValue = offset;
             this.growMemoryInitializer();
-            var memoryInitializer = this.memoryInitializer;
+            let memoryInitializer = this.memoryInitializer;
 
             // Emit a length-prefixed string
             ByteArray_set32(memoryInitializer, offset, length);
@@ -624,15 +624,15 @@ class WasmModule {
         }
 
         else if (node.kind == NodeKind.FUNCTION) {
-            var returnType = node.functionReturnType();
-            var shared = new WasmSharedOffset();
-            var argumentTypesFirst: WasmWrappedType = null;
-            var argumentTypesLast: WasmWrappedType = null;
+            let returnType = node.functionReturnType();
+            let shared = new WasmSharedOffset();
+            let argumentTypesFirst: WasmWrappedType = null;
+            let argumentTypesLast: WasmWrappedType = null;
 
             // Make sure to include the implicit "this" variable as a normal argument
-            var argument = node.functionFirstArgument();
+            let argument = node.functionFirstArgument();
             while (argument != returnType) {
-                var type = wasmWrapType(this.getWasmType(argument.variableType().resolvedType));
+                let type = wasmWrapType(this.getWasmType(argument.variableType().resolvedType));
 
                 if (argumentTypesFirst == null) argumentTypesFirst = type;
                 else argumentTypesLast.next = type;
@@ -641,13 +641,13 @@ class WasmModule {
                 shared.nextLocalOffset = shared.nextLocalOffset + 1;
                 argument = argument.nextSibling;
             }
-            var signatureIndex = this.allocateSignature(argumentTypesFirst, wasmWrapType(this.getWasmType(returnType.resolvedType)));
-            var body = node.functionBody();
-            var symbol = node.symbol;
+            let signatureIndex = this.allocateSignature(argumentTypesFirst, wasmWrapType(this.getWasmType(returnType.resolvedType)));
+            let body = node.functionBody();
+            let symbol = node.symbol;
 
             // Functions without bodies are imports
             if (body == null) {
-                var moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                 symbol.offset = this.importCount;
                 this.allocateImport(signatureIndex, moduleName, symbol.name);
                 node = node.nextSibling;
@@ -655,7 +655,7 @@ class WasmModule {
             }
 
             symbol.offset = this.functionCount;
-            var fn = this.allocateFunction(symbol, signatureIndex);
+            let fn = this.allocateFunction(symbol, signatureIndex);
 
             // Make sure "malloc" is tracked
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
@@ -672,7 +672,7 @@ class WasmModule {
             fn.localCount = shared.localCount;
         }
 
-        var child = node.firstChild;
+        let child = node.firstChild;
         while (child != null) {
             this.prepareToEmit(child);
             child = child.nextSibling;
@@ -923,10 +923,10 @@ class WasmModule {
                 if (value && value.rawValue) {
                     if (node.symbol.resolvedType.isFloat()) {
                         array.append(WasmOpcode.F32_CONST);
-                        array.writeFloat(value.rawValue);
+                        array.writeFloat(value.floatValue);
                     } else {
                         array.append(WasmOpcode.I32_CONST);
-                        array.writeUnsignedLEB128(value.rawValue);
+                        array.writeUnsignedLEB128(value.intValue);
                     }
 
                 } else {
@@ -982,7 +982,7 @@ class WasmModule {
 
         else if (node.kind == NodeKind.INT64) {
             array.append(WasmOpcode.I64_CONST);
-            array.writeLEB128(node.intValue);
+            array.writeLEB128(node.longValue);
         }
 
         else if (node.kind == NodeKind.FLOAT32) {
@@ -1001,20 +1001,19 @@ class WasmModule {
         }
 
         else if (node.kind == NodeKind.CALL) {
-            var value = node.callValue();
-            var symbol = value.symbol;
+            let value = node.callValue();
+            let symbol = value.symbol;
             assert(isFunction(symbol.kind));
 
-            // array.append(symbol.node.functionBody() == null ? WasmOpcode.CALL_IMPORT : WasmOpcode.CALL);
-            array.append(WasmOpcode.CALL);
             array.writeUnsignedLEB128(symbol.offset);
+            array.append(WasmOpcode.CALL);
 
             // Write out the implicit "this" argument
             if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
                 this.emitNode(array, value.dotTarget());
             }
 
-            var child = value.nextSibling;
+            let child = value.nextSibling;
             while (child != null) {
                 this.emitNode(array, child);
                 child = child.nextSibling;
@@ -1022,8 +1021,8 @@ class WasmModule {
         }
 
         else if (node.kind == NodeKind.NEW) {
-            var type = node.newType();
-            var size = type.resolvedType.allocationSizeOf(this.context);
+            let type = node.newType();
+            let size = type.resolvedType.allocationSizeOf(this.context);
 
             array.append(WasmOpcode.CALL);
             array.writeUnsignedLEB128(this.mallocFunctionIndex);
@@ -1039,31 +1038,31 @@ class WasmModule {
         }
 
         else if (node.kind == NodeKind.NEGATIVE) {
-            array.append(WasmOpcode.I32_SUB);
             array.append(WasmOpcode.I32_CONST);
             array.writeLEB128(0);
             this.emitNode(array, node.unaryValue());
+            array.append(WasmOpcode.I32_SUB);
         }
 
         else if (node.kind == NodeKind.COMPLEMENT) {
-            array.append(WasmOpcode.I32_XOR);
             array.append(WasmOpcode.I32_CONST);
             array.writeLEB128(~0);
             this.emitNode(array, node.unaryValue());
+            array.append(WasmOpcode.I32_XOR);
         }
 
         else if (node.kind == NodeKind.NOT) {
-            array.append(WasmOpcode.I32_EQZ);
             this.emitNode(array, node.unaryValue());
+            array.append(WasmOpcode.I32_EQZ);
         }
 
         else if (node.kind == NodeKind.CAST) {
-            var value = node.castValue();
-            var context = this.context;
-            var from = value.resolvedType.underlyingType(context);
+            let value = node.castValue();
+            let context = this.context;
+            let from = value.resolvedType.underlyingType(context);
             let type = node.resolvedType.underlyingType(context);
-            var fromSize = from.variableSizeOf(context);
-            var typeSize = type.variableSizeOf(context);
+            let fromSize = from.variableSizeOf(context);
+            let typeSize = type.variableSizeOf(context);
 
             // The cast isn't needed if it's to a wider integer type
             if (from == type || fromSize < typeSize) {
@@ -1073,7 +1072,7 @@ class WasmModule {
             else {
                 // Sign-extend
                 if (type == context.sbyteType || type == context.shortType) {
-                    var shift = 32 - typeSize * 8;
+                    let shift = 32 - typeSize * 8;
                     array.append(WasmOpcode.I32_SHR_S);
                     array.append(WasmOpcode.I32_SHL);
                     this.emitNode(array, value);
@@ -1085,10 +1084,10 @@ class WasmModule {
 
                 // Mask
                 else if (type == context.byteType || type == context.ushortType) {
-                    array.append(WasmOpcode.I32_AND);
                     this.emitNode(array, value);
                     array.append(WasmOpcode.I32_CONST);
                     array.writeLEB128(type.integerBitMask(this.context));
+                    array.append(WasmOpcode.I32_AND);
                 }
 
                 // No cast needed
@@ -1099,7 +1098,7 @@ class WasmModule {
         }
 
         else if (node.kind == NodeKind.DOT) {
-            var symbol = node.symbol;
+            let symbol = node.symbol;
 
             if (symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
                 this.emitLoadFromMemory(array, symbol.resolvedType, node.dotTarget(), symbol.offset);
@@ -1124,7 +1123,7 @@ class WasmModule {
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                //Global variables are immutable in MVP so we need to store then in memory
+                //Global variables are immutable in MVP so we need to store them in memory
                 // this.emitNode(array, right);
                 // array.append(WasmOpcode.SET_GLOBAL);
                 // array.writeUnsignedLEB128(symbol.offset);
@@ -1143,19 +1142,21 @@ class WasmModule {
         }
 
         else if (node.kind == NodeKind.LOGICAL_AND) {
-            array.append(WasmOpcode.IF_ELSE);
             this.emitNode(array, node.binaryLeft());
             this.emitNode(array, node.binaryRight());
+            array.append(WasmOpcode.I32_AND);
             array.append(WasmOpcode.I32_CONST);
-            array.writeLEB128(0);
+            array.writeLEB128(1);
+            array.append(WasmOpcode.I32_EQ);
         }
 
         else if (node.kind == NodeKind.LOGICAL_OR) {
-            array.append(WasmOpcode.IF_ELSE);
             this.emitNode(array, node.binaryLeft());
+            this.emitNode(array, node.binaryRight());
+            array.append(WasmOpcode.I32_OR);
             array.append(WasmOpcode.I32_CONST);
             array.writeLEB128(1);
-            this.emitNode(array, node.binaryRight());
+            array.append(WasmOpcode.I32_EQ);
         }
 
         else {
@@ -1331,7 +1332,7 @@ class WasmModule {
     }
 
     getWasmType(type: Type): WasmType {
-        var context = this.context;
+        let context = this.context;
 
         if (type == context.booleanType || type.isInteger() || (this.bitness == Bitness.x32 && type.isReference())) {
             return WasmType.I32;
@@ -1370,7 +1371,7 @@ function wasmFinishSection(array: ByteArray, section: SectionBuffer): void {
 
 function wasmWrapType(id: WasmType): WasmWrappedType {
     assert(id == WasmType.VOID || id == WasmType.I32 || id == WasmType.I64 || id == WasmType.F32 || id == WasmType.F64);
-    var type = new WasmWrappedType();
+    let type = new WasmWrappedType();
     type.id = id;
     return type;
 }

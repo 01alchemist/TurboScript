@@ -1,16 +1,21 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "system",
     "target": "es6",
     "sourceMap": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "types": [
       "node"
-    ]
+    ],
+    "outFile": "../bin/turbo.js"
   },
+  "files": [
+    "main.ts"
+  ],
   "exclude": [
     "node_modules",
-    "bin"
+    "bin",
+    "tests"
   ]
 }
