@@ -585,9 +585,10 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeBoolean(value: boolean, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_BOOLEAN);
+        offset = offset ? offset : this.position++;
+        this.validateBuffer(ByteArray.SIZE_OF_BOOLEAN, offset);
 
-        this.data.setUint8(offset ? offset : this.position++, value ? 1 : 0);
+        this.data.setUint8(offset, value ? 1 : 0);
     }
 
     /**
@@ -598,15 +599,17 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeByte(value: number, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_INT8);
+        offset = offset ? offset : this.position++;
+        this.validateBuffer(ByteArray.SIZE_OF_INT8, offset);
 
-        this.data.setInt8(offset ? offset : this.position++, value);
+        this.data.setInt8(offset, value);
     }
 
     public writeUnsignedByte(value: number, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_UINT8);
+        offset = offset ? offset : this.position++;
+        this.validateBuffer(ByteArray.SIZE_OF_UINT8, offset);
 
-        this.data.setUint8(offset ? offset : this.position++, value);
+        this.data.setUint8(offset, value);
     }
 
     /**
@@ -642,9 +645,10 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeDouble(value: number, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_FLOAT64);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(ByteArray.SIZE_OF_FLOAT64, position);
 
-        this.data.setFloat64(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        this.data.setFloat64(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
         if(!offset){
             this.position += ByteArray.SIZE_OF_FLOAT64;
         }
@@ -656,9 +660,10 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeFloat(value: number, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_FLOAT32);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(ByteArray.SIZE_OF_FLOAT32, position);
 
-        this.data.setFloat32(offset ? offset: this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        this.data.setFloat32(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
         if(!offset){
             this.position += ByteArray.SIZE_OF_FLOAT32;
         }
@@ -670,9 +675,10 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeInt(value: number, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_INT32);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(ByteArray.SIZE_OF_INT32, position);
 
-        this.data.setInt32(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        this.data.setInt32(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
         if(!offset){
             this.position += ByteArray.SIZE_OF_INT32;
         }
@@ -696,18 +702,20 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeShort(value: number, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_INT16);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(ByteArray.SIZE_OF_INT16, position);
 
-        this.data.setInt16(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        this.data.setInt16(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
         if(!offset){
             this.position += ByteArray.SIZE_OF_INT16;
         }
     }
 
     public writeUnsignedShort(value: number, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_UINT16);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(ByteArray.SIZE_OF_UINT16, position);
 
-        this.data.setUint16(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        this.data.setUint16(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
         if(!offset){
             this.position += ByteArray.SIZE_OF_UINT16;
         }
@@ -719,9 +727,10 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeUnsignedInt(value: number, offset?:number): void {
-        this.validateBuffer(ByteArray.SIZE_OF_UINT32);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(ByteArray.SIZE_OF_UINT32, position);
 
-        this.data.setUint32(offset ? offset : this.position, value, this.endian == ByteArray.LITTLE_ENDIAN);
+        this.data.setUint32(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
         if(!offset){
             this.position += ByteArray.SIZE_OF_UINT32;
         }
@@ -737,10 +746,10 @@ export class ByteArray {
     public writeUTF(value: string, offset?:number): void {
         let utf8bytes: Uint8Array = this.encodeUTF8(value);
         let length: number = utf8bytes.length;
+        let position = offset ? offset : this.position;
+        this.validateBuffer(ByteArray.SIZE_OF_UINT16 + length, position);
 
-        this.validateBuffer(ByteArray.SIZE_OF_UINT16 + length);
-
-        this.data.setUint16(offset ? offset : this.position, length, this.endian === ByteArray.LITTLE_ENDIAN);
+        this.data.setUint16(position, length, this.endian === ByteArray.LITTLE_ENDIAN);
         if(!offset){
             this.position += ByteArray.SIZE_OF_UINT16;
             this.writeUint8Array(utf8bytes);
@@ -773,12 +782,16 @@ export class ByteArray {
      * @param    _bytes    The Uint8Array to be written.
      * @param    offset   optional start position to write
      */
-    public writeUint8Array(_bytes: Uint8Array, offset?:number): void {
-        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
+    public writeUint8Array(_bytes: Uint8Array, offset?:number): ByteArray {
+        let position = offset ? offset : this.position;
+        this.validateBuffer(_bytes.length, position);
 
-        for (let i = 0; i < _bytes.length; i++) {
-            this.data.setUint8(offset ? offset++ : this.position++, _bytes[i]);
+         this._array.set(_bytes, position);
+
+        if(!offset){
+            this.position += _bytes.length;
         }
+        return this;
     }
 
     /**
@@ -787,15 +800,15 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeUint16Array(_bytes: Uint16Array, offset?:number): void {
-        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_UINT16, position);
 
         for (let i = 0; i < _bytes.length; i++) {
-            this.data.setUint16(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            if(!offset){
-                this.position += ByteArray.SIZE_OF_UINT16;
-            }else{
-                offset += ByteArray.SIZE_OF_UINT16;
-            }
+            this.data.setUint16(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            position += ByteArray.SIZE_OF_UINT16;
+        }
+        if(!offset){
+            this.position = position;
         }
     }
 
@@ -805,15 +818,15 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeUint32Array(_bytes: Uint32Array, offset?:number): void {
-        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_UINT32, position);
 
         for (let i = 0; i < _bytes.length; i++) {
-            this.data.setUint32(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            if(!offset){
-                this.position += ByteArray.SIZE_OF_UINT32;
-            }else{
-                offset += ByteArray.SIZE_OF_UINT32;
-            }
+            this.data.setUint32(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            position += ByteArray.SIZE_OF_UINT32;
+        }
+        if(!offset){
+            this.position = position;
         }
     }
 
@@ -823,10 +836,14 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeInt8Array(_bytes: Int8Array, offset?:number): void {
-        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(_bytes.length, position);
 
         for (let i = 0; i < _bytes.length; i++) {
-            this.data.setInt8(offset ? offset++ : this.position++, _bytes[i]);
+            this.data.setInt8(position++, _bytes[i]);
+        }
+        if(!offset){
+            this.position = position;
         }
     }
 
@@ -836,15 +853,15 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeInt16Array(_bytes: Int16Array, offset?:number): void {
-        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_INT16, position);
 
         for (let i = 0; i < _bytes.length; i++) {
-            this.data.setInt16(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            if(!offset){
-                this.position += ByteArray.SIZE_OF_INT16;
-            }else{
-                offset += ByteArray.SIZE_OF_INT16;
-            }
+            this.data.setInt16(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            position += ByteArray.SIZE_OF_INT16;
+        }
+        if(!offset){
+            this.position = position;
         }
     }
 
@@ -854,15 +871,15 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeInt32Array(_bytes: Int32Array, offset?:number): void {
-        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_INT32, position);
 
         for (let i = 0; i < _bytes.length; i++) {
-            this.data.setInt32(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            if(!offset){
-                this.position += ByteArray.SIZE_OF_INT32;
-            }else{
-                offset += ByteArray.SIZE_OF_INT32;
-            }
+            this.data.setInt32(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            position += ByteArray.SIZE_OF_INT32;
+        }
+        if(!offset){
+            this.position = position;
         }
     }
 
@@ -872,15 +889,15 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeFloat32Array(_bytes: Float32Array, offset?:number): void {
-        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_FLOAT32, position);
 
         for (let i = 0; i < _bytes.length; i++) {
-            this.data.setFloat32(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            if(!offset){
-                this.position += ByteArray.SIZE_OF_FLOAT32;
-            }else{
-                offset += ByteArray.SIZE_OF_FLOAT32;
-            }
+            this.data.setFloat32(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            position += ByteArray.SIZE_OF_FLOAT32;
+        }
+        if(!offset){
+            this.position = position;
         }
     }
 
@@ -890,15 +907,15 @@ export class ByteArray {
      * @param    offset   optional start position to write
      */
     public writeFloat64Array(_bytes: Float64Array, offset?:number): void {
-        this.validateBuffer((offset ? offset : this.position) + _bytes.length);
+        let position = offset ? offset : this.position;
+        this.validateBuffer(_bytes.length, position);
 
-        for (var i = 0; i < _bytes.length; i++) {
-            this.data.setFloat64(offset ? offset : this.position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
-            if(!offset){
-                this.position += ByteArray.SIZE_OF_FLOAT64;
-            } else {
-                offset += ByteArray.SIZE_OF_FLOAT64;
-            }
+        for (let i = 0; i < _bytes.length; i++) {
+            this.data.setFloat64(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
+            position += ByteArray.SIZE_OF_FLOAT64;
+        }
+        if(!offset){
+            this.position  = position;
         }
     }
 
@@ -1098,14 +1115,9 @@ export class ByteArray {
     /**********************/
     /*  PRIVATE METHODS   */
     /**********************/
-    private validateBuffer(len: number): void {
-        this.write_position = len > this.write_position ? len : this.write_position;
-        if (this.data.byteLength < len) {
-            // var tmp:Uint8Array = new Uint8Array(new ArrayBuffer(len + this.BUFFER_EXT_SIZE));
-            // tmp.set(new Uint8Array(this.data.buffer));
-            // this.buffer = tmp.buffer;
-            this.resize(len + this.BUFFER_EXT_SIZE);
-        }
+    private validateBuffer(size: number, offset:number = 0): void {
+        let length = offset + size;
+        this.resize(length);
     }
 
     /**
