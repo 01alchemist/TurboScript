@@ -200,7 +200,8 @@ export function main_entry(): int32 {
             stdlib.IO_writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
             target == CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.TURBO_JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM)) {
+            target == CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
+            stdlib.IO_writeTextFile(output + "_wasm_string", compiler.outputWASM.log)) {
             return 0;
         }
 
@@ -211,7 +212,7 @@ export function main_entry(): int32 {
 }
 
 export var main = {
-    addArgument:main_addArgument,
-    reset:main_reset,
-    entry:main_entry
+    addArgument: main_addArgument,
+    reset: main_reset,
+    entry: main_entry
 };

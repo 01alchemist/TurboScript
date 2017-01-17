@@ -1,7 +1,8 @@
 import {
     Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
     SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
-    SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE
+    SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE,
+    SYMBOL_FLAG_NATIVE_LONG
 } from "./symbol";
 import {Type, ConversionKind} from "./type";
 import {
@@ -213,12 +214,12 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         context.booleanType = parentScope.findLocal("boolean", ScopeHint.NORMAL).resolvedType;
         context.byteType = parentScope.findLocal("byte", ScopeHint.NORMAL).resolvedType;
         context.int32Type = parentScope.findLocal("int32", ScopeHint.NORMAL).resolvedType;
-        // context.int64Type = parentScope.findLocal("int64", ScopeHint.NORMAL).resolvedType;
+        context.int64Type = parentScope.findLocal("int64", ScopeHint.NORMAL).resolvedType;
         context.sbyteType = parentScope.findLocal("sbyte", ScopeHint.NORMAL).resolvedType;
         context.shortType = parentScope.findLocal("short", ScopeHint.NORMAL).resolvedType;
         context.stringType = parentScope.findLocal("string", ScopeHint.NORMAL).resolvedType;
         context.uint32Type = parentScope.findLocal("uint32", ScopeHint.NORMAL).resolvedType;
-        // context.uint64Type = parentScope.findLocal("uint64", ScopeHint.NORMAL).resolvedType;
+        context.uint64Type = parentScope.findLocal("uint64", ScopeHint.NORMAL).resolvedType;
         context.ushortType = parentScope.findLocal("ushort", ScopeHint.NORMAL).resolvedType;
 
         context.float32Type = parentScope.findLocal("float32", ScopeHint.NORMAL).resolvedType;
@@ -226,13 +227,15 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
 
         prepareNativeType(context.booleanType, 1, 0);
         prepareNativeType(context.byteType, 1, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
-        prepareNativeType(context.int32Type, 4, SYMBOL_FLAG_NATIVE_INTEGER);
-        // prepareNativeType(context.int64Type, 8, SYMBOL_FLAG_NATIVE_LONG);
         prepareNativeType(context.sbyteType, 1, SYMBOL_FLAG_NATIVE_INTEGER);
         prepareNativeType(context.shortType, 2, SYMBOL_FLAG_NATIVE_INTEGER);
-        prepareNativeType(context.stringType, 4, SYMBOL_FLAG_IS_REFERENCE);
-        prepareNativeType(context.uint32Type, 4, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
         prepareNativeType(context.ushortType, 2, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
+        prepareNativeType(context.int32Type, 4, SYMBOL_FLAG_NATIVE_INTEGER);
+        prepareNativeType(context.int64Type, 8, SYMBOL_FLAG_NATIVE_LONG);
+        prepareNativeType(context.uint32Type, 4, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
+        prepareNativeType(context.uint64Type, 8, SYMBOL_FLAG_NATIVE_LONG | SYMBOL_FLAG_IS_UNSIGNED);
+
+        prepareNativeType(context.stringType, 4, SYMBOL_FLAG_IS_REFERENCE);
 
         prepareNativeType(context.float32Type, 4, SYMBOL_FLAG_NATIVE_FLOAT);
         prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_DOUBLE);
@@ -455,7 +458,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         // Imported functions require a modifier for consistency with TypeScript
         else if (body == null) {
             forbidFlag(context, node, NODE_FLAG_EXTERN, "Cannot use 'extern' on an unimplemented function");
-            if(!node.parent || !node.parent.isDeclare()){
+            if (!node.parent || !node.parent.isDeclare()) {
                 requireFlag(context, node, NODE_FLAG_DECLARE, "Declared functions must be prefixed with 'declare'");
             }
         }
@@ -649,12 +652,16 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     // Check integer conversions
     else if (from.isInteger() && to.isInteger()) {
         let mask = to.integerBitMask(context);
-
+        if (from.isUnsigned() && to.isUnsigned()) {
+            return true;
+        }
         // Allow implicit conversions between enums and int32
         if (from.isEnum() && to == from.underlyingType(context)) {
             return true;
         }
-
+        if (!node.intValue) {
+            return true;
+        }
         // Only allow lossless conversions implicitly
         if (kind == ConversionKind.EXPLICIT || from.symbol.byteSize < to.symbol.byteSize ||
             node.kind == NodeKind.INT32 && (to.isUnsigned()
@@ -662,6 +669,7 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
                 : node.intValue >= MIN_INT32_VALUE && node.intValue <= MAX_INT32_VALUE)) {
             return true;
         }
+        return false;
     }
 
     else if (from.isInteger() && to.isLong()) {
@@ -808,6 +816,15 @@ export function binaryHasUnsignedArguments(node: Node): boolean {
         left.isNonNegativeInteger() && rightType.isUnsigned();
 }
 
+export function isBinaryLong(node: Node): boolean {
+    var left = node.binaryLeft();
+    var right = node.binaryRight();
+    var leftType = left.resolvedType;
+    var rightType = right.resolvedType;
+
+    return leftType.isLong() || rightType.isLong();
+}
+
 export function isBinaryDouble(node: Node): boolean {
     var left = node.binaryLeft();
     var right = node.binaryRight();
@@ -943,7 +960,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), ConversionKind.IMPLICIT);
 
-            if(symbol.resolvedType != value.resolvedType){
+            if (symbol.resolvedType != value.resolvedType) {
                 value.becomeValueTypeOf(symbol, context);
             }
 
@@ -1159,7 +1176,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         resolve(context, target, parentScope);
 
         if (target.resolvedType != context.errorType) {
-            if (target.isType() && (target.resolvedType.isEnum() || target.resolvedType.hasInstanceMembers())||
+            if (target.isType() && (target.resolvedType.isEnum() || target.resolvedType.hasInstanceMembers()) ||
                 !target.isType() && target.resolvedType.hasInstanceMembers()) {
                 var name = node.stringValue;
 
@@ -1599,8 +1616,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         resolveAsExpression(context, right, parentScope);
 
         let leftType = left.resolvedType;
-        if((leftType.isDouble() && right.resolvedType.isFloat()) ||
-            (leftType.isLong() && right.resolvedType.isInteger())){
+        if ((leftType.isDouble() && right.resolvedType.isFloat()) ||
+            (leftType.isLong() && right.resolvedType.isInteger())) {
             right.becomeTypeOf(left, context);
         }
 
@@ -1637,7 +1654,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         // Operators for integers are hard-coded
-        else if (leftType.isInteger() && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
+        else if ((leftType.isInteger() || leftType.isLong()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
             // Arithmetic operators
             if (kind == NodeKind.ADD ||
                 kind == NodeKind.SUBTRACT ||
@@ -1649,8 +1666,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 kind == NodeKind.BITWISE_XOR ||
                 kind == NodeKind.SHIFT_LEFT ||
                 kind == NodeKind.SHIFT_RIGHT) {
-                var isUnsigned = binaryHasUnsignedArguments(node);
-                var commonType = isUnsigned ? context.uint32Type : context.int32Type;
+                let isUnsigned = binaryHasUnsignedArguments(node);
+                let isLong = isBinaryLong(node);
+                let commonType = isUnsigned ? (isLong ? context.uint64Type : context.uint32Type) : (isLong ? context.int64Type : context.int32Type);
                 if (isUnsigned) {
                     node.flags = node.flags | NODE_FLAG_UNSIGNED_OPERATOR;
                 }
@@ -1746,9 +1764,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     else if (kind == NodeKind.SUBTRACT) output = inputLeft - inputRight;
                     else return;
 
-                    if(left.kind == NodeKind.FLOAT32){
+                    if (left.kind == NodeKind.FLOAT32) {
                         node.becomeFloatConstant(output);
-                    }else{
+                    } else {
                         node.becomeDoubleConstant(output);
                     }
                 }

@@ -76,6 +76,7 @@ export class ByteArray {
         return this._array.subarray(0, this.length);
     };
 
+    public log:string = "";
     public data: DataView;
     private _position: number;
     public write_position: number;

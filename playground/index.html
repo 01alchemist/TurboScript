@@ -1,166 +1,9 @@
 <meta charset="utf8">
 <title>TurboScript Playground</title>
-<style>
-    body {
-        font: 14px/150% verdana;
-        margin: 50px 0 50px 50px;
-        background: #232323;
-        color: #cbcbcb;
-    }
-
-    h1, p {
-        padding-right: 50px;
-        clear: both;
-    }
-
-    h1 {
-        color: #8f7adb;
-    }
-
-    p {
-        max-width: 800px;
-        margin: 0 0 30px 0;
-    }
-
-    h2 {
-        clear: both;
-        margin: 0;
-        height: 50px;
-        line-height: 30px;
-    }
-
-    input {
-        vertical-align: top;
-    }
-
-    a {
-        color: inherit;
-    }
-
-    .not-supported-warning-text {
-        display: none;
-    }
-
-    .wasm-unavailable .wasm-backend-text {
-        color: #BBB;
-    }
-
-    .wasm-unavailable .not-supported-warning-text {
-        display: inline;
-    }
-
-    button {
-        position: absolute;
-        width: 100px;
-        height: 30px;
-        bottom: 51px;
-        right: 51px;
-        background: white;
-        border: 1px solid #BBB;
-        border-top-left-radius: 5px;
-        border-bottom-right-radius: 5px;
-        font: inherit;
-        line-height: 20px;
-        padding: 1px 0;
-        background: linear-gradient(white, #F7F7F7);
-        cursor: pointer;
-        color: black;
-    }
-
-    textarea {
-        width: 100%;
-        height: 400px;
-        min-height: 400px;
-        resize: vertical;
-        margin: 0;
-        border: 1px solid #CCC;
-        border-radius: 5px;
-        padding: 5px;
-    }
-
-    .secondary {
-        margin-top: 50px;
-        position: relative;
-        display: none;
-    }
-
-    .secondary button {
-        top: 0;
-        right: 0;
-    }
-
-    .double-output .secondary {
-        display: block;
-    }
-
-    .double-output textarea {
-        height: 175px;
-        min-height: 175px;
-    }
-
-    button:active:not(:disabled) {
-        background: linear-gradient(#EEE, #F7F7F7);
-        box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-        padding: 2px 0 0 0;
-    }
-
-    button:focus, textarea:focus {
-        outline: none;
-        border-color: #8F7ADB;
-        box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-    }
-
-    textarea:focus + button {
-        border-color: #8F7ADB;
-    }
-
-    button:disabled {
-        color: black;
-        opacity: 0.5;
-        cursor: default;
-    }
-
-    button::-moz-focus-inner {
-        border: none;
-    }
-
-    textarea, code {
-        font: 14px/130% Consolas, monospace;
-        background: #2f2e33;
-        border-color: #34264f;
-        color: #cacaca;
-    }
-
-    section {
-        position: relative;
-        width: 50%;
-        float: left;
-        padding: 0 50px 50px 0;
-        box-sizing: border-box;
-    }
-
-    label[title]:hover:after {
-        content: attr(title);
-        border: 1px solid red;
-        padding: 2px 5px 2px 5px;
-    }
-
-    .coming-soon[title]:hover:after {
-        content: attr(title);
-        border: 1px solid orange;
-        padding: 2px 5px 2px 5px;
-        position: absolute;
-        background: #232323;
-    }
-
-    .spacer {
-        height: 50px;
-    }
-    .footer{
-        bottom:10px;
-        text-align: center;
-    }
-</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+<script src="js/jquery-linedtextarea.js"></script>
+<link href="css/jquery-linedtextarea.css" type="text/css" rel="stylesheet" />
+<link href="css/style.css" type="text/css" rel="stylesheet" />
 <body>
 <h1>TurboScript Playground</h1>
 <div style="line-height: 15px">
@@ -256,10 +99,11 @@
 </body>
 <script src="../node_modules/systemjs/dist/system.src.js"></script>
 <script src="../bin/turbo.js"></script>
-<script src="common.js"></script>
+<script src="js/common.js"></script>
 <script>
 
     (function () {
+         $("#input").linedtextarea();
         var clear = document.getElementById('clear');
         var input = document.getElementById('input');
         var output = document.getElementById('output');
@@ -295,9 +139,25 @@
         }
 
         var example = joinLines([
-                'export function addTwo(a:int32, b:int32): int32 {',
+                'export function addTwo1(a:int32, b:int32): int32 {',
                 '  return a + b;',
                 '}',
+                'export function addTwo2(a:uint32, b:uint32): uint32 {',
+                '  return a + b;',
+                '}',
+                'export function addTwo3(a:float32, b:float32): float32 {',
+                '  return a + b;',
+                '}',
+                'export function addTwo4(a:float64, b:float64): float64 {',
+                '  return a + b;',
+                '}',
+                '//Not yet supported in MVP',
+                '//export function addTwo5(a:int64, b:int64): int64 {',
+                '//  return a + b;',
+                '//}',
+                '//export function addTwo6(a:uint64, b:uint64): uint64 {',
+                '//  return a + b;',
+                '//}',
             ]) + '\n';
 
         function hexdump(bytes) {
@@ -423,7 +283,8 @@
                     }
 
                     case 'WebAssembly': {
-                        output.value = hexdump(compiled.output);
+                        //output.value = hexdump(compiled.output);
+                        output.value = compiled.wasmString;
                         outputName = 'compiled.wasm';
                         outputContents = compiled.output;
                         terminalName = 'main.js';
@@ -434,7 +295,13 @@
                                 console.info("WASM Compiled and exports can access by window.exports");
                                 terminalContents = joinLines([
                                     "//WASM Compiled and exports can access by window.exports",
-                                    "console.log(exports.addTwo(1,1));",
+                                    "console.log(exports.addTwo1(-1, 1));",
+                                    "console.log(exports.addTwo2(1, 1));",
+                                    "console.log(exports.addTwo3(1.1, 2.5));",
+                                    "console.log(exports.addTwo4(0.5, 10.5));",
+                                    "//Not yet supported in MVP",
+                                    "//console.log(exports.addTwo5(-10,15));",
+                                    "//console.log(exports.addTwo6(2,2));",
                                 ]);
                                 terminal.textContent = terminalContents;
                                 output.style.borderColor = "#00ff00";
@@ -449,30 +316,6 @@
                             terminal.textContent = e.message;
                             console.error(e);
                         }
-
-//                        terminalContents = joinLines([
-//                            'function compileAndRunWebAssembly(wasmBytes) {',
-//                            '  var extractLengthPrefixedString = function(ptr) {',
-//                            '    var text = "", length = ints[ptr >> 2], i = ptr + 4 >> 1;',
-//                            '    while (length-- > 0) text += String.fromCharCode(chars[i++]);',
-//                            '    return text;',
-//                            '  };',
-//                            '  var global = {',
-//                            '    print: function(ptr) {',
-//                            '      console.log(extractLengthPrefixedString(ptr));',
-//                            '    },',
-//                            '  };',
-//                            '  WebAssembly.compile(wasmBytes).then(function (compiled) {',
-//                            '     var exports = WebAssembly.Instance(compiled, {global: global}).exports;',
-//                            '     var chars = new Uint16Array(exports.memory);',
-//                            '     var ints = new Int32Array(exports.memory);',
-//                            '     var result = exports.addTwo(1,1);',
-//                            '     console.log("result:", result);',
-//                            '  });',
-//                            '}',
-//                            '',
-//                            'compileAndRunWebAssembly(new Uint8Array([' + Array.prototype.slice.call(compiled.output).join(', ') + ']));',
-//                        ]);
                         break;
                     }
 

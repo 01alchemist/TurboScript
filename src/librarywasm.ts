@@ -6,7 +6,7 @@ export function libraryWasm(): string {
   unsafe var currentHeapPointer: *byte = null;
   unsafe var originalHeapPointer: *byte = null;
 
-  extern unsafe function malloc(sizeOf: uint32): *byte {
+  export unsafe function malloc(sizeOf: uint32): *byte {
     // Align all allocations to 8 bytes
     var offset = ((currentHeapPointer as uint32 + 7) & ~7 as uint32) as *byte;
     sizeOf = (sizeOf + 7) & ~7 as uint32;
@@ -372,7 +372,7 @@ export function libraryWasm(): string {
 
 #if C
 
-  extern unsafe function cstring_to_utf16(utf8: *byte): string {
+  export unsafe function cstring_to_utf16(utf8: *byte): string {
     if (utf8 == null) {
       return null;
     }
@@ -449,7 +449,7 @@ export function libraryWasm(): string {
     return output;
   }
 
-  extern unsafe function utf16_to_cstring(input: string): *byte {
+  export unsafe function utf16_to_cstring(input: string): *byte {
     if (input as *uint32 == null) {
       return null;
     }

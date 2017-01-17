@@ -84,6 +84,12 @@ export class StringBuilder {
         return this.chunks.length - 1;
     }
 
+    appendLine(text: string, indent: number = 0): StringBuilder {
+        this.indent += indent;
+        this.emitIndent();
+        this._text += text + "\n";
+        return this;
+    }
     append(text: string, indent: number = 0): StringBuilder {
         this.indent += indent;
         let lines: string[] = text.split("\n");
