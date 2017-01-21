@@ -55,14 +55,15 @@ function init_malloc():void{
 export function malloc(nbytes: uint32): *byte {
 
     var alignment:uint32 = 8;
-    // if(numFreeChunks as uint32 > 0){
-    //     var freeChunk = findChunk(nbytes);
-    //     if(freeChunk != null){
-    //         //numFreeChunks = numFreeChunks - 1;
-    //         setInuse(freeChunk);
-    //         return freeChunk;
-    //     }
-    // }
+
+    if(numFreeChunks > 0){
+        var freeChunk = findChunk(nbytes);
+        if(freeChunk != null){
+            numFreeChunks = numFreeChunks - 1;
+            setInuse(freeChunk);
+            return freeChunk;
+        }
+    }
 
     var offset = ((currentHeapPointer as uint32 + (alignment - 1)) & ~(alignment - 1) as uint32) as *byte;
     nbytes = (nbytes + (alignment - 1)) & ~(alignment - 1) as uint32;
@@ -100,6 +101,7 @@ export function free(ptr:*byte):uint32{
         *(lastFree as *uint32) = ptr as uint32;//forward pointer to next chunk of prev chunk
     }
     lastFree = ptr as uint32;
+    numFreeChunks = numFreeChunks + 1;
     return lastFree;
 }
 function findChunk(nbytes: uint32):*byte{

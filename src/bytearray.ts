@@ -120,12 +120,15 @@ export class ByteArray {
 
     resize(length: number): ByteArray {
         if (length > this.data.byteLength) {
+            let pos = this.position;
+            let len = this.length;
             let capacity = length * 2;
             let data = new Uint8Array(capacity);
             data.set(this.array);
             this.setArray(data);
+            this._position = pos;
+            this.write_position = len;
         }
-        //this.length = length;
         return this;
     }
 
@@ -133,8 +136,8 @@ export class ByteArray {
 
         offset = offset > 0 ? offset : this.length;
 
-        if (source.length > this.bytesAvailable) {
-            this.resize(this.length + source.length);
+        if (offset + source.length > this._array.length) {
+            this.resize(offset + source.length);
         }
 
         this._array.set(source.array, offset);
@@ -208,11 +211,8 @@ export class ByteArray {
     public setBuffer(buffer: ArrayBuffer, offset: number = 0, length: number = 0) {
         if (buffer) {
             this.data = new DataView(buffer, offset, length > 0 ? length : buffer.byteLength);
-            this.write_position = length > 0 ? length : buffer.byteLength;
         } else {
-            this.write_position = 0;
         }
-        this._position = 0;
     }
 
     /**
