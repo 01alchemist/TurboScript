@@ -7,27 +7,43 @@
 <body>
 <script>
 
-    var mod;
-
     async function init() {
         let data = await fetch("wasm-class.wasm");
         let wasmBytes = await data.arrayBuffer();
-        try{
+        try {
             WebAssembly.compile(wasmBytes).then(function (compiled) {
-                mod = new WebAssembly.Instance(compiled);
-
-                console.log("TurboScript WASM");
-                console.log("----------------");
-                console.log(`mod.exports.newVec3(1,1) => ${mod.exports.newVec3(1, 1 ,1)}`);
-                console.log("\n");
+                window.exports = new WebAssembly.Instance(compiled).exports;
+                window.memory = exports.memory;
+                window.data = new DataView(memory.buffer);
+                window.array = new Uint8Array(memory.buffer);
+                window.f32 = new Float32Array(memory.buffer);
+                console.log("WASM Compiled!");
             })
 
-        }catch (e){
+        } catch (e) {
             console.error(e);
         }
     }
 
     init();
+
+    function vec3_to_json(ptr) {
+        return {
+            ptr: ptr,
+            x: data.getFloat32(ptr, true),
+            y: data.getFloat32(ptr + 4, true),
+            z: data.getFloat32(ptr + 8, true)
+        }
+    }
+
+    function chunk_to_json(ptr) {
+        return {
+            ptr: ptr,
+            chunk_ptr: ptr - 8,
+            chunk_size: data.getInt32(ptr - 4, true) ,
+        }
+    }
+
 </script>
 </body>
 </html>

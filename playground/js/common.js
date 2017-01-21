@@ -1,3 +1,4 @@
+"use strict";
 function loadStdlibForWebAssembly() {
     var stdlib = {
         exports: null,
@@ -128,22 +129,44 @@ function loadStdlibForJavaScript() {
     };
 }
 
-function fetch(url, responseType, callback) {
-    var xhr = new XMLHttpRequest;
-    xhr.open('GET', url);
-    xhr.onload = function () {
-        callback(xhr.response);
-    };
-    xhr.responseType = responseType;
-    xhr.send(null);
-}
+// function fetch(url, responseType, callback) {
+//     var xhr = new XMLHttpRequest;
+//     xhr.open('GET', url);
+//     xhr.onload = function () {
+//         callback(xhr.response);
+//     };
+//     xhr.responseType = responseType;
+//     xhr.send(null);
+// }
 
+function loadLibrary(callback) {
+
+    window.stdlib = loadStdlibForJavaScript();
+    window.assert = stdlib.assert;
+
+    let libs = [
+        {path: '../src/library/wasm/types.tbs', code: ""},
+        {path: '../src/library/wasm/malloc.tbs', code: ""},
+    ];
+    let count = 0;
+    libs.forEach(async(lib) => {
+        let response = await fetch(lib.path);
+        lib.code = await response.text();
+        stdlib.IO_writeTextFile(lib.path, lib.code);
+        count++;
+        if(count == libs.length){
+           callback(libs);
+        }
+    });
+}
 function loadJavaScript(callback) {
-    fetch('../bin/turbo.js', 'text', callback);
+    fetch('../bin/turbo.js').then((content) => {
+        callback(content);
+    })
 }
 
 function loadWebAssembly(callback) {
-    fetch('../bin/turbo.wasm', 'arraybuffer', function (buffer) {
+    fetch('../bin/turbo.wasm').then((buffer) => {
         callback(new Uint8Array(buffer));
     });
 }
@@ -203,9 +226,7 @@ function compileWebAssembly(code) {
     };
 }
 
-function compileJavaScript(exports) {
-    window.stdlib = loadStdlibForJavaScript();
-    window.assert = stdlib.assert;
+function compileJavaScript(exports, libs) {
 
     return function (sources, target, name) {
         var output = name;
@@ -229,6 +250,10 @@ function compileJavaScript(exports) {
         stdlib.reset();
         exports.main.reset();
 
+        libs.forEach(async(lib) => {
+            stdlib.IO_writeTextFile(lib.path, lib.code);
+        });
+
         sources.forEach(function (source) {
             stdlib.fs[source.name] = source.contents;
             exports.main.addArgument(source.name);
@@ -248,7 +273,7 @@ function compileJavaScript(exports) {
             totalTime: totalTime,
             stdout: stdlib.stdout,
             success: success,
-            wasmString: stdlib.fs[output + "_wasm_string"],
+            log: stdlib.fs[output + ".log"],
         };
     };
 }

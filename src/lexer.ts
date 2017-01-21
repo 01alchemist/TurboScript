@@ -86,6 +86,7 @@ export enum TokenKind {
     TRUE,
     UNSAFE,
     UNSAFE_TURBO,
+    START,
     VIRTUAL,
     VAR,
     WHILE,
@@ -211,6 +212,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.TRUE) return "'true'";
     if (token == TokenKind.UNSAFE) return "'unsafe'";
     if (token == TokenKind.UNSAFE_TURBO) return "'@unsafe'";
+    if (token == TokenKind.START) return "'@start'";
     if (token == TokenKind.VIRTUAL) return "'@virtual'";
     if (token == TokenKind.VAR) return "'var'";
     if (token == TokenKind.WHILE) return "'while'";
@@ -332,6 +334,7 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "sizeof") kind = TokenKind.SIZEOF;
                     else if (text == "static") kind = TokenKind.STATIC;
                     else if (text == "unsafe") kind = TokenKind.UNSAFE;
+                    else if (text == "@start") kind = TokenKind.START;
                 }
 
                 else if (length == 7) {

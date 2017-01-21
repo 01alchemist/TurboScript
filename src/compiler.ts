@@ -15,6 +15,7 @@ import {wasmEmit} from "./wasm";
 import {libraryTurbo} from "./libraryturbo";
 import {libraryWasm} from "./librarywasm";
 import {libraryDummy} from "./librarydummy";
+import {Library} from "./library/library";
 /**
  * Author: Nidin Vinayakan
  */
@@ -52,7 +53,8 @@ export class Compiler {
             this.librarySource = this.addInput("<native>", libraryTurbo());
         }else{
             // this.librarySource = this.addInput("<native>", libraryWasm());
-            this.librarySource = this.addInput("<native>", libraryDummy());
+            this.librarySource = this.addInput("<native>", Library.get(target));
+            // this.librarySource = this.addInput("<native>", libraryDummy());
         }
         this.librarySource.isLibrary = true;
         this.createGlobals();

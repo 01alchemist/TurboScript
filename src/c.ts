@@ -539,7 +539,7 @@ export class CResult {
             }
 
             else if (node.kind == NodeKind.ENUM) {
-                if (mode == SourceMode.HEADER && node.isExtern()) {
+                if (mode == SourceMode.HEADER && node.isExport()) {
                     this.emitNewlineBefore(node);
                     code.append("enum {\n");
                     this.indent = this.indent + 1;
@@ -622,7 +622,7 @@ export class CResult {
         var code = this.code;
 
         while (node != null) {
-            if (node.kind == NodeKind.VARIABLE && (mode != SourceMode.HEADER || node.isExtern())) {
+            if (node.kind == NodeKind.VARIABLE && (mode != SourceMode.HEADER || node.isExport())) {
                 var value = node.variableValue();
                 this.emitNewlineBefore(node);
                 if (!node.isDeclareOrExtern()) {

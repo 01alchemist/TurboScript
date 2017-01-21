@@ -2,17 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WASM Lib</title>
+    <title>Hook test</title>
 </head>
 <body>
 <script>
 
+    var mod;
+
     async function init() {
-        let data = await fetch("lib.wasm");
+        let data = await fetch("hook.wasm");
         let wasmBytes = await data.arrayBuffer();
         try{
             WebAssembly.compile(wasmBytes).then(function (compiled) {
-                window.exports = new WebAssembly.Instance(compiled).exports;
+                mod = new WebAssembly.Instance(compiled);
+
                 console.log("WASM Compiled!");
             })
 
@@ -20,7 +23,6 @@
             console.error(e);
         }
     }
-
     init();
 </script>
 </body>

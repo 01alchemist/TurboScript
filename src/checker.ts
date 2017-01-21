@@ -435,7 +435,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                 }
 
                 // Functions inside extern classes are automatically extern
-                if (parent.node.isExtern()) {
+                if (parent.node.isExport()) {
                     node.flags = node.flags | NODE_FLAG_EXTERN;
                 }
             }
@@ -643,7 +643,7 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     }
 
     // Allow explicit conversions between references in unsafe mode
-    else if (context.isUnsafeAllowed && (from.isReference() || to.isReference())) {
+    else if (/*context.isUnsafeAllowed && */(from.isReference() || to.isReference())) {
         if (kind == ConversionKind.EXPLICIT) {
             return true;
         }
@@ -1372,6 +1372,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         checkConversion(context, value, context.booleanType, ConversionKind.IMPLICIT);
         resolve(context, yes, parentScope);
         resolve(context, no, parentScope);
+        checkConversion(context, yes, no.resolvedType, ConversionKind.IMPLICIT);
         let commonType = (yes.resolvedType == context.nullType ? no : yes).resolvedType;
         if (yes.resolvedType != commonType && (yes.resolvedType != context.nullType || !commonType.isReference()) &&
             no.resolvedType != commonType && (no.resolvedType != context.nullType || !commonType.isReference())) {
@@ -1461,9 +1462,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        // TODO: Constructors
-        if (type.nextSibling != null) {
-            //context.log.error(node.internalRange, "Constructors with arguments are not supported yet");
+        //Constructors arguments
+        let child = type.nextSibling;
+        while (child != null) {
+            resolveAsExpression(context, child, parentScope);
+            child = child.nextSibling;
         }
     }
 
@@ -1475,25 +1478,25 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             context.log.error(node.internalRange, "Cannot use pointers when compiling to JavaScript");
         }
 
-        else if (!context.isUnsafeAllowed) {
+        /*else if (!context.isUnsafeAllowed) {
             context.log.error(node.internalRange, "Cannot use pointers outside an 'unsafe' block");
-        }
+        }*/
 
         else {
             var type = value.resolvedType;
 
             if (type != context.errorType) {
-                if ((!type.isInteger() && !type.symbol.node.isTurbo()) && type.pointerTo == null) {
-                    context.log.error(node.internalRange, StringBuilder_new()
-                        .append("Cannot create a pointer to non-integer type '")
-                        .append(type.toString())
-                        .appendChar('\'')
-                        .finish());
-                }
-
-                else {
+                // if ((!type.isInteger() && !type.symbol.node.isTurbo()) && type.pointerTo == null) {
+                //     context.log.error(node.internalRange, StringBuilder_new()
+                //         .append("Cannot create a pointer to non-integer type '")
+                //         .append(type.toString())
+                //         .appendChar('\'')
+                //         .finish());
+                // }
+                //
+                // else {
                     node.resolvedType = type.pointerType();
-                }
+                // }
             }
         }
     }

@@ -19,7 +19,7 @@
     set_local 0
     get_local 1
     get_local 0
-    unreachable
+    i32.add
     set_local 2
     i32.const 0
     get_local 2
@@ -30,7 +30,7 @@
       loop  ;; label = @2
         get_local 3
         get_local 2
-        unreachable
+        i32.lt_s
         i32.eqz
         br_if 1 (;@1;)
         get_local 3
@@ -38,22 +38,21 @@
         i32.store
         get_local 3
         i32.const 4
-        unreachable
+        i32.add
         set_local 3
         br 0 (;@2;)
       end
     end
-    i32.const 0
-    i32.load offset=8
+    get_local 1
     return)
   (func (;1;) (type 1) (param i32 i32 i32)
     (local i32 i32)
     get_local 1
     i32.const 0
-    unreachable
+    i32.eq
     get_local 0
     i32.const 0
-    unreachable
+    i32.eq
     i32.or
     i32.const 1
     i32.eq
@@ -92,11 +91,11 @@
             i32.store8
             get_local 0
             i32.const 1
-            unreachable
+            i32.add
             set_local 0
             get_local 1
             i32.const 1
-            unreachable
+            i32.add
             set_local 1
             get_local 2
             i32.const 1
@@ -120,10 +119,10 @@
             set_local 2
             get_local 0
             get_local 2
-            unreachable
+            i32.add
             get_local 1
             get_local 2
-            unreachable
+            i32.add
             i32.load8_u
             i32.store8
             br 0 (;@4;)
@@ -131,13 +130,13 @@
         end
         get_local 0
         get_local 2
-        unreachable
+        i32.add
         set_local 3
         block  ;; label = @3
           loop  ;; label = @4
             get_local 0
             get_local 3
-            unreachable
+            i32.lt_s
             i32.eqz
             br_if 1 (;@3;)
             get_local 0
@@ -146,11 +145,11 @@
             i32.store
             get_local 0
             i32.const 4
-            unreachable
+            i32.add
             set_local 0
             get_local 1
             i32.const 4
-            unreachable
+            i32.add
             set_local 1
             br 0 (;@4;)
           end
@@ -160,13 +159,13 @@
       block  ;; label = @2
         get_local 0
         get_local 2
-        unreachable
+        i32.add
         set_local 4
         block  ;; label = @3
           loop  ;; label = @4
             get_local 0
             get_local 4
-            unreachable
+            i32.lt_s
             i32.eqz
             br_if 1 (;@3;)
             get_local 0
@@ -175,11 +174,11 @@
             i32.store8
             get_local 0
             i32.const 1
-            unreachable
+            i32.add
             set_local 0
             get_local 1
             i32.const 1
-            unreachable
+            i32.add
             set_local 1
             br 0 (;@4;)
           end
@@ -190,10 +189,10 @@
     (local i32)
     get_local 0
     i32.const 0
-    unreachable
+    i32.eq
     get_local 1
     i32.const 0
-    unreachable
+    i32.eq
     i32.or
     i32.const 1
     i32.eq
@@ -227,11 +226,11 @@
         end
         get_local 0
         i32.const 1
-        unreachable
+        i32.add
         set_local 0
         get_local 1
         i32.const 1
-        unreachable
+        i32.add
         set_local 1
         get_local 2
         i32.const 1
@@ -242,5 +241,22 @@
     end
     i32.const 0
     return)
-  (memory (;0;) 256)
-  (export "malloc" (func 0)))
+  (func (;3;) (type 0) (param i32) (result i32)
+    (local i32)
+    block  ;; label = @1
+      get_local 0
+      i32.const 1
+      i32.shl
+      i32.const 4
+      i32.add
+      call 0
+      set_local 1
+      get_local 1
+      get_local 0
+      i32.store
+      get_local 1
+      return
+    end)
+  (memory (;0;) 255)
+  (export "malloc" (func 0))
+  (export "string_new" (func 3)))

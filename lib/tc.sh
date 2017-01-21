@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#node tc.js $1 $2 $3 $4.wasm
+#node lib/tc.js $1 $2 $3 $4.wasm
 ts-node tc.ts $1 $2 $3 $4.wasm
 if [ $? == 0 ];
     then

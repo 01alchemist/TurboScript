@@ -10,10 +10,17 @@
     async function init() {
         let data = await fetch("empty.wasm");
         let wasmBytes = await data.arrayBuffer();
-        console.log(wasmBytes);
-        try{
-            WebAssembly.compile(wasmBytes);
-        }catch (e){
+        try {
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                window.exports = new WebAssembly.Instance(compiled).exports;
+                window.memory = exports.memory;
+                window.data = new DataView(memory.buffer);
+                window.array = new Uint8Array(memory.buffer);
+                window.f32 = new Float32Array(memory.buffer);
+                console.log("WASM Compiled!");
+            })
+
+        } catch (e) {
             console.error(e);
         }
     }

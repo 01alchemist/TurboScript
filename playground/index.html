@@ -2,8 +2,8 @@
 <title>TurboScript Playground</title>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
 <script src="js/jquery-linedtextarea.js"></script>
-<link href="css/jquery-linedtextarea.css" type="text/css" rel="stylesheet" />
-<link href="css/style.css" type="text/css" rel="stylesheet" />
+<link href="css/jquery-linedtextarea.css" type="text/css" rel="stylesheet"/>
+<link href="css/style.css" type="text/css" rel="stylesheet"/>
 <body>
 <h1>TurboScript Playground</h1>
 <div style="line-height: 15px">
@@ -72,7 +72,8 @@
             class="wasm-backend-text">WebAssembly<span class="not-supported-warning-text"> (not supported by your browser)</span></span></label>
     <br>
     <b>Compile to:</b>
-    <label class="coming-soon" title="Coming soon!"><input type="radio" name="target" id="target-js" disabled> JavaScript</label>
+    <label class="coming-soon" title="Coming soon!"><input type="radio" name="target" id="target-js" disabled>
+        JavaScript</label>
     <label><input type="radio" name="target" id="target-wasm" checked> WebAssembly<span
             class="not-supported-warning-text"> (not supported by your browser)</span></label>
     <label title="Not yet supported!"><input type="radio" name="target" id="target-c" disabled> C</label>
@@ -103,7 +104,7 @@
 <script>
 
     (function () {
-         $("#input").linedtextarea();
+        $("#input").linedtextarea();
         var clear = document.getElementById('clear');
         var input = document.getElementById('input');
         var output = document.getElementById('output');
@@ -284,7 +285,7 @@
 
                     case 'WebAssembly': {
                         //output.value = hexdump(compiled.output);
-                        output.value = compiled.wasmString;
+                        output.value = compiled.log;
                         outputName = 'compiled.wasm';
                         outputContents = compiled.output;
                         terminalName = 'main.js';
@@ -390,27 +391,29 @@
         }
 
         function main() {
+            loadLibrary(function (libs) {
 
-//            window.stdlib = loadStdlibForJavaScript();
-
-            SystemJS.import("main").then((turboMod) => {
-                backendWebAssembly.onchange = compile;
-                backendJavaScript.onchange = compile;
-                targetWebAssembly.onchange = compile;
-                targetJavaScript.onchange = compile;
-                terminal.oninput = updateTerminalContent;
+                SystemJS.import("main").then(function (exports) {
+                    backendWebAssembly.onchange = compile;
+                    backendJavaScript.onchange = compile;
+                    targetWebAssembly.onchange = compile;
+                    targetJavaScript.onchange = compile;
+                    terminal.oninput = updateTerminalContent;
 //                targetC.onchange = compile;
-                input.oninput = compile;
-                outputButton.onclick = function () {
-                    triggerDownload(outputName, outputContents);
-                };
-                secondaryOutputButton.onclick = function () {
-                    triggerDownload(secondaryOutputName, secondaryOutputContents);
-                };
-                terminalButton.onclick = runOrDownloadShim;
-                clear.onclick = clearLog;
+                    input.oninput = compile;
+                    outputButton.onclick = function () {
+                        triggerDownload(outputName, outputContents);
+                    };
+                    secondaryOutputButton.onclick = function () {
+                        triggerDownload(secondaryOutputName, secondaryOutputContents);
+                    };
+                    terminalButton.onclick = runOrDownloadShim;
+                    clear.onclick = clearLog;
 
-                compiledJavaScript = compileJavaScript(turboMod);
+                    compiledJavaScript = compileJavaScript(exports, libs);
+                    input.value = example;
+                    input.selectionStart = input.selectionEnd = 0;
+                    compile();
 
 //                if (supportsWebAssembly()) {
 //                    compiledWebAssembly = compileWebAssembly(wasm);
@@ -423,11 +426,10 @@
 //                    document.body.className = 'wasm-unavailable';
 //                }
 
-                input.value = example;
-                input.selectionStart = input.selectionEnd = 0;
-                compile();
+                });
             });
         }
+
         console.log = logAppend;
         main();
     })();

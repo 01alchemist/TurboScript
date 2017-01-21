@@ -117,11 +117,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                     offset = offset > 0 ? offset : this.length;
                     if (source.length > this.bytesAvailable) {
                         this.resize(this.length + source.length);
-                        this._array.set(source.array, offset);
                     }
-                    else {
-                        this._array.set(source.array, offset);
-                    }
+                    this._array.set(source.array, offset);
                     this.position = offset + source.length;
                     return this;
                 }
@@ -524,7 +521,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  *           the method writes a 1; if false, the method writes a 0.
                  * @param    offset   optional start position to write
                  */
-                writeBoolean(value, offset) {
+                writeBoolean(value, offset = null) {
                     offset = offset ? offset : this.position++;
                     this.validateBuffer(ByteArray.SIZE_OF_BOOLEAN, offset);
                     this.data.setUint8(offset, value ? 1 : 0);
@@ -536,12 +533,12 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    value    A 32-bit integer. The low 8 bits are written to the byte stream.
                  * @param    offset   optional start position to write
                  */
-                writeByte(value, offset) {
+                writeByte(value, offset = null) {
                     offset = offset ? offset : this.position++;
                     this.validateBuffer(ByteArray.SIZE_OF_INT8, offset);
                     this.data.setInt8(offset, value);
                 }
-                writeUnsignedByte(value, offset) {
+                writeUnsignedByte(value, offset = null) {
                     offset = offset ? offset : this.position++;
                     this.validateBuffer(ByteArray.SIZE_OF_UINT8, offset);
                     this.data.setUint8(offset, value);
@@ -576,8 +573,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    value    A double-precision (64-bit) floating-point number.
                  * @param    offset   optional start position to write
                  */
-                writeDouble(value, offset) {
-                    let position = offset ? offset : this.position;
+                writeDouble(value, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(ByteArray.SIZE_OF_FLOAT64, position);
                     this.data.setFloat64(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
                     if (!offset) {
@@ -589,8 +586,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    value    A single-precision (32-bit) floating-point number.
                  * @param    offset   optional start position to write
                  */
-                writeFloat(value, offset) {
-                    let position = offset ? offset : this.position;
+                writeFloat(value, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(ByteArray.SIZE_OF_FLOAT32, position);
                     this.data.setFloat32(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
                     if (!offset) {
@@ -602,8 +599,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    value    An integer to write to the byte stream.
                  * @param    offset   optional start position to write
                  */
-                writeInt(value, offset) {
-                    let position = offset ? offset : this.position;
+                writeInt(value, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(ByteArray.SIZE_OF_INT32, position);
                     this.data.setInt32(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
                     if (!offset) {
@@ -625,16 +622,16 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    value    32-bit integer, whose low 16 bits are written to the byte stream.
                  * @param    offset   optional start position to write
                  */
-                writeShort(value, offset) {
-                    let position = offset ? offset : this.position;
+                writeShort(value, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(ByteArray.SIZE_OF_INT16, position);
                     this.data.setInt16(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
                     if (!offset) {
                         this.position += ByteArray.SIZE_OF_INT16;
                     }
                 }
-                writeUnsignedShort(value, offset) {
-                    let position = offset ? offset : this.position;
+                writeUnsignedShort(value, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(ByteArray.SIZE_OF_UINT16, position);
                     this.data.setUint16(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
                     if (!offset) {
@@ -646,8 +643,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    value    An unsigned integer to write to the byte stream.
                  * @param    offset   optional start position to write
                  */
-                writeUnsignedInt(value, offset) {
-                    let position = offset ? offset : this.position;
+                writeUnsignedInt(value, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(ByteArray.SIZE_OF_UINT32, position);
                     this.data.setUint32(position, value, this.endian == ByteArray.LITTLE_ENDIAN);
                     if (!offset) {
@@ -661,10 +658,10 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    value    The string value to be written.
                  * @param    offset   optional start position to write
                  */
-                writeUTF(value, offset) {
+                writeUTF(value, offset = null) {
                     let utf8bytes = this.encodeUTF8(value);
                     let length = utf8bytes.length;
-                    let position = offset ? offset : this.position;
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(ByteArray.SIZE_OF_UINT16 + length, position);
                     this.data.setUint16(position, length, this.endian === ByteArray.LITTLE_ENDIAN);
                     if (!offset) {
@@ -682,7 +679,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    value    The string value to be written.
                  * @param    offset   optional start position to write
                  */
-                writeUTFBytes(value, offset) {
+                writeUTFBytes(value, offset = null) {
                     this.writeUint8Array(this.encodeUTF8(value), offset);
                 }
                 toString() {
@@ -696,8 +693,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    _bytes    The Uint8Array to be written.
                  * @param    offset   optional start position to write
                  */
-                writeUint8Array(_bytes, offset) {
-                    let position = offset ? offset : this.position;
+                writeUint8Array(_bytes, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(_bytes.length, position);
                     this._array.set(_bytes, position);
                     if (!offset) {
@@ -710,8 +707,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    _bytes    The Uint16Array to be written.
                  * @param    offset   optional start position to write
                  */
-                writeUint16Array(_bytes, offset) {
-                    let position = offset ? offset : this.position;
+                writeUint16Array(_bytes, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_UINT16, position);
                     for (let i = 0; i < _bytes.length; i++) {
                         this.data.setUint16(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
@@ -726,8 +723,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    _bytes    The Uint32Array to be written.
                  * @param    offset   optional start position to write
                  */
-                writeUint32Array(_bytes, offset) {
-                    let position = offset ? offset : this.position;
+                writeUint32Array(_bytes, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_UINT32, position);
                     for (let i = 0; i < _bytes.length; i++) {
                         this.data.setUint32(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
@@ -742,8 +739,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    _bytes    The Int8Array to be written.
                  * @param    offset   optional start position to write
                  */
-                writeInt8Array(_bytes, offset) {
-                    let position = offset ? offset : this.position;
+                writeInt8Array(_bytes, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(_bytes.length, position);
                     for (let i = 0; i < _bytes.length; i++) {
                         this.data.setInt8(position++, _bytes[i]);
@@ -757,8 +754,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    _bytes    The Int16Array to be written.
                  * @param    offset   optional start position to write
                  */
-                writeInt16Array(_bytes, offset) {
-                    let position = offset ? offset : this.position;
+                writeInt16Array(_bytes, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_INT16, position);
                     for (let i = 0; i < _bytes.length; i++) {
                         this.data.setInt16(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
@@ -773,8 +770,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    _bytes    The Int32Array to be written.
                  * @param    offset   optional start position to write
                  */
-                writeInt32Array(_bytes, offset) {
-                    let position = offset ? offset : this.position;
+                writeInt32Array(_bytes, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_INT32, position);
                     for (let i = 0; i < _bytes.length; i++) {
                         this.data.setInt32(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
@@ -789,8 +786,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    _bytes    The Float32Array to be written.
                  * @param    offset   optional start position to write
                  */
-                writeFloat32Array(_bytes, offset) {
-                    let position = offset ? offset : this.position;
+                writeFloat32Array(_bytes, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(_bytes.length * ByteArray.SIZE_OF_FLOAT32, position);
                     for (let i = 0; i < _bytes.length; i++) {
                         this.data.setFloat32(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
@@ -805,8 +802,8 @@ System.register("bytearray", [], function (exports_1, context_1) {
                  * @param    _bytes    The Float64Array to be written.
                  * @param    offset   optional start position to write
                  */
-                writeFloat64Array(_bytes, offset) {
-                    let position = offset ? offset : this.position;
+                writeFloat64Array(_bytes, offset = null) {
+                    let position = offset != null ? offset : this.position;
                     this.validateBuffer(_bytes.length, position);
                     for (let i = 0; i < _bytes.length; i++) {
                         this.data.setFloat64(position, _bytes[i], this.endian === ByteArray.LITTLE_ENDIAN);
@@ -1516,6 +1513,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
             return "'unsafe'";
         if (token == TokenKind.UNSAFE_TURBO)
             return "'@unsafe'";
+        if (token == TokenKind.START)
+            return "'@start'";
         if (token == TokenKind.VIRTUAL)
             return "'@virtual'";
         if (token == TokenKind.VAR)
@@ -1658,6 +1657,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.STATIC;
                         else if (text == "unsafe")
                             kind = TokenKind.UNSAFE;
+                        else if (text == "@start")
+                            kind = TokenKind.START;
                     }
                     else if (length == 7) {
                         if (text == "alignof")
@@ -2099,20 +2100,21 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                 TokenKind[TokenKind["TRUE"] = 74] = "TRUE";
                 TokenKind[TokenKind["UNSAFE"] = 75] = "UNSAFE";
                 TokenKind[TokenKind["UNSAFE_TURBO"] = 76] = "UNSAFE_TURBO";
-                TokenKind[TokenKind["VIRTUAL"] = 77] = "VIRTUAL";
-                TokenKind[TokenKind["VAR"] = 78] = "VAR";
-                TokenKind[TokenKind["WHILE"] = 79] = "WHILE";
+                TokenKind[TokenKind["START"] = 77] = "START";
+                TokenKind[TokenKind["VIRTUAL"] = 78] = "VIRTUAL";
+                TokenKind[TokenKind["VAR"] = 79] = "VAR";
+                TokenKind[TokenKind["WHILE"] = 80] = "WHILE";
                 // Preprocessor
-                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 80] = "PREPROCESSOR_DEFINE";
-                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 81] = "PREPROCESSOR_ELIF";
-                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 82] = "PREPROCESSOR_ELSE";
-                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 83] = "PREPROCESSOR_ENDIF";
-                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 84] = "PREPROCESSOR_ERROR";
-                TokenKind[TokenKind["PREPROCESSOR_IF"] = 85] = "PREPROCESSOR_IF";
-                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 86] = "PREPROCESSOR_NEEDED";
-                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 87] = "PREPROCESSOR_NEWLINE";
-                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 88] = "PREPROCESSOR_UNDEF";
-                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 89] = "PREPROCESSOR_WARNING";
+                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 81] = "PREPROCESSOR_DEFINE";
+                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 82] = "PREPROCESSOR_ELIF";
+                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 83] = "PREPROCESSOR_ELSE";
+                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 84] = "PREPROCESSOR_ENDIF";
+                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 85] = "PREPROCESSOR_ERROR";
+                TokenKind[TokenKind["PREPROCESSOR_IF"] = 86] = "PREPROCESSOR_IF";
+                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 87] = "PREPROCESSOR_NEEDED";
+                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 88] = "PREPROCESSOR_NEWLINE";
+                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 89] = "PREPROCESSOR_UNDEF";
+                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 90] = "PREPROCESSOR_WARNING";
             })(TokenKind || (TokenKind = {}));
             exports_3("TokenKind", TokenKind);
             Token = class Token {
@@ -3354,6 +3356,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             flag = node_1.NODE_FLAG_UNSAFE;
                         else if (this.eat(lexer_1.TokenKind.UNSAFE_TURBO))
                             flag = node_1.NODE_FLAG_UNSAFE_TURBO;
+                        else if (this.eat(lexer_1.TokenKind.START))
+                            flag = node_1.NODE_FLAG_START;
                         else if (this.eat(lexer_1.TokenKind.VIRTUAL))
                             flag = node_1.NODE_FLAG_VIRTUAL;
                         else
@@ -3388,6 +3392,16 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     node.flags = node.flags | node_1.NODE_FLAG_UNSAFE_TURBO;
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
+                parseStart() {
+                    var token = this.current;
+                    this.advance();
+                    var node = this.parseBlock();
+                    if (node == null) {
+                        return null;
+                    }
+                    node.flags = node.flags | node_1.NODE_FLAG_START;
+                    return node.withRange(log_2.spanRanges(token.range, node.range));
+                }
                 parseVirtual(firstFlag) {
                     var token = this.current;
                     this.advance();
@@ -3404,6 +3418,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         return this.parseUnsafe();
                     if (this.peek(lexer_1.TokenKind.UNSAFE_TURBO) && firstFlag == null)
                         return this.parseUnsafeTurbo();
+                    if (this.peek(lexer_1.TokenKind.START) && firstFlag == null)
+                        return this.parseStart();
                     if (this.peek(lexer_1.TokenKind.CONST) || this.peek(lexer_1.TokenKind.LET) || this.peek(lexer_1.TokenKind.VAR))
                         return this.parseVariables(firstFlag, null);
                     if (this.peek(lexer_1.TokenKind.FUNCTION))
@@ -3464,17 +3480,21 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     var value = 0;
                     var base = 10;
                     // Handle binary, octal, and hexadecimal prefixes
-                    // if (contents[i] == '0' && i + 1 < limit) {
-                    //     var c = contents[i + 1];
-                    //     if (c == 'b' || c == 'B') base = 2;
-                    //     else if (c == 'o' || c == 'O') base = 8;
-                    //     else if (c == 'x' || c == 'X') base = 16;
-                    //     else {
-                    //         this.log.error(range, "Use the '0o' prefix for octal integers");
-                    //         return false;
-                    //     }
-                    //     if (base != 10) i = i + 2;
-                    // }
+                    if (contents[i] == '0' && i + 1 < limit) {
+                        var c = contents[i + 1];
+                        if (c == 'b' || c == 'B')
+                            base = 2;
+                        else if (c == 'o' || c == 'O')
+                            base = 8;
+                        else if (c == 'x' || c == 'X')
+                            base = 16;
+                        // else {
+                        //     this.log.error(range, "Use the '0o' prefix for octal integers");
+                        //     return false;
+                        // }
+                        if (base != 10)
+                            i = i + 2;
+                    }
                     while (i < limit) {
                         let c = contents[i];
                         var digit = (c >= 'A' && c <= 'F' ? c.charCodeAt(0) + (10 - 'A'.charCodeAt(0)) :
@@ -3970,7 +3990,7 @@ System.register("shaking", ["symbol", "node"], function (exports_7, context_7) {
     }
     exports_7("treeShakingMarkAllUsed", treeShakingMarkAllUsed);
     function treeShakingSearchForUsed(node) {
-        if (node.kind == node_2.NodeKind.FUNCTION && node.isExtern()) {
+        if (node.kind == node_2.NodeKind.FUNCTION && (node.isExport() || node.isStart())) {
             treeShakingMarkAllUsed(node);
         }
         else if (node.kind == node_2.NodeKind.GLOBAL || node.kind == node_2.NodeKind.CLASS) {
@@ -3979,7 +3999,7 @@ System.register("shaking", ["symbol", "node"], function (exports_7, context_7) {
                 treeShakingSearchForUsed(child);
                 child = child.nextSibling;
             }
-            if (node.kind == node_2.NodeKind.CLASS && node.isExtern()) {
+            if (node.kind == node_2.NodeKind.CLASS && node.isExport()) {
                 node.symbol.flags = node.symbol.flags | symbol_2.SYMBOL_FLAG_USED;
             }
         }
@@ -4604,7 +4624,7 @@ System.register("c", ["stringbuilder", "compiler", "node", "parser", "symbol", "
                             }
                         }
                         else if (node.kind == node_3.NodeKind.ENUM) {
-                            if (mode == SourceMode.HEADER && node.isExtern()) {
+                            if (mode == SourceMode.HEADER && node.isExport()) {
                                 this.emitNewlineBefore(node);
                                 code.append("enum {\n");
                                 this.indent = this.indent + 1;
@@ -4672,7 +4692,7 @@ System.register("c", ["stringbuilder", "compiler", "node", "parser", "symbol", "
                 emitGlobalVariables(node, mode) {
                     var code = this.code;
                     while (node != null) {
-                        if (node.kind == node_3.NodeKind.VARIABLE && (mode != SourceMode.HEADER || node.isExtern())) {
+                        if (node.kind == node_3.NodeKind.VARIABLE && (mode != SourceMode.HEADER || node.isExport())) {
                             var value = node.variableValue();
                             this.emitNewlineBefore(node);
                             if (!node.isDeclareOrExtern()) {
@@ -4750,7 +4770,7 @@ System.register("js", ["stringbuilder", "symbol", "node", "parser"], function (e
         var result = new JsResult();
         result.context = compiler.context;
         result.code = code;
-        code.append("(function(__declare, __extern) {\n");
+        code.append("(function(__declare, __exports) {\n");
         result.indent = 1;
         result.emitStatements(compiler.global.firstChild);
         if (result.foundMultiply) {
@@ -5130,10 +5150,10 @@ System.register("js", ["stringbuilder", "symbol", "node", "parser"], function (e
                             code.append(" = function");
                             needsSemicolon = true;
                         }
-                        else if (node.isExtern()) {
+                        else if (node.isExport()) {
                             code.append("var ");
                             this.emitSymbolName(symbol);
-                            code.append(" = __extern.");
+                            code.append(" = __exports.");
                             this.emitSymbolName(symbol);
                             code.append(" = function");
                             needsSemicolon = true;
@@ -5295,10 +5315,10 @@ System.register("js", ["stringbuilder", "symbol", "node", "parser"], function (e
                         }
                     }
                     else if (node.kind == node_4.NodeKind.ENUM) {
-                        if (node.isExtern()) {
+                        if (node.isExport()) {
                             this.emitNewlineBefore(node);
                             this.emitIndent();
-                            code.append("__extern.");
+                            code.append("__exports.");
                             this.emitSymbolName(node.symbol);
                             code.append(" = {\n");
                             this.indent = this.indent + 1;
@@ -6803,6 +6823,9 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
         else if (type.isLong() || (bitness == Bitness.x64 && type.pointerTo)) {
             return WasmType.I64;
         }
+        else {
+            return WasmType.I32;
+        }
     }
     function typeToDataType(type, bitness) {
         if (type.isFloat()) {
@@ -6838,10 +6861,29 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
             child = child.nextSibling;
         }
     }
+    function append(array, offset = 0, value = null, msg = null) {
+        if (debug) {
+            array.log += (value != null ? `${utils_1.toHex(offset + array.position)}: ${utils_1.toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
+        }
+        if (value) {
+            array.append(value);
+        }
+    }
     function log(array, offset = 0, value = null, msg = null) {
         if (debug) {
             array.log += (value != null ? `${utils_1.toHex(offset + array.position)}: ${utils_1.toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
         }
+    }
+    function logData(array, offset = 0, value, addPosition = true) {
+        if (debug) {
+            array.log += (addPosition ? `${utils_1.toHex(offset + array.position)}: ${utils_1.toHex(value, 2)}` : ` ${utils_1.toHex(value, 2)}`);
+        }
+    }
+    function appendOpcode(array, offset = 0, opcode) {
+        if (debug) {
+            logOpcode(array, offset, opcode);
+        }
+        array.append(opcode);
     }
     function logOpcode(array, offset = 0, opcode) {
         if (debug) {
@@ -6853,6 +6895,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
         module.context = compiler.context;
         module.memoryInitializer = new bytearray_1.ByteArray();
         // Set these to invalid values since "0" is valid
+        module.startFunctionIndex = -1;
         module.mallocFunctionIndex = -1;
         module.currentHeapPointer = -1;
         module.originalHeapPointer = -1;
@@ -6894,7 +6937,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
         execute: function () {
             WASM_MAGIC = 0x6d736100; //'\0' | 'a' << 8 | 's' << 16 | 'm' << 24;
             WASM_VERSION = 0x0d;
-            WASM_SIZE_IN_PAGES = 255;
+            WASM_SIZE_IN_PAGES = 1;
             WASM_SET_MAX_MEMORY = false;
             WASM_MAX_MEMORY = 1024 * 1024 * 1024;
             WASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
@@ -7053,13 +7096,12 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     this.emitFunctionDeclarations(array);
                     // this.emitTables(array);
                     this.emitMemory(array);
-                    // this.emitGlobalDeclarations(array);
+                    // this.emitGlobalDeclarations(array); // Since global variables are immutable in MVP, avoiding it for now.
                     this.emitExportTable(array);
-                    //FIXME Get proper start function index
-                    // this.emitStartFunctionDeclaration(array, start_fun_index);
+                    this.emitStartFunctionDeclaration(array);
                     this.emitElements(array);
                     this.emitFunctionBodies(array);
-                    // this.emitDataSegments(array);
+                    this.emitDataSegments(array);
                     // this.emitNames(array);
                 }
                 emitSignatures(array) {
@@ -7208,7 +7250,16 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     }
                     let section = wasmStartSection(array, WasmSection.Export, "export_table");
                     log(section.data, array.position, exportedCount, "num exports");
-                    section.data.writeUnsignedLEB128(exportedCount);
+                    section.data.writeUnsignedLEB128(exportedCount + 1);
+                    //Export main memory
+                    let memoryName = "memory";
+                    log(section.data, array.position, memoryName.length, "export name length");
+                    log(section.data, null, null, `${utils_1.toHex(section.data.position + array.position + 4)}: ${memoryName} // export name`);
+                    section.data.writeWasmString(memoryName);
+                    log(section.data, array.position, WasmExternalKind.Function, "export kind");
+                    section.data.writeUnsignedLEB128(WasmExternalKind.Memory);
+                    log(section.data, array.position, 0, "export memory index");
+                    section.data.writeUnsignedLEB128(0);
                     let i = 0;
                     fn = this.firstFunction;
                     while (fn != null) {
@@ -7226,10 +7277,13 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     }
                     wasmFinishSection(array, section);
                 }
-                emitStartFunctionDeclaration(array, startIndex) {
-                    let section = wasmStartSection(array, WasmSection.Start, "start_function");
-                    section.data.writeUnsignedLEB128(startIndex);
-                    wasmFinishSection(array, section);
+                emitStartFunctionDeclaration(array) {
+                    if (this.startFunctionIndex != -1) {
+                        let section = wasmStartSection(array, WasmSection.Start, "start_function");
+                        log(section.data, array.position, this.startFunctionIndex, "start function index");
+                        section.data.writeUnsignedLEB128(this.startFunctionIndex);
+                        wasmFinishSection(array, section);
+                    }
                 }
                 emitElements(array) {
                     //TODO
@@ -7242,6 +7296,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     let section = wasmStartSection(array, WasmSection.Code, "function_bodies");
                     log(section.data, offset, this.functionCount, "num functions");
                     section.data.writeUnsignedLEB128(this.functionCount);
+                    let count = 0;
                     let fn = this.firstFunction;
                     while (fn != null) {
                         let sectionOffset = offset + section.data.position;
@@ -7269,10 +7324,10 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             this.emitNode(bodyData, sectionOffset, child);
                             child = child.nextSibling;
                         }
-                        logOpcode(bodyData, sectionOffset, opcode_1.WasmOpcode.END);
-                        bodyData.writeUnsignedLEB128(opcode_1.WasmOpcode.END); //end, 0x0b, indicating the end of the body
+                        appendOpcode(bodyData, sectionOffset, opcode_1.WasmOpcode.END); //end, 0x0b, indicating the end of the body
                         //Copy and finish body
                         section.data.writeUnsignedLEB128(bodyData.length);
+                        log(section.data, offset, null, ` - function body ${count++} (${fn.symbol.name})`);
                         log(section.data, offset, bodyData.length, "func body size");
                         section.data.log += bodyData.log;
                         section.data.copy(bodyData);
@@ -7286,30 +7341,41 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     let initializerLength = memoryInitializer.length;
                     let initialHeapPointer = imports_1.alignToNextMultipleOf(WASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
                     // Pass the initial heap pointer to the "malloc" function
-                    memoryInitializer.writeUnsignedInt(initialHeapPointer, this.currentHeapPointer);
                     memoryInitializer.writeUnsignedInt(initialHeapPointer, this.originalHeapPointer);
+                    memoryInitializer.writeUnsignedInt(initialHeapPointer, this.currentHeapPointer);
                     let section = wasmStartSection(array, WasmSection.Data, "data_segments");
                     // This only writes one single section containing everything
+                    log(section.data, array.position, 1, "num data segments");
                     section.data.writeUnsignedLEB128(1);
                     //data_segment
+                    log(section.data, array.position, null, " - data segment header 0");
+                    log(section.data, array.position, 0, "memory index");
                     section.data.writeUnsignedLEB128(0); //index, the linear memory index (0 in the MVP)
                     //offset, an i32 initializer expression that computes the offset at which to place the data
                     //FIXME: This could be wrong
-                    section.data.writeUnsignedLEB128(opcode_1.WasmOpcode.I32_CONST);
-                    section.data.writeUnsignedLEB128(initialHeapPointer); //const value
-                    section.data.writeUnsignedLEB128(opcode_1.WasmOpcode.END); //end opcode
+                    appendOpcode(section.data, array.position, opcode_1.WasmOpcode.I32_CONST);
+                    log(section.data, array.position, WASM_MEMORY_INITIALIZER_BASE, "i32 literal");
+                    section.data.writeUnsignedLEB128(WASM_MEMORY_INITIALIZER_BASE); //const value
+                    appendOpcode(section.data, array.position, opcode_1.WasmOpcode.END);
+                    log(section.data, array.position, initializerLength, "data segment size");
                     section.data.writeUnsignedLEB128(initializerLength); //size, size of data (in bytes)
-                    // Emit the range of the memory initializer
-                    // array.writeUnsignedLEB128(WASM_MEMORY_INITIALIZER_BASE);
-                    // array.writeUnsignedLEB128(initializerLength);
+                    log(section.data, array.position, null, " - data segment data 0");
                     //data, sequence of size bytes
                     // Copy the entire memory initializer (also includes zero-initialized data for now)
-                    // let i = 0;
-                    // while (i < initializerLength) {
-                    //     section.data.append(memoryInitializer.get(i));
-                    //     i = i + 1;
-                    // }
-                    section.data.copy(memoryInitializer);
+                    let i = 0;
+                    let value;
+                    while (i < initializerLength) {
+                        for (let j = 0; j < 16; j++) {
+                            if (i + j < initializerLength) {
+                                value = memoryInitializer.get(i + j);
+                                section.data.append(value);
+                                logData(section.data, array.position, value, j == 0);
+                            }
+                        }
+                        section.data.log += "\n";
+                        i = i + 16;
+                    }
+                    // section.data.copy(memoryInitializer, initializerLength);
                     wasmFinishSection(array, section);
                 }
                 emitNames(array) {
@@ -7351,38 +7417,41 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             let memoryInitializer = this.memoryInitializer;
                             // Copy the initial value into the memory initializer
                             this.growMemoryInitializer();
+                            let offset = symbol.offset;
+                            // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
+                            // symbol.byteOffset = offset;
                             if (sizeOf == 1) {
                                 if (symbol.resolvedType.isUnsigned()) {
-                                    memoryInitializer.writeUnsignedByte(value.intValue, symbol.offset);
+                                    memoryInitializer.writeUnsignedByte(value.intValue, offset);
                                 }
                                 else {
-                                    memoryInitializer.writeByte(value.intValue, symbol.offset);
+                                    memoryInitializer.writeByte(value.intValue, offset);
                                 }
                             }
                             else if (sizeOf == 2) {
                                 if (symbol.resolvedType.isUnsigned()) {
-                                    memoryInitializer.writeUnsignedShort(value.intValue, symbol.offset);
+                                    memoryInitializer.writeUnsignedShort(value.intValue, offset);
                                 }
                                 else {
-                                    memoryInitializer.writeShort(value.intValue, symbol.offset);
+                                    memoryInitializer.writeShort(value.intValue, offset);
                                 }
                             }
                             else if (sizeOf == 4) {
                                 if (symbol.resolvedType.isFloat()) {
-                                    memoryInitializer.writeFloat(value.floatValue, symbol.offset);
+                                    memoryInitializer.writeFloat(value.floatValue, offset);
                                 }
                                 else {
                                     if (symbol.resolvedType.isUnsigned()) {
-                                        memoryInitializer.writeUnsignedInt(value.intValue, symbol.offset);
+                                        memoryInitializer.writeUnsignedInt(value.intValue, offset);
                                     }
                                     else {
-                                        memoryInitializer.writeInt(value.intValue, symbol.offset);
+                                        memoryInitializer.writeInt(value.intValue, offset);
                                     }
                                 }
                             }
                             else if (sizeOf == 8) {
                                 if (symbol.resolvedType.isDouble()) {
-                                    memoryInitializer.writeDouble(value.rawValue, symbol.offset);
+                                    memoryInitializer.writeDouble(value.rawValue, offset);
                                 }
                                 else {
                                     //TODO Implement Int64 write
@@ -7394,7 +7463,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             }
                             else
                                 assert(false);
-                            let global = this.allocateGlobal(symbol);
+                            //let global = this.allocateGlobal(symbol);// Since
                             // Make sure the heap offset is tracked
                             if (symbol.name == "currentHeapPointer") {
                                 assert(this.currentHeapPointer == -1);
@@ -7407,6 +7476,9 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         }
                     }
                     else if (node.kind == node_6.NodeKind.FUNCTION) {
+                        if (node.stringValue == "constructor" && node.parent.kind == node_6.NodeKind.CLASS) {
+                            node.parent.constructorFunctionNode = node;
+                        }
                         let returnType = node.functionReturnType();
                         let shared = new WasmSharedOffset();
                         let argumentTypesFirst = null;
@@ -7441,6 +7513,11 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             assert(this.mallocFunctionIndex == -1);
                             this.mallocFunctionIndex = symbol.offset;
                         }
+                        // Make "init_malloc" as start function
+                        if (symbol.kind == symbol_6.SymbolKind.FUNCTION_GLOBAL && symbol.name == "init_malloc") {
+                            assert(this.startFunctionIndex == -1);
+                            this.startFunctionIndex = symbol.offset;
+                        }
                         if (node.isExport()) {
                             fn.isExported = true;
                         }
@@ -7457,8 +7534,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                 emitBinaryExpression(array, byteOffset, node, opcode) {
                     this.emitNode(array, byteOffset, node.binaryLeft());
                     this.emitNode(array, byteOffset, node.binaryRight());
-                    logOpcode(array, byteOffset, opcode);
-                    array.append(opcode);
+                    appendOpcode(array, byteOffset, opcode);
                 }
                 emitLoadFromMemory(array, byteOffset, type, relativeBase, offset) {
                     let opcode;
@@ -7468,50 +7544,39 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     }
                     else {
                         opcode = opcode_1.WasmOpcode.I32_CONST;
-                        logOpcode(array, byteOffset, opcode);
-                        array.append(opcode);
+                        appendOpcode(array, byteOffset, opcode);
                         log(array, byteOffset, 0, "i32 literal");
                         array.writeUnsignedLEB128(0);
                     }
                     let sizeOf = type.variableSizeOf(this.context);
                     if (sizeOf == 1) {
                         opcode = type.isUnsigned() ? opcode_1.WasmOpcode.I32_LOAD8_U : opcode_1.WasmOpcode.I32_LOAD8_S;
-                        logOpcode(array, byteOffset, opcode);
-                        array.append(opcode);
+                        appendOpcode(array, byteOffset, opcode);
                         log(array, byteOffset, 0, "alignment");
                         array.writeUnsignedLEB128(0);
                     }
                     else if (sizeOf == 2) {
                         opcode = type.isUnsigned() ? opcode_1.WasmOpcode.I32_LOAD16_U : opcode_1.WasmOpcode.I32_LOAD16_S;
-                        logOpcode(array, byteOffset, opcode);
-                        array.append(opcode);
+                        appendOpcode(array, byteOffset, opcode);
                         log(array, byteOffset, 1, "alignment");
                         array.writeUnsignedLEB128(1);
                     }
                     else if (sizeOf == 4) {
                         if (type.isFloat()) {
-                            opcode = opcode_1.WasmOpcode.F32_LOAD;
-                            logOpcode(array, byteOffset, opcode);
-                            array.append(opcode);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_LOAD);
                         }
                         else {
-                            opcode = opcode_1.WasmOpcode.I32_LOAD;
-                            logOpcode(array, byteOffset, opcode);
-                            array.append(opcode_1.WasmOpcode.I32_LOAD);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_LOAD);
                         }
                         log(array, byteOffset, 2, "alignment");
                         array.writeUnsignedLEB128(2);
                     }
                     else if (sizeOf == 8) {
                         if (type.isDouble()) {
-                            opcode = opcode_1.WasmOpcode.F64_LOAD;
-                            logOpcode(array, byteOffset, opcode);
-                            array.append(opcode);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_LOAD);
                         }
                         else {
-                            opcode = opcode_1.WasmOpcode.I64_LOAD;
-                            logOpcode(array, byteOffset, opcode);
-                            array.append(opcode);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_LOAD);
                         }
                         log(array, byteOffset, 3, "alignment");
                         array.writeUnsignedLEB128(3);
@@ -7529,52 +7594,38 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         this.emitNode(array, byteOffset, relativeBase);
                     }
                     else {
-                        opcode = opcode_1.WasmOpcode.I32_CONST;
-                        logOpcode(array, byteOffset, opcode);
-                        array.append(opcode);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, 0, "i32 literal");
                         array.writeUnsignedLEB128(0);
                     }
                     this.emitNode(array, byteOffset, value);
                     let sizeOf = type.variableSizeOf(this.context);
                     if (sizeOf == 1) {
-                        opcode = opcode_1.WasmOpcode.I32_STORE8;
-                        logOpcode(array, byteOffset, opcode);
-                        array.append(opcode);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_STORE8);
                         log(array, byteOffset, 0, "alignment");
                         array.writeUnsignedLEB128(0);
                     }
                     else if (sizeOf == 2) {
-                        opcode = opcode_1.WasmOpcode.I32_STORE16;
-                        logOpcode(array, byteOffset, opcode);
-                        array.append(opcode);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_STORE16);
                         log(array, byteOffset, 1, "alignment");
                         array.writeUnsignedLEB128(1);
                     }
                     else if (sizeOf == 4) {
                         if (type.isFloat()) {
-                            opcode = opcode_1.WasmOpcode.F32_STORE;
-                            logOpcode(array, byteOffset, opcode);
-                            array.append(opcode);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_STORE);
                         }
                         else {
-                            opcode = opcode_1.WasmOpcode.I32_STORE;
-                            logOpcode(array, byteOffset, opcode);
-                            array.append(opcode);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_STORE);
                         }
                         log(array, byteOffset, 2, "alignment");
                         array.writeUnsignedLEB128(2);
                     }
                     else if (sizeOf == 8) {
                         if (type.isDouble()) {
-                            opcode = opcode_1.WasmOpcode.F64_STORE;
-                            logOpcode(array, byteOffset, opcode);
-                            array.append(opcode);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_STORE);
                         }
                         else {
-                            opcode = opcode_1.WasmOpcode.I64_STORE;
-                            logOpcode(array, byteOffset, opcode);
-                            array.append(opcode);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_STORE);
                         }
                         log(array, byteOffset, 3, "alignment");
                         array.writeUnsignedLEB128(3);
@@ -7585,13 +7636,22 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     log(array, byteOffset, offset, "load offset");
                     array.writeUnsignedLEB128(offset);
                 }
+                emitConstructor(array, byteOffset, node) {
+                    let constructorNode = node.resolvedType.symbol.node.constructorFunctionNode;
+                    let callSymbol = constructorNode.symbol;
+                    let child = node.firstChild.nextSibling;
+                    while (child != null) {
+                        this.emitNode(array, byteOffset, child);
+                        child = child.nextSibling;
+                    }
+                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
+                    log(array, byteOffset, callSymbol.offset, "call index");
+                    array.writeUnsignedLEB128(callSymbol.offset);
+                }
                 emitNode(array, byteOffset, node) {
                     assert(!node_6.isExpression(node) || node.resolvedType != null);
-                    let opcode;
                     if (node.kind == node_6.NodeKind.BLOCK) {
-                        opcode = opcode_1.WasmOpcode.BLOCK;
-                        logOpcode(array, byteOffset, opcode);
-                        array.append(opcode);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.BLOCK);
                         log(array, byteOffset, WasmType.block_type, WasmType[WasmType.block_type]);
                         array.append(WasmType.block_type);
                         let child = node.firstChild;
@@ -7599,9 +7659,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             this.emitNode(array, byteOffset, child);
                             child = child.nextSibling;
                         }
-                        opcode = opcode_1.WasmOpcode.END;
-                        logOpcode(array, byteOffset, opcode);
-                        array.append(opcode);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.END);
                     }
                     else if (node.kind == node_6.NodeKind.WHILE) {
                         let value = node.whileValue();
@@ -7610,20 +7668,16 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         if (value.kind == node_6.NodeKind.BOOLEAN && value.intValue == 0) {
                             return 0;
                         }
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.BLOCK);
-                        array.append(opcode_1.WasmOpcode.BLOCK);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.BLOCK);
                         log(array, 0, WasmType.block_type, WasmType[WasmType.block_type]);
                         array.append(WasmType.block_type);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.LOOP);
-                        array.append(opcode_1.WasmOpcode.LOOP);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.LOOP);
                         log(array, 0, WasmType.block_type, WasmType[WasmType.block_type]);
                         array.append(WasmType.block_type);
                         if (value.kind != node_6.NodeKind.BOOLEAN) {
                             this.emitNode(array, byteOffset, value);
-                            logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQZ);
-                            array.append(opcode_1.WasmOpcode.I32_EQZ);
-                            logOpcode(array, byteOffset, opcode_1.WasmOpcode.BR_IF);
-                            array.append(opcode_1.WasmOpcode.BR_IF);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQZ);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.BR_IF);
                             array.writeUnsignedLEB128(1); // Break out of the immediately enclosing loop
                         }
                         let child = body.firstChild;
@@ -7632,13 +7686,10 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             child = child.nextSibling;
                         }
                         // Jump back to the top (this doesn't happen automatically)
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.BR);
-                        array.append(opcode_1.WasmOpcode.BR);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.BR);
                         array.writeUnsignedLEB128(0); // Continue back to the immediately enclosing loop
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.END);
-                        array.append(opcode_1.WasmOpcode.END);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.END);
-                        array.append(opcode_1.WasmOpcode.END);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.END);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.END);
                     }
                     else if (node.kind == node_6.NodeKind.BREAK || node.kind == node_6.NodeKind.CONTINUE) {
                         let label = 0;
@@ -7650,8 +7701,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             parent = parent.parent;
                         }
                         assert(label > 0);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.BR);
-                        array.append(opcode_1.WasmOpcode.BR);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.BR);
                         array.writeUnsignedLEB128(label - (node.kind == node_6.NodeKind.BREAK ? 0 : 1));
                     }
                     else if (node.kind == node_6.NodeKind.EMPTY) {
@@ -7664,9 +7714,11 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let value = node.returnValue();
                         if (value != null) {
                             this.emitNode(array, byteOffset, value);
+                            if (value.kind == node_6.NodeKind.NEW) {
+                                this.emitConstructor(array, byteOffset, value);
+                            }
                         }
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.RETURN);
-                        array.append(opcode_1.WasmOpcode.RETURN);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.RETURN);
                     }
                     else if (node.kind == node_6.NodeKind.VARIABLES) {
                         let count = 0;
@@ -7681,38 +7733,36 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     else if (node.kind == node_6.NodeKind.IF) {
                         let branch = node.ifFalse();
                         this.emitNode(array, byteOffset, node.ifValue());
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.IF);
-                        array.append(opcode_1.WasmOpcode.IF);
-                        log(array, 0, WasmType.block_type, WasmType[WasmType.block_type]);
-                        array.append(WasmType.block_type);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.IF);
+                        append(array, 0, WasmType.block_type, WasmType[WasmType.block_type]);
                         this.emitNode(array, byteOffset, node.ifTrue());
                         if (branch != null) {
-                            logOpcode(array, byteOffset, opcode_1.WasmOpcode.IF_ELSE);
-                            array.append(opcode_1.WasmOpcode.IF_ELSE);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.IF_ELSE);
                             this.emitNode(array, byteOffset, branch);
                         }
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.END);
-                        array.append(opcode_1.WasmOpcode.END);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.END);
                     }
                     else if (node.kind == node_6.NodeKind.HOOK) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.IF_ELSE);
-                        array.append(opcode_1.WasmOpcode.IF_ELSE);
                         this.emitNode(array, byteOffset, node.hookValue());
-                        this.emitNode(array, byteOffset, node.hookTrue());
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.IF);
+                        let trueValue = node.hookTrue();
+                        let trueValueType = symbolToValueType(trueValue.resolvedType.symbol);
+                        append(array, 0, trueValueType, WasmType[trueValueType]);
+                        this.emitNode(array, byteOffset, trueValue);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.IF_ELSE);
                         this.emitNode(array, byteOffset, node.hookFalse());
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.END);
                     }
                     else if (node.kind == node_6.NodeKind.VARIABLE) {
                         let value = node.variableValue();
                         if (node.symbol.kind == symbol_6.SymbolKind.VARIABLE_LOCAL) {
-                            if (value && value.rawValue) {
+                            if (value && value.kind != node_6.NodeKind.NAME && value.rawValue) {
                                 if (node.symbol.resolvedType.isFloat()) {
-                                    logOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
-                                    array.append(opcode_1.WasmOpcode.F32_CONST);
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
                                     array.writeFloat(value.floatValue);
                                 }
                                 else {
-                                    logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                    array.append(opcode_1.WasmOpcode.I32_CONST);
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                     array.writeUnsignedLEB128(value.intValue);
                                 }
                             }
@@ -7725,9 +7775,13 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                     array.writeUnsignedLEB128(0);
                                 }
                             }
-                            logOpcode(array, byteOffset, opcode_1.WasmOpcode.SET_LOCAL);
-                            array.append(opcode_1.WasmOpcode.SET_LOCAL);
-                            array.writeUnsignedLEB128(node.symbol.offset);
+                            if (value.kind == node_6.NodeKind.NEW) {
+                                this.emitConstructor(array, byteOffset, value);
+                            }
+                            else {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.SET_LOCAL);
+                                array.writeUnsignedLEB128(node.symbol.offset);
+                            }
                         }
                         else {
                             assert(false);
@@ -7736,14 +7790,13 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     else if (node.kind == node_6.NodeKind.NAME) {
                         let symbol = node.symbol;
                         if (symbol.kind == symbol_6.SymbolKind.VARIABLE_ARGUMENT || symbol.kind == symbol_6.SymbolKind.VARIABLE_LOCAL) {
-                            logOpcode(array, byteOffset, opcode_1.WasmOpcode.GET_LOCAL);
-                            array.append(opcode_1.WasmOpcode.GET_LOCAL);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.GET_LOCAL);
                             log(array, byteOffset, symbol.offset, "local index");
                             array.writeUnsignedLEB128(symbol.offset);
                         }
                         else if (symbol.kind == symbol_6.SymbolKind.VARIABLE_GLOBAL) {
                             //Global variables are immutable so we need to store then in memory
-                            //array.append(WasmOpcode.GET_GLOBAL);
+                            //appendOpcode(array, byteOffset, WasmOpcode.GET_GLOBAL);
                             //array.writeUnsignedLEB128(symbol.offset);
                             this.emitLoadFromMemory(array, byteOffset, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset);
                         }
@@ -7755,38 +7808,32 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         this.emitLoadFromMemory(array, byteOffset, node.resolvedType.underlyingType(this.context), node.unaryValue(), 0);
                     }
                     else if (node.kind == node_6.NodeKind.NULL) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, 0, "i32 literal");
                         array.writeLEB128(0);
                     }
                     else if (node.kind == node_6.NodeKind.INT32 || node.kind == node_6.NodeKind.BOOLEAN) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, node.intValue, "i32 literal");
                         array.writeLEB128(node.intValue);
                     }
                     else if (node.kind == node_6.NodeKind.INT64) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
-                        array.append(opcode_1.WasmOpcode.I64_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
                         log(array, byteOffset, node.longValue, "i64 literal");
                         array.writeLEB128(node.longValue);
                     }
                     else if (node.kind == node_6.NodeKind.FLOAT32) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
-                        array.append(opcode_1.WasmOpcode.F32_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
                         log(array, byteOffset, node.floatValue, "f32 literal");
                         array.writeFloat(node.floatValue);
                     }
                     else if (node.kind == node_6.NodeKind.FLOAT64) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
-                        array.append(opcode_1.WasmOpcode.F64_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
                         log(array, byteOffset, node.doubleValue, "f64 literal");
                         array.writeDouble(node.doubleValue);
                     }
                     else if (node.kind == node_6.NodeKind.STRING) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         let value = WASM_MEMORY_INITIALIZER_BASE + node.intValue;
                         log(array, byteOffset, value, "i32 literal");
                         array.writeLEB128(value);
@@ -7795,9 +7842,6 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let value = node.callValue();
                         let symbol = value.symbol;
                         assert(symbol_6.isFunction(symbol.kind));
-                        array.writeUnsignedLEB128(symbol.offset);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
-                        array.append(opcode_1.WasmOpcode.CALL);
                         // Write out the implicit "this" argument
                         if (symbol.kind == symbol_6.SymbolKind.FUNCTION_INSTANCE) {
                             this.emitNode(array, byteOffset, value.dotTarget());
@@ -7807,46 +7851,42 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             this.emitNode(array, byteOffset, child);
                             child = child.nextSibling;
                         }
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
+                        log(array, byteOffset, symbol.offset, "call func index");
+                        array.writeUnsignedLEB128(symbol.offset);
                     }
                     else if (node.kind == node_6.NodeKind.NEW) {
                         let type = node.newType();
                         let size = type.resolvedType.allocationSizeOf(this.context);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
-                        array.append(opcode_1.WasmOpcode.CALL);
-                        log(array, byteOffset, this.mallocFunctionIndex, "call index");
-                        array.writeUnsignedLEB128(this.mallocFunctionIndex);
-                        // Pass the object size as the first argument
                         assert(size > 0);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                        // Pass the object size as the first argument
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, size, "i32 literal");
                         array.writeLEB128(size);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
+                        log(array, byteOffset, this.mallocFunctionIndex, "call index");
+                        array.writeUnsignedLEB128(this.mallocFunctionIndex);
                     }
                     else if (node.kind == node_6.NodeKind.POSITIVE) {
                         this.emitNode(array, byteOffset, node.unaryValue());
                     }
                     else if (node.kind == node_6.NodeKind.NEGATIVE) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, 0, "i32 literal");
                         array.writeLEB128(0);
                         this.emitNode(array, byteOffset, node.unaryValue());
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SUB);
-                        array.append(opcode_1.WasmOpcode.I32_SUB);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SUB);
                     }
                     else if (node.kind == node_6.NodeKind.COMPLEMENT) {
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, ~0, "i32 literal");
                         array.writeLEB128(~0);
                         this.emitNode(array, byteOffset, node.unaryValue());
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_XOR);
-                        array.append(opcode_1.WasmOpcode.I32_XOR);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_XOR);
                     }
                     else if (node.kind == node_6.NodeKind.NOT) {
                         this.emitNode(array, byteOffset, node.unaryValue());
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQZ);
-                        array.append(opcode_1.WasmOpcode.I32_EQZ);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQZ);
                     }
                     else if (node.kind == node_6.NodeKind.CAST) {
                         let value = node.castValue();
@@ -7863,29 +7903,23 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             // Sign-extend
                             if (type == context.sbyteType || type == context.shortType) {
                                 let shift = 32 - typeSize * 8;
-                                logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHR_S);
-                                array.append(opcode_1.WasmOpcode.I32_SHR_S);
-                                logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
-                                array.append(opcode_1.WasmOpcode.I32_SHL);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHR_S);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
                                 this.emitNode(array, byteOffset, value);
-                                logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                array.append(opcode_1.WasmOpcode.I32_CONST);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                 log(array, byteOffset, shift, "i32 literal");
                                 array.writeLEB128(shift);
-                                logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                array.append(opcode_1.WasmOpcode.I32_CONST);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                 log(array, byteOffset, shift, "i32 literal");
                                 array.writeLEB128(shift);
                             }
                             else if (type == context.byteType || type == context.ushortType) {
                                 this.emitNode(array, byteOffset, value);
-                                logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                array.append(opcode_1.WasmOpcode.I32_CONST);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                 let _value = type.integerBitMask(this.context);
                                 log(array, byteOffset, _value, "i32 literal");
                                 array.writeLEB128(_value);
-                                logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_AND);
-                                array.append(opcode_1.WasmOpcode.I32_AND);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_AND);
                             }
                             else {
                                 this.emitNode(array, byteOffset, value);
@@ -7914,14 +7948,13 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         else if (symbol.kind == symbol_6.SymbolKind.VARIABLE_GLOBAL) {
                             //Global variables are immutable in MVP so we need to store them in memory
                             // this.emitNode(array, byteOffset, right);
-                            // array.append(WasmOpcode.SET_GLOBAL);
+                            // appendOpcode(array, byteOffset, WasmOpcode.SET_GLOBAL);
                             // array.writeUnsignedLEB128(symbol.offset);
                             this.emitStoreToMemory(array, byteOffset, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset, right);
                         }
                         else if (symbol.kind == symbol_6.SymbolKind.VARIABLE_ARGUMENT || symbol.kind == symbol_6.SymbolKind.VARIABLE_LOCAL) {
                             this.emitNode(array, byteOffset, right);
-                            logOpcode(array, byteOffset, opcode_1.WasmOpcode.SET_LOCAL);
-                            array.append(opcode_1.WasmOpcode.SET_LOCAL);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.SET_LOCAL);
                             log(array, byteOffset, symbol.offset, "local index");
                             array.writeUnsignedLEB128(symbol.offset);
                         }
@@ -7932,26 +7965,20 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     else if (node.kind == node_6.NodeKind.LOGICAL_AND) {
                         this.emitNode(array, byteOffset, node.binaryLeft());
                         this.emitNode(array, byteOffset, node.binaryRight());
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_AND);
-                        array.append(opcode_1.WasmOpcode.I32_AND);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_AND);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, 1, "i32 literal");
                         array.writeLEB128(1);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQ);
-                        array.append(opcode_1.WasmOpcode.I32_EQ);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQ);
                     }
                     else if (node.kind == node_6.NodeKind.LOGICAL_OR) {
                         this.emitNode(array, byteOffset, node.binaryLeft());
                         this.emitNode(array, byteOffset, node.binaryRight());
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_OR);
-                        array.append(opcode_1.WasmOpcode.I32_OR);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_OR);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, 1, "i32 literal");
                         array.writeLEB128(1);
-                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQ);
-                        array.append(opcode_1.WasmOpcode.I32_EQ);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQ);
                     }
                     else {
                         let isUnsigned = node.isUnsignedOperator();
@@ -7959,8 +7986,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let right = node.binaryRight();
                         let isFloat = left.resolvedType.isFloat() || right.resolvedType.isFloat();
                         let isDouble = left.resolvedType.isDouble() || right.resolvedType.isDouble();
-                        let dataTypeLeft = typeToDataType(left.resolvedType);
-                        let dataTypeRight = typeToDataType(right.resolvedType);
+                        let dataTypeLeft = typeToDataType(left.resolvedType, this.bitness);
+                        let dataTypeRight = typeToDataType(right.resolvedType, this.bitness);
                         //FIXME: This should handle in checker
                         if (left.resolvedType.symbol && right.kind != node_6.NodeKind.NAME) {
                             if (left.resolvedType.symbol.name == "float64") {
@@ -7981,56 +8008,47 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                 let size = left.resolvedType.pointerTo.allocationSizeOf(this.context);
                                 if (size == 2) {
                                     if (right.kind == node_6.NodeKind.INT32) {
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                         let _value = right.intValue << 1;
                                         log(array, byteOffset, _value, "i32 literal");
                                         array.writeLEB128(_value);
                                     }
                                     else {
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
-                                        array.append(opcode_1.WasmOpcode.I32_SHL);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
                                         this.emitNode(array, byteOffset, right);
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                         log(array, byteOffset, 1, "i32 literal");
                                         array.writeLEB128(1);
                                     }
                                 }
                                 else if (size == 4) {
                                     if (right.kind == node_6.NodeKind.INT32) {
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                         let _value = right.intValue << 2;
                                         log(array, byteOffset, _value, "i32 literal");
                                         array.writeLEB128(_value);
                                     }
                                     else if (right.kind == node_6.NodeKind.FLOAT32) {
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
-                                        array.append(opcode_1.WasmOpcode.F32_CONST);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
                                         log(array, byteOffset, right.floatValue, "f32 literal");
                                         array.writeFloat(right.floatValue);
                                     }
                                     else {
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
-                                        array.append(opcode_1.WasmOpcode.I32_SHL);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
                                         this.emitNode(array, byteOffset, right);
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                        array.append(opcode_1.WasmOpcode.I32_CONST);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                         log(array, byteOffset, 2, "i32 literal");
                                         array.writeLEB128(2);
                                     }
                                 }
                                 else if (size == 8) {
                                     if (right.kind == node_6.NodeKind.INT64) {
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
-                                        array.append(opcode_1.WasmOpcode.I64_CONST);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
                                         log(array, byteOffset, right.longValue, "i64 literal");
                                         array.writeLEB128(right.longValue);
                                     }
                                     else if (right.kind == node_6.NodeKind.FLOAT64) {
-                                        logOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
-                                        array.append(opcode_1.WasmOpcode.F64_CONST);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
                                         log(array, byteOffset, right.doubleValue, "f64 literal");
                                         array.writeDouble(right.doubleValue);
                                     }
@@ -8039,8 +8057,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                     this.emitNode(array, byteOffset, right);
                                 }
                             }
-                            logOpcode(array, byteOffset, opcode_1.WasmOpcode[`${dataTypeLeft}_ADD`]);
-                            array.append(opcode_1.WasmOpcode[`${dataTypeLeft}_ADD`]);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode[`${dataTypeLeft}_ADD`]);
                         }
                         else if (node.kind == node_6.NodeKind.BITWISE_AND) {
                             this.emitBinaryExpression(array, byteOffset, node, opcode_1.WasmOpcode[`${dataTypeLeft}_AND`]);
@@ -9068,9 +9085,34 @@ declare class boolean {
         }
     };
 });
-System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "c", "js", "turbojs", "wasm", "libraryturbo", "librarydummy"], function (exports_18, context_18) {
+System.register("library/library", ["compiler"], function (exports_18, context_18) {
     "use strict";
     var __moduleName = context_18 && context_18.id;
+    var compiler_2, Library;
+    return {
+        setters: [
+            function (compiler_2_1) {
+                compiler_2 = compiler_2_1;
+            }
+        ],
+        execute: function () {
+            Library = class Library {
+                static get(target) {
+                    switch (target) {
+                        case compiler_2.CompileTarget.WEBASSEMBLY:
+                            let lib = stdlib.IO_readTextFile("../src/library/wasm/types.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile("../src/library/wasm/malloc.tbs") + "\n";
+                            return lib;
+                    }
+                }
+            };
+            exports_18("Library", Library);
+        }
+    };
+});
+System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "c", "js", "turbojs", "wasm", "libraryturbo", "library/library"], function (exports_19, context_19) {
+    "use strict";
+    var __moduleName = context_19 && context_19.id;
     function replaceFileExtension(path, extension) {
         var builder = stringbuilder_9.StringBuilder_new();
         var dot = path.lastIndexOf(".");
@@ -9082,8 +9124,8 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
         }
         return builder.append(path).append(extension).finish();
     }
-    exports_18("replaceFileExtension", replaceFileExtension);
-    var checker_1, node_7, log_4, preprocessor_1, scope_1, lexer_4, parser_5, shaking_1, stringbuilder_9, c_1, js_2, turbojs_1, wasm_1, libraryturbo_1, librarydummy_1, CompileTarget, Compiler;
+    exports_19("replaceFileExtension", replaceFileExtension);
+    var checker_1, node_7, log_4, preprocessor_1, scope_1, lexer_4, parser_5, shaking_1, stringbuilder_9, c_1, js_2, turbojs_1, wasm_1, libraryturbo_1, library_1, CompileTarget, Compiler;
     return {
         setters: [
             function (checker_1_1) {
@@ -9128,8 +9170,8 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             function (libraryturbo_1_1) {
                 libraryturbo_1 = libraryturbo_1_1;
             },
-            function (librarydummy_1_1) {
-                librarydummy_1 = librarydummy_1_1;
+            function (library_1_1) {
+                library_1 = library_1_1;
             }
         ],
         execute: function () {
@@ -9143,7 +9185,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                 CompileTarget[CompileTarget["TURBO_JAVASCRIPT"] = 3] = "TURBO_JAVASCRIPT";
                 CompileTarget[CompileTarget["WEBASSEMBLY"] = 4] = "WEBASSEMBLY";
             })(CompileTarget || (CompileTarget = {}));
-            exports_18("CompileTarget", CompileTarget);
+            exports_19("CompileTarget", CompileTarget);
             Compiler = class Compiler {
                 initialize(target, outputName) {
                     assert(this.log == null);
@@ -9156,7 +9198,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     }
                     else {
                         // this.librarySource = this.addInput("<native>", libraryWasm());
-                        this.librarySource = this.addInput("<native>", librarydummy_1.libraryDummy());
+                        this.librarySource = this.addInput("<native>", library_1.Library.get(target));
                     }
                     this.librarySource.isLibrary = true;
                     this.createGlobals();
@@ -9280,13 +9322,13 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     return true;
                 }
             };
-            exports_18("Compiler", Compiler);
+            exports_19("Compiler", Compiler);
         }
     };
 });
-System.register("const", [], function (exports_19, context_19) {
+System.register("const", [], function (exports_20, context_20) {
     "use strict";
-    var __moduleName = context_19 && context_19.id;
+    var __moduleName = context_20 && context_20.id;
     var MIN_INT32_VALUE, MAX_INT32_VALUE, MIN_UINT32_VALUE, MAX_UINT32_VALUE, MIN_INT64_VALUE, MAX_INT64_VALUE, MIN_UINT64_VALUE, MAX_UINT64_VALUE;
     return {
         setters: [],
@@ -9294,35 +9336,35 @@ System.register("const", [], function (exports_19, context_19) {
             /**
              * Created by Nidin Vinayakan on 11/01/17.
              */
-            exports_19("MIN_INT32_VALUE", MIN_INT32_VALUE = -Math.pow(2, 31));
-            exports_19("MAX_INT32_VALUE", MAX_INT32_VALUE = Math.pow(2, 31) - 1);
-            exports_19("MIN_UINT32_VALUE", MIN_UINT32_VALUE = 0);
-            exports_19("MAX_UINT32_VALUE", MAX_UINT32_VALUE = Math.pow(2, 32) - 1);
+            exports_20("MIN_INT32_VALUE", MIN_INT32_VALUE = -Math.pow(2, 31));
+            exports_20("MAX_INT32_VALUE", MAX_INT32_VALUE = Math.pow(2, 31) - 1);
+            exports_20("MIN_UINT32_VALUE", MIN_UINT32_VALUE = 0);
+            exports_20("MAX_UINT32_VALUE", MAX_UINT32_VALUE = Math.pow(2, 32) - 1);
             //FIXME: Cannot represent 64 bit integer in javascript
-            exports_19("MIN_INT64_VALUE", MIN_INT64_VALUE = -Math.pow(2, 63));
-            exports_19("MAX_INT64_VALUE", MAX_INT64_VALUE = Math.pow(2, 63) - 1);
-            exports_19("MIN_UINT64_VALUE", MIN_UINT64_VALUE = 0);
-            exports_19("MAX_UINT64_VALUE", MAX_UINT64_VALUE = Math.pow(2, 64) - 1);
+            exports_20("MIN_INT64_VALUE", MIN_INT64_VALUE = -Math.pow(2, 63));
+            exports_20("MAX_INT64_VALUE", MAX_INT64_VALUE = Math.pow(2, 63) - 1);
+            exports_20("MIN_UINT64_VALUE", MIN_UINT64_VALUE = 0);
+            exports_20("MAX_UINT64_VALUE", MAX_UINT64_VALUE = Math.pow(2, 64) - 1);
         }
     };
 });
-System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope", "stringbuilder", "imports", "const"], function (exports_20, context_20) {
+System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope", "stringbuilder", "imports", "const"], function (exports_21, context_21) {
     "use strict";
-    var __moduleName = context_20 && context_20.id;
+    var __moduleName = context_21 && context_21.id;
     function addScopeToSymbol(symbol, parentScope) {
         var scope = new scope_2.Scope();
         scope.parent = parentScope;
         scope.symbol = symbol;
         symbol.scope = scope;
     }
-    exports_20("addScopeToSymbol", addScopeToSymbol);
+    exports_21("addScopeToSymbol", addScopeToSymbol);
     function linkSymbolToNode(symbol, node) {
         node.symbol = symbol;
         node.scope = symbol.scope;
         symbol.range = node.internalRange != null ? node.internalRange : node.range;
         symbol.node = node;
     }
-    exports_20("linkSymbolToNode", linkSymbolToNode);
+    exports_21("linkSymbolToNode", linkSymbolToNode);
     function initialize(context, node, parentScope, mode) {
         var kind = node.kind;
         if (node.parent != null) {
@@ -9474,7 +9516,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             prepareNativeType(context.float64Type, 8, symbol_7.SYMBOL_FLAG_NATIVE_DOUBLE);
         }
     }
-    exports_20("initialize", initialize);
+    exports_21("initialize", initialize);
     function prepareNativeType(type, byteSizeAndMaxAlignment, flags) {
         var symbol = type.symbol;
         symbol.kind = symbol_7.SymbolKind.TYPE_NATIVE;
@@ -9491,14 +9533,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
     }
-    exports_20("forbidFlag", forbidFlag);
+    exports_21("forbidFlag", forbidFlag);
     function requireFlag(context, node, flag, text) {
         if ((node.flags & flag) == 0) {
             node.flags = node.flags | flag;
             context.log.error(node.range, text);
         }
     }
-    exports_20("requireFlag", requireFlag);
+    exports_21("requireFlag", requireFlag);
     function initializeSymbol(context, symbol) {
         if (symbol.state == symbol_7.SymbolState.INITIALIZED) {
             assert(symbol.resolvedType != null);
@@ -9636,7 +9678,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                         context.log.error(node.lastChild.range, "Must implement this function");
                     }
                     // Functions inside extern classes are automatically extern
-                    if (parent.node.isExtern()) {
+                    if (parent.node.isExport()) {
                         node.flags = node.flags | node_8.NODE_FLAG_EXTERN;
                     }
                 }
@@ -9755,7 +9797,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         assert(symbol.resolvedType != null);
         symbol.state = symbol_7.SymbolState.INITIALIZED;
     }
-    exports_20("initializeSymbol", initializeSymbol);
+    exports_21("initializeSymbol", initializeSymbol);
     function resolveChildren(context, node, parentScope) {
         var child = node.firstChild;
         while (child != null) {
@@ -9764,7 +9806,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             child = child.nextSibling;
         }
     }
-    exports_20("resolveChildren", resolveChildren);
+    exports_21("resolveChildren", resolveChildren);
     function resolveChildrenAsExpressions(context, node, parentScope) {
         var child = node.firstChild;
         while (child != null) {
@@ -9772,7 +9814,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             child = child.nextSibling;
         }
     }
-    exports_20("resolveChildrenAsExpressions", resolveChildrenAsExpressions);
+    exports_21("resolveChildrenAsExpressions", resolveChildrenAsExpressions);
     function resolveAsExpression(context, node, parentScope) {
         assert(node_8.isExpression(node));
         resolve(context, node, parentScope);
@@ -9788,7 +9830,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
     }
-    exports_20("resolveAsExpression", resolveAsExpression);
+    exports_21("resolveAsExpression", resolveAsExpression);
     function resolveAsType(context, node, parentScope) {
         assert(node_8.isExpression(node));
         resolve(context, node, parentScope);
@@ -9798,7 +9840,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             node.resolvedType = context.errorType;
         }
     }
-    exports_20("resolveAsType", resolveAsType);
+    exports_21("resolveAsType", resolveAsType);
     function canConvert(context, node, to, kind) {
         var from = node.resolvedType;
         assert(node_8.isExpression(node));
@@ -9811,7 +9853,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         else if (from == context.nullType && to.isReference()) {
             return true;
         }
-        else if (context.isUnsafeAllowed && (from.isReference() || to.isReference())) {
+        else if ((from.isReference() || to.isReference())) {
             if (kind == type_2.ConversionKind.EXPLICIT) {
                 return true;
             }
@@ -9863,7 +9905,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         return false;
     }
-    exports_20("canConvert", canConvert);
+    exports_21("canConvert", canConvert);
     function checkConversion(context, node, to, kind) {
         if (!canConvert(context, node, to, kind)) {
             context.log.error(node.range, stringbuilder_10.StringBuilder_new()
@@ -9876,7 +9918,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             node.resolvedType = context.errorType;
         }
     }
-    exports_20("checkConversion", checkConversion);
+    exports_21("checkConversion", checkConversion);
     function checkStorage(context, target) {
         assert(node_8.isExpression(target));
         if (target.resolvedType != context.errorType && target.kind != node_8.NodeKind.INDEX && target.kind != node_8.NodeKind.DEREFERENCE &&
@@ -9885,7 +9927,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             target.resolvedType = context.errorType;
         }
     }
-    exports_20("checkStorage", checkStorage);
+    exports_21("checkStorage", checkStorage);
     function createDefaultValueForType(context, type) {
         if (type.isLong()) {
             return node_8.createLong(0);
@@ -9905,7 +9947,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         assert(type.isReference());
         return node_8.createNull();
     }
-    exports_20("createDefaultValueForType", createDefaultValueForType);
+    exports_21("createDefaultValueForType", createDefaultValueForType);
     function simplifyBinary(node) {
         var left = node.binaryLeft();
         var right = node.binaryRight();
@@ -9953,7 +9995,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             right.intValue = -right.intValue;
         }
     }
-    exports_20("simplifyBinary", simplifyBinary);
+    exports_21("simplifyBinary", simplifyBinary);
     function binaryHasUnsignedArguments(node) {
         var left = node.binaryLeft();
         var right = node.binaryRight();
@@ -9962,7 +10004,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         return leftType.isUnsigned() && rightType.isUnsigned() || leftType.isUnsigned() && right.isNonNegativeInteger() ||
             left.isNonNegativeInteger() && rightType.isUnsigned();
     }
-    exports_20("binaryHasUnsignedArguments", binaryHasUnsignedArguments);
+    exports_21("binaryHasUnsignedArguments", binaryHasUnsignedArguments);
     function isBinaryLong(node) {
         var left = node.binaryLeft();
         var right = node.binaryRight();
@@ -9970,7 +10012,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         var rightType = right.resolvedType;
         return leftType.isLong() || rightType.isLong();
     }
-    exports_20("isBinaryLong", isBinaryLong);
+    exports_21("isBinaryLong", isBinaryLong);
     function isBinaryDouble(node) {
         var left = node.binaryLeft();
         var right = node.binaryRight();
@@ -9978,7 +10020,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         var rightType = right.resolvedType;
         return leftType.isDouble() || rightType.isDouble();
     }
-    exports_20("isBinaryDouble", isBinaryDouble);
+    exports_21("isBinaryDouble", isBinaryDouble);
     function isSymbolAccessAllowed(context, symbol, node, range) {
         if (symbol.isUnsafe() && !context.isUnsafeAllowed) {
             context.log.error(range, stringbuilder_10.StringBuilder_new()
@@ -10018,7 +10060,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         return true;
     }
-    exports_20("isSymbolAccessAllowed", isSymbolAccessAllowed);
+    exports_21("isSymbolAccessAllowed", isSymbolAccessAllowed);
     function resolve(context, node, parentScope) {
         var kind = node.kind;
         assert(kind == node_8.NodeKind.FILE || parentScope != null);
@@ -10430,6 +10472,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             checkConversion(context, value, context.booleanType, type_2.ConversionKind.IMPLICIT);
             resolve(context, yes, parentScope);
             resolve(context, no, parentScope);
+            checkConversion(context, yes, no.resolvedType, type_2.ConversionKind.IMPLICIT);
             let commonType = (yes.resolvedType == context.nullType ? no : yes).resolvedType;
             if (yes.resolvedType != commonType && (yes.resolvedType != context.nullType || !commonType.isReference()) &&
                 no.resolvedType != commonType && (no.resolvedType != context.nullType || !commonType.isReference())) {
@@ -10505,32 +10548,32 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     node.resolvedType = type.resolvedType;
                 }
             }
-            // TODO: Constructors
-            if (type.nextSibling != null) {
+            //Constructors arguments
+            let child = type.nextSibling;
+            while (child != null) {
+                resolveAsExpression(context, child, parentScope);
+                child = child.nextSibling;
             }
         }
         else if (kind == node_8.NodeKind.POINTER_TYPE) {
             var value = node.unaryValue();
             resolveAsType(context, value, parentScope);
-            if (context.target == compiler_2.CompileTarget.JAVASCRIPT) {
+            if (context.target == compiler_3.CompileTarget.JAVASCRIPT) {
                 context.log.error(node.internalRange, "Cannot use pointers when compiling to JavaScript");
-            }
-            else if (!context.isUnsafeAllowed) {
-                context.log.error(node.internalRange, "Cannot use pointers outside an 'unsafe' block");
             }
             else {
                 var type = value.resolvedType;
                 if (type != context.errorType) {
-                    if ((!type.isInteger() && !type.symbol.node.isTurbo()) && type.pointerTo == null) {
-                        context.log.error(node.internalRange, stringbuilder_10.StringBuilder_new()
-                            .append("Cannot create a pointer to non-integer type '")
-                            .append(type.toString())
-                            .appendChar('\'')
-                            .finish());
-                    }
-                    else {
-                        node.resolvedType = type.pointerType();
-                    }
+                    // if ((!type.isInteger() && !type.symbol.node.isTurbo()) && type.pointerTo == null) {
+                    //     context.log.error(node.internalRange, StringBuilder_new()
+                    //         .append("Cannot create a pointer to non-integer type '")
+                    //         .append(type.toString())
+                    //         .appendChar('\'')
+                    //         .finish());
+                    // }
+                    //
+                    // else {
+                    node.resolvedType = type.pointerType();
                 }
             }
         }
@@ -10861,8 +10904,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             assert(false);
         }
     }
-    exports_20("resolve", resolve);
-    var symbol_7, type_2, node_8, compiler_2, log_5, scope_2, stringbuilder_10, imports_2, const_1, CheckContext, CheckMode;
+    exports_21("resolve", resolve);
+    var symbol_7, type_2, node_8, compiler_3, log_5, scope_2, stringbuilder_10, imports_2, const_1, CheckContext, CheckMode;
     return {
         setters: [
             function (symbol_7_1) {
@@ -10874,8 +10917,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             function (node_8_1) {
                 node_8 = node_8_1;
             },
-            function (compiler_2_1) {
-                compiler_2 = compiler_2_1;
+            function (compiler_3_1) {
+                compiler_3 = compiler_3_1;
             },
             function (log_5_1) {
                 log_5 = log_5_1;
@@ -10904,34 +10947,34 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     return offset;
                 }
             };
-            exports_20("CheckContext", CheckContext);
+            exports_21("CheckContext", CheckContext);
             (function (CheckMode) {
                 CheckMode[CheckMode["NORMAL"] = 0] = "NORMAL";
                 CheckMode[CheckMode["INITIALIZE"] = 1] = "INITIALIZE";
             })(CheckMode || (CheckMode = {}));
-            exports_20("CheckMode", CheckMode);
+            exports_21("CheckMode", CheckMode);
         }
     };
 });
-System.register("symbol", ["node", "imports"], function (exports_21, context_21) {
+System.register("symbol", ["node", "imports"], function (exports_22, context_22) {
     "use strict";
-    var __moduleName = context_21 && context_21.id;
+    var __moduleName = context_22 && context_22.id;
     function isModule(kind) {
         return kind == SymbolKind.TYPE_MODULE;
     }
-    exports_21("isModule", isModule);
+    exports_22("isModule", isModule);
     function isType(kind) {
         return kind >= SymbolKind.TYPE_CLASS && kind <= SymbolKind.TYPE_NATIVE;
     }
-    exports_21("isType", isType);
+    exports_22("isType", isType);
     function isFunction(kind) {
         return kind >= SymbolKind.FUNCTION_INSTANCE && kind <= SymbolKind.FUNCTION_GLOBAL;
     }
-    exports_21("isFunction", isFunction);
+    exports_22("isFunction", isFunction);
     function isVariable(kind) {
         return kind >= SymbolKind.VARIABLE_ARGUMENT && kind <= SymbolKind.VARIABLE_LOCAL;
     }
-    exports_21("isVariable", isVariable);
+    exports_22("isVariable", isVariable);
     var node_9, imports_3, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, Symbol;
     return {
         setters: [
@@ -10958,23 +11001,23 @@ System.register("symbol", ["node", "imports"], function (exports_21, context_21)
                 SymbolKind[SymbolKind["VARIABLE_INSTANCE"] = 11] = "VARIABLE_INSTANCE";
                 SymbolKind[SymbolKind["VARIABLE_LOCAL"] = 12] = "VARIABLE_LOCAL";
             })(SymbolKind || (SymbolKind = {}));
-            exports_21("SymbolKind", SymbolKind);
+            exports_22("SymbolKind", SymbolKind);
             (function (SymbolState) {
                 SymbolState[SymbolState["UNINITIALIZED"] = 0] = "UNINITIALIZED";
                 SymbolState[SymbolState["INITIALIZING"] = 1] = "INITIALIZING";
                 SymbolState[SymbolState["INITIALIZED"] = 2] = "INITIALIZED";
             })(SymbolState || (SymbolState = {}));
-            exports_21("SymbolState", SymbolState);
-            exports_21("SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL", SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL = 1 << 0);
-            exports_21("SYMBOL_FLAG_IS_BINARY_OPERATOR", SYMBOL_FLAG_IS_BINARY_OPERATOR = 1 << 1);
-            exports_21("SYMBOL_FLAG_IS_REFERENCE", SYMBOL_FLAG_IS_REFERENCE = 1 << 2);
-            exports_21("SYMBOL_FLAG_IS_UNARY_OPERATOR", SYMBOL_FLAG_IS_UNARY_OPERATOR = 1 << 3);
-            exports_21("SYMBOL_FLAG_IS_UNSIGNED", SYMBOL_FLAG_IS_UNSIGNED = 1 << 4);
-            exports_21("SYMBOL_FLAG_NATIVE_INTEGER", SYMBOL_FLAG_NATIVE_INTEGER = 1 << 5);
-            exports_21("SYMBOL_FLAG_NATIVE_LONG", SYMBOL_FLAG_NATIVE_LONG = 1 << 6);
-            exports_21("SYMBOL_FLAG_NATIVE_FLOAT", SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7);
-            exports_21("SYMBOL_FLAG_NATIVE_DOUBLE", SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8);
-            exports_21("SYMBOL_FLAG_USED", SYMBOL_FLAG_USED = 1 << 9);
+            exports_22("SymbolState", SymbolState);
+            exports_22("SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL", SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL = 1 << 0);
+            exports_22("SYMBOL_FLAG_IS_BINARY_OPERATOR", SYMBOL_FLAG_IS_BINARY_OPERATOR = 1 << 1);
+            exports_22("SYMBOL_FLAG_IS_REFERENCE", SYMBOL_FLAG_IS_REFERENCE = 1 << 2);
+            exports_22("SYMBOL_FLAG_IS_UNARY_OPERATOR", SYMBOL_FLAG_IS_UNARY_OPERATOR = 1 << 3);
+            exports_22("SYMBOL_FLAG_IS_UNSIGNED", SYMBOL_FLAG_IS_UNSIGNED = 1 << 4);
+            exports_22("SYMBOL_FLAG_NATIVE_INTEGER", SYMBOL_FLAG_NATIVE_INTEGER = 1 << 5);
+            exports_22("SYMBOL_FLAG_NATIVE_LONG", SYMBOL_FLAG_NATIVE_LONG = 1 << 6);
+            exports_22("SYMBOL_FLAG_NATIVE_FLOAT", SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7);
+            exports_22("SYMBOL_FLAG_NATIVE_DOUBLE", SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8);
+            exports_22("SYMBOL_FLAG_USED", SYMBOL_FLAG_USED = 1 << 9);
             Symbol = class Symbol {
                 constructor() {
                     this.state = SymbolState.UNINITIALIZED;
@@ -11048,13 +11091,13 @@ System.register("symbol", ["node", "imports"], function (exports_21, context_21)
                     this.maxAlignment = maxAlignment;
                 }
             };
-            exports_21("Symbol", Symbol);
+            exports_22("Symbol", Symbol);
         }
     };
 });
-System.register("type", ["symbol", "stringbuilder"], function (exports_22, context_22) {
+System.register("type", ["symbol", "stringbuilder"], function (exports_23, context_23) {
     "use strict";
-    var __moduleName = context_22 && context_22.id;
+    var __moduleName = context_23 && context_23.id;
     var symbol_8, stringbuilder_11, ConversionKind, Type;
     return {
         setters: [
@@ -11070,7 +11113,7 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_22, conte
                 ConversionKind[ConversionKind["IMPLICIT"] = 0] = "IMPLICIT";
                 ConversionKind[ConversionKind["EXPLICIT"] = 1] = "EXPLICIT";
             })(ConversionKind || (ConversionKind = {}));
-            exports_22("ConversionKind", ConversionKind);
+            exports_23("ConversionKind", ConversionKind);
             Type = class Type {
                 isClass() {
                     return this.symbol != null && this.symbol.kind == symbol_8.SymbolKind.TYPE_CLASS;
@@ -11143,25 +11186,25 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_22, conte
                     return symbol != null && (symbol.kind == symbol_8.SymbolKind.TYPE_CLASS || symbol.kind == symbol_8.SymbolKind.TYPE_NATIVE);
                 }
             };
-            exports_22("Type", Type);
+            exports_23("Type", Type);
         }
     };
 });
-System.register("node", ["symbol"], function (exports_23, context_23) {
+System.register("node", ["symbol"], function (exports_24, context_24) {
     "use strict";
-    var __moduleName = context_23 && context_23.id;
+    var __moduleName = context_24 && context_24.id;
     function isUnary(kind) {
         return kind >= NodeKind.ADDRESS_OF && kind <= NodeKind.PREFIX_INCREMENT;
     }
-    exports_23("isUnary", isUnary);
+    exports_24("isUnary", isUnary);
     function isUnaryPostfix(kind) {
         return kind >= NodeKind.POSTFIX_DECREMENT && kind <= NodeKind.POSTFIX_INCREMENT;
     }
-    exports_23("isUnaryPostfix", isUnaryPostfix);
+    exports_24("isUnaryPostfix", isUnaryPostfix);
     function isBinary(kind) {
         return kind >= NodeKind.ADD && kind <= NodeKind.SUBTRACT;
     }
-    exports_23("isBinary", isBinary);
+    exports_24("isBinary", isBinary);
     function invertedBinaryKind(kind) {
         if (kind == NodeKind.EQUAL)
             return NodeKind.NOT_EQUAL;
@@ -11177,15 +11220,15 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
             return NodeKind.GREATER_THAN;
         return kind;
     }
-    exports_23("invertedBinaryKind", invertedBinaryKind);
+    exports_24("invertedBinaryKind", invertedBinaryKind);
     function isExpression(node) {
         return node.kind >= NodeKind.ALIGN_OF && node.kind <= NodeKind.SUBTRACT;
     }
-    exports_23("isExpression", isExpression);
+    exports_24("isExpression", isExpression);
     function isCompactNodeKind(kind) {
         return kind == NodeKind.CONSTANTS || kind == NodeKind.EXPRESSION || kind == NodeKind.VARIABLES;
     }
-    exports_23("isCompactNodeKind", isCompactNodeKind);
+    exports_24("isCompactNodeKind", isCompactNodeKind);
     function appendFlag(first, flag, range) {
         let link = new NodeFlag();
         link.flag = flag;
@@ -11202,7 +11245,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         secondToLast.next = link;
         return first;
     }
-    exports_23("appendFlag", appendFlag);
+    exports_24("appendFlag", appendFlag);
     function allFlags(link) {
         let all = 0;
         while (link != null) {
@@ -11211,7 +11254,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         }
         return all;
     }
-    exports_23("allFlags", allFlags);
+    exports_24("allFlags", allFlags);
     function rangeForFlag(link, flag) {
         while (link != null) {
             if (link.flag == flag) {
@@ -11221,7 +11264,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         }
         return null;
     }
-    exports_23("rangeForFlag", rangeForFlag);
+    exports_24("rangeForFlag", rangeForFlag);
     function createNew(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -11229,7 +11272,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(type);
         return node;
     }
-    exports_23("createNew", createNew);
+    exports_24("createNew", createNew);
     function createHook(test, primary, secondary) {
         assert(isExpression(test));
         assert(isExpression(primary));
@@ -11241,7 +11284,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(secondary);
         return node;
     }
-    exports_23("createHook", createHook);
+    exports_24("createHook", createHook);
     function createIndex(target) {
         assert(isExpression(target));
         let node = new Node();
@@ -11249,25 +11292,25 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(target);
         return node;
     }
-    exports_23("createIndex", createIndex);
+    exports_24("createIndex", createIndex);
     function createNull() {
         let node = new Node();
         node.kind = NodeKind.NULL;
         return node;
     }
-    exports_23("createNull", createNull);
+    exports_24("createNull", createNull);
     function createUndefined() {
         let node = new Node();
         node.kind = NodeKind.UNDEFINED;
         return node;
     }
-    exports_23("createUndefined", createUndefined);
+    exports_24("createUndefined", createUndefined);
     function createThis() {
         let node = new Node();
         node.kind = NodeKind.THIS;
         return node;
     }
-    exports_23("createThis", createThis);
+    exports_24("createThis", createThis);
     function createAddressOf(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -11275,7 +11318,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(value);
         return node;
     }
-    exports_23("createAddressOf", createAddressOf);
+    exports_24("createAddressOf", createAddressOf);
     function createDereference(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -11283,7 +11326,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(value);
         return node;
     }
-    exports_23("createDereference", createDereference);
+    exports_24("createDereference", createDereference);
     function createAlignOf(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -11291,7 +11334,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(type);
         return node;
     }
-    exports_23("createAlignOf", createAlignOf);
+    exports_24("createAlignOf", createAlignOf);
     function createSizeOf(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -11299,56 +11342,56 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(type);
         return node;
     }
-    exports_23("createSizeOf", createSizeOf);
+    exports_24("createSizeOf", createSizeOf);
     function createboolean(value) {
         let node = new Node();
         node.kind = NodeKind.BOOLEAN;
         node.intValue = value ? 1 : 0;
         return node;
     }
-    exports_23("createboolean", createboolean);
+    exports_24("createboolean", createboolean);
     function createInt(value) {
         let node = new Node();
         node.kind = NodeKind.INT32;
         node.intValue = value;
         return node;
     }
-    exports_23("createInt", createInt);
+    exports_24("createInt", createInt);
     function createLong(value) {
         let node = new Node();
         node.kind = NodeKind.INT64;
         node.longValue = value;
         return node;
     }
-    exports_23("createLong", createLong);
+    exports_24("createLong", createLong);
     function createFloat(value) {
         let node = new Node();
         node.kind = NodeKind.FLOAT32;
         node.floatValue = value;
         return node;
     }
-    exports_23("createFloat", createFloat);
+    exports_24("createFloat", createFloat);
     function createDouble(value) {
         let node = new Node();
         node.kind = NodeKind.FLOAT64;
         node.doubleValue = value;
         return node;
     }
-    exports_23("createDouble", createDouble);
+    exports_24("createDouble", createDouble);
     function createString(value) {
         let node = new Node();
         node.kind = NodeKind.STRING;
         node.stringValue = value;
         return node;
     }
-    exports_23("createString", createString);
+    exports_24("createString", createString);
     function createName(value) {
         let node = new Node();
         node.kind = NodeKind.NAME;
         node.referenceValue = value;
         return node;
     }
-    exports_23("createName", createName);
+    exports_24("createName", createName);
     function createType(type) {
         assert(type != null);
         let node = new Node();
@@ -11356,13 +11399,13 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.resolvedType = type;
         return node;
     }
-    exports_23("createType", createType);
+    exports_24("createType", createType);
     function createEmpty() {
         let node = new Node();
         node.kind = NodeKind.EMPTY;
         return node;
     }
-    exports_23("createEmpty", createEmpty);
+    exports_24("createEmpty", createEmpty);
     function createExpression(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -11370,41 +11413,41 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(value);
         return node;
     }
-    exports_23("createExpression", createExpression);
+    exports_24("createExpression", createExpression);
     function createBlock() {
         let node = new Node();
         node.kind = NodeKind.BLOCK;
         return node;
     }
-    exports_23("createBlock", createBlock);
+    exports_24("createBlock", createBlock);
     function createModule(name) {
         let node = new Node();
         node.kind = NodeKind.MODULE;
         node.stringValue = name;
         return node;
     }
-    exports_23("createModule", createModule);
+    exports_24("createModule", createModule);
     function createClass(name) {
         let node = new Node();
         node.kind = NodeKind.CLASS;
         node.stringValue = name;
         return node;
     }
-    exports_23("createClass", createClass);
+    exports_24("createClass", createClass);
     function createInterface(name) {
         let node = new Node();
         node.kind = NodeKind.INTERFACE;
         node.stringValue = name;
         return node;
     }
-    exports_23("createInterface", createInterface);
+    exports_24("createInterface", createInterface);
     function createEnum(name) {
         let node = new Node();
         node.kind = NodeKind.ENUM;
         node.stringValue = name;
         return node;
     }
-    exports_23("createEnum", createEnum);
+    exports_24("createEnum", createEnum);
     function createIf(value, trueBranch, falseBranch) {
         assert(isExpression(value));
         assert(trueBranch.kind == NodeKind.BLOCK);
@@ -11418,7 +11461,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         }
         return node;
     }
-    exports_23("createIf", createIf);
+    exports_24("createIf", createIf);
     function createWhile(value, body) {
         assert(isExpression(value));
         assert(body.kind == NodeKind.BLOCK);
@@ -11428,7 +11471,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(body);
         return node;
     }
-    exports_23("createWhile", createWhile);
+    exports_24("createWhile", createWhile);
     function createReturn(value) {
         assert(value == null || isExpression(value));
         let node = new Node();
@@ -11438,25 +11481,25 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         }
         return node;
     }
-    exports_23("createReturn", createReturn);
+    exports_24("createReturn", createReturn);
     function createVariables() {
         let node = new Node();
         node.kind = NodeKind.VARIABLES;
         return node;
     }
-    exports_23("createVariables", createVariables);
+    exports_24("createVariables", createVariables);
     function createConstants() {
         let node = new Node();
         node.kind = NodeKind.CONSTANTS;
         return node;
     }
-    exports_23("createConstants", createConstants);
+    exports_24("createConstants", createConstants);
     function createParameters() {
         let node = new Node();
         node.kind = NodeKind.PARAMETERS;
         return node;
     }
-    exports_23("createParameters", createParameters);
+    exports_24("createParameters", createParameters);
     function createExtends(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -11464,20 +11507,20 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(type);
         return node;
     }
-    exports_23("createExtends", createExtends);
+    exports_24("createExtends", createExtends);
     function createImplements() {
         let node = new Node();
         node.kind = NodeKind.IMPLEMENTS;
         return node;
     }
-    exports_23("createImplements", createImplements);
+    exports_24("createImplements", createImplements);
     function createParameter(name) {
         let node = new Node();
         node.kind = NodeKind.PARAMETER;
         node.stringValue = name;
         return node;
     }
-    exports_23("createParameter", createParameter);
+    exports_24("createParameter", createParameter);
     function createVariable(name, type, value) {
         assert(type == null || isExpression(type));
         assert(value == null || isExpression(value));
@@ -11490,14 +11533,14 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         }
         return node;
     }
-    exports_23("createVariable", createVariable);
+    exports_24("createVariable", createVariable);
     function createFunction(name) {
         let node = new Node();
         node.kind = NodeKind.FUNCTION;
         node.stringValue = name;
         return node;
     }
-    exports_23("createFunction", createFunction);
+    exports_24("createFunction", createFunction);
     function createUnary(kind, value) {
         assert(isUnary(kind));
         assert(isExpression(value));
@@ -11506,7 +11549,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(value);
         return node;
     }
-    exports_23("createUnary", createUnary);
+    exports_24("createUnary", createUnary);
     function createBinary(kind, left, right) {
         assert(isBinary(kind));
         assert(isExpression(left));
@@ -11517,7 +11560,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(right);
         return node;
     }
-    exports_23("createBinary", createBinary);
+    exports_24("createBinary", createBinary);
     function createCall(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -11525,7 +11568,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(value);
         return node;
     }
-    exports_23("createCall", createCall);
+    exports_24("createCall", createCall);
     function createCast(value, type) {
         assert(isExpression(value));
         assert(isExpression(type));
@@ -11535,7 +11578,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(type);
         return node;
     }
-    exports_23("createCast", createCast);
+    exports_24("createCast", createCast);
     function createDot(value, name) {
         assert(isExpression(value));
         let node = new Node();
@@ -11544,28 +11587,28 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         node.appendChild(value);
         return node;
     }
-    exports_23("createDot", createDot);
+    exports_24("createDot", createDot);
     function createSymbolReference(symbol) {
         let node = createName(symbol.name);
         node.symbol = symbol;
         node.resolvedType = symbol.resolvedType;
         return node;
     }
-    exports_23("createSymbolReference", createSymbolReference);
+    exports_24("createSymbolReference", createSymbolReference);
     function createMemberReference(value, symbol) {
         let node = createDot(value, symbol.name);
         node.symbol = symbol;
         node.resolvedType = symbol.resolvedType;
         return node;
     }
-    exports_23("createMemberReference", createMemberReference);
+    exports_24("createMemberReference", createMemberReference);
     function createParseError() {
         let node = new Node();
         node.kind = NodeKind.PARSE_ERROR;
         return node;
     }
-    exports_23("createParseError", createParseError);
-    var symbol_9, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NodeFlag, Node;
+    exports_24("createParseError", createParseError);
+    var symbol_9, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NodeFlag, Node;
     return {
         setters: [
             function (symbol_9_1) {
@@ -11601,82 +11644,84 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
                 NodeKind[NodeKind["RETURN"] = 19] = "RETURN";
                 NodeKind[NodeKind["UNSAFE"] = 20] = "UNSAFE";
                 NodeKind[NodeKind["UNSAFE_TURBO"] = 21] = "UNSAFE_TURBO";
-                NodeKind[NodeKind["VARIABLES"] = 22] = "VARIABLES";
-                NodeKind[NodeKind["WHILE"] = 23] = "WHILE";
+                NodeKind[NodeKind["START"] = 22] = "START";
+                NodeKind[NodeKind["VARIABLES"] = 23] = "VARIABLES";
+                NodeKind[NodeKind["WHILE"] = 24] = "WHILE";
                 // Expressions
-                NodeKind[NodeKind["ALIGN_OF"] = 24] = "ALIGN_OF";
-                NodeKind[NodeKind["BOOLEAN"] = 25] = "BOOLEAN";
-                NodeKind[NodeKind["CALL"] = 26] = "CALL";
-                NodeKind[NodeKind["CAST"] = 27] = "CAST";
-                NodeKind[NodeKind["DOT"] = 28] = "DOT";
-                NodeKind[NodeKind["HOOK"] = 29] = "HOOK";
-                NodeKind[NodeKind["INDEX"] = 30] = "INDEX";
-                NodeKind[NodeKind["INT32"] = 31] = "INT32";
-                NodeKind[NodeKind["INT64"] = 32] = "INT64";
-                NodeKind[NodeKind["FLOAT32"] = 33] = "FLOAT32";
-                NodeKind[NodeKind["FLOAT64"] = 34] = "FLOAT64";
-                NodeKind[NodeKind["NAME"] = 35] = "NAME";
-                NodeKind[NodeKind["NEW"] = 36] = "NEW";
-                NodeKind[NodeKind["NULL"] = 37] = "NULL";
-                NodeKind[NodeKind["UNDEFINED"] = 38] = "UNDEFINED";
-                NodeKind[NodeKind["PARSE_ERROR"] = 39] = "PARSE_ERROR";
-                NodeKind[NodeKind["SIZE_OF"] = 40] = "SIZE_OF";
-                NodeKind[NodeKind["STRING"] = 41] = "STRING";
-                NodeKind[NodeKind["THIS"] = 42] = "THIS";
-                NodeKind[NodeKind["TYPE"] = 43] = "TYPE";
+                NodeKind[NodeKind["ALIGN_OF"] = 25] = "ALIGN_OF";
+                NodeKind[NodeKind["BOOLEAN"] = 26] = "BOOLEAN";
+                NodeKind[NodeKind["CALL"] = 27] = "CALL";
+                NodeKind[NodeKind["CAST"] = 28] = "CAST";
+                NodeKind[NodeKind["DOT"] = 29] = "DOT";
+                NodeKind[NodeKind["HOOK"] = 30] = "HOOK";
+                NodeKind[NodeKind["INDEX"] = 31] = "INDEX";
+                NodeKind[NodeKind["INT32"] = 32] = "INT32";
+                NodeKind[NodeKind["INT64"] = 33] = "INT64";
+                NodeKind[NodeKind["FLOAT32"] = 34] = "FLOAT32";
+                NodeKind[NodeKind["FLOAT64"] = 35] = "FLOAT64";
+                NodeKind[NodeKind["NAME"] = 36] = "NAME";
+                NodeKind[NodeKind["NEW"] = 37] = "NEW";
+                NodeKind[NodeKind["NULL"] = 38] = "NULL";
+                NodeKind[NodeKind["UNDEFINED"] = 39] = "UNDEFINED";
+                NodeKind[NodeKind["PARSE_ERROR"] = 40] = "PARSE_ERROR";
+                NodeKind[NodeKind["SIZE_OF"] = 41] = "SIZE_OF";
+                NodeKind[NodeKind["STRING"] = 42] = "STRING";
+                NodeKind[NodeKind["THIS"] = 43] = "THIS";
+                NodeKind[NodeKind["TYPE"] = 44] = "TYPE";
                 // Unary expressions
-                NodeKind[NodeKind["ADDRESS_OF"] = 44] = "ADDRESS_OF";
-                NodeKind[NodeKind["COMPLEMENT"] = 45] = "COMPLEMENT";
-                NodeKind[NodeKind["DEREFERENCE"] = 46] = "DEREFERENCE";
-                NodeKind[NodeKind["NEGATIVE"] = 47] = "NEGATIVE";
-                NodeKind[NodeKind["NOT"] = 48] = "NOT";
-                NodeKind[NodeKind["POINTER_TYPE"] = 49] = "POINTER_TYPE";
-                NodeKind[NodeKind["POSITIVE"] = 50] = "POSITIVE";
-                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 51] = "POSTFIX_DECREMENT";
-                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 52] = "POSTFIX_INCREMENT";
-                NodeKind[NodeKind["PREFIX_DECREMENT"] = 53] = "PREFIX_DECREMENT";
-                NodeKind[NodeKind["PREFIX_INCREMENT"] = 54] = "PREFIX_INCREMENT";
+                NodeKind[NodeKind["ADDRESS_OF"] = 45] = "ADDRESS_OF";
+                NodeKind[NodeKind["COMPLEMENT"] = 46] = "COMPLEMENT";
+                NodeKind[NodeKind["DEREFERENCE"] = 47] = "DEREFERENCE";
+                NodeKind[NodeKind["NEGATIVE"] = 48] = "NEGATIVE";
+                NodeKind[NodeKind["NOT"] = 49] = "NOT";
+                NodeKind[NodeKind["POINTER_TYPE"] = 50] = "POINTER_TYPE";
+                NodeKind[NodeKind["POSITIVE"] = 51] = "POSITIVE";
+                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 52] = "POSTFIX_DECREMENT";
+                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 53] = "POSTFIX_INCREMENT";
+                NodeKind[NodeKind["PREFIX_DECREMENT"] = 54] = "PREFIX_DECREMENT";
+                NodeKind[NodeKind["PREFIX_INCREMENT"] = 55] = "PREFIX_INCREMENT";
                 // Binary expressions
-                NodeKind[NodeKind["ADD"] = 55] = "ADD";
-                NodeKind[NodeKind["ASSIGN"] = 56] = "ASSIGN";
-                NodeKind[NodeKind["BITWISE_AND"] = 57] = "BITWISE_AND";
-                NodeKind[NodeKind["BITWISE_OR"] = 58] = "BITWISE_OR";
-                NodeKind[NodeKind["BITWISE_XOR"] = 59] = "BITWISE_XOR";
-                NodeKind[NodeKind["DIVIDE"] = 60] = "DIVIDE";
-                NodeKind[NodeKind["EQUAL"] = 61] = "EQUAL";
-                NodeKind[NodeKind["EXPONENT"] = 62] = "EXPONENT";
-                NodeKind[NodeKind["GREATER_THAN"] = 63] = "GREATER_THAN";
-                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 64] = "GREATER_THAN_EQUAL";
-                NodeKind[NodeKind["LESS_THAN"] = 65] = "LESS_THAN";
-                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 66] = "LESS_THAN_EQUAL";
-                NodeKind[NodeKind["LOGICAL_AND"] = 67] = "LOGICAL_AND";
-                NodeKind[NodeKind["LOGICAL_OR"] = 68] = "LOGICAL_OR";
-                NodeKind[NodeKind["MULTIPLY"] = 69] = "MULTIPLY";
-                NodeKind[NodeKind["NOT_EQUAL"] = 70] = "NOT_EQUAL";
-                NodeKind[NodeKind["REMAINDER"] = 71] = "REMAINDER";
-                NodeKind[NodeKind["SHIFT_LEFT"] = 72] = "SHIFT_LEFT";
-                NodeKind[NodeKind["SHIFT_RIGHT"] = 73] = "SHIFT_RIGHT";
-                NodeKind[NodeKind["SUBTRACT"] = 74] = "SUBTRACT";
+                NodeKind[NodeKind["ADD"] = 56] = "ADD";
+                NodeKind[NodeKind["ASSIGN"] = 57] = "ASSIGN";
+                NodeKind[NodeKind["BITWISE_AND"] = 58] = "BITWISE_AND";
+                NodeKind[NodeKind["BITWISE_OR"] = 59] = "BITWISE_OR";
+                NodeKind[NodeKind["BITWISE_XOR"] = 60] = "BITWISE_XOR";
+                NodeKind[NodeKind["DIVIDE"] = 61] = "DIVIDE";
+                NodeKind[NodeKind["EQUAL"] = 62] = "EQUAL";
+                NodeKind[NodeKind["EXPONENT"] = 63] = "EXPONENT";
+                NodeKind[NodeKind["GREATER_THAN"] = 64] = "GREATER_THAN";
+                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 65] = "GREATER_THAN_EQUAL";
+                NodeKind[NodeKind["LESS_THAN"] = 66] = "LESS_THAN";
+                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 67] = "LESS_THAN_EQUAL";
+                NodeKind[NodeKind["LOGICAL_AND"] = 68] = "LOGICAL_AND";
+                NodeKind[NodeKind["LOGICAL_OR"] = 69] = "LOGICAL_OR";
+                NodeKind[NodeKind["MULTIPLY"] = 70] = "MULTIPLY";
+                NodeKind[NodeKind["NOT_EQUAL"] = 71] = "NOT_EQUAL";
+                NodeKind[NodeKind["REMAINDER"] = 72] = "REMAINDER";
+                NodeKind[NodeKind["SHIFT_LEFT"] = 73] = "SHIFT_LEFT";
+                NodeKind[NodeKind["SHIFT_RIGHT"] = 74] = "SHIFT_RIGHT";
+                NodeKind[NodeKind["SUBTRACT"] = 75] = "SUBTRACT";
             })(NodeKind || (NodeKind = {}));
-            exports_23("NodeKind", NodeKind);
-            exports_23("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
-            exports_23("NODE_FLAG_EXPORT", NODE_FLAG_EXPORT = 1 << 1);
-            exports_23("NODE_FLAG_EXTERN", NODE_FLAG_EXTERN = 1 << 2);
-            exports_23("NODE_FLAG_GET", NODE_FLAG_GET = 1 << 3);
-            exports_23("NODE_FLAG_OPERATOR", NODE_FLAG_OPERATOR = 1 << 4);
-            exports_23("NODE_FLAG_POSITIVE", NODE_FLAG_POSITIVE = 1 << 5);
-            exports_23("NODE_FLAG_PRIVATE", NODE_FLAG_PRIVATE = 1 << 6);
-            exports_23("NODE_FLAG_PROTECTED", NODE_FLAG_PROTECTED = 1 << 7);
-            exports_23("NODE_FLAG_PUBLIC", NODE_FLAG_PUBLIC = 1 << 8);
-            exports_23("NODE_FLAG_SET", NODE_FLAG_SET = 1 << 9);
-            exports_23("NODE_FLAG_STATIC", NODE_FLAG_STATIC = 1 << 10);
-            exports_23("NODE_FLAG_UNSAFE", NODE_FLAG_UNSAFE = 1 << 11);
-            exports_23("NODE_FLAG_UNSAFE_TURBO", NODE_FLAG_UNSAFE_TURBO = 1 << 12);
-            exports_23("NODE_FLAG_UNSIGNED_OPERATOR", NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13);
-            exports_23("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 14);
+            exports_24("NodeKind", NodeKind);
+            exports_24("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
+            exports_24("NODE_FLAG_EXPORT", NODE_FLAG_EXPORT = 1 << 1);
+            exports_24("NODE_FLAG_EXTERN", NODE_FLAG_EXTERN = 1 << 2);
+            exports_24("NODE_FLAG_GET", NODE_FLAG_GET = 1 << 3);
+            exports_24("NODE_FLAG_OPERATOR", NODE_FLAG_OPERATOR = 1 << 4);
+            exports_24("NODE_FLAG_POSITIVE", NODE_FLAG_POSITIVE = 1 << 5);
+            exports_24("NODE_FLAG_PRIVATE", NODE_FLAG_PRIVATE = 1 << 6);
+            exports_24("NODE_FLAG_PROTECTED", NODE_FLAG_PROTECTED = 1 << 7);
+            exports_24("NODE_FLAG_PUBLIC", NODE_FLAG_PUBLIC = 1 << 8);
+            exports_24("NODE_FLAG_SET", NODE_FLAG_SET = 1 << 9);
+            exports_24("NODE_FLAG_STATIC", NODE_FLAG_STATIC = 1 << 10);
+            exports_24("NODE_FLAG_UNSAFE", NODE_FLAG_UNSAFE = 1 << 11);
+            exports_24("NODE_FLAG_UNSAFE_TURBO", NODE_FLAG_UNSAFE_TURBO = 1 << 12);
+            exports_24("NODE_FLAG_UNSIGNED_OPERATOR", NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13);
+            exports_24("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 14);
+            exports_24("NODE_FLAG_START", NODE_FLAG_START = 1 << 15);
             NodeFlag = class NodeFlag {
             };
-            exports_23("NodeFlag", NodeFlag);
+            exports_24("NodeFlag", NodeFlag);
             Node = class Node {
                 get hasValue() {
                     return this._hasValue;
@@ -11760,16 +11805,18 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
                     // let resolvedSymbol = symbol.resolvedType.pointerTo ? symbol.resolvedType.pointerTo.symbol : symbol.resolvedType.symbol;
                     let resolvedSymbol = symbol.resolvedType.symbol;
                     if (resolvedSymbol) {
-                        this.resolvedType.symbol.byteSize = resolvedSymbol.byteSize;
-                        this.resolvedType.symbol.flags = resolvedSymbol.flags;
-                        this.resolvedType.symbol.kind = resolvedSymbol.kind;
-                        this.resolvedType.symbol.maxAlignment = resolvedSymbol.maxAlignment;
-                        this.resolvedType.symbol.name = resolvedSymbol.name;
+                        // this.resolvedType.symbol.byteSize = resolvedSymbol.byteSize;
+                        // this.resolvedType.symbol.flags = resolvedSymbol.flags;
+                        // this.resolvedType.symbol.kind = resolvedSymbol.kind;
+                        // this.resolvedType.symbol.maxAlignment = resolvedSymbol.maxAlignment;
+                        // this.resolvedType.symbol.name = resolvedSymbol.name;
                         switch (symbol.resolvedType) {
                             case context.int64Type:
+                                this.resolvedType = context.int64Type;
                                 this.kind = NodeKind.INT64;
                                 break;
                             case context.float64Type:
+                                this.resolvedType = context.float64Type;
                                 this.kind = NodeKind.FLOAT64;
                                 break;
                         }
@@ -11832,11 +11879,15 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
                 isVirtual() {
                     return (this.flags & NODE_FLAG_VIRTUAL) != 0;
                 }
-                isExtern() {
-                    return (this.flags & NODE_FLAG_EXTERN) != 0;
-                }
+                //@removed
+                // isExtern(): boolean {
+                //     return (this.flags & NODE_FLAG_EXTERN) != 0;
+                // }
                 isExport() {
                     return (this.flags & NODE_FLAG_EXPORT) != 0;
+                }
+                isStart() {
+                    return (this.flags & NODE_FLAG_START) != 0;
                 }
                 isTurbo() {
                     return (this.flags & NODE_FLAG_UNSAFE_TURBO) != 0;
@@ -12017,6 +12068,11 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
                     assert(this.childCount() >= 2);
                     assert(isExpression(this.lastChild.previousSibling));
                     return this.lastChild.previousSibling;
+                }
+                constructorNode() {
+                    assert(this.kind == NodeKind.CLASS);
+                    assert(this.childCount() > 0);
+                    return this.constructorFunctionNode;
                 }
                 functionBody() {
                     assert(this.kind == NodeKind.FUNCTION);
@@ -12221,13 +12277,13 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
                     return false;
                 }
             };
-            exports_23("Node", Node);
+            exports_24("Node", Node);
         }
     };
 });
-System.register("log", ["stringbuilder"], function (exports_24, context_24) {
+System.register("log", ["stringbuilder"], function (exports_25, context_25) {
     "use strict";
-    var __moduleName = context_24 && context_24.id;
+    var __moduleName = context_25 && context_25.id;
     function createRange(source, start, end) {
         assert(start <= end);
         var range = new Range();
@@ -12236,14 +12292,14 @@ System.register("log", ["stringbuilder"], function (exports_24, context_24) {
         range.end = end;
         return range;
     }
-    exports_24("createRange", createRange);
+    exports_25("createRange", createRange);
     function spanRanges(left, right) {
         assert(left.source == right.source);
         assert(left.start <= right.start);
         assert(left.end <= right.end);
         return createRange(left.source, left.start, right.end);
     }
-    exports_24("spanRanges", spanRanges);
+    exports_25("spanRanges", spanRanges);
     var stringbuilder_12, LineColumn, Source, Range, DiagnosticKind, Diagnostic, Log;
     return {
         setters: [
@@ -12254,7 +12310,7 @@ System.register("log", ["stringbuilder"], function (exports_24, context_24) {
         execute: function () {
             LineColumn = class LineColumn {
             };
-            exports_24("LineColumn", LineColumn);
+            exports_25("LineColumn", LineColumn);
             Source = class Source {
                 indexToLineColumn(index) {
                     var contents = this.contents;
@@ -12279,7 +12335,7 @@ System.register("log", ["stringbuilder"], function (exports_24, context_24) {
                     return location;
                 }
             };
-            exports_24("Source", Source);
+            exports_25("Source", Source);
             Range = class Range {
                 toString() {
                     return this.source.contents.slice(this.start, this.end);
@@ -12304,12 +12360,12 @@ System.register("log", ["stringbuilder"], function (exports_24, context_24) {
                     return createRange(this.source, this.end, this.end);
                 }
             };
-            exports_24("Range", Range);
+            exports_25("Range", Range);
             (function (DiagnosticKind) {
                 DiagnosticKind[DiagnosticKind["ERROR"] = 0] = "ERROR";
                 DiagnosticKind[DiagnosticKind["WARNING"] = 1] = "WARNING";
             })(DiagnosticKind || (DiagnosticKind = {}));
-            exports_24("DiagnosticKind", DiagnosticKind);
+            exports_25("DiagnosticKind", DiagnosticKind);
             Diagnostic = class Diagnostic {
                 appendSourceName(builder, location) {
                     builder
@@ -12353,7 +12409,7 @@ System.register("log", ["stringbuilder"], function (exports_24, context_24) {
                     builder.append('\n');
                 }
             };
-            exports_24("Diagnostic", Diagnostic);
+            exports_25("Diagnostic", Diagnostic);
             Log = class Log {
                 error(range, message) {
                     this.append(range, message, DiagnosticKind.ERROR);
@@ -12397,13 +12453,13 @@ System.register("log", ["stringbuilder"], function (exports_24, context_24) {
                     return false;
                 }
             };
-            exports_24("Log", Log);
+            exports_25("Log", Log);
         }
     };
 });
-System.register("main", ["log", "stringbuilder", "compiler"], function (exports_25, context_25) {
+System.register("main", ["log", "stringbuilder", "compiler"], function (exports_26, context_26) {
     "use strict";
-    var __moduleName = context_25 && context_25.id;
+    var __moduleName = context_26 && context_26.id;
     function writeLogToTerminal(log) {
         var diagnostic = log.first;
         while (diagnostic != null) {
@@ -12437,7 +12493,7 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
         }
         stdlib.Terminal_setColor(Color.DEFAULT);
     }
-    exports_25("writeLogToTerminal", writeLogToTerminal);
+    exports_26("writeLogToTerminal", writeLogToTerminal);
     function printError(text) {
         stdlib.Terminal_setColor(Color.RED);
         stdlib.Terminal_write("error: ");
@@ -12446,7 +12502,7 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
         stdlib.Terminal_write("\n");
         stdlib.Terminal_setColor(Color.DEFAULT);
     }
-    exports_25("printError", printError);
+    exports_26("printError", printError);
     function main_addArgument(text) {
         var argument = new CommandLineArgument();
         argument.text = text;
@@ -12456,12 +12512,12 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
             lastArgument.next = argument;
         lastArgument = argument;
     }
-    exports_25("main_addArgument", main_addArgument);
+    exports_26("main_addArgument", main_addArgument);
     function main_reset() {
         firstArgument = null;
         lastArgument = null;
     }
-    exports_25("main_reset", main_reset);
+    exports_26("main_reset", main_reset);
     function printUsage() {
         stdlib.Terminal_write(`
 Usage: thinc [FLAGS] [INPUTS]
@@ -12478,9 +12534,9 @@ Examples:
 
 `);
     }
-    exports_25("printUsage", printUsage);
+    exports_26("printUsage", printUsage);
     function main_entry() {
-        var target = compiler_3.CompileTarget.NONE;
+        var target = compiler_4.CompileTarget.NONE;
         var argument = firstArgument;
         var inputCount = 0;
         var output;
@@ -12498,16 +12554,16 @@ Examples:
                     return 0;
                 }
                 else if (text == "--c") {
-                    target = compiler_3.CompileTarget.C;
+                    target = compiler_4.CompileTarget.C;
                 }
                 else if (text == "--js") {
-                    target = compiler_3.CompileTarget.JAVASCRIPT;
+                    target = compiler_4.CompileTarget.JAVASCRIPT;
                 }
                 else if (text == "--turbo-js") {
-                    target = compiler_3.CompileTarget.TURBO_JAVASCRIPT;
+                    target = compiler_4.CompileTarget.TURBO_JAVASCRIPT;
                 }
                 else if (text == "--wasm") {
-                    target = compiler_3.CompileTarget.WEBASSEMBLY;
+                    target = compiler_4.CompileTarget.WEBASSEMBLY;
                 }
                 else if (text == "--define" && argument.next != null) {
                     argument = argument.next;
@@ -12537,20 +12593,20 @@ Examples:
             return 1;
         }
         // Automatically set the target based on the file extension
-        if (target == compiler_3.CompileTarget.NONE) {
+        if (target == compiler_4.CompileTarget.NONE) {
             if (output.endsWith(".c"))
-                target = compiler_3.CompileTarget.C;
+                target = compiler_4.CompileTarget.C;
             else if (output.endsWith(".js"))
-                target = compiler_3.CompileTarget.TURBO_JAVASCRIPT;
+                target = compiler_4.CompileTarget.TURBO_JAVASCRIPT;
             else if (output.endsWith(".wasm"))
-                target = compiler_3.CompileTarget.WEBASSEMBLY;
+                target = compiler_4.CompileTarget.WEBASSEMBLY;
             else {
                 printError("Missing a target (use either --c, --js, or --wasm)");
                 return 1;
             }
         }
         // Start the compilation
-        var compiler = new compiler_3.Compiler();
+        var compiler = new compiler_4.Compiler();
         compiler.initialize(target, output);
         // Second pass over the argument list
         argument = firstArgument;
@@ -12578,20 +12634,20 @@ Examples:
         writeLogToTerminal(compiler.log);
         // Only emit the output if the compilation succeeded
         if (!compiler.log.hasErrors()) {
-            if (target == compiler_3.CompileTarget.C && stdlib.IO_writeTextFile(output, compiler.outputC) &&
-                stdlib.IO_writeTextFile(compiler_3.replaceFileExtension(output, ".h"), compiler.outputH) ||
-                target == compiler_3.CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
-                target == compiler_3.CompileTarget.TURBO_JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
-                target == compiler_3.CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
-                    stdlib.IO_writeTextFile(output + "_wasm_string", compiler.outputWASM.log)) {
+            if (target == compiler_4.CompileTarget.C && stdlib.IO_writeTextFile(output, compiler.outputC) &&
+                stdlib.IO_writeTextFile(compiler_4.replaceFileExtension(output, ".h"), compiler.outputH) ||
+                target == compiler_4.CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
+                target == compiler_4.CompileTarget.TURBO_JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
+                target == compiler_4.CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
+                    stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {
                 return 0;
             }
             printError(stringbuilder_13.StringBuilder_new().append("Cannot write to ").append(output).finish());
         }
         return 1;
     }
-    exports_25("main_entry", main_entry);
-    var log_6, stringbuilder_13, compiler_3, Color, CommandLineArgument, firstArgument, lastArgument, main;
+    exports_26("main_entry", main_entry);
+    var log_6, stringbuilder_13, compiler_4, Color, CommandLineArgument, firstArgument, lastArgument, main;
     return {
         setters: [
             function (log_6_1) {
@@ -12600,8 +12656,8 @@ Examples:
             function (stringbuilder_13_1) {
                 stringbuilder_13 = stringbuilder_13_1;
             },
-            function (compiler_3_1) {
-                compiler_3 = compiler_3_1;
+            function (compiler_4_1) {
+                compiler_4 = compiler_4_1;
             }
         ],
         execute: function () {
@@ -12612,11 +12668,11 @@ Examples:
                 Color[Color["GREEN"] = 3] = "GREEN";
                 Color[Color["MAGENTA"] = 4] = "MAGENTA";
             })(Color || (Color = {}));
-            exports_25("Color", Color);
+            exports_26("Color", Color);
             CommandLineArgument = class CommandLineArgument {
             };
-            exports_25("CommandLineArgument", CommandLineArgument);
-            exports_25("main", main = {
+            exports_26("CommandLineArgument", CommandLineArgument);
+            exports_26("main", main = {
                 addArgument: main_addArgument,
                 reset: main_reset,
                 entry: main_entry

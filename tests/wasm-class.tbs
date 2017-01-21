@@ -3,15 +3,21 @@ class Vec3 {
     y: float32;
     z: float32;
 
-    constructor(x: float32, y: float32, z: float32):Vec3 {
+    constructor(x: float32, y: float32, z: float32): Vec3 {
         this.x = x;
         this.y = y;
         this.z = z;
         return this;
     }
 
+    add(b: Vec3): Vec3 {
+        return new Vec3(this.x + b.x, this.y + b.y, this.z + b.z);
+    }
 }
 
 export function newVec3(x: float32, y: float32, z: float32): Vec3 {
     return new Vec3(x, y, z);
+}
+export function addVec3(a:Vec3, b:Vec3): Vec3 {
+    return a.add(b);
 }

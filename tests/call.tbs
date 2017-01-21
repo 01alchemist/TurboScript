@@ -1,0 +1,11 @@
+function loc1(arg1:int32, arg2:float32):int32{
+    return arg2 == 0.5 ? 100 : arg1;
+}
+export function test(a: int32, b:float32): int32 {
+
+    let c = a + 1;
+
+    let d = loc1(c, b);
+
+    return d + 1000;
+}

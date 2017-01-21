@@ -24,7 +24,7 @@ export function treeShakingMarkAllUsed(node: Node): void {
 }
 
 export function treeShakingSearchForUsed(node: Node): void {
-    if (node.kind == NodeKind.FUNCTION && node.isExtern()) {
+    if (node.kind == NodeKind.FUNCTION && (node.isExport() || node.isStart())) {
         treeShakingMarkAllUsed(node);
     }
 
@@ -35,7 +35,7 @@ export function treeShakingSearchForUsed(node: Node): void {
             child = child.nextSibling;
         }
 
-        if (node.kind == NodeKind.CLASS && node.isExtern()) {
+        if (node.kind == NodeKind.CLASS && node.isExport()) {
             node.symbol.flags = node.symbol.flags | SYMBOL_FLAG_USED;
         }
     }

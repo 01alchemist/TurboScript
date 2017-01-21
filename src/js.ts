@@ -401,10 +401,10 @@ export class JsResult {
                 needsSemicolon = true;
             }
 
-            else if (node.isExtern()) {
+            else if (node.isExport()) {
                 code.append("var ");
                 this.emitSymbolName(symbol);
-                code.append(" = __extern.");
+                code.append(" = __exports.");
                 this.emitSymbolName(symbol);
                 code.append(" = function");
                 needsSemicolon = true;
@@ -585,10 +585,10 @@ export class JsResult {
         }
 
         else if (node.kind == NodeKind.ENUM) {
-            if (node.isExtern()) {
+            if (node.isExport()) {
                 this.emitNewlineBefore(node);
                 this.emitIndent();
-                code.append("__extern.");
+                code.append("__exports.");
                 this.emitSymbolName(node.symbol);
                 code.append(" = {\n");
                 this.indent = this.indent + 1;
@@ -632,7 +632,7 @@ export function jsEmit(compiler: Compiler): void {
     result.context = compiler.context;
     result.code = code;
 
-    code.append("(function(__declare, __extern) {\n");
+    code.append("(function(__declare, __exports) {\n");
     result.indent = 1;
     result.emitStatements(compiler.global.firstChild);
 

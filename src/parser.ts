@@ -9,7 +9,7 @@ import {
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat
+    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START
 } from "./node";
 
 export enum Precedence {
@@ -1447,6 +1447,7 @@ class ParserContext {
             else if (this.eat(TokenKind.STATIC)) flag = NODE_FLAG_STATIC;
             else if (this.eat(TokenKind.UNSAFE)) flag = NODE_FLAG_UNSAFE;
             else if (this.eat(TokenKind.UNSAFE_TURBO)) flag = NODE_FLAG_UNSAFE_TURBO;
+            else if (this.eat(TokenKind.START)) flag = NODE_FLAG_START;
             else if (this.eat(TokenKind.VIRTUAL)) flag = NODE_FLAG_VIRTUAL;
             else return firstFlag;
 
@@ -1486,6 +1487,19 @@ class ParserContext {
         return node.withRange(spanRanges(token.range, node.range));
     }
 
+    parseStart(): Node {
+        var token = this.current;
+        this.advance();
+
+        var node = this.parseBlock();
+        if (node == null) {
+            return null;
+        }
+
+        node.flags = node.flags | NODE_FLAG_START;
+        return node.withRange(spanRanges(token.range, node.range));
+    }
+
     parseVirtual(firstFlag): Node {
         var token = this.current;
         this.advance();
@@ -1504,6 +1518,7 @@ class ParserContext {
 
         if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe();
         if (this.peek(TokenKind.UNSAFE_TURBO) && firstFlag == null) return this.parseUnsafeTurbo();
+        if (this.peek(TokenKind.START) && firstFlag == null) return this.parseStart();
         if (this.peek(TokenKind.CONST) || this.peek(TokenKind.LET) || this.peek(TokenKind.VAR)) return this.parseVariables(firstFlag, null);
         if (this.peek(TokenKind.FUNCTION)) return this.parseFunction(firstFlag, null);
         if (this.peek(TokenKind.VIRTUAL)) return this.parseVirtual(firstFlag);
@@ -1558,17 +1573,17 @@ class ParserContext {
         var base: uint32 = 10;
 
         // Handle binary, octal, and hexadecimal prefixes
-        // if (contents[i] == '0' && i + 1 < limit) {
-        //     var c = contents[i + 1];
-        //     if (c == 'b' || c == 'B') base = 2;
-        //     else if (c == 'o' || c == 'O') base = 8;
-        //     else if (c == 'x' || c == 'X') base = 16;
-        //     else {
-        //         this.log.error(range, "Use the '0o' prefix for octal integers");
-        //         return false;
-        //     }
-        //     if (base != 10) i = i + 2;
-        // }
+        if (contents[i] == '0' && i + 1 < limit) {
+            var c = contents[i + 1];
+            if (c == 'b' || c == 'B') base = 2;
+            else if (c == 'o' || c == 'O') base = 8;
+            else if (c == 'x' || c == 'X') base = 16;
+            // else {
+            //     this.log.error(range, "Use the '0o' prefix for octal integers");
+            //     return false;
+            // }
+            if (base != 10) i = i + 2;
+        }
 
         while (i < limit) {
             let c: string = contents[i];

@@ -34,6 +34,7 @@ export enum NodeKind {
     RETURN,
     UNSAFE,
     UNSAFE_TURBO,
+    START,
     VARIABLES,
     WHILE,
 
@@ -140,6 +141,7 @@ export const NODE_FLAG_UNSAFE = 1 << 11;
 export const NODE_FLAG_UNSAFE_TURBO = 1 << 12;
 export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13;
 export const NODE_FLAG_VIRTUAL = 1 << 14;
+export const NODE_FLAG_START = 1 << 15;
 
 export class NodeFlag {
     flag: int32;
@@ -200,6 +202,8 @@ export class Node {
     symbol: Symbol;
     scope: Scope;
     offset: int32;
+
+    constructorFunctionNode:Node;
 
     private _rawValue: any;
     private _hasValue: boolean;
@@ -300,17 +304,19 @@ export class Node {
         let resolvedSymbol = symbol.resolvedType.symbol;
 
         if(resolvedSymbol) {
-            this.resolvedType.symbol.byteSize = resolvedSymbol.byteSize;
-            this.resolvedType.symbol.flags = resolvedSymbol.flags;
-            this.resolvedType.symbol.kind = resolvedSymbol.kind;
-            this.resolvedType.symbol.maxAlignment = resolvedSymbol.maxAlignment;
-            this.resolvedType.symbol.name = resolvedSymbol.name;
+            // this.resolvedType.symbol.byteSize = resolvedSymbol.byteSize;
+            // this.resolvedType.symbol.flags = resolvedSymbol.flags;
+            // this.resolvedType.symbol.kind = resolvedSymbol.kind;
+            // this.resolvedType.symbol.maxAlignment = resolvedSymbol.maxAlignment;
+            // this.resolvedType.symbol.name = resolvedSymbol.name;
 
             switch (symbol.resolvedType) {
                 case context.int64Type:
+                    this.resolvedType = context.int64Type;
                     this.kind = NodeKind.INT64;
                     break;
                 case context.float64Type:
+                    this.resolvedType = context.float64Type;
                     this.kind = NodeKind.FLOAT64;
                     break;
             }
@@ -385,12 +391,17 @@ export class Node {
         return (this.flags & NODE_FLAG_VIRTUAL) != 0;
     }
 
-    isExtern(): boolean {
-        return (this.flags & NODE_FLAG_EXTERN) != 0;
-    }
+    //@removed
+    // isExtern(): boolean {
+    //     return (this.flags & NODE_FLAG_EXTERN) != 0;
+    // }
 
     isExport(): boolean {
         return (this.flags & NODE_FLAG_EXPORT) != 0;
+    }
+
+    isStart(): boolean {
+        return (this.flags & NODE_FLAG_START) != 0;
     }
 
     isTurbo(): boolean {
@@ -606,6 +617,12 @@ export class Node {
         assert(this.childCount() >= 2);
         assert(isExpression(this.lastChild.previousSibling));
         return this.lastChild.previousSibling;
+    }
+
+    constructorNode(): Node {
+        assert(this.kind == NodeKind.CLASS);
+        assert(this.childCount() > 0);
+        return this.constructorFunctionNode;
     }
 
     functionBody(): Node {

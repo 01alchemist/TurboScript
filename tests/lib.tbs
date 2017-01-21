@@ -1,4 +1,4 @@
-#if WASM
+// #if WASM
 
   // These will be filled in by the WebAssembly code generator
   unsafe var currentHeapPointer: *byte = null;
@@ -86,15 +86,15 @@
     return 0;
   }
 
-#elif C
-
-  declare unsafe function malloc(sizeOf: uint32): *byte;
-  declare unsafe function memcpy(target: *byte, source: *byte, length: uint32): void;
-  declare unsafe function memcmp(a: *byte, b: *byte, length: uint32): int32;
-
-#endif
-
-#if WASM || C
+// #elif C
+//
+//   declare unsafe function malloc(sizeOf: uint32): *byte;
+//   declare unsafe function memcpy(target: *byte, source: *byte, length: uint32): void;
+//   declare unsafe function memcmp(a: *byte, b: *byte, length: uint32): int32;
+//
+// #endif
+//
+// #if WASM || C
 
   function internalIntToString(value: uint32, sign: boolean): string {
     // Avoid allocation for common cases
@@ -131,173 +131,173 @@
     }
   }
 
-  function string_new(length: uint32): string {
+  export function string_new(length: uint32): string {
     unsafe {
       var ptr = malloc(4 + length * 2);
       *(ptr as *uint32) = length;
       return ptr as string;
     }
   }
-#endif
-
-#if C
-
-  export unsafe function cstring_to_utf16(utf8: *byte): string {
-    if (utf8 == null) {
-      return null;
-    }
-
-    var utf16_length: uint32 = 0;
-    var a: byte, b: byte, c: byte, d: byte;
-
-    // Measure text
-    var i: uint32 = 0;
-    while ((a = *(utf8 + i)) != '\\0') {
-      i = i + 1;
-      var codePoint: uint32;
-
-      // Decode UTF-8
-      if ((b = *(utf8 + i)) != '\\0' && a >= 0xC0) {
-        i = i + 1;
-        if ((c = *(utf8 + i)) != '\\0' && a >= 0xE0) {
-          i = i + 1;
-          if ((d = *(utf8 + i)) != '\\0' && a >= 0xF0) {
-            i = i + 1;
-            codePoint = ((a & 0x07) << 18) | ((b & 0x3F) << 12) | ((c & 0x3F) << 6) | (d & 0x3F);
-          } else {
-            codePoint = ((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F);
-          }
-        } else {
-          codePoint = ((a & 0x1F) << 6) | (b & 0x3F);
-        }
-      } else {
-        codePoint = a;
-      }
-
-      // Encode UTF-16
-      utf16_length = utf16_length + (codePoint < 0x10000 ? 1 : 2) as uint32;
-    }
-
-    var output = string_new(utf16_length);
-    var utf16 = output as *ushort + 2;
-
-    // Convert text
-    i = 0;
-    while ((a = *(utf8 + i)) != '\\0') {
-      i = i + 1;
-      var codePoint: uint32;
-
-      // Decode UTF-8
-      if ((b = *(utf8 + i)) != '\\0' && a >= 0xC0) {
-        i = i + 1;
-        if ((c = *(utf8 + i)) != '\\0' && a >= 0xE0) {
-          i = i + 1;
-          if ((d = *(utf8 + i)) != '\\0' && a >= 0xF0) {
-            i = i + 1;
-            codePoint = ((a & 0x07) << 18) | ((b & 0x3F) << 12) | ((c & 0x3F) << 6) | (d & 0x3F);
-          } else {
-            codePoint = ((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F);
-          }
-        } else {
-          codePoint = ((a & 0x1F) << 6) | (b & 0x3F);
-        }
-      } else {
-        codePoint = a;
-      }
-
-      // Encode UTF-16
-      if (codePoint < 0x10000) {
-        *utf16 = codePoint as ushort;
-      } else {
-        *utf16 = ((codePoint >> 10) + (0xD800 - (0x10000 >> 10))) as ushort;
-        utf16 = utf16 + 1;
-        *utf16 = ((codePoint & 0x3FF) + 0xDC00) as ushort;
-      }
-      utf16 = utf16 + 1;
-    }
-
-    return output;
-  }
-
-  export unsafe function utf16_to_cstring(input: string): *byte {
-    if (input as *uint32 == null) {
-      return null;
-    }
-
-    var utf16_length = *(input as *uint32);
-    var utf8_length: uint32 = 0;
-    var utf16 = input as *ushort + 2;
-
-    // Measure text
-    var i: uint32 = 0;
-    while (i < utf16_length) {
-      var codePoint: uint32;
-
-      // Decode UTF-16
-      var a = *(utf16 + i);
-      i = i + 1;
-      if (i < utf16_length && a >= 0xD800 && a <= 0xDBFF) {
-        var b = *(utf16 + i);
-        i = i + 1;
-        codePoint = (a << 10) + b + (0x10000 - (0xD800 << 10) - 0xDC00) as uint32;
-      } else {
-        codePoint = a;
-      }
-
-      // Encode UTF-8
-      utf8_length = utf8_length + (
-        codePoint < 0x80 ? 1 :
-        codePoint < 0x800 ? 2 :
-        codePoint < 0x10000 ? 3 :
-        4) as uint32;
-    }
-
-    var utf8 = malloc(utf8_length + 1);
-    var next = utf8;
-
-    // Convert text
-    i = 0;
-    while (i < utf16_length) {
-      var codePoint: uint32;
-
-      // Decode UTF-16
-      var a = *(utf16 + i);
-      i = i + 1;
-      if (i < utf16_length && a >= 0xD800 && a <= 0xDBFF) {
-        var b = *(utf16 + i);
-        i = i + 1;
-        codePoint = (a << 10) + b + (0x10000 - (0xD800 << 10) - 0xDC00) as uint32;
-      } else {
-        codePoint = a;
-      }
-
-      // Encode UTF-8
-      if (codePoint < 0x80) {
-        *next = codePoint as byte;
-      } else {
-        if (codePoint < 0x800) {
-          *next = (((codePoint >> 6) & 0x1F) | 0xC0) as byte;
-        } else {
-          if (codePoint < 0x10000) {
-            *next = (((codePoint >> 12) & 0x0F) | 0xE0) as byte;
-          } else {
-            *next = (((codePoint >> 18) & 0x07) | 0xF0) as byte;
-            next = next + 1;
-            *next = (((codePoint >> 12) & 0x3F) | 0x80) as byte;
-          }
-          next = next + 1;
-          *next = (((codePoint >> 6) & 0x3F) | 0x80) as byte;
-        }
-        next = next + 1;
-        *next = ((codePoint & 0x3F) | 0x80) as byte;
-      }
-      next = next + 1;
-    }
-
-    // C strings are null-terminated
-    *next = '\\0';
-
-    return utf8;
-  }
-
-#endif
+// #endif
+//
+// #if C
+//
+//   export unsafe function cstring_to_utf16(utf8: *byte): string {
+//     if (utf8 == null) {
+//       return null;
+//     }
+//
+//     var utf16_length: uint32 = 0;
+//     var a: byte, b: byte, c: byte, d: byte;
+//
+//     // Measure text
+//     var i: uint32 = 0;
+//     while ((a = *(utf8 + i)) != '\\0') {
+//       i = i + 1;
+//       var codePoint: uint32;
+//
+//       // Decode UTF-8
+//       if ((b = *(utf8 + i)) != '\\0' && a >= 0xC0) {
+//         i = i + 1;
+//         if ((c = *(utf8 + i)) != '\\0' && a >= 0xE0) {
+//           i = i + 1;
+//           if ((d = *(utf8 + i)) != '\\0' && a >= 0xF0) {
+//             i = i + 1;
+//             codePoint = ((a & 0x07) << 18) | ((b & 0x3F) << 12) | ((c & 0x3F) << 6) | (d & 0x3F);
+//           } else {
+//             codePoint = ((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F);
+//           }
+//         } else {
+//           codePoint = ((a & 0x1F) << 6) | (b & 0x3F);
+//         }
+//       } else {
+//         codePoint = a;
+//       }
+//
+//       // Encode UTF-16
+//       utf16_length = utf16_length + (codePoint < 0x10000 ? 1 : 2) as uint32;
+//     }
+//
+//     var output = string_new(utf16_length);
+//     var utf16 = output as *ushort + 2;
+//
+//     // Convert text
+//     i = 0;
+//     while ((a = *(utf8 + i)) != '\\0') {
+//       i = i + 1;
+//       var codePoint: uint32;
+//
+//       // Decode UTF-8
+//       if ((b = *(utf8 + i)) != '\\0' && a >= 0xC0) {
+//         i = i + 1;
+//         if ((c = *(utf8 + i)) != '\\0' && a >= 0xE0) {
+//           i = i + 1;
+//           if ((d = *(utf8 + i)) != '\\0' && a >= 0xF0) {
+//             i = i + 1;
+//             codePoint = ((a & 0x07) << 18) | ((b & 0x3F) << 12) | ((c & 0x3F) << 6) | (d & 0x3F);
+//           } else {
+//             codePoint = ((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F);
+//           }
+//         } else {
+//           codePoint = ((a & 0x1F) << 6) | (b & 0x3F);
+//         }
+//       } else {
+//         codePoint = a;
+//       }
+//
+//       // Encode UTF-16
+//       if (codePoint < 0x10000) {
+//         *utf16 = codePoint as ushort;
+//       } else {
+//         *utf16 = ((codePoint >> 10) + (0xD800 - (0x10000 >> 10))) as ushort;
+//         utf16 = utf16 + 1;
+//         *utf16 = ((codePoint & 0x3FF) + 0xDC00) as ushort;
+//       }
+//       utf16 = utf16 + 1;
+//     }
+//
+//     return output;
+//   }
+//
+//   export unsafe function utf16_to_cstring(input: string): *byte {
+//     if (input as *uint32 == null) {
+//       return null;
+//     }
+//
+//     var utf16_length = *(input as *uint32);
+//     var utf8_length: uint32 = 0;
+//     var utf16 = input as *ushort + 2;
+//
+//     // Measure text
+//     var i: uint32 = 0;
+//     while (i < utf16_length) {
+//       var codePoint: uint32;
+//
+//       // Decode UTF-16
+//       var a = *(utf16 + i);
+//       i = i + 1;
+//       if (i < utf16_length && a >= 0xD800 && a <= 0xDBFF) {
+//         var b = *(utf16 + i);
+//         i = i + 1;
+//         codePoint = (a << 10) + b + (0x10000 - (0xD800 << 10) - 0xDC00) as uint32;
+//       } else {
+//         codePoint = a;
+//       }
+//
+//       // Encode UTF-8
+//       utf8_length = utf8_length + (
+//         codePoint < 0x80 ? 1 :
+//         codePoint < 0x800 ? 2 :
+//         codePoint < 0x10000 ? 3 :
+//         4) as uint32;
+//     }
+//
+//     var utf8 = malloc(utf8_length + 1);
+//     var next = utf8;
+//
+//     // Convert text
+//     i = 0;
+//     while (i < utf16_length) {
+//       var codePoint: uint32;
+//
+//       // Decode UTF-16
+//       var a = *(utf16 + i);
+//       i = i + 1;
+//       if (i < utf16_length && a >= 0xD800 && a <= 0xDBFF) {
+//         var b = *(utf16 + i);
+//         i = i + 1;
+//         codePoint = (a << 10) + b + (0x10000 - (0xD800 << 10) - 0xDC00) as uint32;
+//       } else {
+//         codePoint = a;
+//       }
+//
+//       // Encode UTF-8
+//       if (codePoint < 0x80) {
+//         *next = codePoint as byte;
+//       } else {
+//         if (codePoint < 0x800) {
+//           *next = (((codePoint >> 6) & 0x1F) | 0xC0) as byte;
+//         } else {
+//           if (codePoint < 0x10000) {
+//             *next = (((codePoint >> 12) & 0x0F) | 0xE0) as byte;
+//           } else {
+//             *next = (((codePoint >> 18) & 0x07) | 0xF0) as byte;
+//             next = next + 1;
+//             *next = (((codePoint >> 12) & 0x3F) | 0x80) as byte;
+//           }
+//           next = next + 1;
+//           *next = (((codePoint >> 6) & 0x3F) | 0x80) as byte;
+//         }
+//         next = next + 1;
+//         *next = ((codePoint & 0x3F) | 0x80) as byte;
+//       }
+//       next = next + 1;
+//     }
+//
+//     // C strings are null-terminated
+//     *next = '\\0';
+//
+//     return utf8;
+//   }
+//
+// #endif
