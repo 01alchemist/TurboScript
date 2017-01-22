@@ -137,7 +137,7 @@ export class TurboJsResult {
         if (node.kind == NodeKind.NAME) {
             let symbol = node.symbol;
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                this.code.append("__declare.");
+                this.code.append("stdlib.");
             }
             this.emitSymbolName(symbol);
         }
@@ -1100,8 +1100,11 @@ export function turboJsEmit(compiler: Compiler): void {
     result.context = compiler.context;
     result.code = code;
 
-    code.append("(function(__declare, __exports) {\n");
+    code.append("function TurboModule(stdlib, foreign, buffer) {\n");
     code.emitIndent(1);
+    code.append('"use asm";\n');
+    code.append("var __exports = {};\n");
+    code.append(compiler.runtimeSource);
     // code.append("let turbo = {};\n");
     // code.append("__exports.turbo = turbo;\n");
     //code.append("__exports = __exports.turbo;\n");
@@ -1115,11 +1118,15 @@ export function turboJsEmit(compiler: Compiler): void {
     }
 
     code.clearIndent(1);
-    code.append("}(\n");
-    code.append("typeof global !== 'undefined' ? global : this,\n");
-    code.append("typeof exports !== 'undefined' ? exports : turbo\n");
-    code.clearIndent(1);
-    code.append("));\n");
+    code.append("}\n");
+    code.append("function initTurbo(){\n");
+    code.append("   var heap = \n");
+    code.append("   var turboModule = TurboModule(\n");
+    code.append("       typeof global !== 'undefined' ? global : window,\n");
+    code.append("       typeof foreign !== 'undefined' ? foreign : null,\n");
+    code.append("       heap\n");
+    code.append("   );\n");
+    code.append("}\n");
 
     compiler.outputJS = code.finish();
 }

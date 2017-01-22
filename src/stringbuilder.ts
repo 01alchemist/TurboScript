@@ -90,6 +90,12 @@ export class StringBuilder {
         this._text += text + "\n";
         return this;
     }
+
+    appendRaw(text: string): StringBuilder {
+        this._text += text + "\n";
+        return this;
+    }
+
     append(text: string, indent: number = 0): StringBuilder {
         this.indent += indent;
         let lines: string[] = text.split("\n");
@@ -110,7 +116,7 @@ export class StringBuilder {
         stringBuilderPool = this;
         if (this.chunks.length > 0) {
             let code = "";
-            this.chunks.forEach((chunk:string) => {
+            this.chunks.forEach((chunk: string) => {
                 code += chunk;
             });
             return code + this._text;

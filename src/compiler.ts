@@ -37,6 +37,7 @@ export class Compiler {
     target: CompileTarget;
     context: CheckContext;
     librarySource: Source;
+    runtimeSource: string;
     outputName: string;
     outputWASM: ByteArray;
     outputJS: string;
@@ -49,14 +50,9 @@ export class Compiler {
         this.preprocessor = new Preprocessor();
         this.target = target;
         this.outputName = outputName;
-        if (target == CompileTarget.TURBO_JAVASCRIPT) {
-            this.librarySource = this.addInput("<native>", libraryTurbo());
-        }else{
-            // this.librarySource = this.addInput("<native>", libraryWasm());
-            this.librarySource = this.addInput("<native>", Library.get(target));
-            // this.librarySource = this.addInput("<native>", libraryDummy());
-        }
+        this.librarySource = this.addInput("<native>", Library.get(target));
         this.librarySource.isLibrary = true;
+        this.runtimeSource = Library.getRuntime(target);
         this.createGlobals();
 
         if (target == CompileTarget.C) {

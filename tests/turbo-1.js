@@ -115,12 +115,12 @@
     
     Triangle.normal = function(ptr) {
         let b = Vec3.new();
-        let c = Vec3.add(unsafe._mem_i32[(ptr + 4) >> 2] , b);
+        let c = Vec3.add(v1 , b);
         return c;
     };
     
     Triangle.toString = function(ptr) {
-        let str = Vec3.toString(unsafe._mem_i32[(ptr + 4) >> 2]);
+        let str = Vec3.toString(v1);
         return `{"v1":${str}}`;
     };
     __exports.Triangle = Triangle;

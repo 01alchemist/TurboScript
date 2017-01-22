@@ -1304,6 +1304,10 @@ System.register("stringbuilder", [], function (exports_2, context_2) {
                     this._text += text + "\n";
                     return this;
                 }
+                appendRaw(text) {
+                    this._text += text + "\n";
+                    return this;
+                }
                 append(text, indent = 0) {
                     this.indent += indent;
                     let lines = text.split("\n");
@@ -5385,8 +5389,11 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
         let result = new TurboJsResult();
         result.context = compiler.context;
         result.code = code;
-        code.append("(function(__declare, __exports) {\n");
+        code.append("function TurboModule(stdlib, foreign, buffer) {\n");
         code.emitIndent(1);
+        code.append('"use asm";\n');
+        code.append("var __exports = {};\n");
+        code.append(compiler.runtimeSource);
         // code.append("let turbo = {};\n");
         // code.append("__exports.turbo = turbo;\n");
         //code.append("__exports = __exports.turbo;\n");
@@ -5399,11 +5406,15 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
             code.append("};\n");
         }
         code.clearIndent(1);
-        code.append("}(\n");
-        code.append("typeof global !== 'undefined' ? global : this,\n");
-        code.append("typeof exports !== 'undefined' ? exports : turbo\n");
-        code.clearIndent(1);
-        code.append("));\n");
+        code.append("}\n");
+        code.append("function initTurbo(){\n");
+        code.append("   var heap = \n");
+        code.append("   var turboModule = TurboModule(\n");
+        code.append("       typeof global !== 'undefined' ? global : window,\n");
+        code.append("       typeof foreign !== 'undefined' ? foreign : null,\n");
+        code.append("       heap\n");
+        code.append("   );\n");
+        code.append("}\n");
         compiler.outputJS = code.finish();
     }
     exports_10("turboJsEmit", turboJsEmit);
@@ -5523,7 +5534,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                     if (node.kind == node_5.NodeKind.NAME) {
                         let symbol = node.symbol;
                         if (symbol.kind == symbol_5.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                            this.code.append("__declare.");
+                            this.code.append("stdlib.");
                         }
                         this.emitSymbolName(symbol);
                     }
@@ -9203,11 +9214,22 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
         execute: function () {
             Library = class Library {
                 static get(target) {
+                    let lib = stdlib.IO_readTextFile("../src/library/common/types.tbs") + "\n";
                     switch (target) {
                         case compiler_2.CompileTarget.WEBASSEMBLY:
-                            let lib = stdlib.IO_readTextFile("../src/library/wasm/types.tbs") + "\n";
                             lib += stdlib.IO_readTextFile("../src/library/wasm/malloc.tbs") + "\n";
                             return lib;
+                        case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
+                            lib += stdlib.IO_readTextFile("../src/library/turbo/runtime.tbs") + "\n";
+                            return lib;
+                    }
+                }
+                static getRuntime(target) {
+                    switch (target) {
+                        case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
+                            return stdlib.IO_readTextFile("../src/library/turbo/runtime.js") + "\n";
+                        default:
+                            return "";
                     }
                 }
             };
@@ -9215,7 +9237,7 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
         }
     };
 });
-System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "c", "js", "turbojs", "wasm", "libraryturbo", "library/library"], function (exports_19, context_19) {
+System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "c", "js", "turbojs", "wasm", "library/library"], function (exports_19, context_19) {
     "use strict";
     var __moduleName = context_19 && context_19.id;
     function replaceFileExtension(path, extension) {
@@ -9230,7 +9252,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
         return builder.append(path).append(extension).finish();
     }
     exports_19("replaceFileExtension", replaceFileExtension);
-    var checker_1, node_7, log_4, preprocessor_1, scope_1, lexer_4, parser_5, shaking_1, stringbuilder_9, c_1, js_2, turbojs_1, wasm_1, libraryturbo_1, library_1, CompileTarget, Compiler;
+    var checker_1, node_7, log_4, preprocessor_1, scope_1, lexer_4, parser_5, shaking_1, stringbuilder_9, c_1, js_2, turbojs_1, wasm_1, library_1, CompileTarget, Compiler;
     return {
         setters: [
             function (checker_1_1) {
@@ -9272,9 +9294,6 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             function (wasm_1_1) {
                 wasm_1 = wasm_1_1;
             },
-            function (libraryturbo_1_1) {
-                libraryturbo_1 = libraryturbo_1_1;
-            },
             function (library_1_1) {
                 library_1 = library_1_1;
             }
@@ -9298,14 +9317,9 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     this.preprocessor = new preprocessor_1.Preprocessor();
                     this.target = target;
                     this.outputName = outputName;
-                    if (target == CompileTarget.TURBO_JAVASCRIPT) {
-                        this.librarySource = this.addInput("<native>", libraryturbo_1.libraryTurbo());
-                    }
-                    else {
-                        // this.librarySource = this.addInput("<native>", libraryWasm());
-                        this.librarySource = this.addInput("<native>", library_1.Library.get(target));
-                    }
+                    this.librarySource = this.addInput("<native>", library_1.Library.get(target));
                     this.librarySource.isLibrary = true;
+                    this.runtimeSource = library_1.Library.getRuntime(target);
                     this.createGlobals();
                     if (target == CompileTarget.C) {
                         this.preprocessor.define("C", true);
