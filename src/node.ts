@@ -52,6 +52,7 @@ export enum NodeKind {
     FLOAT64,
     NAME,
     NEW,
+    DELETE,
     NULL,
     UNDEFINED,
     PARSE_ERROR,
@@ -620,9 +621,10 @@ export class Node {
     }
 
     constructorNode(): Node {
-        assert(this.kind == NodeKind.CLASS);
+        assert(this.kind == NodeKind.NEW);
         assert(this.childCount() > 0);
-        return this.constructorFunctionNode;
+        assert(this.resolvedType.symbol.node.kind == NodeKind.CLASS);
+        return this.resolvedType.symbol.node.constructorFunctionNode;
     }
 
     functionBody(): Node {
@@ -635,6 +637,13 @@ export class Node {
 
     newType(): Node {
         assert(this.kind == NodeKind.NEW);
+        assert(this.childCount() >= 1);
+        assert(isExpression(this.firstChild));
+        return this.firstChild;
+    }
+
+    deleteType(): Node {
+        assert(this.kind == NodeKind.DELETE);
         assert(this.childCount() >= 1);
         assert(isExpression(this.firstChild));
         return this.firstChild;
@@ -684,6 +693,13 @@ export class Node {
 
     returnValue(): Node {
         assert(this.kind == NodeKind.RETURN);
+        assert(this.childCount() <= 1);
+        assert(this.firstChild == null || isExpression(this.firstChild));
+        return this.firstChild;
+    }
+
+    deleteValue(): Node {
+        assert(this.kind == NodeKind.DELETE);
         assert(this.childCount() <= 1);
         assert(this.firstChild == null || isExpression(this.firstChild));
         return this.firstChild;
@@ -852,6 +868,16 @@ export function createNew(type: Node): Node {
     let node = new Node();
     node.kind = NodeKind.NEW;
     node.appendChild(type);
+    return node;
+}
+
+export function createDelete(value: Node): Node {
+    assert(value == null || isExpression(value));
+    let node = new Node();
+    node.kind = NodeKind.DELETE;
+    if (value != null) {
+        node.appendChild(value);
+    }
     return node;
 }
 

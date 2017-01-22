@@ -73,6 +73,7 @@ export enum TokenKind {
     INTERFACE,
     LET,
     NEW,
+    DELETE,
     NULL,
     UNDEFINED,
     OPERATOR,
@@ -199,6 +200,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.INTERFACE) return "'interface'";
     if (token == TokenKind.LET) return "'let'";
     if (token == TokenKind.NEW) return "'new'";
+    if (token == TokenKind.DELETE) return "'delete'";
     if (token == TokenKind.NULL) return "'null'";
     if (token == TokenKind.UNDEFINED) return "'undefined'";
     if (token == TokenKind.OPERATOR) return "'operator'";
@@ -335,6 +337,7 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "static") kind = TokenKind.STATIC;
                     else if (text == "unsafe") kind = TokenKind.UNSAFE;
                     else if (text == "@start") kind = TokenKind.START;
+                    else if (text == "delete") kind = TokenKind.DELETE;
                 }
 
                 else if (length == 7) {

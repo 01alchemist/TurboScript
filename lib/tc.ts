@@ -1,6 +1,11 @@
 var stdlib = {};
 global["stdlib"] = stdlib;
-stdlib["assert"] = require('assert');
+stdlib["assert"] = function (truth) {
+    if (!truth) {
+        console.error( new Error('Assertion failed') );
+        process.exit(1);
+    }
+};
 global["assert"] = stdlib["assert"];
 stdlib["Profiler_begin"] = function (name: string) {
     console.time(name)

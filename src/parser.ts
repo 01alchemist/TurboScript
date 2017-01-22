@@ -9,7 +9,7 @@ import {
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START
+    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START, createDelete
 } from "./node";
 
 export enum Precedence {
@@ -418,6 +418,23 @@ class ParserContext {
         return node;
     }
 
+    parseDelete(): Node {
+        var token = this.current;
+        assert(token.kind == TokenKind.DELETE);
+        this.advance();
+
+        var value: Node = null;
+        if (!this.peek(TokenKind.SEMICOLON)) {
+            value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+            if (value == null) {
+                return null;
+            }
+        }
+
+        var semicolon = this.current;
+        this.expect(TokenKind.SEMICOLON);
+        return createDelete(value).withRange(spanRanges(token.range, semicolon.range));
+    }
     parseArgumentList(start: Range, node: Node): Node {
         var open = this.current.range;
         var isIndex = node.kind == NodeKind.INDEX;
@@ -1538,6 +1555,7 @@ class ParserContext {
         if (this.peek(TokenKind.CONTINUE)) return this.parseLoopJump(NodeKind.CONTINUE);
         if (this.peek(TokenKind.IF)) return this.parseIf();
         if (this.peek(TokenKind.WHILE)) return this.parseWhile();
+        if (this.peek(TokenKind.DELETE)) return this.parseDelete();
         if (this.peek(TokenKind.RETURN)) return this.parseReturn();
         if (this.peek(TokenKind.SEMICOLON)) return this.parseEmpty();
 

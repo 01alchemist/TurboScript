@@ -1487,6 +1487,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
             return "'let'";
         if (token == TokenKind.NEW)
             return "'new'";
+        if (token == TokenKind.DELETE)
+            return "'delete'";
         if (token == TokenKind.NULL)
             return "'null'";
         if (token == TokenKind.UNDEFINED)
@@ -1659,6 +1661,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.UNSAFE;
                         else if (text == "@start")
                             kind = TokenKind.START;
+                        else if (text == "delete")
+                            kind = TokenKind.DELETE;
                     }
                     else if (length == 7) {
                         if (text == "alignof")
@@ -2087,34 +2091,35 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                 TokenKind[TokenKind["INTERFACE"] = 61] = "INTERFACE";
                 TokenKind[TokenKind["LET"] = 62] = "LET";
                 TokenKind[TokenKind["NEW"] = 63] = "NEW";
-                TokenKind[TokenKind["NULL"] = 64] = "NULL";
-                TokenKind[TokenKind["UNDEFINED"] = 65] = "UNDEFINED";
-                TokenKind[TokenKind["OPERATOR"] = 66] = "OPERATOR";
-                TokenKind[TokenKind["PRIVATE"] = 67] = "PRIVATE";
-                TokenKind[TokenKind["PROTECTED"] = 68] = "PROTECTED";
-                TokenKind[TokenKind["PUBLIC"] = 69] = "PUBLIC";
-                TokenKind[TokenKind["RETURN"] = 70] = "RETURN";
-                TokenKind[TokenKind["SIZEOF"] = 71] = "SIZEOF";
-                TokenKind[TokenKind["STATIC"] = 72] = "STATIC";
-                TokenKind[TokenKind["THIS"] = 73] = "THIS";
-                TokenKind[TokenKind["TRUE"] = 74] = "TRUE";
-                TokenKind[TokenKind["UNSAFE"] = 75] = "UNSAFE";
-                TokenKind[TokenKind["UNSAFE_TURBO"] = 76] = "UNSAFE_TURBO";
-                TokenKind[TokenKind["START"] = 77] = "START";
-                TokenKind[TokenKind["VIRTUAL"] = 78] = "VIRTUAL";
-                TokenKind[TokenKind["VAR"] = 79] = "VAR";
-                TokenKind[TokenKind["WHILE"] = 80] = "WHILE";
+                TokenKind[TokenKind["DELETE"] = 64] = "DELETE";
+                TokenKind[TokenKind["NULL"] = 65] = "NULL";
+                TokenKind[TokenKind["UNDEFINED"] = 66] = "UNDEFINED";
+                TokenKind[TokenKind["OPERATOR"] = 67] = "OPERATOR";
+                TokenKind[TokenKind["PRIVATE"] = 68] = "PRIVATE";
+                TokenKind[TokenKind["PROTECTED"] = 69] = "PROTECTED";
+                TokenKind[TokenKind["PUBLIC"] = 70] = "PUBLIC";
+                TokenKind[TokenKind["RETURN"] = 71] = "RETURN";
+                TokenKind[TokenKind["SIZEOF"] = 72] = "SIZEOF";
+                TokenKind[TokenKind["STATIC"] = 73] = "STATIC";
+                TokenKind[TokenKind["THIS"] = 74] = "THIS";
+                TokenKind[TokenKind["TRUE"] = 75] = "TRUE";
+                TokenKind[TokenKind["UNSAFE"] = 76] = "UNSAFE";
+                TokenKind[TokenKind["UNSAFE_TURBO"] = 77] = "UNSAFE_TURBO";
+                TokenKind[TokenKind["START"] = 78] = "START";
+                TokenKind[TokenKind["VIRTUAL"] = 79] = "VIRTUAL";
+                TokenKind[TokenKind["VAR"] = 80] = "VAR";
+                TokenKind[TokenKind["WHILE"] = 81] = "WHILE";
                 // Preprocessor
-                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 81] = "PREPROCESSOR_DEFINE";
-                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 82] = "PREPROCESSOR_ELIF";
-                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 83] = "PREPROCESSOR_ELSE";
-                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 84] = "PREPROCESSOR_ENDIF";
-                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 85] = "PREPROCESSOR_ERROR";
-                TokenKind[TokenKind["PREPROCESSOR_IF"] = 86] = "PREPROCESSOR_IF";
-                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 87] = "PREPROCESSOR_NEEDED";
-                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 88] = "PREPROCESSOR_NEWLINE";
-                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 89] = "PREPROCESSOR_UNDEF";
-                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 90] = "PREPROCESSOR_WARNING";
+                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 82] = "PREPROCESSOR_DEFINE";
+                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 83] = "PREPROCESSOR_ELIF";
+                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 84] = "PREPROCESSOR_ELSE";
+                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 85] = "PREPROCESSOR_ENDIF";
+                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 86] = "PREPROCESSOR_ERROR";
+                TokenKind[TokenKind["PREPROCESSOR_IF"] = 87] = "PREPROCESSOR_IF";
+                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 88] = "PREPROCESSOR_NEEDED";
+                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 89] = "PREPROCESSOR_NEWLINE";
+                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 90] = "PREPROCESSOR_UNDEF";
+                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 91] = "PREPROCESSOR_WARNING";
             })(TokenKind || (TokenKind = {}));
             exports_3("TokenKind", TokenKind);
             Token = class Token {
@@ -2520,6 +2525,21 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         }
                     }
                     return node;
+                }
+                parseDelete() {
+                    var token = this.current;
+                    assert(token.kind == lexer_1.TokenKind.DELETE);
+                    this.advance();
+                    var value = null;
+                    if (!this.peek(lexer_1.TokenKind.SEMICOLON)) {
+                        value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+                        if (value == null) {
+                            return null;
+                        }
+                    }
+                    var semicolon = this.current;
+                    this.expect(lexer_1.TokenKind.SEMICOLON);
+                    return node_1.createDelete(value).withRange(log_2.spanRanges(token.range, semicolon.range));
                 }
                 parseArgumentList(start, node) {
                     var open = this.current.range;
@@ -3449,6 +3469,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         return this.parseIf();
                     if (this.peek(lexer_1.TokenKind.WHILE))
                         return this.parseWhile();
+                    if (this.peek(lexer_1.TokenKind.DELETE))
+                        return this.parseDelete();
                     if (this.peek(lexer_1.TokenKind.RETURN))
                         return this.parseReturn();
                     if (this.peek(lexer_1.TokenKind.SEMICOLON))
@@ -6897,12 +6919,14 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
         // Set these to invalid values since "0" is valid
         module.startFunctionIndex = -1;
         module.mallocFunctionIndex = -1;
+        module.freeFunctionIndex = -1;
         module.currentHeapPointer = -1;
         module.originalHeapPointer = -1;
         // Emission requires two passes
         module.prepareToEmit(compiler.global);
         // The standard library must be included
         // assert(module.mallocFunctionIndex != -1);
+        // assert(module.freeFunctionIndex != -1);
         // assert(module.currentHeapPointer != -1);
         // assert(module.originalHeapPointer != -1);
         compiler.outputWASM = new bytearray_1.ByteArray();
@@ -7476,9 +7500,6 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         }
                     }
                     else if (node.kind == node_6.NodeKind.FUNCTION) {
-                        if (node.stringValue == "constructor" && node.parent.kind == node_6.NodeKind.CLASS) {
-                            node.parent.constructorFunctionNode = node;
-                        }
                         let returnType = node.functionReturnType();
                         let shared = new WasmSharedOffset();
                         let argumentTypesFirst = null;
@@ -7512,6 +7533,10 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         if (symbol.kind == symbol_6.SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
                             assert(this.mallocFunctionIndex == -1);
                             this.mallocFunctionIndex = symbol.offset;
+                        }
+                        if (symbol.kind == symbol_6.SymbolKind.FUNCTION_GLOBAL && symbol.name == "free") {
+                            assert(this.freeFunctionIndex == -1);
+                            this.freeFunctionIndex = symbol.offset;
                         }
                         // Make "init_malloc" as start function
                         if (symbol.kind == symbol_6.SymbolKind.FUNCTION_GLOBAL && symbol.name == "init_malloc") {
@@ -7637,7 +7662,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     array.writeUnsignedLEB128(offset);
                 }
                 emitConstructor(array, byteOffset, node) {
-                    let constructorNode = node.resolvedType.symbol.node.constructorFunctionNode;
+                    let constructorNode = node.constructorNode();
                     let callSymbol = constructorNode.symbol;
                     let child = node.firstChild.nextSibling;
                     while (child != null) {
@@ -7645,7 +7670,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         child = child.nextSibling;
                     }
                     appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
-                    log(array, byteOffset, callSymbol.offset, "call index");
+                    log(array, byteOffset, callSymbol.offset, `call func index (${callSymbol.offset})`);
                     array.writeUnsignedLEB128(callSymbol.offset);
                 }
                 emitNode(array, byteOffset, node) {
@@ -7759,10 +7784,12 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             if (value && value.kind != node_6.NodeKind.NAME && value.rawValue) {
                                 if (node.symbol.resolvedType.isFloat()) {
                                     appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
+                                    log(array, byteOffset, value.floatValue, "f32 literal");
                                     array.writeFloat(value.floatValue);
                                 }
                                 else {
                                     appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                                    log(array, byteOffset, value.intValue, "i32 literal");
                                     array.writeUnsignedLEB128(value.intValue);
                                 }
                             }
@@ -7772,16 +7799,24 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                 }
                                 else {
                                     // Default value
-                                    array.writeUnsignedLEB128(0);
+                                    if (node.symbol.resolvedType.isFloat()) {
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
+                                        log(array, byteOffset, 0, "f32 literal");
+                                        array.writeFloat(0);
+                                    }
+                                    else {
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                                        log(array, byteOffset, 0, "i32 literal");
+                                        array.writeUnsignedLEB128(0);
+                                    }
                                 }
                             }
                             if (value.kind == node_6.NodeKind.NEW) {
                                 this.emitConstructor(array, byteOffset, value);
                             }
-                            else {
-                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.SET_LOCAL);
-                                array.writeUnsignedLEB128(node.symbol.offset);
-                            }
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.SET_LOCAL);
+                            log(array, byteOffset, node.symbol.offset, "local index");
+                            array.writeUnsignedLEB128(node.symbol.offset);
                         }
                         else {
                             assert(false);
@@ -7852,7 +7887,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             child = child.nextSibling;
                         }
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
-                        log(array, byteOffset, symbol.offset, "call func index");
+                        log(array, byteOffset, symbol.offset, `call func index (${symbol.offset})`);
                         array.writeUnsignedLEB128(symbol.offset);
                     }
                     else if (node.kind == node_6.NodeKind.NEW) {
@@ -7864,8 +7899,15 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         log(array, byteOffset, size, "i32 literal");
                         array.writeLEB128(size);
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
-                        log(array, byteOffset, this.mallocFunctionIndex, "call index");
+                        log(array, byteOffset, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
                         array.writeUnsignedLEB128(this.mallocFunctionIndex);
+                    }
+                    else if (node.kind == node_6.NodeKind.DELETE) {
+                        let value = node.deleteValue();
+                        this.emitNode(array, byteOffset, value);
+                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
+                        log(array, byteOffset, this.freeFunctionIndex, `call func index (${this.freeFunctionIndex})`);
+                        array.writeUnsignedLEB128(this.freeFunctionIndex);
                     }
                     else if (node.kind == node_6.NodeKind.POSITIVE) {
                         this.emitNode(array, byteOffset, node.unaryValue());
@@ -7920,6 +7962,14 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                 log(array, byteOffset, _value, "i32 literal");
                                 array.writeLEB128(_value);
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_AND);
+                            }
+                            else if (from == context.int32Type && type == context.float32Type) {
+                                //TODO implement
+                                this.emitNode(array, byteOffset, value);
+                            }
+                            else if (from == context.float32Type && type == context.int32Type) {
+                                //TODO implement
+                                this.emitNode(array, byteOffset, value);
                             }
                             else {
                                 this.emitNode(array, byteOffset, value);
@@ -7979,6 +8029,61 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         log(array, byteOffset, 1, "i32 literal");
                         array.writeLEB128(1);
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_EQ);
+                    }
+                    else if (node_6.isUnary(node.kind)) {
+                        let kind = node.kind;
+                        if (kind == node_6.NodeKind.POSTFIX_INCREMENT) {
+                            let value = node.unaryValue();
+                            let dataType = typeToDataType(value.resolvedType, this.bitness);
+                            this.emitNode(array, byteOffset, value);
+                            assert(value.resolvedType.isInteger() || value.resolvedType.isLong() ||
+                                value.resolvedType.isFloat() || value.resolvedType.isDouble());
+                            let size = value.resolvedType.pointerTo.allocationSizeOf(this.context);
+                            if (size == 1 || size == 2) {
+                                if (value.kind == node_6.NodeKind.INT32) {
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                                    log(array, byteOffset, 1, "i32 literal");
+                                    array.writeLEB128(1);
+                                }
+                                else {
+                                    console.error("Wrong type");
+                                }
+                            }
+                            else if (size == 4) {
+                                if (value.kind == node_6.NodeKind.INT32) {
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                                    log(array, byteOffset, 1, "i32 literal");
+                                    array.writeLEB128(1);
+                                }
+                                else if (value.kind == node_6.NodeKind.FLOAT32) {
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
+                                    log(array, byteOffset, 1, "f32 literal");
+                                    array.writeFloat(1);
+                                }
+                                else {
+                                    console.error("Wrong type");
+                                }
+                            }
+                            else if (size == 8) {
+                                if (value.kind == node_6.NodeKind.INT64) {
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
+                                    log(array, byteOffset, 1, "i64 literal");
+                                    array.writeLEB128(1);
+                                }
+                                else if (value.kind == node_6.NodeKind.FLOAT64) {
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
+                                    log(array, byteOffset, 1, "f64 literal");
+                                    array.writeDouble(1);
+                                }
+                                else {
+                                    console.error("Wrong type");
+                                }
+                            }
+                            // if (value.resolvedType.pointerTo == null) {
+                            //     this.emitNode(array, byteOffset, value);
+                            // }
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode[`${dataType}_ADD`]);
+                        }
                     }
                     else {
                         let isUnsigned = node.isUnsignedOperator();
@@ -9880,22 +9985,37 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             return false;
         }
         else if (from.isInteger() && to.isLong()) {
-            return false;
+            if (kind == type_2.ConversionKind.IMPLICIT) {
+                return false;
+            }
+            return true;
         }
         else if (from.isInteger() && to.isFloat()) {
-            //TODO Allow lossless conversions implicitly
-            return false;
+            if (kind == type_2.ConversionKind.IMPLICIT) {
+                return false;
+            }
+            //TODO Allow only lossless conversions implicitly
+            return true;
         }
         else if (from.isFloat() && to.isInteger()) {
-            //TODO Allow lossless conversions implicitly
-            return false;
+            if (kind == type_2.ConversionKind.IMPLICIT) {
+                return false;
+            }
+            //TODO Allow only lossless conversions implicitly
+            return true;
         }
         else if (from.isFloat() && to.isDouble()) {
+            if (kind == type_2.ConversionKind.IMPLICIT) {
+                return false;
+            }
             return true;
         }
         else if (from.isDouble() && to.isFloat()) {
-            //TODO Allow lossless conversions implicitly
-            return false;
+            if (kind == type_2.ConversionKind.IMPLICIT) {
+                return false;
+            }
+            //TODO Allow only lossless conversions implicitly
+            return true;
         }
         else if (from.isFloat() && to.isFloat()) {
             return true;
@@ -10108,6 +10228,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         else if (kind == node_8.NodeKind.FUNCTION) {
             var body = node.functionBody();
             initializeSymbol(context, node.symbol);
+            if (node.stringValue == "constructor" && node.parent.kind == node_8.NodeKind.CLASS) {
+                node.parent.constructorFunctionNode = node;
+            }
             if (body != null) {
                 var oldReturnType = context.currentReturnType;
                 var oldUnsafeAllowed = context.isUnsafeAllowed;
@@ -10303,6 +10426,15 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     ? castedType.integerBitMask(context) & result
                     : result << shift >> shift);
             }
+            else if (value.kind == node_8.NodeKind.INT32 && castedType.isFloat()) {
+                node.becomeFloatConstant(value.intValue);
+            }
+            else if (value.kind == node_8.NodeKind.INT32 && castedType.isDouble()) {
+                node.becomeDoubleConstant(value.intValue);
+            }
+            else if (value.kind == node_8.NodeKind.FLOAT32 && castedType.isInteger()) {
+                node.becomeIntegerConstant(Math.round(value.floatValue));
+            }
         }
         else if (kind == node_8.NodeKind.DOT) {
             let target = node.dotTarget();
@@ -10404,6 +10536,22 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     // Pass the return type along
                     node.resolvedType = returnType.resolvedType;
                 }
+            }
+        }
+        else if (kind == node_8.NodeKind.DELETE) {
+            let value = node.deleteType();
+            if (value != null) {
+                resolveAsExpression(context, value, parentScope);
+                if (value.resolvedType == null || value.resolvedType == context.voidType) {
+                    context.log.error(value.range, "Unexpected delete value 'void'");
+                }
+            }
+            else {
+                context.log.error(node.range, stringbuilder_10.StringBuilder_new()
+                    .append("Expected delete value '")
+                    .append(context.currentReturnType.toString())
+                    .appendChar('\'')
+                    .finish());
             }
         }
         else if (kind == node_8.NodeKind.RETURN) {
@@ -10550,9 +10698,13 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             //Constructors arguments
             let child = type.nextSibling;
+            let constructorNode = node.constructorNode();
+            let argumentVariable = constructorNode.functionFirstArgumentIgnoringThis();
             while (child != null) {
                 resolveAsExpression(context, child, parentScope);
+                checkConversion(context, child, argumentVariable.symbol.resolvedType, type_2.ConversionKind.IMPLICIT);
                 child = child.nextSibling;
+                argumentVariable = argumentVariable.nextSibling;
             }
         }
         else if (kind == node_8.NodeKind.POINTER_TYPE) {
@@ -11273,6 +11425,16 @@ System.register("node", ["symbol"], function (exports_24, context_24) {
         return node;
     }
     exports_24("createNew", createNew);
+    function createDelete(value) {
+        assert(value == null || isExpression(value));
+        let node = new Node();
+        node.kind = NodeKind.DELETE;
+        if (value != null) {
+            node.appendChild(value);
+        }
+        return node;
+    }
+    exports_24("createDelete", createDelete);
     function createHook(test, primary, secondary) {
         assert(isExpression(test));
         assert(isExpression(primary));
@@ -11661,46 +11823,47 @@ System.register("node", ["symbol"], function (exports_24, context_24) {
                 NodeKind[NodeKind["FLOAT64"] = 35] = "FLOAT64";
                 NodeKind[NodeKind["NAME"] = 36] = "NAME";
                 NodeKind[NodeKind["NEW"] = 37] = "NEW";
-                NodeKind[NodeKind["NULL"] = 38] = "NULL";
-                NodeKind[NodeKind["UNDEFINED"] = 39] = "UNDEFINED";
-                NodeKind[NodeKind["PARSE_ERROR"] = 40] = "PARSE_ERROR";
-                NodeKind[NodeKind["SIZE_OF"] = 41] = "SIZE_OF";
-                NodeKind[NodeKind["STRING"] = 42] = "STRING";
-                NodeKind[NodeKind["THIS"] = 43] = "THIS";
-                NodeKind[NodeKind["TYPE"] = 44] = "TYPE";
+                NodeKind[NodeKind["DELETE"] = 38] = "DELETE";
+                NodeKind[NodeKind["NULL"] = 39] = "NULL";
+                NodeKind[NodeKind["UNDEFINED"] = 40] = "UNDEFINED";
+                NodeKind[NodeKind["PARSE_ERROR"] = 41] = "PARSE_ERROR";
+                NodeKind[NodeKind["SIZE_OF"] = 42] = "SIZE_OF";
+                NodeKind[NodeKind["STRING"] = 43] = "STRING";
+                NodeKind[NodeKind["THIS"] = 44] = "THIS";
+                NodeKind[NodeKind["TYPE"] = 45] = "TYPE";
                 // Unary expressions
-                NodeKind[NodeKind["ADDRESS_OF"] = 45] = "ADDRESS_OF";
-                NodeKind[NodeKind["COMPLEMENT"] = 46] = "COMPLEMENT";
-                NodeKind[NodeKind["DEREFERENCE"] = 47] = "DEREFERENCE";
-                NodeKind[NodeKind["NEGATIVE"] = 48] = "NEGATIVE";
-                NodeKind[NodeKind["NOT"] = 49] = "NOT";
-                NodeKind[NodeKind["POINTER_TYPE"] = 50] = "POINTER_TYPE";
-                NodeKind[NodeKind["POSITIVE"] = 51] = "POSITIVE";
-                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 52] = "POSTFIX_DECREMENT";
-                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 53] = "POSTFIX_INCREMENT";
-                NodeKind[NodeKind["PREFIX_DECREMENT"] = 54] = "PREFIX_DECREMENT";
-                NodeKind[NodeKind["PREFIX_INCREMENT"] = 55] = "PREFIX_INCREMENT";
+                NodeKind[NodeKind["ADDRESS_OF"] = 46] = "ADDRESS_OF";
+                NodeKind[NodeKind["COMPLEMENT"] = 47] = "COMPLEMENT";
+                NodeKind[NodeKind["DEREFERENCE"] = 48] = "DEREFERENCE";
+                NodeKind[NodeKind["NEGATIVE"] = 49] = "NEGATIVE";
+                NodeKind[NodeKind["NOT"] = 50] = "NOT";
+                NodeKind[NodeKind["POINTER_TYPE"] = 51] = "POINTER_TYPE";
+                NodeKind[NodeKind["POSITIVE"] = 52] = "POSITIVE";
+                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 53] = "POSTFIX_DECREMENT";
+                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 54] = "POSTFIX_INCREMENT";
+                NodeKind[NodeKind["PREFIX_DECREMENT"] = 55] = "PREFIX_DECREMENT";
+                NodeKind[NodeKind["PREFIX_INCREMENT"] = 56] = "PREFIX_INCREMENT";
                 // Binary expressions
-                NodeKind[NodeKind["ADD"] = 56] = "ADD";
-                NodeKind[NodeKind["ASSIGN"] = 57] = "ASSIGN";
-                NodeKind[NodeKind["BITWISE_AND"] = 58] = "BITWISE_AND";
-                NodeKind[NodeKind["BITWISE_OR"] = 59] = "BITWISE_OR";
-                NodeKind[NodeKind["BITWISE_XOR"] = 60] = "BITWISE_XOR";
-                NodeKind[NodeKind["DIVIDE"] = 61] = "DIVIDE";
-                NodeKind[NodeKind["EQUAL"] = 62] = "EQUAL";
-                NodeKind[NodeKind["EXPONENT"] = 63] = "EXPONENT";
-                NodeKind[NodeKind["GREATER_THAN"] = 64] = "GREATER_THAN";
-                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 65] = "GREATER_THAN_EQUAL";
-                NodeKind[NodeKind["LESS_THAN"] = 66] = "LESS_THAN";
-                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 67] = "LESS_THAN_EQUAL";
-                NodeKind[NodeKind["LOGICAL_AND"] = 68] = "LOGICAL_AND";
-                NodeKind[NodeKind["LOGICAL_OR"] = 69] = "LOGICAL_OR";
-                NodeKind[NodeKind["MULTIPLY"] = 70] = "MULTIPLY";
-                NodeKind[NodeKind["NOT_EQUAL"] = 71] = "NOT_EQUAL";
-                NodeKind[NodeKind["REMAINDER"] = 72] = "REMAINDER";
-                NodeKind[NodeKind["SHIFT_LEFT"] = 73] = "SHIFT_LEFT";
-                NodeKind[NodeKind["SHIFT_RIGHT"] = 74] = "SHIFT_RIGHT";
-                NodeKind[NodeKind["SUBTRACT"] = 75] = "SUBTRACT";
+                NodeKind[NodeKind["ADD"] = 57] = "ADD";
+                NodeKind[NodeKind["ASSIGN"] = 58] = "ASSIGN";
+                NodeKind[NodeKind["BITWISE_AND"] = 59] = "BITWISE_AND";
+                NodeKind[NodeKind["BITWISE_OR"] = 60] = "BITWISE_OR";
+                NodeKind[NodeKind["BITWISE_XOR"] = 61] = "BITWISE_XOR";
+                NodeKind[NodeKind["DIVIDE"] = 62] = "DIVIDE";
+                NodeKind[NodeKind["EQUAL"] = 63] = "EQUAL";
+                NodeKind[NodeKind["EXPONENT"] = 64] = "EXPONENT";
+                NodeKind[NodeKind["GREATER_THAN"] = 65] = "GREATER_THAN";
+                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 66] = "GREATER_THAN_EQUAL";
+                NodeKind[NodeKind["LESS_THAN"] = 67] = "LESS_THAN";
+                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 68] = "LESS_THAN_EQUAL";
+                NodeKind[NodeKind["LOGICAL_AND"] = 69] = "LOGICAL_AND";
+                NodeKind[NodeKind["LOGICAL_OR"] = 70] = "LOGICAL_OR";
+                NodeKind[NodeKind["MULTIPLY"] = 71] = "MULTIPLY";
+                NodeKind[NodeKind["NOT_EQUAL"] = 72] = "NOT_EQUAL";
+                NodeKind[NodeKind["REMAINDER"] = 73] = "REMAINDER";
+                NodeKind[NodeKind["SHIFT_LEFT"] = 74] = "SHIFT_LEFT";
+                NodeKind[NodeKind["SHIFT_RIGHT"] = 75] = "SHIFT_RIGHT";
+                NodeKind[NodeKind["SUBTRACT"] = 76] = "SUBTRACT";
             })(NodeKind || (NodeKind = {}));
             exports_24("NodeKind", NodeKind);
             exports_24("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
@@ -12070,9 +12233,10 @@ System.register("node", ["symbol"], function (exports_24, context_24) {
                     return this.lastChild.previousSibling;
                 }
                 constructorNode() {
-                    assert(this.kind == NodeKind.CLASS);
+                    assert(this.kind == NodeKind.NEW);
                     assert(this.childCount() > 0);
-                    return this.constructorFunctionNode;
+                    assert(this.resolvedType.symbol.node.kind == NodeKind.CLASS);
+                    return this.resolvedType.symbol.node.constructorFunctionNode;
                 }
                 functionBody() {
                     assert(this.kind == NodeKind.FUNCTION);
@@ -12083,6 +12247,12 @@ System.register("node", ["symbol"], function (exports_24, context_24) {
                 }
                 newType() {
                     assert(this.kind == NodeKind.NEW);
+                    assert(this.childCount() >= 1);
+                    assert(isExpression(this.firstChild));
+                    return this.firstChild;
+                }
+                deleteType() {
+                    assert(this.kind == NodeKind.DELETE);
                     assert(this.childCount() >= 1);
                     assert(isExpression(this.firstChild));
                     return this.firstChild;
@@ -12125,6 +12295,12 @@ System.register("node", ["symbol"], function (exports_24, context_24) {
                 }
                 returnValue() {
                     assert(this.kind == NodeKind.RETURN);
+                    assert(this.childCount() <= 1);
+                    assert(this.firstChild == null || isExpression(this.firstChild));
+                    return this.firstChild;
+                }
+                deleteValue() {
+                    assert(this.kind == NodeKind.DELETE);
                     assert(this.childCount() <= 1);
                     assert(this.firstChild == null || isExpression(this.firstChild));
                     return this.firstChild;

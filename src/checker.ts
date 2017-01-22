@@ -673,23 +673,38 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     }
 
     else if (from.isInteger() && to.isLong()) {
-        return false;
+        if(kind == ConversionKind.IMPLICIT){
+            return false;
+        }
+        return true;
     }
 
     else if (from.isInteger() && to.isFloat()) {
-        //TODO Allow lossless conversions implicitly
-        return false;
+        if(kind == ConversionKind.IMPLICIT){
+            return false;
+        }
+        //TODO Allow only lossless conversions implicitly
+        return true;
     }
     else if (from.isFloat() && to.isInteger()) {
-        //TODO Allow lossless conversions implicitly
-        return false;
+        if(kind == ConversionKind.IMPLICIT){
+            return false;
+        }
+        //TODO Allow only lossless conversions implicitly
+        return true;
     }
     else if (from.isFloat() && to.isDouble()) {
+        if(kind == ConversionKind.IMPLICIT){
+            return false;
+        }
         return true;
     }
     else if (from.isDouble() && to.isFloat()) {
-        //TODO Allow lossless conversions implicitly
-        return false;
+        if(kind == ConversionKind.IMPLICIT){
+            return false;
+        }
+        //TODO Allow only lossless conversions implicitly
+        return true;
     }
     else if (from.isFloat() && to.isFloat()) {
         return true;
@@ -936,6 +951,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         var body = node.functionBody();
         initializeSymbol(context, node.symbol);
 
+        if (node.stringValue == "constructor" && node.parent.kind == NodeKind.CLASS) {
+            node.parent.constructorFunctionNode = node;
+        }
+
         if (body != null) {
             var oldReturnType = context.currentReturnType;
             var oldUnsafeAllowed = context.isUnsafeAllowed;
@@ -1169,6 +1188,18 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 ? castedType.integerBitMask(context) & result
                 : result << shift >> shift);
         }
+        //i32 to f32
+        else if (value.kind == NodeKind.INT32 && castedType.isFloat()) {
+            node.becomeFloatConstant(value.intValue);
+        }
+        //i32 to f64
+        else if (value.kind == NodeKind.INT32 && castedType.isDouble()) {
+            node.becomeDoubleConstant(value.intValue);
+        }
+        //f32 to i32
+        else if (value.kind == NodeKind.FLOAT32 && castedType.isInteger()) {
+            node.becomeIntegerConstant(Math.round(value.floatValue));
+        }
     }
 
     else if (kind == NodeKind.DOT) {
@@ -1290,6 +1321,26 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 // Pass the return type along
                 node.resolvedType = returnType.resolvedType;
             }
+        }
+    }
+
+    else if (kind == NodeKind.DELETE) {
+        let value = node.deleteType();
+
+        if (value != null) {
+            resolveAsExpression(context, value, parentScope);
+
+            if (value.resolvedType == null || value.resolvedType == context.voidType) {
+                context.log.error(value.range, "Unexpected delete value 'void'");
+            }
+        }
+
+        else {
+            context.log.error(node.range, StringBuilder_new()
+                .append("Expected delete value '")
+                .append(context.currentReturnType.toString())
+                .appendChar('\'')
+                .finish());
         }
     }
 
@@ -1464,10 +1515,22 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
         //Constructors arguments
         let child = type.nextSibling;
+        let constructorNode = node.constructorNode();
+        let argumentVariable = constructorNode.functionFirstArgumentIgnoringThis();
         while (child != null) {
             resolveAsExpression(context, child, parentScope);
+            checkConversion(context, child, argumentVariable.symbol.resolvedType, ConversionKind.IMPLICIT);
             child = child.nextSibling;
+            argumentVariable = argumentVariable.nextSibling;
         }
+
+        // Match argument values with variables
+        // while (argumentVariable != returnType && argumentValue != null) {
+        //     resolveAsExpression(context, argumentValue, parentScope);
+        //     checkConversion(context, argumentValue, argumentVariable.symbol.resolvedType, ConversionKind.IMPLICIT);
+        //     argumentVariable = argumentVariable.nextSibling;
+        //     argumentValue = argumentValue.nextSibling;
+        // }
     }
 
     else if (kind == NodeKind.POINTER_TYPE) {
@@ -1479,8 +1542,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         /*else if (!context.isUnsafeAllowed) {
-            context.log.error(node.internalRange, "Cannot use pointers outside an 'unsafe' block");
-        }*/
+         context.log.error(node.internalRange, "Cannot use pointers outside an 'unsafe' block");
+         }*/
 
         else {
             var type = value.resolvedType;
@@ -1495,7 +1558,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 // }
                 //
                 // else {
-                    node.resolvedType = type.pointerType();
+                node.resolvedType = type.pointerType();
                 // }
             }
         }

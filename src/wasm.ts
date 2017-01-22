@@ -2,7 +2,7 @@ import {Symbol, SymbolKind, isFunction} from "./symbol";
 import {ByteArray, ByteArray_append32, ByteArray_set32, ByteArray_setString, ByteArray_set16} from "./bytearray";
 import {CheckContext} from "./checker";
 import {alignToNextMultipleOf} from "./imports";
-import {Node, NodeKind, isExpression} from "./node";
+import {Node, NodeKind, isExpression, isUnary} from "./node";
 import {Type} from "./type";
 import {StringBuilder_new, StringBuilder} from "./stringbuilder";
 import {Compiler} from "./compiler";
@@ -164,6 +164,7 @@ class WasmModule {
     currentHeapPointer: int32;
     originalHeapPointer: int32;
     mallocFunctionIndex: int32;
+    freeFunctionIndex: int32;
     startFunctionIndex: int32;
     context: CheckContext;
 
@@ -573,7 +574,7 @@ class WasmModule {
         let value;
         while (i < initializerLength) {
             for (let j = 0; j < 16; j++) {
-                if(i + j < initializerLength) {
+                if (i + j < initializerLength) {
                     value = memoryInitializer.get(i + j);
                     section.data.append(value);
                     logData(section.data, array.position, value, j == 0);
@@ -696,10 +697,6 @@ class WasmModule {
 
         else if (node.kind == NodeKind.FUNCTION) {
 
-            if (node.stringValue == "constructor" && node.parent.kind == NodeKind.CLASS) {
-                node.parent.constructorFunctionNode = node;
-            }
-
             let returnType = node.functionReturnType();
             let shared = new WasmSharedOffset();
             let argumentTypesFirst: WasmWrappedType = null;
@@ -737,6 +734,10 @@ class WasmModule {
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
                 assert(this.mallocFunctionIndex == -1);
                 this.mallocFunctionIndex = symbol.offset;
+            }
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "free") {
+                assert(this.freeFunctionIndex == -1);
+                this.freeFunctionIndex = symbol.offset;
             }
 
             // Make "init_malloc" as start function
@@ -896,7 +897,7 @@ class WasmModule {
     }
 
     emitConstructor(array: ByteArray, byteOffset: int32, node: Node): void {
-        let constructorNode = node.resolvedType.symbol.node.constructorFunctionNode;
+        let constructorNode = node.constructorNode();
         let callSymbol = constructorNode.symbol;
         let child = node.firstChild.nextSibling;
         while (child != null) {
@@ -904,7 +905,7 @@ class WasmModule {
             child = child.nextSibling;
         }
         appendOpcode(array, byteOffset, WasmOpcode.CALL);
-        log(array, byteOffset, callSymbol.offset, "call index");
+        log(array, byteOffset, callSymbol.offset, `call func index (${callSymbol.offset})`);
         array.writeUnsignedLEB128(callSymbol.offset);
     }
 
@@ -1045,9 +1046,11 @@ class WasmModule {
                 if (value && value.kind != NodeKind.NAME && value.rawValue) {
                     if (node.symbol.resolvedType.isFloat()) {
                         appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
+                        log(array, byteOffset, value.floatValue, "f32 literal");
                         array.writeFloat(value.floatValue);
                     } else {
                         appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                        log(array, byteOffset, value.intValue, "i32 literal");
                         array.writeUnsignedLEB128(value.intValue);
                     }
 
@@ -1056,17 +1059,25 @@ class WasmModule {
                         this.emitNode(array, byteOffset, value);
                     } else {
                         // Default value
-                        array.writeUnsignedLEB128(0);
+                        if (node.symbol.resolvedType.isFloat()) {
+                            appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
+                            log(array, byteOffset, 0, "f32 literal");
+                            array.writeFloat(0);
+                        } else {
+                            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                            log(array, byteOffset, 0, "i32 literal");
+                            array.writeUnsignedLEB128(0);
+                        }
                     }
                 }
 
                 if (value.kind == NodeKind.NEW) {
                     this.emitConstructor(array, byteOffset, value);
                 }
-                else {
-                    appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
-                    array.writeUnsignedLEB128(node.symbol.offset);
-                }
+
+                appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
+                log(array, byteOffset, node.symbol.offset, "local index");
+                array.writeUnsignedLEB128(node.symbol.offset);
             }
 
             else {
@@ -1153,7 +1164,7 @@ class WasmModule {
             }
 
             appendOpcode(array, byteOffset, WasmOpcode.CALL);
-            log(array, byteOffset, symbol.offset, "call func index");
+            log(array, byteOffset, symbol.offset, `call func index (${symbol.offset})`);
             array.writeUnsignedLEB128(symbol.offset);
         }
 
@@ -1167,8 +1178,18 @@ class WasmModule {
             array.writeLEB128(size);
 
             appendOpcode(array, byteOffset, WasmOpcode.CALL);
-            log(array, byteOffset, this.mallocFunctionIndex, "call index");
+            log(array, byteOffset, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
             array.writeUnsignedLEB128(this.mallocFunctionIndex);
+        }
+
+        else if (node.kind == NodeKind.DELETE) {
+            let value = node.deleteValue();
+
+            this.emitNode(array, byteOffset, value);
+
+            appendOpcode(array, byteOffset, WasmOpcode.CALL);
+            log(array, byteOffset, this.freeFunctionIndex, `call func index (${this.freeFunctionIndex})`);
+            array.writeUnsignedLEB128(this.freeFunctionIndex);
         }
 
         else if (node.kind == NodeKind.POSITIVE) {
@@ -1232,6 +1253,18 @@ class WasmModule {
                     log(array, byteOffset, _value, "i32 literal");
                     array.writeLEB128(_value);
                     appendOpcode(array, byteOffset, WasmOpcode.I32_AND);
+                }
+
+                // i32 > f32
+                else if (from == context.int32Type && type == context.float32Type) {
+                    //TODO implement
+                    this.emitNode(array, byteOffset, value);
+                }
+
+                // f32 > i32
+                else if (from == context.float32Type && type == context.int32Type) {
+                    //TODO implement
+                    this.emitNode(array, byteOffset, value);
                 }
 
                 // No cast needed
@@ -1306,6 +1339,79 @@ class WasmModule {
             appendOpcode(array, byteOffset, WasmOpcode.I32_EQ);
         }
 
+        else if (isUnary(node.kind)) {
+
+            let kind = node.kind;
+
+            if (kind == NodeKind.POSTFIX_INCREMENT) {
+
+                let value = node.unaryValue();
+                let dataType: string = typeToDataType(value.resolvedType, this.bitness);
+
+                this.emitNode(array, byteOffset, value);
+
+                assert(
+                    value.resolvedType.isInteger() || value.resolvedType.isLong() ||
+                    value.resolvedType.isFloat() || value.resolvedType.isDouble()
+                );
+                let size = value.resolvedType.pointerTo.allocationSizeOf(this.context);
+
+                if (size == 1 || size == 2) {
+                    if (value.kind == NodeKind.INT32) {
+                        appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                        log(array, byteOffset, 1, "i32 literal");
+                        array.writeLEB128(1);
+                    }
+
+                    else {
+                        console.error("Wrong type");
+                    }
+                }
+
+                else if (size == 4) {
+                    if (value.kind == NodeKind.INT32) {
+                        appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                        log(array, byteOffset, 1, "i32 literal");
+                        array.writeLEB128(1);
+                    }
+
+                    else if (value.kind == NodeKind.FLOAT32) {
+                        appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
+                        log(array, byteOffset, 1, "f32 literal");
+                        array.writeFloat(1);
+                    }
+
+                    else {
+                        console.error("Wrong type");
+                    }
+                }
+
+                else if (size == 8) {
+
+                    if (value.kind == NodeKind.INT64) {
+                        appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
+                        log(array, byteOffset, 1, "i64 literal");
+                        array.writeLEB128(1);
+                    }
+
+                    else if (value.kind == NodeKind.FLOAT64) {
+                        appendOpcode(array, byteOffset, WasmOpcode.F64_CONST);
+                        log(array, byteOffset, 1, "f64 literal");
+                        array.writeDouble(1);
+                    }
+
+                    else {
+                        console.error("Wrong type");
+                    }
+                }
+
+                // if (value.resolvedType.pointerTo == null) {
+                //     this.emitNode(array, byteOffset, value);
+                // }
+
+                appendOpcode(array, byteOffset, WasmOpcode[`${dataType}_ADD`]);
+            }
+        }
         else {
             let isUnsigned = node.isUnsignedOperator();
             let left = node.binaryLeft();
@@ -1625,6 +1731,7 @@ export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32): vo
     // Set these to invalid values since "0" is valid
     module.startFunctionIndex = -1;
     module.mallocFunctionIndex = -1;
+    module.freeFunctionIndex = -1;
     module.currentHeapPointer = -1;
     module.originalHeapPointer = -1;
 
@@ -1633,6 +1740,7 @@ export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32): vo
 
     // The standard library must be included
     // assert(module.mallocFunctionIndex != -1);
+    // assert(module.freeFunctionIndex != -1);
     // assert(module.currentHeapPointer != -1);
     // assert(module.originalHeapPointer != -1);
 

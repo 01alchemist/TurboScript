@@ -21,3 +21,18 @@ export function newVec3(x: float32, y: float32, z: float32): Vec3 {
 export function addVec3(a:Vec3, b:Vec3): Vec3 {
     return a.add(b);
 }
+export function destroyVec3(a:Vec3): void {
+    delete a;
+}
+export function destroyTest(): void {
+    var a:Vec3 = new Vec3(1 as float32,1.0,1.0);
+    delete a;
+}
+export function memoryTest(): void {
+    var i=0;
+    while(i < 1000){
+        var a:Vec3 = new Vec3(1.0,1.0,1.0);
+        delete a;
+        i++;
+    }
+}
