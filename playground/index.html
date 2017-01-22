@@ -33,8 +33,8 @@
 
 <p>
     This is still an experiment and isn't intended for real use yet.
-    The biggest issue is that the generated code currently doesn't delete anything (C/C++ like manual memory management
-    is planned).
+    <strike>The biggest issue is that the generated code currently doesn't delete anything</strike> (basic manual memory management
+    is added).
     Also the WebAssembly specification is still being developed and the current binary format may stop working when
     WebAssembly is officially released.
     WebAssembly binary format is up-to-date, please feel free to open issues if it stop working or need a new feature.
@@ -49,6 +49,11 @@
 
 <section>
     <h2>Input</h2>
+    <select id="samples">
+        <option>empty</option>
+        <option>simple</option>
+        <option>class</option>
+    </select>
     <textarea id="input" autofocus autocomplete="off" autocorrect="off" autocapitalize="off"
               spellcheck="false"></textarea>
 </section>
@@ -107,6 +112,7 @@
         $("#input").linedtextarea();
         var clear = document.getElementById('clear');
         var input = document.getElementById('input');
+        var samplesSelector = document.getElementById('samples');
         var output = document.getElementById('output');
         var outputButton = document.getElementById('output-button');
         var secondaryOutput = document.getElementById('secondary-output');
@@ -139,27 +145,106 @@
             return lines.join('\n');
         }
 
-        var example = joinLines([
-                'export function addTwo1(a:int32, b:int32): int32 {',
-                '  return a + b;',
-                '}',
-                'export function addTwo2(a:uint32, b:uint32): uint32 {',
-                '  return a + b;',
-                '}',
-                'export function addTwo3(a:float32, b:float32): float32 {',
-                '  return a + b;',
-                '}',
-                'export function addTwo4(a:float64, b:float64): float64 {',
-                '  return a + b;',
-                '}',
-                '//Not yet supported in MVP',
-                '//export function addTwo5(a:int64, b:int64): int64 {',
-                '//  return a + b;',
-                '//}',
-                '//export function addTwo6(a:uint64, b:uint64): uint64 {',
-                '//  return a + b;',
-                '//}',
-            ]) + '\n';
+        var selectedSample = 2;
+        var samples = [
+            {
+                name: "empty",
+                content: "",
+                usage: ""
+            },
+            {
+                name: "simple",
+                content: joinLines([
+                    'export function addTwo1(a:int32, b:int32): int32 {',
+                    '  return a + b;',
+                    '}',
+                    'export function addTwo2(a:uint32, b:uint32): uint32 {',
+                    '  return a + b;',
+                    '}',
+                    'export function addTwo3(a:float32, b:float32): float32 {',
+                    '  return a + b;',
+                    '}',
+                    'export function addTwo4(a:float64, b:float64): float64 {',
+                    '  return a + b;',
+                    '}',
+                    '//Not yet supported in MVP',
+                    '//export function addTwo5(a:int64, b:int64): int64 {',
+                    '//  return a + b;',
+                    '//}',
+                    '//export function addTwo6(a:uint64, b:uint64): uint64 {',
+                    '//  return a + b;',
+                    '//}',
+                ]) + '\n',
+                usage: joinLines([
+                    "//WASM Compiled and exports can access by window.exports",
+                    "console.log(exports.addTwo1(-1, 1));",
+                    "console.log(exports.addTwo2(1, 1));",
+                    "console.log(exports.addTwo3(1.1, 2.5));",
+                    "console.log(exports.addTwo4(0.5, 10.5));",
+                    "//Not yet supported in MVP",
+                    "//console.log(exports.addTwo5(-10,15));",
+                    "//console.log(exports.addTwo6(2,2));",
+                ])
+            },
+            {
+                name: "class",
+                content: joinLines([
+                    'class Vec3 {',
+                    '   x: float32;',
+                    '   y: float32;',
+                    '   z: float32;',
+                    '   ',
+                    '   constructor(x: float32, y: float32, z: float32): Vec3 {',
+                    '       this.x = x;',
+                    '       this.y = y;',
+                    '       this.z = z;',
+                    '       return this;',
+                    '   }',
+                    '   ',
+                    '   add(b: Vec3): Vec3 {',
+                    '       return new Vec3(this.x + b.x, this.y + b.y, this.z + b.z);',
+                    '   }',
+                    '}',
+                    '',
+                    'export function newVec3(x: float32, y: float32, z: float32): Vec3 {',
+                    '    return new Vec3(x, y, z);',
+                    '}',
+                    '',
+                    'export function addVec3(a:Vec3, b:Vec3): Vec3 {',
+                    '    return a.add(b);',
+                    '}',
+                    '',
+                    'export function destroyVec3(a:Vec3): void {',
+                    '    delete a;',
+                    '}',
+                ]) + '\n',
+                usage: joinLines([
+                    "//WASM Compiled and exports can access by window.exports",
+                    "var v1 = exports.newVec3(1.0, 1.0, 1.5);",
+                    "var v2 = exports.newVec3(0.5, 2.5, 2.5);",
+                    "var v3 = exports.addVec3(v1,v2);",
+                    "console.log(vec3_to_string(v1))",
+                    "console.log(vec3_to_string(v2))",
+                    "console.log(vec3_to_string(v3))",
+                    "exports.destroyVec3(v1);",
+                    "exports.destroyVec3(v2);",
+                    "exports.destroyVec3(v3);",
+                ])
+            }
+        ];
+
+        function setSample(index) {
+            selectedSample = index;
+            input.value = samples[index].content;
+            compile();
+        }
+
+        samplesSelector.addEventListener('change', () => {
+            setSample(samplesSelector.selectedIndex);
+        });
+
+        samplesSelector.selectedIndex = selectedSample;
+
 
         function hexdump(bytes) {
             var text = '';
@@ -293,17 +378,12 @@
                         try {
                             WebAssembly.compile(compiled.output).then(function (compiled) {
                                 window.exports = new WebAssembly.Instance(compiled).exports;
+                                window.memory = exports.memory;
+                                window.data = new DataView(memory.buffer);
+                                window.array = new Uint8Array(memory.buffer);
+                                window.f32 = new Float32Array(memory.buffer);
                                 console.info("WASM Compiled and exports can access by window.exports");
-                                terminalContents = joinLines([
-                                    "//WASM Compiled and exports can access by window.exports",
-                                    "console.log(exports.addTwo1(-1, 1));",
-                                    "console.log(exports.addTwo2(1, 1));",
-                                    "console.log(exports.addTwo3(1.1, 2.5));",
-                                    "console.log(exports.addTwo4(0.5, 10.5));",
-                                    "//Not yet supported in MVP",
-                                    "//console.log(exports.addTwo5(-10,15));",
-                                    "//console.log(exports.addTwo6(2,2));",
-                                ]);
+                                terminalContents = samples[selectedSample].usage;
                                 terminal.textContent = terminalContents;
                                 output.style.borderColor = "#00ff00";
                             }).catch(function (e) {
@@ -411,7 +491,7 @@
                     clear.onclick = clearLog;
 
                     compiledJavaScript = compileJavaScript(exports, libs);
-                    input.value = example;
+                    input.value = samples[selectedSample].content;
                     input.selectionStart = input.selectionEnd = 0;
                     compile();
 
@@ -433,5 +513,9 @@
         console.log = logAppend;
         main();
     })();
+
+    function vec3_to_string(ptr) {
+        return `{x: ${data.getFloat32(ptr, true)},y: ${data.getFloat32(ptr + 4, true)},z: ${data.getFloat32(ptr + 8, true)}}`
+    }
 
 </script>
