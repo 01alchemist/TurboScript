@@ -9214,13 +9214,14 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
         execute: function () {
             Library = class Library {
                 static get(target) {
-                    let lib = stdlib.IO_readTextFile("../src/library/common/types.tbs") + "\n";
+                    let lib;
                     switch (target) {
                         case compiler_2.CompileTarget.WEBASSEMBLY:
+                            lib = stdlib.IO_readTextFile("../src/library/wasm/types.tbs") + "\n";
                             lib += stdlib.IO_readTextFile("../src/library/wasm/malloc.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
-                            lib += stdlib.IO_readTextFile("../src/library/turbo/runtime.tbs") + "\n";
+                            lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
                             return lib;
                     }
                 }

@@ -2,13 +2,14 @@ import {CompileTarget} from "../compiler";
 export class Library {
 
     static get(target: CompileTarget) {
-        let lib = stdlib.IO_readTextFile("../src/library/common/types.tbs") + "\n";
+        let lib;
         switch (target) {
             case CompileTarget.WEBASSEMBLY:
+                lib = stdlib.IO_readTextFile("../src/library/wasm/types.tbs") + "\n";
                 lib += stdlib.IO_readTextFile("../src/library/wasm/malloc.tbs") + "\n";
                 return lib;
             case CompileTarget.TURBO_JAVASCRIPT:
-                lib += stdlib.IO_readTextFile("../src/library/turbo/runtime.tbs") + "\n";
+                lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
                 return lib;
         }
     }

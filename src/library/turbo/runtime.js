@@ -1,4 +1,4 @@
-//part of asm module we have stdlib, foreign, buffer somewhere above this code
+//part of asm module, we have stdlib, foreign, buffer somewhere above this code
 var NULL = 0;
 var int8 = {SIZE: 1, ALIGN: 1, NAME: "int8"};
 var uint8 = {SIZE: 1, ALIGN: 1, NAME: "uint8"};
@@ -60,19 +60,37 @@ var _now = (typeof stdlib.performance != 'undefined' && typeof stdlib.performanc
 var _idToType = {};
 
 function malloc(nbytes, alignment) {
-    var p = internal_alloc(nbytes, alignment);
-    if (p == 0)
+    var ptr = internal_alloc(nbytes, alignment);
+    if (ptr == 0)
         throw new Error("Out of memory");
-    return p;
+    return ptr;
 }
-function free(p) {
-    //TODO
+function free(ptr) {
+    clearInuse(ptr);
+    if(firstFreeChunk == 0){
+        firstFreeChunk = ptr;
+    }
+
+    freeMemory = freeMemory + getChunkSize(ptr);
+
+    var chunkptr = ptr + 4;
+    if(lastFreeChunk > 0){
+        _mem_u32[chunkptr] = lastFreeChunk;//backward pointer to prev chunk
+        _mem_u32[lastFreeChunk] = ptr;//forward pointer to next chunk of prev chunk
+    }else{
+        _mem_u32[chunkptr] = 0;//no backward pointer, this is the first free chunk
+    }
+
+    _mem_u32[ptr] = 0;//no forward pointer
+
+    lastFreeChunk = ptr;
+    numFreeChunks = numFreeChunks + 1;
 }
-function identify(p) {
-    if (p == 0)
+function identify(ptr) {
+    if (ptr == 0)
         return null;
-    if (_idToType.hasOwnProperty(_mem_i32[p >> 2]))
-        return _idToType[_mem_i32[p >> 2]];
+    if (_idToType.hasOwnProperty(_mem_i32[ptr >> 2]))
+        return _idToType[_mem_i32[ptr >> 2]];
     return null;
 }
 function _badType(self) {
@@ -87,7 +105,7 @@ function _badType(self) {
 //
 // self is the base address for the Synchronic.
 // mem is the array to use for the value
-// idx is the index in mem of the value: (p+8)>>log2(mem.BYTES_PER_ELEMENT)
+// idx is the index in mem of the value: (ptr+8)>>log2(mem.BYTES_PER_ELEMENT)
 //
 // _synchronicLoad is just Atomics.load, expand it in-line.
 function _synchronicStore(self, mem, idx, value) {
@@ -290,12 +308,12 @@ function alloc_sab(nbytes, alignment) {
     }
 
     do {
-        var p = stdlib.Atomics.load(_mem_i32, 1);
-        var q = (p + (alignment - 1)) & ~(alignment - 1);
+        var ptr = stdlib.Atomics.load(_mem_i32, 1);
+        var q = (ptr + (alignment - 1)) & ~(alignment - 1);
         var top = q + nbytes;
         if (top >= _mem_i32[2])
             return 0;
-    } while (stdlib.Atomics.compareExchange(_mem_i32, 1, p, top) != p);
+    } while (stdlib.Atomics.compareExchange(_mem_i32, 1, ptr, top) != ptr);
 
     return q;
 }
@@ -303,13 +321,13 @@ function alloc_ab(nbytes, alignment) {
     nbytes = nbytes | 0;
     alignment = alignment | 0;
 
-    var p = _mem_i32[1] | 0;
-    p = ((p + (alignment - 1)) & ~(alignment - 1)) | 0;
-    var top = (p + nbytes) | 0;
+    var ptr = _mem_i32[1] | 0;
+    ptr = ((ptr + (alignment - 1)) & ~(alignment - 1)) | 0;
+    var top = (ptr + nbytes) | 0;
     if (top >= _mem_i32[2])
         return 0 | 0;
     _mem_i32[1] = top | 0;
-    return p | 0;
+    return ptr | 0;
 }
 
 __exports.getMemoryUsage = getMemoryUsage;
