@@ -19,10 +19,10 @@ function TurboModule(global, env, buffer) {
     var IS_MMAPPED = 0x2;
     var NON_MAIN_ARENA = 0x4;
     var SIZE_BITS = 0x7;//(PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA) | 0;
-    var firstFreeChunk = 0;
-    var lastFreeChunk = 0;
-    var numFreeChunks = 0;
-    var freeMemory = 0;
+    // var firstFreeChunk = 0;
+    // var lastFreeChunk = 0;
+    // var numFreeChunks = 0;
+    // var freeMemory = 0;
     //var internal_alloc = 0;
     
     // var _now = (typeof global.performance != 'undefined' && typeof global.performance.now == 'function' ?

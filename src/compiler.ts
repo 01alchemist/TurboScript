@@ -25,6 +25,7 @@ export enum CompileTarget {
     C,
     JAVASCRIPT,
     TURBO_JAVASCRIPT,
+    ASMJS,
     WEBASSEMBLY,
 }
 
@@ -67,6 +68,10 @@ export class Compiler {
 
         else if (target == CompileTarget.TURBO_JAVASCRIPT) {
             this.preprocessor.define("TURBO_JS", true);
+        }
+
+        else if (target == CompileTarget.ASMJS) {
+            this.preprocessor.define("ASM", true);
         }
 
         else if (target == CompileTarget.WEBASSEMBLY) {

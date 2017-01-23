@@ -11,6 +11,9 @@ export class Library {
             case CompileTarget.TURBO_JAVASCRIPT:
                 lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
                 return lib;
+            case CompileTarget.ASMJS:
+                lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
+                return lib;
         }
     }
 
