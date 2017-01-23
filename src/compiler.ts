@@ -38,6 +38,7 @@ export class Compiler {
     context: CheckContext;
     librarySource: Source;
     runtimeSource: string;
+    wrapperSource: string;
     outputName: string;
     outputWASM: ByteArray;
     outputJS: string;
@@ -53,6 +54,7 @@ export class Compiler {
         this.librarySource = this.addInput("<native>", Library.get(target));
         this.librarySource.isLibrary = true;
         this.runtimeSource = Library.getRuntime(target);
+        this.wrapperSource = Library.getWrapper(target);
         this.createGlobals();
 
         if (target == CompileTarget.C) {

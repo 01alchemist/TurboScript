@@ -5,17 +5,16 @@
     <title>Turbo test</title>
 </head>
 <body>
-<script src="../src/turbo-lib.js"></script>
+<!--<script src="../src/turbo-lib.js"></script>-->
 <script src="turbo-1.js"></script>
 <script>
-
+    var turbo = initTurbo(1024);
     log = console.log;
-    turbo.init(1024);
-    let v1 = turbo.Vector.new(1,1);
-    let v2 = new turbo.Vector3(1,1);
-    let v3 = turbo.Vector.add(v1,v2);
+    let v1 = turbo.exports.Vec3.new(1,1);
+    let v2 = new turbo.exports.Vector3(1,1);
+    let v3 = turbo.exports.Vec3.add_vec3(v1,v2);
 
-    console.log(JSON.parse(turbo.Vector.toString(v3)));
+    console.log(JSON.parse(turbo.exports.Vec3.toString(v3)));
 
     //WebAssembly
     /*async function init() {

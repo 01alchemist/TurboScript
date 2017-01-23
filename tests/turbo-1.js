@@ -1,105 +1,90 @@
-function TurboModule(stdlib, foreign, buffer) {
+function TurboModule(global, env, buffer) {
     "use asm";
-    var __exports = {};
-    //part of asm module, we have stdlib, foreign, buffer somewhere above this code
-    var NULL = 0;
-    var int8 = {SIZE: 1, ALIGN: 1, NAME: "int8"};
-    var uint8 = {SIZE: 1, ALIGN: 1, NAME: "uint8"};
-    var int16 = {SIZE: 2, ALIGN: 2, NAME: "int16"};
-    var uint16 = {SIZE: 2, ALIGN: 2, NAME: "uint16"};
-    var int32 = {SIZE: 4, ALIGN: 4, NAME: "int32"};
-    var uint32 = {SIZE: 4, ALIGN: 4, NAME: "uint32"};
-    var float32 = {SIZE: 4, ALIGN: 4, NAME: "float32"};
-    var float64 = {SIZE: 8, ALIGN: 8, NAME: "float64"};
-    var int32x4 = {SIZE: 16, ALIGN: 16, NAME: "int32x4"};
-    var float32x4 = {SIZE: 16, ALIGN: 16, NAME: "float32x4"};
-    var float64x2 = {SIZE: 16, ALIGN: 16, NAME: "float64x2"};
+    //part of asm module, we have global, foreign, buffer somewhere above this code
     
+    var HEAP8 = new global.Int8Array(buffer);
+    var HEAP16 = new global.Int16Array(buffer);
+    var HEAP32 = new global.Int32Array(buffer);
+    var HEAPU8 = new global.Uint8Array(buffer);
+    var HEAPU16 = new global.Uint16Array(buffer);
+    var HEAPU32 = new global.Uint32Array(buffer);
+    var HEAPF32 = new global.Float32Array(buffer);
+    var HEAPF64 = new global.Float64Array(buffer);
+    
+    var NULL = 0;
+    var STACKTOP=env.STACKTOP|0;
+    var STACK_MAX=env.STACK_MAX|0;
+    var PREV_INUSE = 0x1;
     var PREV_INUSE = 0x1;
     var IS_MMAPPED = 0x2;
     var NON_MAIN_ARENA = 0x4;
-    var SIZE_BITS = PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA;
+    var SIZE_BITS = 0x7;//(PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA) | 0;
+    var firstFreeChunk = 0;
+    var lastFreeChunk = 0;
+    var numFreeChunks = 0;
+    var freeMemory = 0;
+    //var internal_alloc = 0;
     
-    var internal_alloc = null;
-    
-    if (buffer.byteLength < (16 | 0)) {
-        throw new Error("The memory is too small even for metadata");
-    }
-    if (buffer instanceof stdlib.ArrayBuffer) {
-        internal_alloc = alloc_ab;
-    }
-    else if (buffer instanceof stdlib.SharedArrayBuffer) {
-        internal_alloc = alloc_sab;
-    }
-    else {
-        throw new stdlib.Error("Turbo can be initialized only on SharedArrayBuffer or ArrayBuffer");
-    }
-    var _mem_i8 = new stdlib.Int8Array(buffer, start, len);
-    var _mem_u8 = new stdlib.Uint8Array(buffer, start, len);
-    var _mem_i16 = new stdlib.Int16Array(buffer, start, len / 2);
-    var _mem_u16 = new stdlib.Uint16Array(buffer, start, len / 2);
-    var _mem_i32 = new stdlib.Int32Array(buffer, start, len / 4);
-    var _mem_u32 = new stdlib.Uint32Array(buffer, start, len / 4);
-    var _mem_f32 = new stdlib.Float32Array(buffer, start, len / 4);
-    var _mem_f64 = new stdlib.Float64Array(buffer, start, len / 8);
-    
-    _mem_i32[2] = buffer.byteLength;
-    if (buffer instanceof stdlib.ArrayBuffer) {
-        _mem_i32[1] = 16 | 0;
-    }
-    else if (buffer instanceof stdlib.SharedArrayBuffer) {
-        stdlib.Atomics.store(_mem_i32, 1 | 0, 16 | 0);
-    }
-    
-    var firstFreeChunk = 0 | 0;
-    var lastFreeChunk = 0 | 0;
-    var numFreeChunks = 0 | 0;
-    var freeMemory = 0 | 0;
-    
-    var _now = (typeof stdlib.performance != 'undefined' && typeof stdlib.performance.now == 'function' ?
-        stdlib.performance.now.bind(stdlib.performance) :
-        stdlib.Date.now.bind(stdlib.Date));
+    // var _now = (typeof global.performance != 'undefined' && typeof global.performance.now == 'function' ?
+    //     global.performance.now.bind(global.performance) :
+    //     global.Date.now.bind(global.Date));
+    // var _now = global.performance;
     // Map of class type IDs to type objects.
-    var _idToType = {};
+    var _idToType = 8;
+    
+    function init() {
+        HEAP32[2 >> 2] = buffer.byteLength | 0;
+    
+        // if (global.isShared) {
+        //     internal_alloc = alloc_sab;
+        //     global.Atomics.store(HEAP32, 1 | 0, 16 | 0);
+        // }
+        // else {
+        //     internal_alloc = alloc_ab;
+        //     HEAP32[1>>2] = 16 | 0;
+        // }
+    }
+    
     
     function malloc(nbytes, alignment) {
-        var ptr = internal_alloc(nbytes, alignment);
+        nbytes |= 0;
+        alignment |= 0;
+        var ptr = alloc_sab(nbytes, alignment);
         if (ptr == 0)
             throw new Error("Out of memory");
-        return ptr;
+        return ptr|0;
     }
     function free(ptr) {
+        ptr |= 0;
         clearInuse(ptr);
-        if(firstFreeChunk == 0){
+        if (firstFreeChunk == 0) {
             firstFreeChunk = ptr;
         }
     
         freeMemory = freeMemory + getChunkSize(ptr);
     
         var chunkptr = ptr + 4;
-        if(lastFreeChunk > 0){
-            _mem_u32[chunkptr] = lastFreeChunk;//backward pointer to prev chunk
-            _mem_u32[lastFreeChunk] = ptr;//forward pointer to next chunk of prev chunk
-        }else{
-            _mem_u32[chunkptr] = 0;//no backward pointer, this is the first free chunk
+        if (lastFreeChunk > 0) {
+            HEAPU32[chunkptr>>2] = lastFreeChunk;//backward pointer to prev chunk
+            HEAPU32[lastFreeChunk>>2] = ptr;//forward pointer to next chunk of prev chunk
+        } else {
+            HEAPU32[chunkptr>>2] = 0;//no backward pointer, this is the first free chunk
         }
     
-        _mem_u32[ptr] = 0;//no forward pointer
+        HEAPU32[ptr>>2] = 0;//no forward pointer
     
         lastFreeChunk = ptr;
         numFreeChunks = numFreeChunks + 1;
     }
-    function identify(ptr) {
-        if (ptr == 0)
-            return null;
-        if (_idToType.hasOwnProperty(_mem_i32[ptr >> 2]))
-            return _idToType[_mem_i32[ptr >> 2]];
-        return null;
-    }
-    function _badType(self) {
-        var t = identify(self);
-        return new stdlib.Error("Observed type: " + (t ? t.NAME : "*invalid*") + ", address=" + self);
-    }
+    // function identify(ptr) {
+    //     if (ptr == 0)
+    //         return null;
+    //     return _idToType[HEAP32[ptr >> 2]];
+    // }
+    // function _badType(self) {
+    //     var t = identify(self);
+    //     return new global.Error("Observed type: " + (t ? t.NAME : "*invalid*") + ", address=" + self);
+    // }
     // Synchronic layout is 8 bytes (2 x int32) of metadata followed by
     // the type-specific payload.  The two int32 words are the number
     // of waiters and the wait word (generation count).
@@ -111,46 +96,46 @@ function TurboModule(stdlib, foreign, buffer) {
     // idx is the index in mem of the value: (ptr+8)>>log2(mem.BYTES_PER_ELEMENT)
     //
     // _synchronicLoad is just Atomics.load, expand it in-line.
-    function _synchronicStore(self, mem, idx, value) {
-        stdlib.Atomics.store(mem, idx, value);
+    /*function _synchronicStore(self, mem, idx, value) {
+        global.Atomics.store(mem, idx, value);
         _notify(self);
         return value;
     }
     function _synchronicCompareExchange(self, mem, idx, oldval, newval) {
-        var v = stdlib.Atomics.compareExchange(mem, idx, oldval, newval);
+        var v = global.Atomics.compareExchange(mem, idx, oldval, newval);
         if (v == oldval)
             _notify(self);
         return v;
     }
     function _synchronicAdd(self, mem, idx, value) {
-        var v = stdlib.Atomics.add(mem, idx, value);
+        var v = global.Atomics.add(mem, idx, value);
         _notify(self);
         return v;
     }
     function _synchronicSub(self, mem, idx, value) {
-        var v = stdlib.Atomics.sub(mem, idx, value);
+        var v = global.Atomics.sub(mem, idx, value);
         _notify(self);
         return v;
     }
     function _synchronicAnd(self, mem, idx, value) {
-        var v = stdlib.Atomics.and(mem, idx, value);
+        var v = global.Atomics.and(mem, idx, value);
         _notify(self);
         return v;
     }
     function _synchronicOr(self, mem, idx, value) {
-        var v = stdlib.Atomics.or(mem, idx, value);
+        var v = global.Atomics.or(mem, idx, value);
         _notify(self);
         return v;
     }
     function _synchronicXor(self, mem, idx, value) {
-        var v = stdlib.Atomics.xor(mem, idx, value);
+        var v = global.Atomics.xor(mem, idx, value);
         _notify(self);
         return v;
     }
     function _synchronicLoadWhenNotEqual(self, mem, idx, value) {
         for (; ;) {
-            var tag = stdlib.Atomics.load(_mem_i32, (self + 4) >> 2);
-            var v = stdlib.Atomics.load(mem, idx);
+            var tag = global.Atomics.load(HEAP32, (self + 4) >> 2);
+            var v = global.Atomics.load(mem, idx);
             if (v !== value)
                 break;
             _waitForUpdate(self, tag, Number.POSITIVE_INFINITY);
@@ -160,8 +145,8 @@ function TurboModule(stdlib, foreign, buffer) {
     
     function _synchronicLoadWhenEqual(self, mem, idx, value) {
         for (; ;) {
-            var tag = stdlib.Atomics.load(_mem_i32, (self + 4) >> 2);
-            var v = stdlib.Atomics.load(mem, idx);
+            var tag = global.Atomics.load(HEAP32, (self + 4) >> 2);
+            var v = global.Atomics.load(mem, idx);
             if (v === value)
                 break;
             _waitForUpdate(self, tag, Number.POSITIVE_INFINITY);
@@ -169,15 +154,15 @@ function TurboModule(stdlib, foreign, buffer) {
         return v;
     }
     function _synchronicExpectUpdate(self, mem, idx, value, timeout) {
-        var now = _now();
+        var now = global.performance();
         var limit = now + timeout;
         for (; ;) {
-            var tag = stdlib.Atomics.load(_mem_i32, (self + 4) >> 2);
-            var v = stdlib.Atomics.load(mem, idx);
+            var tag = global.Atomics.load(HEAP32, (self + 4) >> 2);
+            var v = global.Atomics.load(mem, idx);
             if (v !== value || now >= limit)
                 break;
             _waitForUpdate(self, tag, limit - now);
-            now = _now();
+            now = global.performance();
         }
     }
     function _waitForUpdate(self, tag, timeout) {
@@ -210,41 +195,41 @@ function TurboModule(stdlib, foreign, buffer) {
         var i = 10000;
         do {
             // May want this to be a relaxed load, though on x86 it won't matter.
-            if (stdlib.Atomics.load(_mem_i32, (self + 4) >> 2) != tag)
+            if (global.Atomics.load(HEAP32, (self + 4) >> 2) != tag)
                 return;
         } while (--i > 0);
-        stdlib.Atomics.add(_mem_i32, self >> 2, 1);
-        stdlib.Atomics.wait(_mem_i32, (self + 4) >> 2, tag, timeout);
-        stdlib.Atomics.sub(_mem_i32, self >> 2, 1);
+        global.Atomics.add(HEAP32, self >> 2, 1);
+        global.Atomics.wait(HEAP32, (self + 4) >> 2, tag, timeout);
+        global.Atomics.sub(HEAP32, self >> 2, 1);
     }
     function _notify(self) {
-        stdlib.Atomics.add(_mem_i32, (self + 4) >> 2, 1);
+        global.Atomics.add(HEAP32, (self + 4) >> 2, 1);
         // Would it be appropriate & better to wake n waiters, where n
         // is the number loaded in the load()?  I almost think so,
         // since our futexes are fair.
-        if (stdlib.Atomics.load(_mem_i32, self >> 2) > 0)
-            stdlib.Atomics.wake(_mem_i32, (self + 4) >> 2, Number.POSITIVE_INFINITY);
-    }
+        if (global.Atomics.load(HEAP32, self >> 2) > 0)
+            global.Atomics.wake(HEAP32, (self + 4) >> 2, Number.POSITIVE_INFINITY);
+    }*/
     
     function getMemoryUsage() {
-        var top = stdlib.Atomics.load(_mem_i32, 1);
+        var top = global.Atomics.load(HEAP32, 1);
         top -= freeMemory;
         var usage = top / (1024 * 1024);
         var mb = Math.fround(usage);
         return (mb == 0 ? usage : mb) + "MB";
     }
-    function getFreeChunk(nbytes){
+    function getFreeChunk(nbytes) {
         nbytes = nbytes | 0;
-        if(numFreeChunks > (0|0)){
+        if (numFreeChunks > (0 | 0)) {
             var freeChunk = findChunk(nbytes);
-            if(freeChunk > (0|0)){
-                if(freeChunk == firstFreeChunk){
+            if (freeChunk > (0 | 0)) {
+                if (freeChunk == firstFreeChunk) {
                     firstFreeChunk = nextFree(freeChunk);
                 }
-                if(freeChunk == lastFreeChunk){
-                    lastFreeChunk = (0|0);
+                if (freeChunk == lastFreeChunk) {
+                    lastFreeChunk = (0 | 0);
                 }
-                numFreeChunks = numFreeChunks - (1|0);
+                numFreeChunks = numFreeChunks - (1 | 0);
                 setInuse(freeChunk);
                 freeMemory = freeMemory - getChunkSize(freeChunk);
                 return freeChunk;
@@ -252,52 +237,52 @@ function TurboModule(stdlib, foreign, buffer) {
         }
         return 0 | 0;
     }
-    function findChunk(nbytes){
+    function findChunk(nbytes) {
         nbytes = nbytes | 0;
         var chunk = firstFreeChunk;
-        while(chunk != 0){
-            if(getChunkSize(chunk) == nbytes){
+        while (chunk != 0) {
+            if (getChunkSize(chunk) == nbytes) {
                 return chunk;
             }
-            chunk = _mem_u32[chunk];
+            chunk = HEAPU32[chunk>>2];
         }
         return null;
     }
-    export function prevFree(ptr){
-        return _mem_u32[ptr + 4];
+    function prevFree(ptr) {
+        return HEAPU32[(ptr + 4)>>2];
     }
-    export function nextFree(ptr){
-        return _mem_u32[ptr];
+    function nextFree(ptr) {
+        return HEAPU32[ptr>>2];
     }
     /* Set size at head, without disturbing its use bit */
-    function setHeadSize(ptr, s){
-        _mem_u32[ptr] = (_mem_u32[ptr] & SIZE_BITS) | s;
+    function setHeadSize(ptr, s) {
+        HEAPU32[ptr>>2] = (HEAPU32[ptr>>2] & SIZE_BITS) | s;
     }
     
     /* Set size/use field */
     function setHead(ptr, s) {
-       _mem_u32[ptr] = s;
+        HEAPU32[ptr>>2] = s;
     }
     
     /* Set size at footer (only when chunk is not in use) */
     function setFoot(ptr, s) {
-        _mem_u32[ptr + s] =  s;
+        HEAPU32[(ptr + s)>>2] = s;
     }
     
     function getPrevInuse(ptr) {
-        return _mem_u32[ptr - 8] & (PREV_INUSE);
+        return HEAPU32[(ptr - 8)>>2] & (PREV_INUSE);
     }
-    function setInuse(ptr){
-        _mem_u32[ptr - 4] |= PREV_INUSE;
+    function setInuse(ptr) {
+        HEAPU32[(ptr - 4)>>2] |= PREV_INUSE;
     }
-    function getInuse(ptr){
-        return _mem_u32[ptr - 4] & PREV_INUSE;
+    function getInuse(ptr) {
+        return HEAPU32[(ptr - 4)>>2] & PREV_INUSE;
     }
-    function clearInuse(ptr){
-        _mem_u32[ptr - 4] &= ~PREV_INUSE;
+    function clearInuse(ptr) {
+        HEAPU32[(ptr - 4)>>2] &= ~PREV_INUSE;
     }
-    function getChunkSize(ptr){
-        return _mem_u32[ptr - 4] & ~(PREV_INUSE);
+    function getChunkSize(ptr) {
+        return HEAPU32[(ptr - 4)>>2] & ~(PREV_INUSE);
     }
     
     function alloc_sab(nbytes, alignment) {
@@ -311,12 +296,12 @@ function TurboModule(stdlib, foreign, buffer) {
         }
     
         do {
-            var ptr = stdlib.Atomics.load(_mem_i32, 1);
+            var ptr = global.Atomics.load(HEAP32, 1);
             var q = (ptr + (alignment - 1)) & ~(alignment - 1);
             var top = q + nbytes;
-            if (top >= _mem_i32[2])
+            if (top >= HEAP32[2>>2])
                 return 0;
-        } while (stdlib.Atomics.compareExchange(_mem_i32, 1, ptr, top) != ptr);
+        } while (global.Atomics.compareExchange(HEAP32, 1, ptr, top) != ptr);
     
         return q;
     }
@@ -324,161 +309,37 @@ function TurboModule(stdlib, foreign, buffer) {
         nbytes = nbytes | 0;
         alignment = alignment | 0;
     
-        var ptr = _mem_i32[1] | 0;
+        var ptr = HEAP32[1>>2] | 0;
         ptr = ((ptr + (alignment - 1)) & ~(alignment - 1)) | 0;
         var top = (ptr + nbytes) | 0;
-        if (top >= _mem_i32[2])
+        if (top >= HEAP32[2>>2])
             return 0 | 0;
-        _mem_i32[1] = top | 0;
+        HEAP32[1>>2] = top | 0;
         return ptr | 0;
     }
-    
-    __exports.getMemoryUsage = getMemoryUsage;
-    class Vector3 {
-        constructor(x = 0, y = 0, z = 0) {
-            this.y = y;
-            this.x = x;
-            this.z = z;
-        }
-        
-        add(b) {
-            let a = 0;
-            let c = new Vector3(a,a,a);
-            c.x = this.x + b.x;
-            c.y = this.y + b.y;
-            c.z = this.z + b.z;
-            return c;
-        }
+    return {
+       getMemoryUsage:getMemoryUsage
     }
-    __exports.Vector3 = Vector3;
-    
-    let Base = {};
-    Base.NAME = "Base";
-    Base.SIZE = 4;
-    Base.ALIGN = 4;
-    Base.CLSID = 17918;
-    unsafe._idToType[Base.CLSID] = Base;
-    
-    Base.add_impl = function(ptr, b) {
-        return 0;
-    };
-    __exports.Base = Base;
-    
-    let Vec3 = {};
-    Vec3.NAME = "Vec3";
-    Vec3.SIZE = 16;
-    Vec3.ALIGN = 4;
-    Vec3.CLSID = 27991;
-    Vec3.BASE = "Base";
-    unsafe._idToType[Vec3.CLSID] = Vec3;
-    
-    Vec3.new = function(x = 0, y = 0, z = 0) {
-        let ptr = unsafe.alloc(Vec3.SIZE, Vec3.ALIGN);
-        unsafe._mem_i32[ptr >> 2] = Vec3.CLSID;
-        Vec3.init_mem(ptr, x, y, z);
-        return ptr;
-    };
-    
-    Vec3.init_mem = function(ptr, x, y, z) {
-        unsafe._mem_f32[(ptr + 8) >> 2] = x;
-        unsafe._mem_f32[(ptr + 12) >> 2] = y;
-        unsafe._mem_f32[(ptr + 16) >> 2] = z;
-        return ptr;
-    };
-    
-    Vec3.add_impl = function(ptr, b) {
-        let c = new Vector3();
-        c.x = unsafe._mem_f32[(ptr + 8) >> 2] + unsafe._mem_f32[(b + 8) >> 2];
-        c.y = unsafe._mem_f32[(ptr + 12) >> 2] + unsafe._mem_f32[(b + 12) >> 2];
-        c.z = unsafe._mem_f32[(ptr + 16) >> 2] + unsafe._mem_f32[(b + 16) >> 2];
-        return c;
-    };
-    
-    Vec3.add_vec3 = function(ptr, b) {
-        let c = new Vector3();
-        c.x = unsafe._mem_f32[(ptr + 8) >> 2] + b.x;
-        c.y = unsafe._mem_f32[(ptr + 12) >> 2] + b.y;
-        c.z = unsafe._mem_f32[(ptr + 16) >> 2] + b.z;
-        return c;
-    };
-    
-    Vec3.toString = function(ptr) {
-        let x = unsafe._mem_f32[(ptr + 8) >> 2];
-        let y = unsafe._mem_f32[(ptr + 12) >> 2];
-        return `{"x":${x},"y":${y}}`;
-    };
-    __exports.Vec3 = Vec3;
-    
-    let Shape = {};
-    Shape.NAME = "Shape";
-    Shape.SIZE = 8;
-    Shape.ALIGN = 4;
-    Shape.CLSID = 255446;
-    unsafe._idToType[Shape.CLSID] = Shape;
-    
-    Shape.new = function(v1) {
-        let ptr = unsafe.alloc(Shape.SIZE, Shape.ALIGN);
-        unsafe._mem_i32[ptr >> 2] = Shape.CLSID;
-        Shape.init_mem(ptr, v1);
-        return ptr;
-    };
-    
-    Shape.init_mem = function(ptr, v1) {
-        unsafe._mem_i32[(ptr + 4) >> 2] = v1 === 0 ? Vec3.new() : v1;
-        return ptr;
-    };
-    __exports.Shape = Shape;
-    
-    let Triangle = {};
-    Triangle.NAME = "Triangle";
-    Triangle.SIZE = 8;
-    Triangle.ALIGN = 4;
-    Triangle.CLSID = 182249270;
-    unsafe._idToType[Triangle.CLSID] = Triangle;
-    
-    Triangle.new = function(v1) {
-        let ptr = unsafe.alloc(Triangle.SIZE, Triangle.ALIGN);
-        unsafe._mem_i32[ptr >> 2] = Triangle.CLSID;
-        Triangle.init_mem(ptr, v1);
-        return ptr;
-    };
-    
-    Triangle.init_mem = function(ptr, v1) {
-        unsafe._mem_i32[(ptr + 4) >> 2] = v1 === 0 ? Vec3.new() : v1;
-        return ptr;
-    };
-    
-    Triangle.normal = function(ptr) {
-        let b = Vec3.new();
-        let c = Vec3.add(v1 , b);
-        return c;
-    };
-    
-    Triangle.toString = function(ptr) {
-        let str = Vec3.toString(v1);
-        return `{"v1":${str}}`;
-    };
-    __exports.Triangle = Triangle;
-    
-    //FIXME: Virtuals should emit next to base class virtual function
-    
-    Base.add = function (ptr,b) {
-        switch (unsafe._mem_i32[ptr >> 2]) {
-            case Base.CLSID:
-                return Base.add_impl(ptr,b);
-            case Vec3.CLSID:
-                return Vec3.add_impl(ptr,b);
-            default:
-                throw unsafe._badType(ptr);
-        }
-    };
 }
-    function initTurbo(){
-       var heap = 
-       var turboModule = TurboModule(
-           typeof global !== 'undefined' ? global : window,
-           typeof foreign !== 'undefined' ? foreign : null,
-           heap
-       );
+function TurboWrapper(exports, buffer) {
+    return {
+        exports: exports,
+        RAW_MEMORY: buffer
     }
-    
+}
+function initTurbo(MB) {
+    var buffer = new SharedArrayBuffer(MB * 1024 * 1024);
+
+    if (buffer.byteLength < 16) {
+        throw new Error("The memory is too small even for metadata");
+    }
+
+    return TurboWrapper(TurboModule(
+        typeof global !== 'undefined' ? global : window,
+        typeof env !== 'undefined' ? env : {
+                STACKTOP:8,
+                STACK_MAX:8
+            },
+        buffer
+    ), buffer);
+}

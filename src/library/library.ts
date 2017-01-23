@@ -23,4 +23,13 @@ export class Library {
         }
     }
 
+    static getWrapper(target):string{
+        switch (target) {
+            case CompileTarget.TURBO_JAVASCRIPT:
+                return stdlib.IO_readTextFile("../src/library/turbo/wrapper.js") + "\n";
+            default:
+                return "";
+        }
+    }
+
 }

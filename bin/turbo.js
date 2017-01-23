@@ -5389,36 +5389,32 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
         let result = new TurboJsResult();
         result.context = compiler.context;
         result.code = code;
-        code.append("function TurboModule(stdlib, foreign, buffer) {\n");
+        code.append("function TurboModule(global, env, buffer) {\n");
         code.emitIndent(1);
         code.append('"use asm";\n');
-        code.append("var __exports = {};\n");
         code.append(compiler.runtimeSource);
-        // code.append("let turbo = {};\n");
-        // code.append("__exports.turbo = turbo;\n");
-        //code.append("__exports = __exports.turbo;\n");
-        result.emitStatements(compiler.global.firstChild);
-        result.emitVirtuals();
-        if (result.foundMultiply) {
-            code.append("\n");
-            code.append("let __imul = Math.imul || function(a, b) {\n");
-            code.append("return (a * (b >>> 16) << 16) + a * (b & 65535) | 0;\n");
-            code.append("};\n");
-        }
+        // result.emitStatements(compiler.global.firstChild);
+        // result.emitVirtuals();
+        // if (result.foundMultiply) {
+        //     code.append("\n");
+        //     code.append("let __imul = Math.imul || function(a, b) {\n");
+        //     code.append("return (a * (b >>> 16) << 16) + a * (b & 65535) | 0;\n");
+        //     code.append("};\n");
+        // }
+        code.append("return {\n");
+        code.append(`   getMemoryUsage:getMemoryUsage${exportedFunctions.length > 0 ? "," : ""}\n`);
+        exportedFunctions.forEach((name, index) => {
+            code.append(`   ${name}:${name}${index < exportedFunctions.length - 1 ? "," : ""}\n`);
+        });
+        code.append("}\n");
+        code.indent -= 1;
         code.clearIndent(1);
         code.append("}\n");
-        code.append("function initTurbo(){\n");
-        code.append("   var heap = \n");
-        code.append("   var turboModule = TurboModule(\n");
-        code.append("       typeof global !== 'undefined' ? global : window,\n");
-        code.append("       typeof foreign !== 'undefined' ? foreign : null,\n");
-        code.append("       heap\n");
-        code.append("   );\n");
-        code.append("}\n");
+        code.append(compiler.wrapperSource);
         compiler.outputJS = code.finish();
     }
     exports_10("turboJsEmit", turboJsEmit);
-    var stringbuilder_7, node_5, parser_4, js_1, symbol_5, turboJsOptimiztion, classMap, virtualMap, currentClass, turboTargetPointer, TurboJsResult;
+    var stringbuilder_7, node_5, parser_4, js_1, symbol_5, turboJsOptimiztion, classMap, virtualMap, currentClass, turboTargetPointer, namespace, exportedFunctions, TurboJsResult;
     return {
         setters: [
             function (stringbuilder_7_1) {
@@ -5441,6 +5437,8 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
             turboJsOptimiztion = 0;
             classMap = new Map();
             virtualMap = new Map();
+            namespace = "";
+            exportedFunctions = [];
             TurboJsResult = class TurboJsResult {
                 emitNewlineBefore(node) {
                     if (this.previousNode != null && (!node_5.isCompactNodeKind(this.previousNode.kind) || !node_5.isCompactNodeKind(node.kind))) {
@@ -5534,7 +5532,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                     if (node.kind == node_5.NodeKind.NAME) {
                         let symbol = node.symbol;
                         if (symbol.kind == symbol_5.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                            this.code.append("stdlib.");
+                            this.code.append("global.");
                         }
                         this.emitSymbolName(symbol);
                     }
@@ -5657,12 +5655,12 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                                 //check if
                                 if (node.parent.kind == node_5.NodeKind.DOT) {
                                     //store the variable pointer, we need to move it as function argument
-                                    turboTargetPointer = `unsafe.${memory}[(${ref} + ${offset}) >> ${shift}]`;
+                                    turboTargetPointer = `${namespace}${memory}[(${ref} + ${offset}) >> ${shift}]`;
                                     //emit class name for static call
                                     this.code.append(`${resolvedNode.symbol.name}`);
                                 }
                                 else {
-                                    this.code.append(`unsafe.${memory}[(${ref} + ${offset}) >> ${shift}]`);
+                                    this.code.append(`${namespace}${memory}[(${ref} + ${offset}) >> ${shift}]`);
                                 }
                             }
                             else if (node.symbol.kind == symbol_5.SymbolKind.FUNCTION_INSTANCE) {
@@ -5730,7 +5728,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                         let type = node.newType();
                         if (resolvedNode.isDeclareOrTurbo()) {
                             this.emitExpression(type, parser_4.Precedence.UNARY_POSTFIX);
-                            this.code.append(".new");
+                            this.code.append("_new");
                         }
                         else {
                             this.code.append("new ");
@@ -5863,7 +5861,9 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                     }
                 }
                 emitSymbolName(symbol) {
-                    this.code.append(symbol.rename != null ? symbol.rename : symbol.name);
+                    let name = symbol.rename != null ? symbol.rename : symbol.name;
+                    this.code.append(name);
+                    return name;
                 }
                 emitStatement(node) {
                     if (node.kind == node_5.NodeKind.EXTENDS) {
@@ -5881,15 +5881,13 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                             this.emitNewlineBefore(node);
                             if (isTurbo) {
                                 //Emit class object
-                                this.code.append(`let ${classDef.name} = {};\n`);
-                                this.code.append(`${classDef.name}.NAME = "${classDef.name}";\n`);
-                                this.code.append(`${classDef.name}.SIZE = ${classDef.size};\n`);
-                                this.code.append(`${classDef.name}.ALIGN = ${classDef.align};\n`);
-                                this.code.append(`${classDef.name}.CLSID = ${classDef.clsid};\n`);
+                                // this.code.append(`let ${classDef.name} = {};\n`);
+                                // this.code.append(`var ${classDef.name}_NAME = "${classDef.name}";\n`);
+                                this.code.append(`var ${classDef.name}_SIZE = ${classDef.size};\n`);
+                                this.code.append(`var ${classDef.name}_ALIGN = ${classDef.align};\n`);
+                                this.code.append(`var ${classDef.name}_CLSID = ${classDef.clsid};\n`);
                                 if (classDef.base) {
-                                    this.code.append(`${classDef.name}.BASE = "${classDef.base}";\n`);
                                 }
-                                this.code.append(`unsafe._idToType[${classDef.name}.CLSID] = ${classDef.name};\n`);
                             }
                             else {
                                 this.code.append(`class ${classDef.name} {`);
@@ -5913,7 +5911,8 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                             this.code.append("}\n");
                         }
                         if (node.isExport()) {
-                            this.code.append(`__exports.${classDef.name} = ${classDef.name};\n`);
+                            // this.code.append(`${classDef.name} = ${classDef.name};\n`);
+                            exportedFunctions.push(classDef.name);
                         }
                     }
                     else if (node.kind == node_5.NodeKind.FUNCTION) {
@@ -5928,23 +5927,23 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                         let isTurbo = node.parent.isTurbo();
                         if (symbol.kind == symbol_5.SymbolKind.FUNCTION_INSTANCE) {
                             if (isConstructor && isTurbo) {
+                                this.code.append("function ");
                                 this.emitSymbolName(symbol.parent());
-                                this.code.append(".new");
-                                this.code.append(" = function");
-                                needsSemicolon = true;
+                                this.code.append("_new");
+                                needsSemicolon = false;
                             }
                             else {
                                 if (isTurbo) {
+                                    this.code.append("function ");
                                     this.emitSymbolName(symbol.parent());
-                                    this.code.append(".");
+                                    this.code.append("_");
                                     if (node.isVirtual()) {
                                         this.code.append(symbol.name + "_impl");
                                     }
                                     else {
                                         this.emitSymbolName(symbol);
                                     }
-                                    this.code.append(" = function");
-                                    needsSemicolon = true;
+                                    needsSemicolon = false;
                                 }
                                 else {
                                     if (node.isStatic()) {
@@ -5999,13 +5998,13 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                         let classDef = classMap.get(parentName);
                         if (isConstructor && isTurbo) {
                             this.code.append("{\n", 1);
-                            this.code.append(`let ptr = unsafe.alloc(${parentName}.SIZE, ${parentName}.ALIGN);\n`);
-                            this.code.append(`unsafe._mem_i32[ptr >> 2] = ${classDef.name}.CLSID;\n`);
-                            this.code.append(`${parentName}.init_mem(ptr, `);
+                            this.code.append(`let ptr = ${namespace}malloc(${parentName}.SIZE, ${parentName}.ALIGN);\n`);
+                            this.code.append(`${namespace}_mem_i32[ptr >> 2] = ${classDef.name}.CLSID;\n`);
+                            this.code.append(`${parentName}_init_mem(ptr, `);
                             this.code.append(`${signature});\n`);
                             this.code.append("return ptr;\n", -1);
-                            this.code.append("};\n\n");
-                            this.code.append(`${classDef.name}.init_mem = function(ptr, `);
+                            this.code.append("}\n\n");
+                            this.code.append(`function ${classDef.name}_init_mem(ptr, `);
                             this.code.append(`${signature}) {\n`, 1);
                         }
                         if (node.isVirtual()) {
@@ -6022,10 +6021,9 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                             this.code.append("}");
                             this.code.indent -= 1;
                         }
-                        this.code.append(needsSemicolon ? ";\n" : "\n");
+                        // this.code.append(needsSemicolon ? ";\n" : "\n");
                         if (node.isExport()) {
-                            this.code.append("__exports.");
-                            this.emitSymbolName(symbol);
+                            exportedFunctions.push(this.emitSymbolName(symbol));
                             this.code.append(" = ");
                             this.emitSymbolName(symbol);
                             this.code.append(";\n");
@@ -6127,8 +6125,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                     else if (node.kind == node_5.NodeKind.ENUM) {
                         if (node.isExport()) {
                             this.emitNewlineBefore(node);
-                            this.code.append("__exports.");
-                            this.emitSymbolName(node.symbol);
+                            exportedFunctions.push(this.emitSymbolName(node.symbol));
                             this.code.append(" = {\n");
                             this.code.indent += 1;
                             // Emit enum values
@@ -6196,26 +6193,26 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                     this.code.append("//FIXME: Virtuals should emit next to base class virtual function\n");
                     virtualMap.forEach((virtual, virtualName) => {
                         this.code.append("\n");
-                        this.code.append(`${virtual.name} = function (${virtual.signature}) {\n`, 1);
-                        this.code.append("switch (unsafe._mem_i32[ptr >> 2]) {\n", 1);
+                        this.code.append(`function ${virtual.name}(${virtual.signature}) {\n`, 1);
+                        this.code.append(`switch (${namespace}_mem_i32[ptr >> 2]) {\n`, 1);
                         for (let impl of virtual.functions) {
-                            this.code.append(`case ${impl.parent}.CLSID:\n`, 1);
-                            this.code.append(`return ${impl.parent}.${impl.name}_impl(${virtual.signature});\n`);
+                            this.code.append(`case ${impl.parent}_CLSID:\n`, 1);
+                            this.code.append(`return ${impl.parent}_${impl.name}_impl(${virtual.signature});\n`);
                             this.code.clearIndent(1);
                             this.code.indent -= 1;
                         }
                         this.code.append("default:\n", 1);
-                        this.code.append("throw unsafe._badType(ptr);\n");
+                        this.code.append(`throw ${namespace}_badType(ptr);\n`);
                         this.code.indent -= 2;
                         this.code.clearIndent(2);
                         this.code.append("}\n");
                         this.code.indent -= 1;
                         this.code.clearIndent(1);
-                        this.code.append("};\n");
+                        this.code.append("}\n");
                         // for (let virtual of vtable) {
                         //     let signature = virtual.signature;
                         //     this.code.append(`${virtual.name} = function (ptr, ${signature}) {\n`);
-                        //     this.code.append("        switch (unsafe._mem_i32[ptr >> 2]) {\n");
+                        //     this.code.append("        switch (${namespace}_mem_i32[ptr >> 2]) {\n");
                         //     let kv = virtual.reverseCases.keysValues();
                         //     for (let [name,cases]=kv.next(); name; [name, cases] = kv.next()) {
                         //         for (let c of cases) {
@@ -6226,14 +6223,14 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                         //     this.code.append("      default:");
                         //     this.code.append("      " + (virtual.default_ ?
                         //             `return ${virtual.default_}(ptr ${signature})` :
-                        //             "throw unsafe._badType(ptr)") + ";");
+                        //             "throw ${namespace}_badType(ptr)") + ";");
                         //     this.code.append("  }");
                         //     this.code.append("}");
                         // }
                     });
                 }
                 updateVirtualTable(node, chunkIndex, baseClassName, signature) {
-                    let virtualName = baseClassName ? `${baseClassName}.${node.stringValue}` : `${node.parent.stringValue}.${node.stringValue}`;
+                    let virtualName = baseClassName ? `${baseClassName}_${node.stringValue}` : `${node.parent.stringValue}_${node.stringValue}`;
                     let virtual = virtualMap.get(virtualName);
                     if (!virtual) {
                         virtual = {
@@ -9233,6 +9230,14 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
                             return "";
                     }
                 }
+                static getWrapper(target) {
+                    switch (target) {
+                        case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
+                            return stdlib.IO_readTextFile("../src/library/turbo/wrapper.js") + "\n";
+                        default:
+                            return "";
+                    }
+                }
             };
             exports_18("Library", Library);
         }
@@ -9321,6 +9326,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     this.librarySource = this.addInput("<native>", library_1.Library.get(target));
                     this.librarySource.isLibrary = true;
                     this.runtimeSource = library_1.Library.getRuntime(target);
+                    this.wrapperSource = library_1.Library.getWrapper(target);
                     this.createGlobals();
                     if (target == CompileTarget.C) {
                         this.preprocessor.define("C", true);

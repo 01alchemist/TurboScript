@@ -1,6 +1,7 @@
 declare function log(v: string): void;
 //declare function unsafe():void;
 
+@unsafe
 export class Vector3{
     x: float32;
     y: float32;
