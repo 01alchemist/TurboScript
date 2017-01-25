@@ -16,6 +16,8 @@ import {libraryTurbo} from "./libraryturbo";
 import {libraryWasm} from "./librarywasm";
 import {libraryDummy} from "./librarydummy";
 import {Library} from "./library/library";
+import {asmEmit} from "./asmjs";
+import {turboASMJsEmit} from "./turboasmjs";
 /**
  * Author: Nidin Vinayakan
  */
@@ -25,6 +27,7 @@ export enum CompileTarget {
     C,
     JAVASCRIPT,
     TURBO_JAVASCRIPT,
+    TURBO_ASMJS,
     ASMJS,
     WEBASSEMBLY,
 }
@@ -204,6 +207,14 @@ export class Compiler {
 
         else if (this.target == CompileTarget.TURBO_JAVASCRIPT) {
             turboJsEmit(this);
+        }
+
+        else if (this.target == CompileTarget.ASMJS) {
+            asmEmit(this);
+        }
+
+        else if (this.target == CompileTarget.TURBO_ASMJS) {
+            turboASMJsEmit(this);
         }
 
         else if (this.target == CompileTarget.WEBASSEMBLY) {

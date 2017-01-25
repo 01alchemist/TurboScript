@@ -16,7 +16,7 @@ let currentClass: string;
 let turboTargetPointer: string; //to store temporary pointer for variable access rewrite
 let namespace:string = "";
 let exportedFunctions = [];
-export class TurboJsResult {
+export class TurboASMJsResult {
     context: CheckContext;
     code: StringBuilder;
     foundMultiply: boolean;
@@ -376,27 +376,10 @@ export class TurboJsResult {
         else if (node.kind == NodeKind.NEW) {
             let resolvedNode = node.resolvedType.symbol.node;
             let type = node.newType();
-            if (resolvedNode.isDeclareOrTurbo()) {
-                this.emitExpression(type, Precedence.UNARY_POSTFIX);
-                this.code.append("_new");
-            } else {
-                this.code.append("new ");
-                this.emitExpression(type, Precedence.UNARY_POSTFIX);
-            }
-
-            this.code.append("(");
-            let valueNode = type.nextSibling;
-            while (valueNode) {
-                this.code.append(`${valueNode.rawValue}`);
-
-                if (valueNode.nextSibling) {
-                    this.code.append(",");
-                    valueNode = valueNode.nextSibling;
-                } else {
-                    valueNode = null;
-                }
-            }
-            this.code.append(")");
+            let size = type.resolvedType.allocationSizeOf(this.context);
+            assert(size > 0);
+            // Pass the object size as the first argument
+            this.code.append(`malloc(${size}|0)`);//TODO: access functions from function table using function index
 
         }
 
@@ -545,7 +528,7 @@ export class TurboJsResult {
 
         else if (node.kind == NodeKind.CLASS) {
 
-            currentClass = node.symbol.name;
+            /*currentClass = node.symbol.name;
             let classDef = this.getClassDef(node);
             let isTurbo = node.isTurbo();
             // Emit constructor
@@ -590,7 +573,7 @@ export class TurboJsResult {
             if (node.isExport()) {
                 // this.code.append(`${classDef.name} = ${classDef.name};\n`);
                 exportedFunctions.push(classDef.name);
-            }
+            }*/
         }
 
         else if (node.kind == NodeKind.FUNCTION) {
@@ -1096,9 +1079,9 @@ export class TurboJsResult {
 //     kind == NodeKind.BITWISE_OR || kind == NodeKind.BITWISE_AND || kind == NodeKind.BITWISE_XOR;
 // }
 
-export function turboJsEmit(compiler: Compiler): void {
+export function turboASMJsEmit(compiler: Compiler): void {
     let code: StringBuilder = StringBuilder_new();
-    let result = new TurboJsResult();
+    let result = new TurboASMJsResult();
     result.context = compiler.context;
     result.code = code;
 

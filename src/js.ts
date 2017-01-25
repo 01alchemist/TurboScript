@@ -7,6 +7,8 @@ import {Compiler} from "./compiler";
 export enum EmitBinary {
     NORMAL,
     CAST_TO_INT,
+    CAST_TO_FLOAT,
+    CAST_TO_DOUBLE,
 }
 
 export class JsResult {

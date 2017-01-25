@@ -126,6 +126,10 @@ export function main_entry(): int32 {
                 target = CompileTarget.JAVASCRIPT;
             } else if (text == "--turbo-js") {
                 target = CompileTarget.TURBO_JAVASCRIPT;
+            } else if (text == "--turbo-asm") {
+                target = CompileTarget.TURBO_ASMJS;
+            } else if (text == "--asm") {
+                target = CompileTarget.ASMJS;
             } else if (text == "--wasm") {
                 target = CompileTarget.WEBASSEMBLY;
             } else if (text == "--define" && argument.next != null) {

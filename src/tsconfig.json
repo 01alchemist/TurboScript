@@ -16,6 +16,7 @@
   "exclude": [
     "node_modules",
     "bin",
-    "tests"
+    "tests",
+    "asmjs.ts"
   ]
 }
