@@ -2,12 +2,13 @@ import {Symbol, SymbolKind, isFunction} from "./symbol";
 import {ByteArray, ByteArray_append32, ByteArray_set32, ByteArray_setString, ByteArray_set16} from "./bytearray";
 import {CheckContext} from "./checker";
 import {alignToNextMultipleOf} from "./imports";
-import {Node, NodeKind, isExpression, isUnary} from "./node";
+import {Node, NodeKind, isExpression, isUnary, isCompactNodeKind} from "./node";
 import {Type} from "./type";
 import {StringBuilder_new, StringBuilder} from "./stringbuilder";
 import {Compiler} from "./compiler";
 import {AsmOpcode} from "./wasm/opcode";
 import {toHex} from "./utils";
+import {Precedence} from "./parser";
 
 const ASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
 
@@ -160,10 +161,22 @@ class AsmModule {
     freeFunctionIndex: int32;
     startFunctionIndex: int32;
     context: CheckContext;
+    previousNode: Node;
     code: StringBuilder;
 
     constructor() {
 
+    }
+
+    emitNewlineBefore(node: Node): void {
+        if (this.previousNode != null && (!isCompactNodeKind(this.previousNode.kind) || !isCompactNodeKind(node.kind))) {
+            this.code.append("\n");
+        }
+        this.previousNode = null;
+    }
+
+    emitNewlineAfter(node: Node): void {
+        this.previousNode = node;
     }
 
     growMemoryInitializer(): void {
@@ -744,141 +757,96 @@ class AsmModule {
         }
     }
 
-    emitBinaryExpression(code: StringBuilder, byteOffset: int32, node: Node, opcode: byte): void {
+    emitBinaryExpression(code: StringBuilder, node: Node, opcode: byte): void {
         this.emitNode(code, node.binaryLeft());
         this.emitNode(code, node.binaryRight());
         appendOpcode(code, opcode);
     }
 
-    emitLoadFromMemory(code: StringBuilder, byteOffset: int32, type: Type, relativeBase: Node, offset: int32): void {
-        let opcode;
+    emitLoadFromMemory(code: StringBuilder, type: Type, relativeBase: Node, offset: int32): void {
+        let heapType;
+        let address:string | number = 0;
         // Relative address
         if (relativeBase != null) {
-            this.emitNode(code, relativeBase);
+            address = this.emitNode(code, relativeBase);
         }
-        // Absolute address
-        else {
-            opcode = AsmOpcode.I32_CONST;
-            appendOpcode(code, opcode);
-            log(code, 0, "i32 literal");
-            array.writeUnsignedLEB128(0);
-        }
+
+        address = `address + ${offset}`;
 
         let sizeOf = type.variableSizeOf(this.context);
 
         if (sizeOf == 1) {
-            opcode = type.isUnsigned() ? AsmOpcode.I32_LOAD8_U : AsmOpcode.I32_LOAD8_S;
-            appendOpcode(code, opcode);
-            log(code, 0, "alignment");
-            array.writeUnsignedLEB128(0);
+            heapType =  type.isUnsigned() ? "U8" : "8";
+            code.append(`HEAP${heapType}[${address}]`);
         }
 
         else if (sizeOf == 2) {
-            opcode = type.isUnsigned() ? AsmOpcode.I32_LOAD16_U : AsmOpcode.I32_LOAD16_S;
-            appendOpcode(code, opcode);
-            log(code, 1, "alignment");
-            array.writeUnsignedLEB128(1);
+            heapType =  type.isUnsigned() ? "U16" : "16";
+            code.append(`HEAP${heapType}[${address}]`);
         }
 
         else if (sizeOf == 4) {
 
-            if (type.isFloat()) {
-                appendOpcode(code, AsmOpcode.F32_LOAD);
-            }
-
-            else {
-                appendOpcode(code, AsmOpcode.I32_LOAD);
-            }
-            log(code, 2, "alignment");
-            array.writeUnsignedLEB128(2);
+            heapType =  type.isFloat() ? "F32" : (type.isUnsigned() ? "U32":"I32");
+            code.append(`HEAP${heapType}[${address}]`);
         }
 
         else if (sizeOf == 8) {
 
-            if (type.isDouble()) {
-                appendOpcode(code, AsmOpcode.F64_LOAD);
-            }
-
-            else {
-                appendOpcode(code, AsmOpcode.I64_LOAD);
-            }
-            log(code, 3, "alignment");
-            array.writeUnsignedLEB128(3);
+            code.append(`HEAPF64[${address}]`);
         }
 
         else {
             assert(false);
         }
 
-        log(code, "load offset");
-        array.writeUnsignedLEB128(offset);
-
     }
 
-    emitStoreToMemory(code: StringBuilder, byteOffset: int32, type: Type, relativeBase: Node, offset: int32, value: Node): void {
-        let opcode;
+    emitStoreToMemory(code: StringBuilder, type: Type, relativeBase: Node, offset: int32, value: Node): void {
+        let heapType;
+        let address:string | number = 0;
         // Relative address
         if (relativeBase != null) {
-            this.emitNode(code, relativeBase);
-        }
-        // Absolute address
-        else {
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            log(code, 0, "i32 literal");
-            array.writeUnsignedLEB128(0);
+            address = this.emitNode(code, relativeBase);
         }
 
-        this.emitNode(code, value);
+        address = `${address} + ${offset}`;
 
         let sizeOf = type.variableSizeOf(this.context);
 
+        let valueRef = this.emitNode(code, value);
+
         if (sizeOf == 1) {
-            appendOpcode(code, AsmOpcode.I32_STORE8);
-            log(code, 0, "alignment");
-            array.writeUnsignedLEB128(0);
+            heapType =  type.isUnsigned() ? "U8" : "8";
+            code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
         }
 
         else if (sizeOf == 2) {
-            appendOpcode(code, AsmOpcode.I32_STORE16);
-            log(code, 1, "alignment");
-            array.writeUnsignedLEB128(1);
+            heapType =  type.isUnsigned() ? "U16" : "16";
+            code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
         }
 
         else if (sizeOf == 4) {
 
-            if (type.isFloat()) {
-                appendOpcode(code, AsmOpcode.F32_STORE);
+            if(type.isFloat()){
+                code.append(`HEAPF32[${address}] = Math.fround(${valueRef})`);
+            }else{
+                heapType =  type.isUnsigned() ? "U32":"I32";
+                code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
             }
-
-            else {
-                appendOpcode(code, AsmOpcode.I32_STORE);
-            }
-            log(code, 2, "alignment");
-            array.writeUnsignedLEB128(2);
         }
 
         else if (sizeOf == 8) {
 
-            if (type.isDouble()) {
-                appendOpcode(code, AsmOpcode.F64_STORE);
-            }
-
-            else {
-                appendOpcode(code, AsmOpcode.I64_STORE);
-            }
-            log(code, 3, "alignment");
-            array.writeUnsignedLEB128(3);
+            code.append(`HEAPF64[${address}] = +${valueRef}`);
         }
 
         else {
             assert(false);
         }
-
-        log(code, "load offset");
-        array.writeUnsignedLEB128(offset);
     }
 
-    emitConstructor(code: StringBuilder, byteOffset: int32, node: Node): void {
+    emitConstructor(code: StringBuilder, node: Node): void {
         let constructorNode = node.constructorNode();
         let callSymbol = constructorNode.symbol;
         let child = node.firstChild.nextSibling;
@@ -890,7 +858,27 @@ class AsmModule {
         array.writeUnsignedLEB128(callSymbol.offset);
     }
 
-    emitNode(code: StringBuilder, node: Node): int32 {
+    emitBlock(code: StringBuilder, node: Node, needBraces: boolean): void {
+        this.previousNode = null;
+        if (needBraces) {
+            code.append("{\n", 1);
+        }
+
+        this.emitNode(code, node.firstChild);
+
+        if (needBraces) {
+            code.clearIndent(1);
+            code.append("}");
+            code.indent -= 1;
+        }
+        this.previousNode = null;
+    }
+    emitSymbolName(code:StringBuilder, symbol: Symbol): string {
+        let name = symbol.rename != null ? symbol.rename : symbol.name;
+        code.append(name);
+        return name;
+    }
+    emitNode(code: StringBuilder, node: Node, parentPrecedence?: Precedence): int32 {
         assert(!isExpression(node) || node.resolvedType != null);
         if (node.kind == NodeKind.BLOCK) {
 
@@ -907,28 +895,18 @@ class AsmModule {
 
         else if (node.kind == NodeKind.WHILE) {
             this.emitNewlineBefore(node);
-            this.code.append("while (");
-            this.emitExpression(node.whileValue(), Precedence.LOWEST);
-            this.code.append(") ");
-            this.emitBlock(node.whileBody(), true);
-            this.code.append("\n");
+            code.append("while (");
+            this.emitNode(code, node.whileValue());
+            code.append(") ");
+            this.emitBlock(code, node.whileBody(), true);
+            code.append("\n");
             this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.BREAK || node.kind == NodeKind.CONTINUE) {
-            let label = 0;
-            let parent = node.parent;
-
-            while (parent != null && parent.kind != NodeKind.WHILE) {
-                if (parent.kind == NodeKind.BLOCK) {
-                    label = label + 1;
-                }
-                parent = parent.parent;
-            }
-
-            assert(label > 0);
-            appendOpcode(code, AsmOpcode.BR);
-            array.writeUnsignedLEB128(label - (node.kind == NodeKind.BREAK ? 0 : 1));
+            this.emitNewlineBefore(node);
+            code.append("break;\n");
+            this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.EMPTY) {
@@ -942,13 +920,19 @@ class AsmModule {
         else if (node.kind == NodeKind.RETURN) {
             let value = node.returnValue();
             if (value != null) {
-                this.emitNode(code, value);
+                code.append("return ");
+                if (value != null) {
+                    this.emitNode(code, value);
 
-                if (value.kind == NodeKind.NEW) {
-                    this.emitConstructor(code, value);
+                    if (value.kind == NodeKind.NEW) {
+                        this.emitConstructor(code, value);
+                    }
                 }
+                code.append(";\n");
+            } else {
+                code.append("return;\n");
             }
-            appendOpcode(code, AsmOpcode.RETURN);
+            this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.VARIABLES) {
@@ -963,31 +947,43 @@ class AsmModule {
         }
 
         else if (node.kind == NodeKind.IF) {
-            let branch = node.ifFalse();
-
-            this.emitNode(code, node.ifValue());
-            appendOpcode(code, AsmOpcode.IF);
-            append(code, 0, AsmType.block_type, AsmType[AsmType.block_type]);
-
-            this.emitNode(code, node.ifTrue());
-
-            if (branch != null) {
-                appendOpcode(code, AsmOpcode.IF_ELSE);
-                this.emitNode(code, branch);
+            this.emitNewlineBefore(node);
+            while (true) {
+                code.append("if (");
+                this.emitNode(code, node.ifValue());
+                code.append(") ");
+                this.emitBlock(code, node.ifTrue(), true);
+                let no = node.ifFalse();
+                if (no == null) {
+                    code.append("\n");
+                    break;
+                }
+                code.append("\n\n");
+                code.append("else ");
+                if (no.firstChild == null || no.firstChild != no.lastChild || no.firstChild.kind != NodeKind.IF) {
+                    this.emitBlock(code, no, true);
+                    code.append("\n");
+                    break;
+                }
+                node = no.firstChild;
             }
-            appendOpcode(code, AsmOpcode.END);
+            this.emitNewlineAfter(node);
         }
 
         else if (node.kind == NodeKind.HOOK) {
-            this.emitNode(code, node.hookValue());
-            appendOpcode(code, AsmOpcode.IF);
-            let trueValue = node.hookTrue();
-            let trueValueType = symbolToValueType(trueValue.resolvedType.symbol);
-            append(code, 0, trueValueType, AsmType[trueValueType]);
-            this.emitNode(code, trueValue);
-            appendOpcode(code, AsmOpcode.IF_ELSE);
-            this.emitNode(code, node.hookFalse());
-            appendOpcode(code, AsmOpcode.END);
+            if (parentPrecedence > Precedence.ASSIGN) {
+                this.code.append("(");
+            }
+
+            this.emitNode(code, node.hookValue(), Precedence.LOGICAL_OR);
+            this.code.append(" ? ");
+            this.emitNode(code, node.hookTrue(), Precedence.ASSIGN);
+            this.code.append(" : ");
+            this.emitNode(code, node.hookFalse(), Precedence.ASSIGN);
+
+            if (parentPrecedence > Precedence.ASSIGN) {
+                this.code.append(")");
+            }
         }
 
         else if (node.kind == NodeKind.VARIABLE) {
@@ -995,41 +991,48 @@ class AsmModule {
 
             if (node.symbol.kind == SymbolKind.VARIABLE_LOCAL) {
 
+                let resolvedType = node.symbol.resolvedType;
+
                 if (value && value.kind != NodeKind.NAME && value.rawValue) {
-                    if (node.symbol.resolvedType.isFloat()) {
-                        appendOpcode(code, AsmOpcode.F32_CONST);
-                        log(code, value.floatValue, "f32 literal");
-                        array.writeFloat(value.floatValue);
-                    } else {
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, value.intValue, "i32 literal");
-                        array.writeUnsignedLEB128(value.intValue);
+                    if (resolvedType.isFloat()) {
+                        code.append(`var ${node.symbol.name} = Math.fround(${value.rawValue});`);
                     }
 
-                } else {
+                    else if (resolvedType.isDouble()) {
+                        code.append(`var ${node.symbol.name} = +${value.rawValue};`);
+                    }
+
+                    else if (resolvedType.isInteger()) {
+                        code.append(`var ${node.symbol.name} = ${value.rawValue}|0;`);
+                    }
+
+                }
+
+                else {
+
                     if (value != null) {
                         this.emitNode(code, value);
-                    } else {
+                    }
+
+                    else {
                         // Default value
-                        if (node.symbol.resolvedType.isFloat()) {
-                            appendOpcode(code, AsmOpcode.F32_CONST);
-                            log(code, 0, "f32 literal");
-                            array.writeFloat(0);
-                        } else {
-                            appendOpcode(code, AsmOpcode.I32_CONST);
-                            log(code, 0, "i32 literal");
-                            array.writeUnsignedLEB128(0);
+                        if (resolvedType.isFloat()) {
+                            code.append(`var ${node.symbol.name} = Math.fround(0);`);
+                        }
+
+                        else if (resolvedType.isDouble()) {
+                            code.append(`var ${node.symbol.name} = +0;`);
+                        }
+
+                        else if (resolvedType.isInteger()) {
+                            code.append(`var ${node.symbol.name} = 0|0;`);
                         }
                     }
                 }
 
-                if (value.kind == NodeKind.NEW) {
-                    this.emitConstructor(code, value);
-                }
-
-                appendOpcode(code, AsmOpcode.SET_LOCAL);
-                log(code, node.symbol."local index");
-                array.writeUnsignedLEB128(node.symbol.offset);
+                // if (value.kind == NodeKind.NEW) {
+                //     this.emitConstructor(code, value);
+                // }
             }
 
             else {
@@ -1039,23 +1042,10 @@ class AsmModule {
 
         else if (node.kind == NodeKind.NAME) {
             let symbol = node.symbol;
-
-            if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT || symbol.kind == SymbolKind.VARIABLE_LOCAL) {
-                appendOpcode(code, AsmOpcode.GET_LOCAL);
-                log(code, symbol."local index");
-                array.writeUnsignedLEB128(symbol.offset);
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
+                code.append("global.");
             }
-
-            else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                //Global variables are immutable so we need to store then in memory
-                //appendOpcode(code, AsmOpcode.GET_GLOBAL);
-                //array.writeUnsignedLEB128(symbol.offset);
-                this.emitLoadFromMemory(code, symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.offset);
-            }
-
-            else {
-                assert(false);
-            }
+            this.emitSymbolName(code, symbol);
         }
 
         else if (node.kind == NodeKind.DEREFERENCE) {
@@ -1262,7 +1252,10 @@ class AsmModule {
             else if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT || symbol.kind == SymbolKind.VARIABLE_LOCAL) {
                 this.emitNode(code, right);
                 appendOpcode(code, AsmOpcode.SET_LOCAL);
-                log(code, symbol."local index");
+                log(code, symbol.
+                "local index"
+            )
+                ;
                 array.writeUnsignedLEB128(symbol.offset);
             }
 
