@@ -16,7 +16,6 @@ import {libraryTurbo} from "./libraryturbo";
 import {libraryWasm} from "./librarywasm";
 import {libraryDummy} from "./librarydummy";
 import {Library} from "./library/library";
-import {asmEmit} from "./asmjs";
 import {turboASMJsEmit} from "./turboasmjs";
 /**
  * Author: Nidin Vinayakan
@@ -210,7 +209,7 @@ export class Compiler {
         }
 
         else if (this.target == CompileTarget.ASMJS) {
-            asmEmit(this);
+            // asmEmit(this);
         }
 
         else if (this.target == CompileTarget.TURBO_ASMJS) {

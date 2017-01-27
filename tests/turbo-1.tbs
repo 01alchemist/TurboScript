@@ -1,15 +1,19 @@
-declare function log(v: string): void;
-//declare function unsafe():void;
+//
+// function test1(arg1:int32, arg2:float32, arg3:float64):int32{
+//     var loc1 = arg1 + 1;
+//     var loc2 = arg2 + 1.0;
+//     var loc3 = arg3 + 1.0;
+//     return arg1 + 10;
+// }
 
-@unsafe
 export class Vector3{
     x: float32;
     y: float32;
     z: float32;
 
-    constructor(x: float32 = 0, y:float32 = 0, z:float32 = 0): void {
-        this.y = y;
+    constructor(x: float32, y:float32, z:float32): void {
         this.x = x;
+        this.y = y;
         this.z = z;
     }
 
@@ -23,84 +27,84 @@ export class Vector3{
     }
 }
 
-@unsafe
-export class Base {
-
-    @virtual
-    add(b:Vec3):Vector3 {
-        return null;
-    }
-}
-
-@unsafe
-export class Vec3 extends Base{
-
-    x: float32;
-    y: float32;
-    z: float32;
-
-    constructor(x: float32 = 0, y:float32 = 0, z:float32 = 0): void {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-
-    @virtual
-    add(b:Vec3):Vector3 {
-        let c = new Vector3();
-        c.x = this.x + b.x;
-        c.y = this.y + b.y;
-        c.z = this.z + b.z;
-        return c;
-    }
-
-    add_vec3(b:Vector3):Vector3 {
-        let c = new Vector3();
-        c.x = this.x + b.x;
-        c.y = this.y + b.y;
-        c.z = this.z + b.z;
-        return c;
-    }
-
-    toString():string {
-        let x = this.x;
-        let y = this.y;
-        return `{"x":${x},"y":${y}}`;
-    }
-}
-
-// enum ShapeType{
+// @unsafe
+// export class Base {
 //
+//     @virtual
+//     add(b:Vec3):Vector3 {
+//         return null;
+//     }
 // }
-
-@unsafe
-export class Shape {
-    v1:Vec3;
-
-    constructor(v1:Vec3):void {
-        this.v1 = v1 == null? new Vec3() : v1;
-    }
-}
-
-@unsafe
-export class Triangle {
-    v1:Vec3;
-
-    constructor(v1:Vec3):void {
-        this.v1 = v1 == null? new Vec3() : v1;
-    }
-
-    normal():Vector3{
-        let b = new Vec3();
-        let c = this.v1.add(b);
-        return c;
-    }
-
-    toString():string {
-        let str = this.v1.toString();
-        return `{"v1":${str}}`;
-    }
-}
+//
+// @unsafe
+// export class Vec3 extends Base{
+//
+//     x: float32;
+//     y: float32;
+//     z: float32;
+//
+//     constructor(x: float32 = 0, y:float32 = 0, z:float32 = 0): void {
+//         this.x = x;
+//         this.y = y;
+//         this.z = z;
+//     }
+//
+//     @virtual
+//     add(b:Vec3):Vector3 {
+//         let c = new Vector3();
+//         c.x = this.x + b.x;
+//         c.y = this.y + b.y;
+//         c.z = this.z + b.z;
+//         return c;
+//     }
+//
+//     add_vec3(b:Vector3):Vector3 {
+//         let c = new Vector3();
+//         c.x = this.x + b.x;
+//         c.y = this.y + b.y;
+//         c.z = this.z + b.z;
+//         return c;
+//     }
+//
+//     toString():string {
+//         let x = this.x;
+//         let y = this.y;
+//         return `{"x":${x},"y":${y}}`;
+//     }
+// }
+//
+// // enum ShapeType{
+// //
+// // }
+//
+// @unsafe
+// export class Shape {
+//     v1:Vec3;
+//
+//     constructor(v1:Vec3):void {
+//         this.v1 = v1 == null? new Vec3() : v1;
+//     }
+// }
+//
+// @unsafe
+// export class Triangle {
+//     v1:Vec3;
+//
+//     constructor(v1:Vec3):void {
+//         this.v1 = v1 == null? new Vec3() : v1;
+//     }
+//
+//     normal():Vector3{
+//         let b = new Vec3();
+//         let c = this.v1.add(b);
+//         return c;
+//     }
+//
+//     toString():string {
+//         let str = this.v1.toString();
+//         return `{"v1":${str}}`;
+//     }
+// }
 
 // @unsafe
 // export class Mesh {
@@ -114,3 +118,7 @@ export class Triangle {
 //         log(this.triangles as string);
 //     }
 // }
+
+export function newVector(x:float32,y:float32,z:float32):Vector3{
+    return new Vector3(x,y,z);
+}

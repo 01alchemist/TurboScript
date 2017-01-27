@@ -11,6 +11,10 @@ export class Library {
             case CompileTarget.TURBO_JAVASCRIPT:
                 lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
                 return lib;
+            case CompileTarget.TURBO_ASMJS:
+                lib = stdlib.IO_readTextFile("../src/library/asmjs/types.tbs") + "\n";
+                lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
+                return lib;
             case CompileTarget.ASMJS:
                 lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
                 return lib;
@@ -21,6 +25,8 @@ export class Library {
         switch (target) {
             case CompileTarget.TURBO_JAVASCRIPT:
                 return stdlib.IO_readTextFile("../src/library/turbo/runtime.js") + "\n";
+            case CompileTarget.TURBO_ASMJS:
+                return stdlib.IO_readTextFile("../src/library/asmjs/runtime.js") + "\n";
             default:
                 return "";
         }
@@ -30,6 +36,8 @@ export class Library {
         switch (target) {
             case CompileTarget.TURBO_JAVASCRIPT:
                 return stdlib.IO_readTextFile("../src/library/turbo/wrapper.js") + "\n";
+            case CompileTarget.TURBO_ASMJS:
+                return stdlib.IO_readTextFile("../src/library/asmjs/wrapper.js") + "\n";
             default:
                 return "";
         }

@@ -284,15 +284,21 @@ export class Node {
     }
 
     becomeTypeOf(node: Node, context:CheckContext): void {
-        this.resolvedType.symbol.byteSize = node.resolvedType.symbol.byteSize;
-        this.resolvedType.symbol.flags = node.resolvedType.symbol.flags;
-        this.resolvedType.symbol.kind = node.resolvedType.symbol.kind;
-        this.resolvedType.symbol.maxAlignment = node.resolvedType.symbol.maxAlignment;
-        this.resolvedType.symbol.name = node.resolvedType.symbol.name;
-
+        // this.resolvedType.symbol.byteSize = node.resolvedType.symbol.byteSize;
+        // this.resolvedType.symbol.flags = node.resolvedType.symbol.flags;
+        // this.resolvedType.symbol.kind = node.resolvedType.symbol.kind;
+        // this.resolvedType.symbol.maxAlignment = node.resolvedType.symbol.maxAlignment;
+        // this.resolvedType.symbol.name = node.resolvedType.symbol.name;
+        //
         switch (node.resolvedType){
-            case context.int64Type: this.kind = NodeKind.INT64;break;
-            case context.float64Type: this.kind = NodeKind.FLOAT64;break;
+            case context.int64Type:
+                this.kind = NodeKind.INT64;
+                this.resolvedType = context.int64Type;
+                break;
+            case context.float64Type:
+                this.kind = NodeKind.FLOAT64;
+                this.resolvedType = context.float64Type;
+                break;
         }
 
         if(node.flags){

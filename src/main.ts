@@ -204,6 +204,7 @@ export function main_entry(): int32 {
             stdlib.IO_writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
             target == CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.TURBO_JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
+            target == CompileTarget.TURBO_ASMJS && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
             stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {
             return 0;

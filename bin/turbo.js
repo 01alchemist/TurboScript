@@ -9221,6 +9221,10 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
                             lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
                             return lib;
+                        case compiler_2.CompileTarget.TURBO_ASMJS:
+                            lib = stdlib.IO_readTextFile("../src/library/asmjs/types.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
+                            return lib;
                         case compiler_2.CompileTarget.ASMJS:
                             lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
                             return lib;
@@ -9230,6 +9234,8 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
                     switch (target) {
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
                             return stdlib.IO_readTextFile("../src/library/turbo/runtime.js") + "\n";
+                        case compiler_2.CompileTarget.TURBO_ASMJS:
+                            return stdlib.IO_readTextFile("../src/library/asmjs/runtime.js") + "\n";
                         default:
                             return "";
                     }
@@ -9238,6 +9244,8 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
                     switch (target) {
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
                             return stdlib.IO_readTextFile("../src/library/turbo/wrapper.js") + "\n";
+                        case compiler_2.CompileTarget.TURBO_ASMJS:
+                            return stdlib.IO_readTextFile("../src/library/asmjs/wrapper.js") + "\n";
                         default:
                             return "";
                     }
@@ -9247,8 +9255,7 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
         }
     };
 });
-///<reference path="declarations.d.ts" />
-System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuilder", "parser", "js"], function (exports_19, context_19) {
+System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"], function (exports_19, context_19) {
     "use strict";
     var __moduleName = context_19 && context_19.id;
     function asmAreSignaturesEqual(a, b) {
@@ -9273,44 +9280,6 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
         }
         return true;
     }
-    function asmWrapType(id) {
-        assert(id == AsmType.VOID || id == AsmType.INT || id == AsmType.FLOAT || id == AsmType.DOUBLE);
-        let type = new AsmWrappedType();
-        type.id = id;
-        return type;
-    }
-    function symbolToIdentifier(symbol) {
-        let type = symbol.resolvedType;
-        if (type.isFloat()) {
-            return `Math.fround(${symbol.name})`;
-        }
-        else if (type.isDouble()) {
-            return `+${symbol.name}`;
-        }
-        else if (type.isInteger() || type.pointerTo) {
-            return `${symbol.name}|0`;
-        }
-        else if (type.isLong() || type.pointerTo) {
-            return `${symbol.name}|0`;
-        }
-        else {
-            return `${symbol.name}|0`;
-        }
-    }
-    function typeToAsmType(type) {
-        if (type.isFloat()) {
-            return AsmType.FLOAT;
-        }
-        else if (type.isDouble()) {
-            return AsmType.DOUBLE;
-        }
-        else if (type.isInteger() || type.pointerTo) {
-            return AsmType.INT;
-        }
-        else if (type.isLong() || type.pointerTo) {
-            return AsmType.INT;
-        }
-    }
     function asmAssignLocalVariableOffsets(fn, node, shared) {
         if (node.kind == node_7.NodeKind.VARIABLE) {
             assert(node.symbol.kind == symbol_7.SymbolKind.VARIABLE_LOCAL);
@@ -9331,64 +9300,219 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
             child = child.nextSibling;
         }
     }
-    function append(code, value = null, msg = null) {
-        if (value) {
-            code.append(value);
+    function getIdentifier(node) {
+        let resolvedType = node.resolvedType.pointerTo ? node.resolvedType.pointerTo : node.resolvedType;
+        let identifier_1 = "";
+        let identifier_2 = "";
+        let int = false;
+        let float = false;
+        let double = false;
+        if (resolvedType.isFloat()) {
+            identifier_1 = "fround(";
+            identifier_2 = ")";
+            float = true;
+        }
+        else if (resolvedType.isDouble()) {
+            identifier_1 = "(+";
+            identifier_2 = ")";
+            double = true;
+        }
+        else if (resolvedType.isInteger()) {
+            identifier_1 = "(";
+            identifier_2 = "|0)";
+            int = true;
+        }
+        else {
+            identifier_1 = "(";
+            identifier_2 = "|0)";
+            int = true;
+        }
+        return {
+            left: identifier_1,
+            right: identifier_2,
+            int: int,
+            float: float,
+            double: double
+        };
+    }
+    function asmTypeToIdentifier(type) {
+        let identifier_1 = "";
+        let identifier_2 = "";
+        let int = false;
+        let float = false;
+        let double = false;
+        if (type == AsmType.FLOAT) {
+            identifier_1 = "fround(";
+            identifier_2 = ")";
+            float = true;
+        }
+        else if (type == AsmType.DOUBLE) {
+            identifier_1 = "(+";
+            identifier_2 = ")";
+            double = true;
+        }
+        else if (type == AsmType.INT) {
+            identifier_1 = "(";
+            identifier_2 = "|0)";
+            int = true;
+        }
+        else {
+            identifier_1 = "(";
+            identifier_2 = "|0)";
+            int = true;
+        }
+        return {
+            left: identifier_1,
+            right: identifier_2,
+            int: int,
+            float: float,
+            double: double
+        };
+    }
+    function computeClassId(name) {
+        let n = name.length;
+        for (let i = 0; i < name.length; i++) {
+            let c = name.charAt(i);
+            let v = 0;
+            if (c >= 'A' && c <= 'Z')
+                v = c.charCodeAt(0) - 'A'.charCodeAt(0);
+            else if (c >= 'a' && c <= 'z')
+                v = c.charCodeAt(0) - 'a'.charCodeAt(0) + 26;
+            else if (c >= '0' && c <= '9')
+                v = c.charCodeAt(0) - '0'.charCodeAt(0) + 52;
+            else if (c == '_')
+                v = 62;
+            else if (c == '>')
+                v = 63;
+            else
+                throw "Bad character in class name: " + c;
+            n = (((n & 0x1FFFFFF) << 3) | (n >>> 25)) ^ v;
+        }
+        return n;
+    }
+    function getMemoryType(name) {
+        if (name == "int32") {
+            return "32";
+        }
+        else if (name == "int16") {
+            return "16";
+        }
+        else if (name == "int8") {
+            return "8";
+        }
+        else if (name == "uint32") {
+            return "U32";
+        }
+        else if (name == "uint16") {
+            return "U16";
+        }
+        else if (name == "uint8") {
+            return "U8";
+        }
+        else if (name == "float32") {
+            return "F32";
+        }
+        else if (name == "float64") {
+            return "F64";
+        }
+        //Pointer object
+        return "32";
+    }
+    function symbolToValueType(symbol) {
+        let type = symbol.resolvedType;
+        if (type.isFloat()) {
+            return AsmType.FLOAT;
+        }
+        else if (type.isDouble()) {
+            return AsmType.DOUBLE;
+        }
+        else if (type.isInteger() || type.isLong() || type.pointerTo) {
+            return AsmType.INT;
+        }
+        else {
+            return AsmType.INT;
         }
     }
-    function appendOpcode(code, opcode) {
-        code.append(opcode);
+    function typeToAsmType(type) {
+        if (type.isFloat()) {
+            return AsmType.FLOAT;
+        }
+        else if (type.isDouble()) {
+            return AsmType.DOUBLE;
+        }
+        else if (type.isInteger() || type.pointerTo) {
+            return AsmType.INT;
+        }
+        else if (type.isLong() || type.pointerTo) {
+            return AsmType.INT;
+        }
     }
-    function asmEmit(compiler) {
+    function asmWrapType(id) {
+        assert(id == AsmType.VOID || id == AsmType.INT || id == AsmType.FLOAT || id == AsmType.DOUBLE);
+        let type = new AsmWrappedType();
+        type.id = id;
+        return type;
+    }
+    function turboASMJsEmit(compiler) {
         let code = stringbuilder_9.StringBuilder_new();
-        let module = new AsmModule();
+        let module = new TurboASMJsModule();
         module.context = compiler.context;
         module.code = code;
-        module.memoryInitializer = new bytearray_2.ByteArray();
-        // Set these to invalid values since "0" is valid
-        module.startFunctionIndex = -1;
-        module.mallocFunctionIndex = -1;
-        module.freeFunctionIndex = -1;
-        module.currentHeapPointer = -1;
-        module.originalHeapPointer = -1;
-        // Emission requires two passes
         module.prepareToEmit(compiler.global);
-        // The standard library must be included
-        // assert(module.mallocFunctionIndex != -1);
-        // assert(module.freeFunctionIndex != -1);
-        // assert(module.currentHeapPointer != -1);
-        // assert(module.originalHeapPointer != -1);
-        module.emitModule();
+        code.append("function TurboModule(global, env, buffer) {\n");
+        code.append('"use asm";\n');
+        code.emitIndent(1);
+        code.append(compiler.runtimeSource);
+        module.emitStatements(compiler.global.firstChild);
+        //
+        // module.emitModule();
+        module.emitVirtuals();
+        if (module.foundMultiply) {
+            code.append("\n");
+            code.append("let __imul = Math.imul || function(a, b) {\n");
+            code.append("return (a * (b >>> 16) << 16) + a * (b & 65535) | 0;\n");
+            code.append("};\n");
+        }
+        code.append("return {\n");
+        exportTable.forEach((name, index) => {
+            code.append(`   ${name}:${name}${index < exportTable.length - 1 ? "," : ""}\n`);
+        });
+        code.append("}\n");
+        code.indent -= 1;
+        code.clearIndent(1);
+        code.append("}\n");
+        code.append(compiler.wrapperSource);
+        compiler.outputJS = code.finish();
     }
-    exports_19("asmEmit", asmEmit);
-    var symbol_7, bytearray_2, imports_2, node_7, stringbuilder_9, parser_5, js_2, ASM_MEMORY_INITIALIZER_BASE, debug, AsmType, AsmSection, AsmExternalKind, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmFunction, AsmImport, AsmModule, AsmSharedOffset;
+    exports_19("turboASMJsEmit", turboASMJsEmit);
+    var stringbuilder_9, node_7, parser_5, js_2, symbol_7, ASM_MEMORY_INITIALIZER_BASE, turboJsOptimiztion, classMap, functionMap, signatureMap, virtualMap, currentClass, turboTargetPointer, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, TurboASMJsModule;
     return {
         setters: [
-            function (symbol_7_1) {
-                symbol_7 = symbol_7_1;
-            },
-            function (bytearray_2_1) {
-                bytearray_2 = bytearray_2_1;
-            },
-            function (imports_2_1) {
-                imports_2 = imports_2_1;
+            function (stringbuilder_9_1) {
+                stringbuilder_9 = stringbuilder_9_1;
             },
             function (node_7_1) {
                 node_7 = node_7_1;
-            },
-            function (stringbuilder_9_1) {
-                stringbuilder_9 = stringbuilder_9_1;
             },
             function (parser_5_1) {
                 parser_5 = parser_5_1;
             },
             function (js_2_1) {
                 js_2 = js_2_1;
+            },
+            function (symbol_7_1) {
+                symbol_7 = symbol_7_1;
             }
         ],
-        execute: function () {///<reference path="declarations.d.ts" />
+        execute: function () {
             ASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
-            debug = true;
+            turboJsOptimiztion = 0;
+            classMap = new Map();
+            functionMap = new Map();
+            signatureMap = new Map();
+            virtualMap = new Map();
+            namespace = "";
+            exportTable = [];
             (function (AsmType) {
                 AsmType[AsmType["VOID"] = 0] = "VOID";
                 AsmType[AsmType["DOUBLE"] = 1] = "DOUBLE";
@@ -9402,25 +9526,6 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                 AsmType[AsmType["FLOATISH"] = 9] = "FLOATISH";
                 AsmType[AsmType["EXTERN"] = 10] = "EXTERN";
             })(AsmType || (AsmType = {}));
-            (function (AsmSection) {
-                AsmSection[AsmSection["Type"] = 1] = "Type";
-                AsmSection[AsmSection["Import"] = 2] = "Import";
-                AsmSection[AsmSection["Function"] = 3] = "Function";
-                AsmSection[AsmSection["Table"] = 4] = "Table";
-                AsmSection[AsmSection["Memory"] = 5] = "Memory";
-                AsmSection[AsmSection["Global"] = 6] = "Global";
-                AsmSection[AsmSection["Export"] = 7] = "Export";
-                AsmSection[AsmSection["Start"] = 8] = "Start";
-                AsmSection[AsmSection["Element"] = 9] = "Element";
-                AsmSection[AsmSection["Code"] = 10] = "Code";
-                AsmSection[AsmSection["Data"] = 11] = "Data";
-            })(AsmSection || (AsmSection = {}));
-            (function (AsmExternalKind) {
-                AsmExternalKind[AsmExternalKind["Function"] = 0] = "Function";
-                AsmExternalKind[AsmExternalKind["Table"] = 1] = "Table";
-                AsmExternalKind[AsmExternalKind["Memory"] = 2] = "Memory";
-                AsmExternalKind[AsmExternalKind["Global"] = 3] = "Global";
-            })(AsmExternalKind || (AsmExternalKind = {}));
             AsmWrappedType = class AsmWrappedType {
             };
             AsmSignature = class AsmSignature {
@@ -9429,6 +9534,12 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
             };
             AsmLocal = class AsmLocal {
             };
+            AsmSharedOffset = class AsmSharedOffset {
+                constructor() {
+                    this.nextLocalOffset = 0;
+                    this.localCount = 0;
+                }
+            };
             AsmFunction = class AsmFunction {
                 constructor() {
                     this.localCount = 0;
@@ -9436,32 +9547,17 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
             };
             AsmImport = class AsmImport {
             };
-            AsmModule = class AsmModule {
+            TurboASMJsModule = class TurboASMJsModule {
                 constructor() {
                     this.importCount = 0;
                     this.globalCount = 0;
                     this.functionCount = 0;
                     this.signatureCount = 0;
-                }
-                getAsmType(type) {
-                    let context = this.context;
-                    if (type == context.booleanType || type.isInteger() || type.isReference()) {
-                        return AsmType.INT;
-                    }
-                    else if (type.isLong() || type.isReference()) {
-                        return AsmType.INT; // We don't have native I64 and we will not emulate it.
-                    }
-                    else if (type.isDouble()) {
-                        return AsmType.DOUBLE;
-                    }
-                    else if (type.isFloat()) {
-                        return AsmType.FLOAT;
-                    }
-                    if (type == context.voidType) {
-                        return AsmType.VOID;
-                    }
-                    assert(false);
-                    return AsmType.VOID;
+                    this.currentHeapPointer = -1;
+                    this.originalHeapPointer = -1;
+                    this.mallocFunctionIndex = -1;
+                    this.freeFunctionIndex = -1;
+                    this.startFunctionIndex = -1;
                 }
                 emitNewlineBefore(node) {
                     if (this.previousNode != null && (!node_7.isCompactNodeKind(this.previousNode.kind) || !node_7.isCompactNodeKind(node.kind))) {
@@ -9472,90 +9568,11 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                 emitNewlineAfter(node) {
                     this.previousNode = node;
                 }
-                growMemoryInitializer() {
-                    let array = this.memoryInitializer;
-                    let current = array.length;
-                    let length = this.context.nextGlobalVariableOffset;
-                    while (current < length) {
-                        array.append(0);
-                        current = current + 1;
-                    }
-                }
-                allocateImport(signatureIndex, mod, name) {
-                    let result = new AsmImport();
-                    result.signatureIndex = signatureIndex;
-                    result.module = mod;
-                    result.name = name;
-                    if (this.firstImport == null)
-                        this.firstImport = result;
-                    else
-                        this.lastImport.next = result;
-                    this.lastImport = result;
-                    this.importCount = this.importCount + 1;
-                    return result;
-                }
-                allocateGlobal(symbol) {
-                    let global = new AsmGlobal();
-                    global.symbol = symbol;
-                    symbol.offset = this.globalCount;
-                    if (this.firstGlobal == null)
-                        this.firstGlobal = global;
-                    else
-                        this.lastGlobal.next = global;
-                    this.lastGlobal = global;
-                    this.globalCount = this.globalCount + 1;
-                    return global;
-                }
-                allocateFunction(symbol, signatureIndex) {
-                    let fn = new AsmFunction();
-                    fn.symbol = symbol;
-                    fn.signatureIndex = signatureIndex;
-                    if (this.firstFunction == null)
-                        this.firstFunction = fn;
-                    else
-                        this.lastFunction.next = fn;
-                    this.lastFunction = fn;
-                    this.functionCount = this.functionCount + 1;
-                    return fn;
-                }
-                allocateSignature(argumentTypes, returnType) {
-                    assert(returnType != null);
-                    assert(returnType.next == null);
-                    let signature = new AsmSignature();
-                    signature.argumentTypes = argumentTypes;
-                    signature.returnType = returnType;
-                    let check = this.firstSignature;
-                    let i = 0;
-                    while (check != null) {
-                        if (asmAreSignaturesEqual(signature, check)) {
-                            return i;
-                        }
-                        check = check.next;
-                        i = i + 1;
-                    }
-                    if (this.firstSignature == null)
-                        this.firstSignature = signature;
-                    else
-                        this.lastSignature.next = signature;
-                    this.lastSignature = signature;
-                    this.signatureCount = this.signatureCount + 1;
-                    return i;
-                }
                 emitModule() {
-                    this.emitGlobalDeclarations(this.code);
-                    // this.emitTables(array);
-                    // this.emitSignatures(array);
-                    // this.emitImportTable(array);
-                    // this.emitFunctionDeclarations(array);
-                    // this.emitMemory(array);
-                    // this.emitExportTable(array);
-                    // this.emitStartFunctionDeclaration(array);
-                    // this.emitElements(array);
-                    // this.emitFunctionBodies(array);
-                    // this.emitDataSegments(array);
-                    // this.emitNames(array);
+                    this.emitGlobalDeclarations();
+                    this.emitFunctions();
                 }
-                emitGlobalDeclarations(code) {
+                emitGlobalDeclarations() {
                     if (!this.firstGlobal) {
                         return;
                     }
@@ -9563,335 +9580,73 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                     while (global) {
                         let dataType = typeToAsmType(global.symbol.resolvedType);
                         let value = global.symbol.node.variableValue();
-                        if (value) {
-                            if (value.rawValue) {
-                                code.append(`var ${global.symbol.name} = `);
-                                switch (dataType) {
-                                    case AsmType.INT:
-                                        code.append(`${value.rawValue}|0;`);
-                                        break;
-                                    case AsmType.FLOAT:
-                                        code.append(`Math.fround(${value.rawValue});`);
-                                        break;
-                                    case AsmType.DOUBLE:
-                                        code.append(`+${value.rawValue};`);
-                                        break;
-                                } //const value
-                            }
-                            else {
-                                this.emitNode(code, value); //const value
-                            }
-                        }
-                        else {
-                            section.data.writeUnsignedLEB128(AsmOpcode[`${dataType}_CONST`]);
-                            section.data.writeUnsignedLEB128(0); //const value
-                        }
-                        section.data.writeUnsignedLEB128(AsmOpcode.END);
                         global = global.next;
                     }
-                    asmFinishSection(code, section);
                 }
-                emitExportTable(code) {
-                    let i = 0;
-                    let fn = this.firstFunction;
-                    while (fn != null) {
-                        if (fn.isExported) {
-                            code.append(`${fn.symbol.name}:${fn.symbol.name},`);
-                        }
-                        fn = fn.next;
-                        i = i + 1;
-                    }
-                }
-                emitFunctionBodies(code) {
+                emitFunctions() {
                     if (!this.firstFunction) {
                         return;
                     }
-                    let offset = array.position;
-                    let section = asmStartSection(code, AsmSection.Code, "function_bodies");
-                    log(section.data, this.functionCount, "num functions");
-                    section.data.writeUnsignedLEB128(this.functionCount);
                     let count = 0;
                     let fn = this.firstFunction;
-                    while (fn != null) {
-                        let sectionOffset = offset + section.data.position;
-                        let bodyData = new bytearray_2.ByteArray();
-                        if (fn.localCount > 0) {
-                            let local = fn.firstLocal;
-                            while (local) {
-                                let asmType = symbolToValueType(local.symbol);
-                                log(bodyData, sectionOffset, asmType, AsmType[asmType]);
-                                bodyData.append(asmType); //value_type
-                                local = local.next;
-                                code.append(`var ${local.symbol.name} = ${symbolToIdentifier(local.symbol)}`);
-                            }
-                        }
-                        else {
-                            bodyData.writeUnsignedLEB128(0);
-                        }
-                        let child = fn.symbol.node.functionBody().firstChild;
-                        while (child != null) {
-                            this.emitNode(code, child);
-                            child = child.nextSibling;
-                        }
-                        //Copy and finish body
-                        section.data.writeUnsignedLEB128(bodyData.length);
-                        log(section.data, null, ` - function body ${count++} (${fn.symbol.name})`);
-                        log(section.data, bodyData.length, "func body size");
-                        section.data.log += bodyData.log;
-                        section.data.copy(bodyData);
-                        fn = fn.next;
-                    }
-                    asmFinishSection(code, section);
+                    this.code.append("\n");
+                    this.emitStatements(fn.symbol.node);
+                    // while (fn != null) {
+                    //
+                    //     this.code.append(`function fun${count} {\n`, 1);
+                    //
+                    //     if (fn.localCount > 0) {
+                    //         let local = fn.firstLocal;
+                    //         while (local) {
+                    //             let asmType: AsmType = symbolToValueType(local.symbol);
+                    //             this.code.append(`var ${local.symbol.name} = `);
+                    //             this.emitNullInitializer(local.symbol.node);
+                    //             this.code.append("\n");
+                    //             local = local.next;
+                    //         }
+                    //
+                    //     }
+                    //
+                    //     let child = fn.symbol.node.functionBody().firstChild;
+                    //     while (child != null) {
+                    //         this.emitStatements(child);
+                    //         child = child.nextSibling;
+                    //     }
+                    //
+                    //     this.code.clearIndent(1);
+                    //     this.code.indent--;
+                    //     this.code.append("}\n");
+                    //     count++;
+                    //     fn = fn.next;
+                    // }
                 }
-                emitDataSegments(code) {
-                    this.growMemoryInitializer();
-                    let memoryInitializer = this.memoryInitializer;
-                    let initializerLength = memoryInitializer.length;
-                    let initialHeapPointer = imports_2.alignToNextMultipleOf(ASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
-                    // Pass the initial heap pointer to the "malloc" function
-                    memoryInitializer.writeUnsignedInt(initialHeapPointer, this.originalHeapPointer);
-                    memoryInitializer.writeUnsignedInt(initialHeapPointer, this.currentHeapPointer);
-                    //data, sequence of size bytes
-                    // Copy the entire memory initializer (also includes zero-initialized data for now)
-                    let i = 0;
-                    let value;
-                    code.append(`var DATA_SEGMENT = new Uint8Array([`);
-                    while (i < initializerLength) {
-                        value = memoryInitializer.get(i);
-                        code.append(`${value}${i < initializerLength - 1 ? "," : ""}`);
-                        i++;
-                    }
-                    code.append(`];`);
-                }
-                prepareToEmit(node) {
-                    if (node.kind == node_7.NodeKind.STRING) {
-                        let text = node.stringValue;
-                        let length = text.length;
-                        let offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
-                        node.intValue = offset;
-                        this.growMemoryInitializer();
-                        let memoryInitializer = this.memoryInitializer;
-                        // Emit a length-prefixed string
-                        bytearray_2.ByteArray_set32(memoryInitializer, length);
-                        bytearray_2.ByteArray_setString(memoryInitializer, offset + 4, text);
-                    }
-                    else if (node.kind == node_7.NodeKind.VARIABLE) {
-                        let symbol = node.symbol;
-                        if (symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
-                            let sizeOf = symbol.resolvedType.variableSizeOf(this.context);
-                            let value = symbol.node.variableValue();
-                            let memoryInitializer = this.memoryInitializer;
-                            // Copy the initial value into the memory initializer
-                            this.growMemoryInitializer();
-                            let offset = symbol.offset;
-                            // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
-                            // symbol.byteOffset = offset;
-                            if (sizeOf == 1) {
-                                if (symbol.resolvedType.isUnsigned()) {
-                                    memoryInitializer.writeUnsignedByte(value.intValue, offset);
-                                }
-                                else {
-                                    memoryInitializer.writeByte(value.intValue, offset);
-                                }
-                            }
-                            else if (sizeOf == 2) {
-                                if (symbol.resolvedType.isUnsigned()) {
-                                    memoryInitializer.writeUnsignedShort(value.intValue, offset);
-                                }
-                                else {
-                                    memoryInitializer.writeShort(value.intValue, offset);
-                                }
-                            }
-                            else if (sizeOf == 4) {
-                                if (symbol.resolvedType.isFloat()) {
-                                    memoryInitializer.writeFloat(value.floatValue, offset);
-                                }
-                                else {
-                                    if (symbol.resolvedType.isUnsigned()) {
-                                        memoryInitializer.writeUnsignedInt(value.intValue, offset);
-                                    }
-                                    else {
-                                        memoryInitializer.writeInt(value.intValue, offset);
-                                    }
-                                }
-                            }
-                            else if (sizeOf == 8) {
-                                if (symbol.resolvedType.isDouble()) {
-                                    memoryInitializer.writeDouble(value.rawValue, offset);
-                                }
-                                else {
-                                    //TODO Implement Int64 write
-                                    if (symbol.resolvedType.isUnsigned()) {
-                                    }
-                                    else {
-                                    }
-                                }
-                            }
-                            else
-                                assert(false);
-                            //let global = this.allocateGlobal(symbol);// Since
-                            // Make sure the heap offset is tracked
-                            if (symbol.name == "currentHeapPointer") {
-                                assert(this.currentHeapPointer == -1);
-                                this.currentHeapPointer = symbol.offset;
-                            }
-                            else if (symbol.name == "originalHeapPointer") {
-                                assert(this.originalHeapPointer == -1);
-                                this.originalHeapPointer = symbol.offset;
-                            }
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.FUNCTION) {
-                        let returnType = node.functionReturnType();
-                        let shared = new AsmSharedOffset();
-                        let argumentTypesFirst = null;
-                        let argumentTypesLast = null;
-                        // Make sure to include the implicit "this" variable as a normal argument
-                        let argument = node.functionFirstArgument();
-                        while (argument != returnType) {
-                            let type = asmWrapType(this.getAsmType(argument.variableType().resolvedType));
-                            if (argumentTypesFirst == null)
-                                argumentTypesFirst = type;
-                            else
-                                argumentTypesLast.next = type;
-                            argumentTypesLast = type;
-                            shared.nextLocalOffset = shared.nextLocalOffset + 1;
-                            argument = argument.nextSibling;
-                        }
-                        let signatureIndex = this.allocateSignature(argumentTypesFirst, asmWrapType(this.getAsmType(returnType.resolvedType)));
-                        let body = node.functionBody();
-                        let symbol = node.symbol;
-                        // Functions without bodies are imports
-                        if (body == null) {
-                            let moduleName = symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
-                            symbol.offset = this.importCount;
-                            this.allocateImport(signatureIndex, moduleName, symbol.name);
-                            node = node.nextSibling;
-                            return;
-                        }
-                        symbol.offset = this.functionCount;
-                        let fn = this.allocateFunction(symbol, signatureIndex);
-                        // Make sure "malloc" is tracked
-                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
-                            assert(this.mallocFunctionIndex == -1);
-                            this.mallocFunctionIndex = symbol.offset;
-                        }
-                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.name == "free") {
-                            assert(this.freeFunctionIndex == -1);
-                            this.freeFunctionIndex = symbol.offset;
-                        }
-                        // Make "init_malloc" as start function
-                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.name == "init_malloc") {
-                            assert(this.startFunctionIndex == -1);
-                            this.startFunctionIndex = symbol.offset;
-                        }
-                        if (node.isExport()) {
-                            fn.isExported = true;
-                        }
-                        // Assign local variable offsets
-                        asmAssignLocalVariableOffsets(fn, body, shared);
-                        fn.localCount = shared.localCount;
-                    }
-                    let child = node.firstChild;
-                    while (child != null) {
-                        this.prepareToEmit(child);
-                        child = child.nextSibling;
+                emitStatements(node) {
+                    while (node != null) {
+                        this.emitStatement(node);
+                        node = node.nextSibling;
                     }
                 }
-                emitConstructor(code, node) {
-                    let constructorNode = node.constructorNode();
-                    let callSymbol = constructorNode.symbol;
-                    let child = node.firstChild.nextSibling;
-                    while (child != null) {
-                        this.emitNode(code, child);
-                        child = child.nextSibling;
-                    }
-                    appendOpcode(code, AsmOpcode.CALL);
-                    array.writeUnsignedLEB128(callSymbol.offset);
-                }
-                emitLoadFromMemory(code, type, relativeBase, offset) {
-                    let heapType;
-                    let address = 0;
-                    // Relative address
-                    if (relativeBase != null) {
-                        address = this.emitNode(code, relativeBase);
-                    }
-                    address = `address + ${offset}`;
-                    let sizeOf = type.variableSizeOf(this.context);
-                    if (sizeOf == 1) {
-                        heapType = type.isUnsigned() ? "U8" : "8";
-                        code.append(`HEAP${heapType}[${address}]`);
-                    }
-                    else if (sizeOf == 2) {
-                        heapType = type.isUnsigned() ? "U16" : "16";
-                        code.append(`HEAP${heapType}[${address}]`);
-                    }
-                    else if (sizeOf == 4) {
-                        heapType = type.isFloat() ? "F32" : (type.isUnsigned() ? "U32" : "I32");
-                        code.append(`HEAP${heapType}[${address}]`);
-                    }
-                    else if (sizeOf == 8) {
-                        code.append(`HEAPF64[${address}]`);
-                    }
-                    else {
-                        assert(false);
-                    }
-                }
-                emitStoreToMemory(code, type, relativeBase, offset, value) {
-                    let heapType;
-                    let address = 0;
-                    // Relative address
-                    if (relativeBase != null) {
-                        address = this.emitNode(code, relativeBase);
-                    }
-                    address = `${address} + ${offset}`;
-                    let sizeOf = type.variableSizeOf(this.context);
-                    let valueRef = this.emitNode(code, value);
-                    if (sizeOf == 1) {
-                        heapType = type.isUnsigned() ? "U8" : "8";
-                        code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
-                    }
-                    else if (sizeOf == 2) {
-                        heapType = type.isUnsigned() ? "U16" : "16";
-                        code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
-                    }
-                    else if (sizeOf == 4) {
-                        if (type.isFloat()) {
-                            code.append(`HEAPF32[${address}] = Math.fround(${valueRef})`);
-                        }
-                        else {
-                            heapType = type.isUnsigned() ? "U32" : "I32";
-                            code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
-                        }
-                    }
-                    else if (sizeOf == 8) {
-                        code.append(`HEAPF64[${address}] = +${valueRef}`);
-                    }
-                    else {
-                        assert(false);
-                    }
-                }
-                emitBlock(code, node, needBraces) {
+                emitBlock(node, needBraces) {
                     this.previousNode = null;
                     if (needBraces) {
-                        code.append("{\n", 1);
+                        this.code.append("{\n", 1);
                     }
-                    this.emitNode(code, node.firstChild);
+                    this.emitStatements(node.firstChild);
                     if (needBraces) {
-                        code.clearIndent(1);
-                        code.append("}");
-                        code.indent -= 1;
+                        this.code.clearIndent(1);
+                        this.code.append("}");
+                        this.code.indent -= 1;
                     }
                     this.previousNode = null;
                 }
-                emitUnary(code, node, parentPrecedence, operator) {
-                    let isPostfix = isUnaryPostfix(node.kind);
+                emitUnary(node, parentPrecedence, operator) {
+                    let isPostfix = node_7.isUnaryPostfix(node.kind);
                     let shouldCastToInt = !node.resolvedType.isFloat() && node.kind == node_7.NodeKind.NEGATIVE && !js_2.jsKindCastsOperandsToInt(node.parent.kind);
                     let isUnsigned = node.isUnsignedOperator();
                     let operatorPrecedence = shouldCastToInt ? isUnsigned ? parser_5.Precedence.SHIFT : parser_5.Precedence.BITWISE_OR : isPostfix ? parser_5.Precedence.UNARY_POSTFIX : parser_5.Precedence.UNARY_PREFIX;
-                    if (parentPrecedence > operatorPrecedence) {
-                        this.code.append("(");
-                    }
+                    // if (parentPrecedence > operatorPrecedence) {
+                    //     this.code.append("(");
+                    // }
                     if (!isPostfix) {
                         this.code.append(operator);
                     }
@@ -9900,62 +9655,507 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                         this.code.append(operator);
                     }
                     if (shouldCastToInt) {
-                        this.code.append(isUnsigned ? " >>> 0" : " | 0");
+                        // this.code.append(isUnsigned ? " >>> 0" : " | 0");
+                        this.code.append("|0");
                     }
-                    if (parentPrecedence > operatorPrecedence) {
-                        this.code.append(")");
-                    }
+                    // if (parentPrecedence > operatorPrecedence) {
+                    //     this.code.append(")");
+                    // }
                 }
-                emitBinary(code, node, parentPrecedence, operator, operatorPrecedence, mode) {
+                emitBinary(node, parentPrecedence, operator, operatorPrecedence, mode, forceCast = false) {
                     let isRightAssociative = node.kind == node_7.NodeKind.ASSIGN;
                     let isUnsigned = node.isUnsignedOperator();
                     // Avoid casting when the parent operator already does a cast
                     let shouldCastToInt = mode == js_2.EmitBinary.CAST_TO_INT && (isUnsigned || !js_2.jsKindCastsOperandsToInt(node.parent.kind));
                     let selfPrecedence = shouldCastToInt ? isUnsigned ? parser_5.Precedence.SHIFT : parser_5.Precedence.BITWISE_OR : parentPrecedence;
+                    let identifier = getIdentifier(node);
                     if (parentPrecedence > selfPrecedence) {
-                        code.append("(");
+                        this.code.append("(");
                     }
                     if (selfPrecedence > operatorPrecedence) {
-                        code.append("(");
+                        this.code.append("(");
                     }
-                    this.emitNode(code, node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence);
-                    code.append(operator);
-                    this.emitNode(code, node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1));
+                    if (!isRightAssociative && forceCast) {
+                        this.code.append(identifier.left);
+                    }
+                    this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence, forceCast && !isRightAssociative);
+                    this.code.append(operator);
+                    if (isRightAssociative && forceCast) {
+                        this.code.append(identifier.left);
+                    }
+                    this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1), forceCast);
                     if (selfPrecedence > operatorPrecedence) {
-                        code.append(")");
+                        this.code.append(")");
                     }
-                    if (shouldCastToInt) {
-                        code.append(isUnsigned ? " >>> 0" : " | 0");
+                    if (forceCast) {
+                        this.code.append(identifier.right);
                     }
                     if (parentPrecedence > selfPrecedence) {
-                        code.append(")");
+                        this.code.append(")");
                     }
                 }
-                emitCommaSeparatedExpressions(code, start, stop, needComma = false) {
+                emitCommaSeparatedExpressions(start, stop, needComma = false) {
                     while (start != stop) {
                         if (needComma) {
                             this.code.append(" , ");
                             needComma = false;
                         }
-                        this.emitExpression(start, parser_5.Precedence.LOWEST);
+                        this.emitExpression(start, parser_5.Precedence.LOWEST, true);
                         start = start.nextSibling;
                         if (start != stop) {
                             this.code.append(", ");
                         }
                     }
                 }
-                emitSymbolName(code, symbol) {
-                    let name = symbol.rename != null ? symbol.rename : symbol.name;
-                    code.append(name);
-                    return name;
-                }
-                emitStatements(code, node) {
-                    while (node != null) {
-                        this.emitStatement(node);
-                        node = node.nextSibling;
+                emitExpression(node, parentPrecedence, forceCast = false) {
+                    if (node.kind == node_7.NodeKind.NAME) {
+                        let symbol = node.symbol;
+                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
+                            this.code.append("global.");
+                        }
+                        if (symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
+                            this.emitLoadFromMemory(symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.offset);
+                        }
+                        else {
+                            if (forceCast) {
+                                if (symbol.resolvedType.isFloat()) {
+                                    this.code.append("fround(");
+                                    this.emitSymbolName(symbol);
+                                    this.code.append(")");
+                                }
+                                else if (symbol.resolvedType.isDouble()) {
+                                    this.code.append("+");
+                                    this.code.append("(");
+                                    this.emitSymbolName(symbol);
+                                    this.code.append(")");
+                                }
+                                else {
+                                    this.code.append("(");
+                                    this.emitSymbolName(symbol);
+                                    this.code.append("|0)");
+                                }
+                            }
+                            else {
+                                this.code.append(symbol.name == "this" ? "ptr" : symbol.name);
+                            }
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.NULL) {
+                        this.code.append("0");
+                    }
+                    else if (node.kind == node_7.NodeKind.UNDEFINED) {
+                        this.code.append("undefined");
+                    }
+                    else if (node.kind == node_7.NodeKind.BOOLEAN) {
+                        this.code.append(node.intValue != 0 ? "1" : "0");
+                    }
+                    else if (node.kind == node_7.NodeKind.INT32 || node.kind == node_7.NodeKind.INT64) {
+                        // if (parentPrecedence == Precedence.MEMBER) {
+                        //     this.code.append("(");
+                        // }
+                        if (parentPrecedence != parser_5.Precedence.ASSIGN) {
+                            this.code.append(`(${node.intValue}|0)`);
+                        }
+                        else {
+                            this.code.append(`${node.intValue}`);
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.FLOAT32) {
+                        if (parentPrecedence == parser_5.Precedence.MEMBER) {
+                            this.code.append("(");
+                        }
+                        this.code.append(`fround(${node.intValue})`);
+                        // this.code.append(`${node.intValue}`);
+                        if (parentPrecedence == parser_5.Precedence.MEMBER) {
+                            this.code.append(")");
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.FLOAT64) {
+                        if (parentPrecedence == parser_5.Precedence.MEMBER) {
+                            this.code.append("(");
+                        }
+                        // this.code.append(`+(${node.floatValue})`);
+                        this.code.append(`${node.floatValue}.0`);
+                        if (parentPrecedence == parser_5.Precedence.MEMBER) {
+                            this.code.append(")");
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.STRING) {
+                        this.code.append(`\`${node.stringValue}\``);
+                    }
+                    else if (node.kind == node_7.NodeKind.CAST) {
+                        let context = this.context;
+                        let value = node.castValue();
+                        let from = value.resolvedType.underlyingType(context);
+                        let type = node.resolvedType.underlyingType(context);
+                        let fromSize = from.variableSizeOf(context);
+                        let typeSize = type.variableSizeOf(context);
+                        // The cast isn't needed if it's to a wider integer type
+                        // if (from == type || fromSize < typeSize) {
+                        //     this.emitExpression(value, parentPrecedence);
+                        // }
+                        //
+                        // else {
+                        // Sign-extend
+                        if (type == context.sbyteType || type == context.shortType) {
+                            if (parentPrecedence > parser_5.Precedence.SHIFT) {
+                                this.code.append("(");
+                            }
+                            let shift = (32 - typeSize * 8).toString();
+                            this.emitExpression(value, parser_5.Precedence.SHIFT, forceCast);
+                            this.code.append(" << ");
+                            this.code.append(shift);
+                            this.code.append(" >> ");
+                            this.code.append(shift);
+                            if (parentPrecedence > parser_5.Precedence.SHIFT) {
+                                this.code.append(")");
+                            }
+                        }
+                        else if (type == context.byteType || type == context.ushortType) {
+                            if (parentPrecedence > parser_5.Precedence.BITWISE_AND) {
+                                this.code.append("(");
+                            }
+                            this.emitExpression(value, parser_5.Precedence.BITWISE_AND, forceCast);
+                            this.code.append(" & ");
+                            this.code.append(type.integerBitMask(context).toString());
+                            if (parentPrecedence > parser_5.Precedence.BITWISE_AND) {
+                                this.code.append(")");
+                            }
+                        }
+                        else if (type == context.int32Type) {
+                            if (parentPrecedence > parser_5.Precedence.BITWISE_OR) {
+                                this.code.append("(");
+                            }
+                            this.emitExpression(value, parser_5.Precedence.BITWISE_OR, forceCast);
+                            this.code.append(" | 0");
+                            if (parentPrecedence > parser_5.Precedence.BITWISE_OR) {
+                                this.code.append(")");
+                            }
+                        }
+                        else if (type == context.uint32Type) {
+                            // if (parentPrecedence > Precedence.SHIFT) {
+                            //     this.code.append("(");
+                            // }
+                            this.emitExpression(value, parser_5.Precedence.SHIFT, forceCast);
+                        }
+                        else {
+                            this.emitExpression(value, parentPrecedence, forceCast);
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.DOT) {
+                        let dotTarget = node.dotTarget();
+                        let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
+                        let targetSymbolName;
+                        if (dotTarget.symbol) {
+                            targetSymbolName = dotTarget.symbol.name;
+                        }
+                        else {
+                            targetSymbolName = "(::unknown::)";
+                        }
+                        let resolvedNode = null;
+                        if (node.resolvedType.pointerTo) {
+                            resolvedNode = node.resolvedType.pointerTo.symbol.node;
+                        }
+                        else {
+                            resolvedNode = node.resolvedType.symbol.node;
+                        }
+                        let ref = targetSymbolName == "this" ? "ptr" : targetSymbolName;
+                        if (node.symbol.kind == symbol_7.SymbolKind.VARIABLE_INSTANCE) {
+                            this.emitLoadFromMemory(node.symbol.resolvedType, node.dotTarget(), node.symbol.offset);
+                        }
+                        else if (node.symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE) {
+                            turboTargetPointer = ref;
+                            this.code.append(resolvedTargetNode.stringValue);
+                            this.code.append(".");
+                            this.emitSymbolName(node.symbol);
+                        }
+                        else {
+                            this.emitExpression(dotTarget, parser_5.Precedence.MEMBER);
+                            this.code.append(".");
+                            this.emitSymbolName(node.symbol);
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.HOOK) {
+                        if (parentPrecedence > parser_5.Precedence.ASSIGN) {
+                            this.code.append("(");
+                        }
+                        this.emitExpression(node.hookValue(), parser_5.Precedence.LOGICAL_OR);
+                        this.code.append(" ? ");
+                        this.emitExpression(node.hookTrue(), parser_5.Precedence.ASSIGN);
+                        this.code.append(" : ");
+                        this.emitExpression(node.hookFalse(), parser_5.Precedence.ASSIGN);
+                        if (parentPrecedence > parser_5.Precedence.ASSIGN) {
+                            this.code.append(")");
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.INDEX) {
+                        let value = node.indexTarget();
+                        this.emitExpression(value, parser_5.Precedence.UNARY_POSTFIX);
+                        this.code.append("[");
+                        this.emitCommaSeparatedExpressions(value.nextSibling, null);
+                        this.code.append("]");
+                    }
+                    else if (node.kind == node_7.NodeKind.CALL) {
+                        if (node.expandCallIntoOperatorTree()) {
+                            this.emitExpression(node, parentPrecedence);
+                        }
+                        else {
+                            let value = node.callValue();
+                            let fn = functionMap.get(value.symbol.name);
+                            let signature = signatureMap.get(fn.signatureIndex);
+                            let returnType = signature.returnType;
+                            let identifier = null;
+                            if (returnType.id != AsmType.VOID) {
+                                identifier = asmTypeToIdentifier(returnType.id);
+                                this.code.append(identifier.left);
+                            }
+                            this.emitExpression(value, parser_5.Precedence.UNARY_POSTFIX);
+                            if (value.symbol == null || !value.symbol.isGetter()) {
+                                this.code.append("(");
+                                let needComma = false;
+                                if (node.firstChild) {
+                                    let firstNode = node.firstChild.resolvedType.symbol.node;
+                                    if (!firstNode.isDeclare() && node.firstChild.firstChild && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo() && turboTargetPointer) {
+                                        this.code.append(`${turboTargetPointer}`);
+                                        needComma = true;
+                                    }
+                                }
+                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
+                                this.code.append(")");
+                                if (identifier) {
+                                    this.code.append(identifier.right);
+                                }
+                            }
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.NEW) {
+                        let resolvedNode = node.resolvedType.symbol.node;
+                        let type = node.newType();
+                        let size = type.resolvedType.allocationSizeOf(this.context);
+                        assert(size > 0);
+                        // Pass the object size as the first argument
+                        //this.code.append(`malloc(${size}|0)`);//TODO: access functions from function table using function index
+                        // this.code.append(`${node.resolvedType.symbol.name}_new(`);
+                        // this.code.append(`);`);
+                        this.emitConstructor(node);
+                    }
+                    else if (node.kind == node_7.NodeKind.NOT) {
+                        let value = node.unaryValue();
+                        // Automatically invert operators for readability
+                        value.expandCallIntoOperatorTree();
+                        let invertedKind = node_7.invertedBinaryKind(value.kind);
+                        if (invertedKind != value.kind) {
+                            value.kind = invertedKind;
+                            this.emitExpression(value, parentPrecedence);
+                        }
+                        else {
+                            this.emitUnary(node, parentPrecedence, "!");
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.COMPLEMENT)
+                        this.emitUnary(node, parentPrecedence, "~");
+                    else if (node.kind == node_7.NodeKind.NEGATIVE)
+                        this.emitUnary(node, parentPrecedence, "-");
+                    else if (node.kind == node_7.NodeKind.POSITIVE)
+                        this.emitUnary(node, parentPrecedence, "+");
+                    else if (node.kind == node_7.NodeKind.PREFIX_INCREMENT)
+                        this.emitUnary(node, parentPrecedence, "++");
+                    else if (node.kind == node_7.NodeKind.PREFIX_DECREMENT)
+                        this.emitUnary(node, parentPrecedence, "--");
+                    else if (node.kind == node_7.NodeKind.POSTFIX_INCREMENT)
+                        this.emitUnary(node, parentPrecedence, "++");
+                    else if (node.kind == node_7.NodeKind.POSTFIX_DECREMENT)
+                        this.emitUnary(node, parentPrecedence, "--");
+                    else if (node.kind == node_7.NodeKind.ADD) {
+                        this.emitBinary(node, parentPrecedence, " + ", parser_5.Precedence.ADD, js_2.EmitBinary.NORMAL, forceCast);
+                    }
+                    else if (node.kind == node_7.NodeKind.ASSIGN) {
+                        let left = node.binaryLeft();
+                        let right = node.binaryRight();
+                        let symbol = left.symbol;
+                        if (left.kind == node_7.NodeKind.DEREFERENCE) {
+                            this.emitStoreToMemory(left.resolvedType.underlyingType(this.context), left.unaryValue(), 0, right);
+                        }
+                        else if (symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
+                            this.emitStoreToMemory(symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.offset, right);
+                        }
+                        else if (symbol.kind == symbol_7.SymbolKind.VARIABLE_INSTANCE) {
+                            this.emitStoreToMemory(symbol.resolvedType, left.dotTarget(), symbol.offset, right);
+                        }
+                        else {
+                            this.emitBinary(node, parentPrecedence, " = ", parser_5.Precedence.ASSIGN, js_2.EmitBinary.NORMAL, true);
+                        }
+                    }
+                    else if (node.kind == node_7.NodeKind.BITWISE_AND) {
+                        this.emitBinary(node, parentPrecedence, " & ", parser_5.Precedence.BITWISE_AND, js_2.EmitBinary.NORMAL);
+                    }
+                    else if (node.kind == node_7.NodeKind.BITWISE_OR) {
+                        this.emitBinary(node, parentPrecedence, " | ", parser_5.Precedence.BITWISE_OR, js_2.EmitBinary.NORMAL);
+                    }
+                    else if (node.kind == node_7.NodeKind.BITWISE_XOR) {
+                        this.emitBinary(node, parentPrecedence, " ^ ", parser_5.Precedence.BITWISE_XOR, js_2.EmitBinary.NORMAL);
+                    }
+                    else if (node.kind == node_7.NodeKind.DIVIDE) {
+                        this.emitBinary(node, parentPrecedence, " / ", parser_5.Precedence.MULTIPLY, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL, true);
+                    }
+                    else if (node.kind == node_7.NodeKind.EQUAL) {
+                        this.emitBinary(node, parentPrecedence, " == ", parser_5.Precedence.EQUAL, js_2.EmitBinary.NORMAL, forceCast);
+                    }
+                    else if (node.kind == node_7.NodeKind.GREATER_THAN) {
+                        this.emitBinary(node, parentPrecedence, " > ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL, true);
+                    }
+                    else if (node.kind == node_7.NodeKind.GREATER_THAN_EQUAL) {
+                        this.emitBinary(node, parentPrecedence, " >= ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL, true);
+                    }
+                    else if (node.kind == node_7.NodeKind.LESS_THAN) {
+                        this.emitBinary(node, parentPrecedence, " < ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL, true);
+                    }
+                    else if (node.kind == node_7.NodeKind.LESS_THAN_EQUAL) {
+                        this.emitBinary(node, parentPrecedence, " <= ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL, true);
+                    }
+                    else if (node.kind == node_7.NodeKind.LOGICAL_AND) {
+                        this.emitBinary(node, parentPrecedence, " && ", parser_5.Precedence.LOGICAL_AND, js_2.EmitBinary.NORMAL);
+                    }
+                    else if (node.kind == node_7.NodeKind.LOGICAL_OR) {
+                        this.emitBinary(node, parentPrecedence, " || ", parser_5.Precedence.LOGICAL_OR, js_2.EmitBinary.NORMAL);
+                    }
+                    else if (node.kind == node_7.NodeKind.NOT_EQUAL) {
+                        this.emitBinary(node, parentPrecedence, " != ", parser_5.Precedence.EQUAL, js_2.EmitBinary.NORMAL, true);
+                    }
+                    else if (node.kind == node_7.NodeKind.REMAINDER) {
+                        this.emitBinary(node, parentPrecedence, " % ", parser_5.Precedence.MULTIPLY, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL, true);
+                    }
+                    else if (node.kind == node_7.NodeKind.SHIFT_LEFT) {
+                        this.emitBinary(node, parentPrecedence, " << ", parser_5.Precedence.SHIFT, js_2.EmitBinary.NORMAL);
+                    }
+                    else if (node.kind == node_7.NodeKind.SHIFT_RIGHT) {
+                        this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", parser_5.Precedence.SHIFT, js_2.EmitBinary.NORMAL);
+                    }
+                    else if (node.kind == node_7.NodeKind.SUBTRACT) {
+                        this.emitBinary(node, parentPrecedence, " - ", parser_5.Precedence.ADD, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL, true);
+                    }
+                    else if (node.kind == node_7.NodeKind.MULTIPLY) {
+                        let left = node.binaryLeft();
+                        let right = node.binaryRight();
+                        let isUnsigned = node.isUnsignedOperator();
+                        if (isUnsigned && parentPrecedence > parser_5.Precedence.SHIFT) {
+                            this.code.append("(");
+                        }
+                        if (left.intValue && right.intValue) {
+                            this.code.append("__imul(");
+                            this.emitExpression(left, parser_5.Precedence.LOWEST);
+                            this.code.append(", ");
+                            this.emitExpression(right, parser_5.Precedence.LOWEST);
+                            this.code.append(")");
+                            if (isUnsigned) {
+                                this.code.append(" >>> 0");
+                                if (parentPrecedence > parser_5.Precedence.SHIFT) {
+                                    this.code.append(")");
+                                }
+                            }
+                        }
+                        else {
+                            this.emitExpression(left, parser_5.Precedence.LOWEST);
+                            this.code.append(" * ");
+                            this.emitExpression(right, parser_5.Precedence.LOWEST);
+                        }
+                        this.foundMultiply = true;
+                    }
+                    else if (node.kind == node_7.NodeKind.DEREFERENCE) {
+                        this.emitLoadFromMemory(node.resolvedType.underlyingType(this.context), node.unaryValue(), 0);
+                    }
+                    else {
+                        assert(false);
                     }
                 }
-                emitStatement(code, node) {
+                emitLoadFromMemory(type, relativeBase, offset) {
+                    let heapType;
+                    let sizeOf = type.variableSizeOf(this.context);
+                    let idLeft = "";
+                    let idRight = "";
+                    if (sizeOf == 1) {
+                        idRight = "|0)";
+                        heapType = type.isUnsigned() ? "U8" : "8";
+                        this.code.append(`(HEAP${heapType}[(`);
+                    }
+                    else if (sizeOf == 2) {
+                        idRight = "|0)";
+                        heapType = type.isUnsigned() ? "U16" : "16";
+                        this.code.append(`(HEAP${heapType}[(`);
+                    }
+                    else if (sizeOf == 4) {
+                        if (type.isFloat()) {
+                            idLeft = "fround(";
+                            idRight = ")";
+                            heapType = "F32";
+                        }
+                        else {
+                            idLeft = "(";
+                            idRight = "|0)";
+                            heapType = type.isUnsigned() ? "U32" : "32";
+                        }
+                        this.code.append(`${idLeft}HEAP${heapType}[(`);
+                    }
+                    else if (sizeOf == 8) {
+                        idLeft = "(+";
+                        idRight = ")";
+                        this.code.append(`HEAPF64[(`);
+                    }
+                    else {
+                        assert(false);
+                    }
+                    // Relative address
+                    if (relativeBase != null) {
+                        this.emitExpression(relativeBase, parser_5.Precedence.MEMBER);
+                        this.code.append(` ${offset == 0 ? "" : "+ (" + offset + "|0) "}) >> 2]`);
+                    }
+                    else {
+                        this.code.append(`${offset == 0 ? "" : offset}) >> 2]`);
+                    }
+                    this.code.append(idRight);
+                }
+                emitStoreToMemory(type, relativeBase, offset, value) {
+                    let heapType;
+                    let sizeOf = type.variableSizeOf(this.context);
+                    if (sizeOf == 1) {
+                        heapType = type.isUnsigned() ? "U8" : "8";
+                        this.code.append(`HEAP${heapType}[(`);
+                    }
+                    else if (sizeOf == 2) {
+                        heapType = type.isUnsigned() ? "U16" : "16";
+                        this.code.append(`HEAP${heapType}[(`);
+                    }
+                    else if (sizeOf == 4) {
+                        if (type.isFloat()) {
+                            this.code.append(`HEAPF32[(`);
+                        }
+                        else {
+                            heapType = type.isUnsigned() ? "U32" : "32";
+                            this.code.append(`HEAP${heapType}[(`);
+                        }
+                    }
+                    else if (sizeOf == 8) {
+                        this.code.append(`HEAPF64[(`);
+                    }
+                    else {
+                        assert(false);
+                    }
+                    // Relative address
+                    if (relativeBase != null) {
+                        this.emitExpression(relativeBase, parser_5.Precedence.ASSIGN);
+                        this.code.append(` ${offset == 0 ? "" : "+ (" + offset + "|0)"}) >> 2] = `);
+                    }
+                    else {
+                        this.code.append(`${offset == 0 ? "" : offset}) >> 2] = `);
+                    }
+                    this.emitExpression(value, parser_5.Precedence.ASSIGN, true);
+                }
+                emitSymbolName(symbol) {
+                    let name = symbol.rename != null ? symbol.rename : symbol.name;
+                    this.code.append(name);
+                    return name;
+                }
+                emitStatement(node) {
                     if (node.kind == node_7.NodeKind.EXTENDS) {
                         console.log("Extends found");
                         this.code.append(" /*extends*/ ");
@@ -9967,42 +10167,42 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                         let classDef = this.getClassDef(node);
                         let isTurbo = node.isTurbo();
                         // Emit constructor
-                        if (!node.isDeclare()) {
-                            this.emitNewlineBefore(node);
-                            if (isTurbo) {
-                                //Emit class object
-                                // this.code.append(`let ${classDef.name} = {};\n`);
-                                // this.code.append(`var ${classDef.name}_NAME = "${classDef.name}";\n`);
-                                this.code.append(`var ${classDef.name}_SIZE = ${classDef.size};\n`);
-                                this.code.append(`var ${classDef.name}_ALIGN = ${classDef.align};\n`);
-                                this.code.append(`var ${classDef.name}_CLSID = ${classDef.clsid};\n`);
-                                if (classDef.base) {
-                                }
-                            }
-                            else {
-                                this.code.append(`class ${classDef.name} {`);
-                            }
-                            this.emitNewlineAfter(node);
-                        }
+                        // if (!node.isDeclare()) {
+                        //     this.emitNewlineBefore(node);
+                        //     if (isTurbo) {
+                        //         //Emit class object
+                        //         // this.code.append(`let ${classDef.name} = {};\n`);
+                        //         // this.code.append(`var ${classDef.name}_NAME = "${classDef.name}";\n`);
+                        //         this.code.append(`var ${classDef.name}_SIZE = ${classDef.size};\n`);
+                        //         this.code.append(`var ${classDef.name}_ALIGN = ${classDef.align};\n`);
+                        //         this.code.append(`var ${classDef.name}_CLSID = ${classDef.clsid};\n`);
+                        //
+                        //         if (classDef.base) {
+                        //             // this.code.append(`var ${classDef.name}_BASE = "${classDef.base}";\n`);
+                        //         }
+                        //
+                        //         // this.code.append(`${namespace}_idToType[${classDef.name}.CLSID] = ${classDef.name};\n`);
+                        //
+                        //     } else {
+                        //         this.code.append(`class ${classDef.name} {`);
+                        //     }
+                        //
+                        //     this.emitNewlineAfter(node);
+                        // }
                         // Emit instance functions
                         let child = node.firstChild;
                         while (child != null) {
                             if (child.kind == node_7.NodeKind.FUNCTION) {
-                                if (!isTurbo)
-                                    this.code.indent += 1;
+                                // if (!isTurbo) this.code.indent += 1;
                                 this.emitStatement(child);
-                                if (!isTurbo)
-                                    this.code.indent -= 1;
                             }
                             child = child.nextSibling;
                         }
-                        if (!node.isDeclare() && !isTurbo) {
-                            this.code.clearIndent(1);
-                            this.code.append("}\n");
-                        }
+                        // if (!node.isDeclare() && !isTurbo) {
+                        //     this.code.clearIndent(1);
+                        //     this.code.append("}\n");
+                        // }
                         if (node.isExport()) {
-                            // this.code.append(`${classDef.name} = ${classDef.name};\n`);
-                            exportedFunctions.push(classDef.name);
                         }
                     }
                     else if (node.kind == node_7.NodeKind.FUNCTION) {
@@ -10014,41 +10214,34 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                         let needsSemicolon = false;
                         this.emitNewlineBefore(node);
                         let isConstructor = symbol.name == "constructor";
-                        let isTurbo = node.parent.isTurbo();
                         if (symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE) {
-                            if (isConstructor && isTurbo) {
+                            let funcName = "";
+                            if (isConstructor) {
                                 this.code.append("function ");
-                                this.emitSymbolName(symbol.parent());
+                                funcName = this.emitSymbolName(symbol.parent()) + "_new";
                                 this.code.append("_new");
                                 needsSemicolon = false;
                             }
                             else {
-                                if (isTurbo) {
-                                    this.code.append("function ");
-                                    this.emitSymbolName(symbol.parent());
-                                    this.code.append("_");
-                                    if (node.isVirtual()) {
-                                        this.code.append(symbol.name + "_impl");
-                                    }
-                                    else {
-                                        this.emitSymbolName(symbol);
-                                    }
-                                    needsSemicolon = false;
+                                this.code.append("function ");
+                                funcName = this.emitSymbolName(symbol.parent()) + "_";
+                                this.code.append("_");
+                                if (node.isVirtual()) {
+                                    this.code.append(symbol.name + "_impl");
+                                    funcName += symbol.name + "_impl";
                                 }
                                 else {
-                                    if (node.isStatic()) {
-                                        this.code.append("static ");
-                                    }
-                                    this.emitSymbolName(symbol);
+                                    funcName += this.emitSymbolName(symbol);
                                 }
+                                needsSemicolon = false;
                             }
+                            exportTable.push(funcName);
                         }
                         else if (node.isExport()) {
-                            this.code.append("let ");
-                            this.emitSymbolName(symbol);
-                            this.code.append(" = function ");
-                            this.emitSymbolName(symbol);
-                            needsSemicolon = true;
+                            this.code.append("function ");
+                            let name = this.emitSymbolName(symbol);
+                            needsSemicolon = false;
+                            exportTable.push(name);
                         }
                         else {
                             this.code.append("function ");
@@ -10059,7 +10252,7 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                         let child = node.functionFirstArgumentIgnoringThis();
                         let needComma = false;
                         let signature = "";
-                        if (!isConstructor && isTurbo && !node.isStatic()) {
+                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE && !isConstructor && !node.isStatic()) {
                             this.code.append("ptr");
                             signature += "ptr";
                             needComma = true;
@@ -10086,45 +10279,98 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                         let parent = symbol.parent();
                         let parentName = parent ? parent.name : "";
                         let classDef = classMap.get(parentName);
-                        if (isConstructor && isTurbo) {
+                        if (isConstructor) {
+                            let size = parent.resolvedType.allocationSizeOf(this.context);
                             this.code.append("{\n", 1);
-                            this.code.append(`let ptr = ${namespace}malloc(${parentName}.SIZE, ${parentName}.ALIGN);\n`);
-                            this.code.append(`${namespace}HEAP32[ptr >> 2] = ${classDef.name}.CLSID;\n`);
-                            this.code.append(`${parentName}_init_mem(ptr, `);
+                            child = node.functionFirstArgumentIgnoringThis();
+                            while (child != returnType) {
+                                assert(child.kind == node_7.NodeKind.VARIABLE);
+                                if (needComma) {
+                                    this.code.append(", ");
+                                    signature += ",";
+                                    needComma = false;
+                                }
+                                this.emitSymbolName(child.symbol);
+                                this.code.append(` = `);
+                                this.emitStatement(child);
+                                this.code.append(`;\n`);
+                                // signature += child.symbol.name;
+                                child = child.nextSibling;
+                            }
+                            this.code.append(`var ptr = 0;\n`);
+                            this.code.append(`ptr = ${namespace}malloc(${size})|0;\n`);
+                            this.code.append(`${parentName}_set(ptr, `);
                             this.code.append(`${signature});\n`);
-                            this.code.append("return ptr;\n", -1);
+                            this.code.append("return ptr|0;\n", -1);
                             this.code.append("}\n\n");
-                            this.code.append(`function ${classDef.name}_init_mem(ptr, `);
-                            this.code.append(`${signature}) {\n`, 1);
+                            this.code.append(`function ${classDef.name}_set(ptr, `);
+                            this.code.append(`${signature}) `);
                         }
                         if (node.isVirtual()) {
                             let chunkIndex = this.code.breakChunk();
                             this.updateVirtualTable(node, chunkIndex, classDef.base, signature);
                         }
-                        this.emitBlock(node.functionBody(), !isConstructor || !isTurbo);
+                        child = node.functionFirstArgumentIgnoringThis();
+                        this.code.append("{\n");
+                        this.code.emitIndent();
+                        this.code.indent++;
+                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE) {
+                            this.code.append(`ptr = ptr|0;\n`);
+                        }
+                        while (child != returnType) {
+                            assert(child.kind == node_7.NodeKind.VARIABLE);
+                            if (needComma) {
+                                this.code.append(", ");
+                                needComma = false;
+                            }
+                            this.emitSymbolName(child.symbol);
+                            this.code.append(` = `);
+                            this.emitStatement(child);
+                            this.code.append(`;\n`);
+                            child = child.nextSibling;
+                        }
+                        //collect all variables to declare
+                        let fnBody = node.functionBody();
+                        let vars = this.collectLocalVariables(fnBody);
+                        vars.forEach((child) => {
+                            //declare vars first
+                            this.code.append("var ");
+                            let value = child.variableValue();
+                            this.emitSymbolName(child.symbol);
+                            assert(value != null);
+                            if (isNaN(value.rawValue)) {
+                                vars.push(child);
+                                this.code.append(" = ");
+                                this.emitNullInitializer(value);
+                                this.code.append(";\n");
+                            }
+                            else {
+                                this.code.append(" = ");
+                                this.emitExpression(value, parser_5.Precedence.ASSIGN);
+                                this.code.append(";\n");
+                            }
+                        });
+                        this.emitBlock(fnBody, false);
+                        this.code.indent--;
+                        this.code.clearIndent(1);
+                        this.code.append("}\n");
                         if (node.isVirtual()) {
                             this.code.breakChunk();
                         }
-                        if (isConstructor && isTurbo) {
-                            this.code.append(`return ptr;\n`);
-                            this.code.clearIndent(1);
-                            this.code.append("}");
-                            this.code.indent -= 1;
-                        }
-                        // this.code.append(needsSemicolon ? ";\n" : "\n");
-                        if (node.isExport()) {
-                            exportedFunctions.push(this.emitSymbolName(symbol));
-                            this.code.append(" = ");
-                            this.emitSymbolName(symbol);
-                            this.code.append(";\n");
-                        }
+                        // if (isConstructor) {
+                        //     this.code.append(`return ptr;\n`);
+                        //     this.code.clearIndent(1);
+                        //     this.code.append("}");
+                        //     this.code.indent -= 1;
+                        // }
+                        this.code.append(needsSemicolon ? ";\n" : "\n");
                         this.emitNewlineAfter(node);
                     }
                     else if (node.kind == node_7.NodeKind.IF) {
                         this.emitNewlineBefore(node);
                         while (true) {
                             this.code.append("if (");
-                            this.emitExpression(node.ifValue(), parser_5.Precedence.LOWEST);
+                            this.emitExpression(node.ifValue(), parser_5.Precedence.LOWEST, true);
                             this.code.append(") ");
                             this.emitBlock(node.ifTrue(), true);
                             let no = node.ifFalse();
@@ -10146,7 +10392,7 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                     else if (node.kind == node_7.NodeKind.WHILE) {
                         this.emitNewlineBefore(node);
                         this.code.append("while (");
-                        this.emitExpression(node.whileValue(), parser_5.Precedence.LOWEST);
+                        this.emitExpression(node.whileValue(), parser_5.Precedence.LOWEST, true);
                         this.code.append(") ");
                         this.emitBlock(node.whileBody(), true);
                         this.code.append("\n");
@@ -10174,9 +10420,20 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                         let value = node.returnValue();
                         //this.emitNewlineBefore(node);
                         if (value != null) {
-                            this.code.append("return ");
-                            this.emitExpression(value, parser_5.Precedence.LOWEST);
-                            this.code.append(";\n");
+                            if (value.kind == node_7.NodeKind.NULL) {
+                                this.code.append("return 0;\n");
+                            }
+                            else {
+                                // if (value.kind == NodeKind.NEW) {
+                                //     this.emitConstructor(value);
+                                // }
+                                this.code.append("return ");
+                                let identifier = getIdentifier(node.lastChild);
+                                this.code.append(identifier.left);
+                                this.emitExpression(value, parser_5.Precedence.LOWEST);
+                                this.code.append(identifier.right);
+                                this.code.append(";\n");
+                            }
                         }
                         else {
                             this.code.append("return;\n");
@@ -10196,26 +10453,48 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                     }
                     else if (node.kind == node_7.NodeKind.VARIABLES) {
                         this.emitNewlineBefore(node);
-                        this.code.append("let ");
                         let child = node.firstChild;
                         while (child != null) {
-                            let value = child.variableValue();
-                            this.emitSymbolName(child.symbol);
-                            child = child.nextSibling;
-                            if (child != null) {
-                                this.code.append(", ");
+                            if (child.symbol.kind == symbol_7.SymbolKind.VARIABLE_LOCAL) {
+                                let value = child.variableValue();
+                                assert(value != null);
+                                if (isNaN(value.rawValue)) {
+                                    this.emitSymbolName(child.symbol);
+                                    this.code.append(" = ");
+                                    this.emitExpression(value, parser_5.Precedence.LOWEST, true);
+                                    this.code.append(";\n");
+                                }
                             }
-                            assert(value != null);
-                            this.code.append(" = ");
-                            this.emitExpression(value, parser_5.Precedence.LOWEST);
+                            child = child.nextSibling;
                         }
-                        this.code.append(";\n");
                         this.emitNewlineAfter(node);
+                    }
+                    else if (node.kind == node_7.NodeKind.VARIABLE) {
+                        if (node.symbol.kind == symbol_7.SymbolKind.VARIABLE_ARGUMENT) {
+                            // this.emitSymbolName(node.symbol);
+                            // this.code.append(" = ");
+                            if (node.symbol.resolvedType.isFloat()) {
+                                this.code.append("fround(");
+                                this.emitSymbolName(node.symbol);
+                                this.code.append(")");
+                            }
+                            else if (node.symbol.resolvedType.isDouble()) {
+                                this.code.append("+");
+                                this.emitSymbolName(node.symbol);
+                            }
+                            else {
+                                this.emitSymbolName(node.symbol);
+                                this.code.append("|0");
+                            }
+                        }
+                        else {
+                            assert(false);
+                        }
                     }
                     else if (node.kind == node_7.NodeKind.ENUM) {
                         if (node.isExport()) {
                             this.emitNewlineBefore(node);
-                            exportedFunctions.push(this.emitSymbolName(node.symbol));
+                            exportTable.push(this.emitSymbolName(node.symbol));
                             this.code.append(" = {\n");
                             this.code.indent += 1;
                             // Emit enum values
@@ -10278,1602 +10557,19 @@ System.register("asmjs", ["symbol", "bytearray", "imports", "node", "stringbuild
                         assert(false);
                     }
                 }
-                emitExpression(code, node, parentPrecedence) {
-                    if (node.kind == node_7.NodeKind.NAME) {
-                        let symbol = node.symbol;
-                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                            this.code.append("global.");
-                        }
-                        this.emitSymbolName(symbol);
-                    }
-                    else if (node.kind == node_7.NodeKind.NULL) {
-                        this.code.append("0");
-                    }
-                    else if (node.kind == node_7.NodeKind.UNDEFINED) {
-                        this.code.append("undefined");
-                    }
-                    else if (node.kind == node_7.NodeKind.BOOLEAN) {
-                        this.code.append(node.intValue != 0 ? "true" : "false");
-                    }
-                    else if (node.kind == node_7.NodeKind.INT32) {
-                        if (parentPrecedence == parser_5.Precedence.MEMBER) {
-                            this.code.append("(");
-                        }
-                        this.code.append(node.resolvedType.isUnsigned() ? (node.intValue).toString() : node.intValue.toString());
-                        if (parentPrecedence == parser_5.Precedence.MEMBER) {
-                            this.code.append(")");
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.FLOAT32) {
-                        if (parentPrecedence == parser_5.Precedence.MEMBER) {
-                            this.code.append("(");
-                        }
-                        this.code.append(node.floatValue.toString());
-                        if (parentPrecedence == parser_5.Precedence.MEMBER) {
-                            this.code.append(")");
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.STRING) {
-                        this.code.append(`\`${node.stringValue}\``);
-                    }
-                    else if (node.kind == node_7.NodeKind.CAST) {
-                        let context = this.context;
-                        let value = node.castValue();
-                        let from = value.resolvedType.underlyingType(context);
-                        let type = node.resolvedType.underlyingType(context);
-                        let fromSize = from.variableSizeOf(context);
-                        let typeSize = type.variableSizeOf(context);
-                        // The cast isn't needed if it's to a wider integer type
-                        if (from == type || fromSize < typeSize) {
-                            this.emitExpression(value, parentPrecedence);
-                        }
-                        else {
-                            // Sign-extend
-                            if (type == context.sbyteType || type == context.shortType) {
-                                if (parentPrecedence > parser_5.Precedence.SHIFT) {
-                                    this.code.append("(");
-                                }
-                                let shift = (32 - typeSize * 8).toString();
-                                this.emitExpression(value, parser_5.Precedence.SHIFT);
-                                this.code.append(" << ");
-                                this.code.append(shift);
-                                this.code.append(" >> ");
-                                this.code.append(shift);
-                                if (parentPrecedence > parser_5.Precedence.SHIFT) {
-                                    this.code.append(")");
-                                }
-                            }
-                            else if (type == context.byteType || type == context.ushortType) {
-                                if (parentPrecedence > parser_5.Precedence.BITWISE_AND) {
-                                    this.code.append("(");
-                                }
-                                this.emitExpression(value, parser_5.Precedence.BITWISE_AND);
-                                this.code.append(" & ");
-                                this.code.append(type.integerBitMask(context).toString());
-                                if (parentPrecedence > parser_5.Precedence.BITWISE_AND) {
-                                    this.code.append(")");
-                                }
-                            }
-                            else if (type == context.int32Type) {
-                                if (parentPrecedence > parser_5.Precedence.BITWISE_OR) {
-                                    this.code.append("(");
-                                }
-                                this.emitExpression(value, parser_5.Precedence.BITWISE_OR);
-                                this.code.append(" | 0");
-                                if (parentPrecedence > parser_5.Precedence.BITWISE_OR) {
-                                    this.code.append(")");
-                                }
-                            }
-                            else if (type == context.uint32Type) {
-                                if (parentPrecedence > parser_5.Precedence.SHIFT) {
-                                    this.code.append("(");
-                                }
-                                this.emitExpression(value, parser_5.Precedence.SHIFT);
-                                this.code.append(" >>> 0");
-                                if (parentPrecedence > parser_5.Precedence.SHIFT) {
-                                    this.code.append(")");
-                                }
-                            }
-                            else {
-                                this.emitExpression(value, parentPrecedence);
-                            }
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.DOT) {
-                        let dotTarget = node.dotTarget();
-                        let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
-                        let targetSymbolName;
-                        if (dotTarget.symbol) {
-                            targetSymbolName = dotTarget.symbol.name;
-                        }
-                        else {
-                            targetSymbolName = "(::unknown::)";
-                        }
-                        let resolvedNode = null;
-                        if (node.resolvedType.pointerTo) {
-                            resolvedNode = node.resolvedType.pointerTo.symbol.node;
-                        }
-                        else {
-                            resolvedNode = node.resolvedType.symbol.node;
-                        }
-                        if (resolvedTargetNode.isDeclareOrTurbo()) {
-                            let ref = targetSymbolName == "this" ? "ptr" : targetSymbolName;
-                            if (node.symbol.kind == symbol_7.SymbolKind.VARIABLE_INSTANCE) {
-                                let memory = classMap.get(currentClass).members[node.symbol.name].memory;
-                                let offset = classMap.get(currentClass).members[node.symbol.name].offset;
-                                let shift = classMap.get(currentClass).members[node.symbol.name].shift;
-                                //check if
-                                if (node.parent.kind == node_7.NodeKind.DOT) {
-                                    //store the variable pointer, we need to move it as function argument
-                                    turboTargetPointer = `${namespace}${memory}[(${ref} + ${offset}) >> ${shift}]`;
-                                    //emit class name for static call
-                                    this.code.append(`${resolvedNode.symbol.name}`);
-                                }
-                                else {
-                                    this.code.append(`${namespace}${memory}[(${ref} + ${offset}) >> ${shift}]`);
-                                }
-                            }
-                            else if (node.symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE) {
-                                turboTargetPointer = ref;
-                                this.code.append(resolvedTargetNode.stringValue);
-                                this.code.append(".");
-                                this.emitSymbolName(node.symbol);
-                            }
-                            else {
-                                this.emitExpression(dotTarget, parser_5.Precedence.MEMBER);
-                                this.code.append(".");
-                                this.emitSymbolName(node.symbol);
-                            }
-                        }
-                        else {
-                            this.emitExpression(node.dotTarget(), parser_5.Precedence.MEMBER);
-                            this.code.append(".");
-                            this.emitSymbolName(node.symbol);
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.HOOK) {
-                        if (parentPrecedence > parser_5.Precedence.ASSIGN) {
-                            this.code.append("(");
-                        }
-                        this.emitExpression(node.hookValue(), parser_5.Precedence.LOGICAL_OR);
-                        this.code.append(" ? ");
-                        this.emitExpression(node.hookTrue(), parser_5.Precedence.ASSIGN);
-                        this.code.append(" : ");
-                        this.emitExpression(node.hookFalse(), parser_5.Precedence.ASSIGN);
-                        if (parentPrecedence > parser_5.Precedence.ASSIGN) {
-                            this.code.append(")");
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.INDEX) {
-                        let value = node.indexTarget();
-                        this.emitExpression(value, parser_5.Precedence.UNARY_POSTFIX);
-                        this.code.append("[");
-                        this.emitCommaSeparatedExpressions(value.nextSibling, null);
-                        this.code.append("]");
-                    }
-                    else if (node.kind == node_7.NodeKind.CALL) {
-                        if (node.expandCallIntoOperatorTree()) {
-                            this.emitExpression(node, parentPrecedence);
-                        }
-                        else {
-                            let value = node.callValue();
-                            this.emitExpression(value, parser_5.Precedence.UNARY_POSTFIX);
-                            if (value.symbol == null || !value.symbol.isGetter()) {
-                                this.code.append("(");
-                                let needComma = false;
-                                if (node.firstChild) {
-                                    let firstNode = node.firstChild.resolvedType.symbol.node;
-                                    if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo() && turboTargetPointer) {
-                                        this.code.append(`${turboTargetPointer}`);
-                                        needComma = true;
-                                    }
-                                }
-                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
-                                this.code.append(")");
-                            }
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.NEW) {
-                        let resolvedNode = node.resolvedType.symbol.node;
-                        let type = node.newType();
-                        if (resolvedNode.isDeclareOrTurbo()) {
-                            this.emitExpression(type, parser_5.Precedence.UNARY_POSTFIX);
-                            this.code.append("_new");
-                        }
-                        else {
-                            this.code.append("new ");
-                            this.emitExpression(type, parser_5.Precedence.UNARY_POSTFIX);
-                        }
-                        this.code.append("(");
-                        let valueNode = type.nextSibling;
-                        while (valueNode) {
-                            this.code.append(`${valueNode.rawValue}`);
-                            if (valueNode.nextSibling) {
-                                this.code.append(",");
-                                valueNode = valueNode.nextSibling;
-                            }
-                            else {
-                                valueNode = null;
-                            }
-                        }
-                        this.code.append(")");
-                    }
-                    else if (node.kind == node_7.NodeKind.NOT) {
-                        let value = node.unaryValue();
-                        // Automatically invert operators for readability
-                        value.expandCallIntoOperatorTree();
-                        let invertedKind = invertedBinaryKind(value.kind);
-                        if (invertedKind != value.kind) {
-                            value.kind = invertedKind;
-                            this.emitExpression(value, parentPrecedence);
-                        }
-                        else {
-                            this.emitUnary(node, parentPrecedence, "!");
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.COMPLEMENT)
-                        this.emitUnary(node, parentPrecedence, "~");
-                    else if (node.kind == node_7.NodeKind.NEGATIVE)
-                        this.emitUnary(node, parentPrecedence, "-");
-                    else if (node.kind == node_7.NodeKind.POSITIVE)
-                        this.emitUnary(node, parentPrecedence, "+");
-                    else if (node.kind == node_7.NodeKind.PREFIX_INCREMENT)
-                        this.emitUnary(node, parentPrecedence, "++");
-                    else if (node.kind == node_7.NodeKind.PREFIX_DECREMENT)
-                        this.emitUnary(node, parentPrecedence, "--");
-                    else if (node.kind == node_7.NodeKind.POSTFIX_INCREMENT)
-                        this.emitUnary(node, parentPrecedence, "++");
-                    else if (node.kind == node_7.NodeKind.POSTFIX_DECREMENT)
-                        this.emitUnary(node, parentPrecedence, "--");
-                    else if (node.kind == node_7.NodeKind.ADD) {
-                        this.emitBinary(node, parentPrecedence, " + ", parser_5.Precedence.ADD, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.ASSIGN) {
-                        this.emitBinary(node, parentPrecedence, " = ", parser_5.Precedence.ASSIGN, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.BITWISE_AND) {
-                        this.emitBinary(node, parentPrecedence, " & ", parser_5.Precedence.BITWISE_AND, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.BITWISE_OR) {
-                        this.emitBinary(node, parentPrecedence, " | ", parser_5.Precedence.BITWISE_OR, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.BITWISE_XOR) {
-                        this.emitBinary(node, parentPrecedence, " ^ ", parser_5.Precedence.BITWISE_XOR, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.DIVIDE) {
-                        this.emitBinary(node, parentPrecedence, " / ", parser_5.Precedence.MULTIPLY, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " === ", parser_5.Precedence.EQUAL, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.GREATER_THAN) {
-                        this.emitBinary(node, parentPrecedence, " > ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.GREATER_THAN_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " >= ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.LESS_THAN) {
-                        this.emitBinary(node, parentPrecedence, " < ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.LESS_THAN_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " <= ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.LOGICAL_AND) {
-                        this.emitBinary(node, parentPrecedence, " && ", parser_5.Precedence.LOGICAL_AND, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.LOGICAL_OR) {
-                        this.emitBinary(node, parentPrecedence, " || ", parser_5.Precedence.LOGICAL_OR, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.NOT_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " !== ", parser_5.Precedence.EQUAL, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.REMAINDER) {
-                        this.emitBinary(node, parentPrecedence, " % ", parser_5.Precedence.MULTIPLY, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.SHIFT_LEFT) {
-                        this.emitBinary(node, parentPrecedence, " << ", parser_5.Precedence.SHIFT, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.SHIFT_RIGHT) {
-                        this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", parser_5.Precedence.SHIFT, js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.SUBTRACT) {
-                        this.emitBinary(node, parentPrecedence, " - ", parser_5.Precedence.ADD, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_7.NodeKind.MULTIPLY) {
-                        let left = node.binaryLeft();
-                        let right = node.binaryRight();
-                        let isUnsigned = node.isUnsignedOperator();
-                        if (isUnsigned && parentPrecedence > parser_5.Precedence.SHIFT) {
-                            this.code.append("(");
-                        }
-                        if (left.intValue && right.intValue) {
-                            this.code.append("__imul(");
-                            this.emitExpression(left, parser_5.Precedence.LOWEST);
-                            this.code.append(", ");
-                            this.emitExpression(right, parser_5.Precedence.LOWEST);
-                            this.code.append(")");
-                            if (isUnsigned) {
-                                this.code.append(" >>> 0");
-                                if (parentPrecedence > parser_5.Precedence.SHIFT) {
-                                    this.code.append(")");
-                                }
-                            }
-                        }
-                        else {
-                            this.emitExpression(left, parser_5.Precedence.LOWEST);
-                            this.code.append(" * ");
-                            this.emitExpression(right, parser_5.Precedence.LOWEST);
-                        }
-                        this.foundMultiply = true;
-                    }
-                    else {
-                        assert(false);
-                    }
-                }
-                emitNode(code, node, parentPrecedence) {
-                    assert(!node_7.isExpression(node) || node.resolvedType != null);
-                    if (node.kind == node_7.NodeKind.BLOCK) {
-                        if (node.parent.kind == node_7.NodeKind.BLOCK) {
-                            this.emitStatements(code, node.firstChild);
-                        }
-                        else {
-                            this.emitNewlineBefore(node);
-                            this.emitBlock(code, node, true);
-                            this.code.append("\n");
-                            this.emitNewlineAfter(node);
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.WHILE) {
-                        this.emitNewlineBefore(node);
-                        code.append("while (");
-                        this.emitNode(code, node.whileValue());
-                        code.append(") ");
-                        this.emitBlock(code, node.whileBody(), true);
-                        code.append("\n");
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_7.NodeKind.BREAK || node.kind == node_7.NodeKind.CONTINUE) {
-                        this.emitNewlineBefore(node);
-                        code.append("break;\n");
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_7.NodeKind.EMPTY) {
-                        return 0;
-                    }
-                    else if (node.kind == node_7.NodeKind.EXPRESSION) {
-                        this.emitNode(code, node.expressionValue());
-                    }
-                    else if (node.kind == node_7.NodeKind.RETURN) {
-                        let value = node.returnValue();
-                        if (value != null) {
-                            code.append("return ");
-                            if (value != null) {
-                                this.emitNode(code, value);
-                                if (value.kind == node_7.NodeKind.NEW) {
-                                    this.emitConstructor(code, value);
-                                }
-                            }
-                            code.append(";\n");
-                        }
-                        else {
-                            code.append("return;\n");
-                        }
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_7.NodeKind.VARIABLES) {
-                        let count = 0;
-                        let child = node.firstChild;
-                        while (child != null) {
-                            assert(child.kind == node_7.NodeKind.VARIABLE);
-                            count = count + this.emitNode(code, child);
-                            child = child.nextSibling;
-                        }
-                        return count;
-                    }
-                    else if (node.kind == node_7.NodeKind.IF) {
-                        this.emitNewlineBefore(node);
-                        while (true) {
-                            code.append("if (");
-                            this.emitNode(code, node.ifValue());
-                            code.append(") ");
-                            this.emitBlock(code, node.ifTrue(), true);
-                            let no = node.ifFalse();
-                            if (no == null) {
-                                code.append("\n");
-                                break;
-                            }
-                            code.append("\n\n");
-                            code.append("else ");
-                            if (no.firstChild == null || no.firstChild != no.lastChild || no.firstChild.kind != node_7.NodeKind.IF) {
-                                this.emitBlock(code, no, true);
-                                code.append("\n");
-                                break;
-                            }
-                            node = no.firstChild;
-                        }
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_7.NodeKind.HOOK) {
-                        if (parentPrecedence > parser_5.Precedence.ASSIGN) {
-                            code.append("(");
-                        }
-                        this.emitNode(code, node.hookValue(), parser_5.Precedence.LOGICAL_OR);
-                        code.append(" ? ");
-                        this.emitNode(code, node.hookTrue(), parser_5.Precedence.ASSIGN);
-                        code.append(" : ");
-                        this.emitNode(code, node.hookFalse(), parser_5.Precedence.ASSIGN);
-                        if (parentPrecedence > parser_5.Precedence.ASSIGN) {
-                            code.append(")");
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.VARIABLE) {
-                        let value = node.variableValue();
-                        if (node.symbol.kind == symbol_7.SymbolKind.VARIABLE_LOCAL) {
-                            let resolvedType = node.symbol.resolvedType;
-                            if (value && value.kind != node_7.NodeKind.NAME && value.rawValue) {
-                                if (resolvedType.isFloat()) {
-                                    code.append(`var ${node.symbol.name} = Math.fround(${value.rawValue});`);
-                                }
-                                else if (resolvedType.isDouble()) {
-                                    code.append(`var ${node.symbol.name} = +${value.rawValue};`);
-                                }
-                                else if (resolvedType.isInteger()) {
-                                    code.append(`var ${node.symbol.name} = ${value.rawValue}|0;`);
-                                }
-                            }
-                            else {
-                                if (value != null) {
-                                    this.emitNode(code, value);
-                                }
-                                else {
-                                    // Default value
-                                    if (resolvedType.isFloat()) {
-                                        code.append(`var ${node.symbol.name} = Math.fround(0);`);
-                                    }
-                                    else if (resolvedType.isDouble()) {
-                                        code.append(`var ${node.symbol.name} = +0;`);
-                                    }
-                                    else if (resolvedType.isInteger()) {
-                                        code.append(`var ${node.symbol.name} = 0|0;`);
-                                    }
-                                }
-                            }
-                        }
-                        else {
-                            assert(false);
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.NAME) {
-                        let symbol = node.symbol;
-                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                            code.append("global.");
-                        }
-                        this.emitSymbolName(code, symbol);
-                    }
-                    else if (node.kind == node_7.NodeKind.DEREFERENCE) {
-                        this.emitLoadFromMemory(code, node.resolvedType.underlyingType(this.context), node.unaryValue(), 0);
-                    }
-                    else if (node.kind == node_7.NodeKind.NULL) {
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, 0, "i32 literal");
-                        array.writeLEB128(0);
-                    }
-                    else if (node.kind == node_7.NodeKind.INT32 || node.kind == node_7.NodeKind.BOOLEAN) {
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, node.intValue, "i32 literal");
-                        array.writeLEB128(node.intValue);
-                    }
-                    else if (node.kind == node_7.NodeKind.INT64) {
-                        appendOpcode(code, AsmOpcode.I64_CONST);
-                        log(code, node.longValue, "i64 literal");
-                        array.writeLEB128(node.longValue);
-                    }
-                    else if (node.kind == node_7.NodeKind.FLOAT32) {
-                        appendOpcode(code, AsmOpcode.F32_CONST);
-                        log(code, node.floatValue, "f32 literal");
-                        array.writeFloat(node.floatValue);
-                    }
-                    else if (node.kind == node_7.NodeKind.FLOAT64) {
-                        appendOpcode(code, AsmOpcode.F64_CONST);
-                        log(code, node.doubleValue, "f64 literal");
-                        array.writeDouble(node.doubleValue);
-                    }
-                    else if (node.kind == node_7.NodeKind.STRING) {
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        let value = ASM_MEMORY_INITIALIZER_BASE + node.intValue;
-                        log(code, value, "i32 literal");
-                        array.writeLEB128(value);
-                    }
-                    else if (node.kind == node_7.NodeKind.CALL) {
-                        let value = node.callValue();
-                        let symbol = value.symbol;
-                        assert(symbol_7.isFunction(symbol.kind));
-                        // Write out the implicit "this" argument
-                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE) {
-                            this.emitNode(code, value.dotTarget());
-                        }
-                        let child = value.nextSibling;
-                        while (child != null) {
-                            this.emitNode(code, child);
-                            child = child.nextSibling;
-                        }
-                        appendOpcode(code, AsmOpcode.CALL);
-                        log(code, symbol. `call func index (${symbol.offset})`);
-                        array.writeUnsignedLEB128(symbol.offset);
-                    }
-                    else if (node.kind == node_7.NodeKind.NEW) {
-                        let type = node.newType();
-                        let size = type.resolvedType.allocationSizeOf(this.context);
-                        assert(size > 0);
-                        // Pass the object size as the first argument
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, size, "i32 literal");
-                        array.writeLEB128(size);
-                        appendOpcode(code, AsmOpcode.CALL);
-                        log(code, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
-                        array.writeUnsignedLEB128(this.mallocFunctionIndex);
-                    }
-                    else if (node.kind == node_7.NodeKind.DELETE) {
-                        let value = node.deleteValue();
-                        this.emitNode(code, value);
-                        appendOpcode(code, AsmOpcode.CALL);
-                        log(code, this.freeFunctionIndex, `call func index (${this.freeFunctionIndex})`);
-                        array.writeUnsignedLEB128(this.freeFunctionIndex);
-                    }
-                    else if (node.kind == node_7.NodeKind.POSITIVE) {
-                        this.emitNode(code, node.unaryValue());
-                    }
-                    else if (node.kind == node_7.NodeKind.NEGATIVE) {
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, 0, "i32 literal");
-                        array.writeLEB128(0);
-                        this.emitNode(code, node.unaryValue());
-                        appendOpcode(code, AsmOpcode.I32_SUB);
-                    }
-                    else if (node.kind == node_7.NodeKind.COMPLEMENT) {
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, ~0, "i32 literal");
-                        array.writeLEB128(~0);
-                        this.emitNode(code, node.unaryValue());
-                        appendOpcode(code, AsmOpcode.I32_XOR);
-                    }
-                    else if (node.kind == node_7.NodeKind.NOT) {
-                        this.emitNode(code, node.unaryValue());
-                        appendOpcode(code, AsmOpcode.I32_EQZ);
-                    }
-                    else if (node.kind == node_7.NodeKind.CAST) {
-                        let value = node.castValue();
-                        let context = this.context;
-                        let from = value.resolvedType.underlyingType(context);
-                        let type = node.resolvedType.underlyingType(context);
-                        let fromSize = from.variableSizeOf(context);
-                        let typeSize = type.variableSizeOf(context);
-                        // The cast isn't needed if it's to a wider integer type
-                        if (from == type || fromSize < typeSize) {
-                            this.emitNode(code, value);
-                        }
-                        else {
-                            // Sign-extend
-                            if (type == context.sbyteType || type == context.shortType) {
-                                let shift = 32 - typeSize * 8;
-                                appendOpcode(code, AsmOpcode.I32_SHR_S);
-                                appendOpcode(code, AsmOpcode.I32_SHL);
-                                this.emitNode(code, value);
-                                appendOpcode(code, AsmOpcode.I32_CONST);
-                                log(code, shift, "i32 literal");
-                                array.writeLEB128(shift);
-                                appendOpcode(code, AsmOpcode.I32_CONST);
-                                log(code, shift, "i32 literal");
-                                array.writeLEB128(shift);
-                            }
-                            else if (type == context.byteType || type == context.ushortType) {
-                                this.emitNode(code, value);
-                                appendOpcode(code, AsmOpcode.I32_CONST);
-                                let _value = type.integerBitMask(this.context);
-                                log(code, _value, "i32 literal");
-                                array.writeLEB128(_value);
-                                appendOpcode(code, AsmOpcode.I32_AND);
-                            }
-                            else if (from == context.int32Type && type == context.float32Type) {
-                                //TODO implement
-                                this.emitNode(code, value);
-                            }
-                            else if (from == context.float32Type && type == context.int32Type) {
-                                //TODO implement
-                                this.emitNode(code, value);
-                            }
-                            else {
-                                this.emitNode(code, value);
-                            }
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.DOT) {
-                        let symbol = node.symbol;
-                        if (symbol.kind == symbol_7.SymbolKind.VARIABLE_INSTANCE) {
-                            this.emitLoadFromMemory(code, symbol.resolvedType, node.dotTarget(), symbol.offset);
-                        }
-                        else {
-                            assert(false);
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.ASSIGN) {
-                        let left = node.binaryLeft();
-                        let right = node.binaryRight();
-                        let symbol = left.symbol;
-                        if (left.kind == node_7.NodeKind.DEREFERENCE) {
-                            this.emitStoreToMemory(code, left.resolvedType.underlyingType(this.context), left.unaryValue(), 0, right);
-                        }
-                        else if (symbol.kind == symbol_7.SymbolKind.VARIABLE_INSTANCE) {
-                            this.emitStoreToMemory(code, symbol.resolvedType, left.dotTarget(), symbol.right);
-                        }
-                        else if (symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
-                            //Global variables are immutable in MVP so we need to store them in memory
-                            // this.emitNode(code, right);
-                            // appendOpcode(code, AsmOpcode.SET_GLOBAL);
-                            // array.writeUnsignedLEB128(symbol.offset);
-                            this.emitStoreToMemory(code, symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.right);
-                        }
-                        else if (symbol.kind == symbol_7.SymbolKind.VARIABLE_ARGUMENT || symbol.kind == symbol_7.SymbolKind.VARIABLE_LOCAL) {
-                            this.emitNode(code, right);
-                            appendOpcode(code, AsmOpcode.SET_LOCAL);
-                            log(code, symbol.
-                            , "local index");
-                            array.writeUnsignedLEB128(symbol.offset);
-                        }
-                        else {
-                            assert(false);
-                        }
-                    }
-                    else if (node.kind == node_7.NodeKind.LOGICAL_AND) {
-                        this.emitNode(code, node.binaryLeft());
-                        this.emitNode(code, node.binaryRight());
-                        appendOpcode(code, AsmOpcode.I32_AND);
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, 1, "i32 literal");
-                        array.writeLEB128(1);
-                        appendOpcode(code, AsmOpcode.I32_EQ);
-                    }
-                    else if (node.kind == node_7.NodeKind.LOGICAL_OR) {
-                        this.emitNode(code, node.binaryLeft());
-                        this.emitNode(code, node.binaryRight());
-                        appendOpcode(code, AsmOpcode.I32_OR);
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, 1, "i32 literal");
-                        array.writeLEB128(1);
-                        appendOpcode(code, AsmOpcode.I32_EQ);
-                    }
-                    else if (node_7.isUnary(node.kind)) {
-                        let kind = node.kind;
-                        if (kind == node_7.NodeKind.POSTFIX_INCREMENT) {
-                            let value = node.unaryValue();
-                            let dataType = typeToAsmType(value.resolvedType);
-                            this.emitNode(code, value);
-                            assert(value.resolvedType.isInteger() || value.resolvedType.isLong() ||
-                                value.resolvedType.isFloat() || value.resolvedType.isDouble());
-                            let size = value.resolvedType.pointerTo.allocationSizeOf(this.context);
-                            if (size == 1 || size == 2) {
-                                if (value.kind == node_7.NodeKind.INT32) {
-                                    appendOpcode(code, AsmOpcode.I32_CONST);
-                                    log(code, 1, "i32 literal");
-                                    array.writeLEB128(1);
-                                }
-                                else {
-                                    console.error("Wrong type");
-                                }
-                            }
-                            else if (size == 4) {
-                                if (value.kind == node_7.NodeKind.INT32) {
-                                    appendOpcode(code, AsmOpcode.I32_CONST);
-                                    log(code, 1, "i32 literal");
-                                    array.writeLEB128(1);
-                                }
-                                else if (value.kind == node_7.NodeKind.FLOAT32) {
-                                    appendOpcode(code, AsmOpcode.F32_CONST);
-                                    log(code, 1, "f32 literal");
-                                    array.writeFloat(1);
-                                }
-                                else {
-                                    console.error("Wrong type");
-                                }
-                            }
-                            else if (size == 8) {
-                                if (value.kind == node_7.NodeKind.INT64) {
-                                    appendOpcode(code, AsmOpcode.I64_CONST);
-                                    log(code, 1, "i64 literal");
-                                    array.writeLEB128(1);
-                                }
-                                else if (value.kind == node_7.NodeKind.FLOAT64) {
-                                    appendOpcode(code, AsmOpcode.F64_CONST);
-                                    log(code, 1, "f64 literal");
-                                    array.writeDouble(1);
-                                }
-                                else {
-                                    console.error("Wrong type");
-                                }
-                            }
-                            // if (value.resolvedType.pointerTo == null) {
-                            //     this.emitNode(code, value);
-                            // }
-                            appendOpcode(code, AsmOpcode[`${dataType}_ADD`]);
-                        }
-                    }
-                    else {
-                        if (node.kind == node_7.NodeKind.NOT) {
-                            let value = node.unaryValue();
-                            // Automatically invert operators for readability
-                            value.expandCallIntoOperatorTree();
-                            let invertedKind = invertedBinaryKind(value.kind);
-                            if (invertedKind != value.kind) {
-                                value.kind = invertedKind;
-                                this.emitExpression(value, parentPrecedence);
-                            }
-                            else {
-                                this.emitUnary(node, parentPrecedence, "!");
-                            }
-                        }
-                        else if (node.kind == node_7.NodeKind.COMPLEMENT)
-                            this.emitUnary(node, parentPrecedence, "~");
-                        else if (node.kind == node_7.NodeKind.NEGATIVE)
-                            this.emitUnary(node, parentPrecedence, "-");
-                        else if (node.kind == node_7.NodeKind.POSITIVE)
-                            this.emitUnary(node, parentPrecedence, "+");
-                        else if (node.kind == node_7.NodeKind.PREFIX_INCREMENT)
-                            this.emitUnary(node, parentPrecedence, "++");
-                        else if (node.kind == node_7.NodeKind.PREFIX_DECREMENT)
-                            this.emitUnary(node, parentPrecedence, "--");
-                        else if (node.kind == node_7.NodeKind.POSTFIX_INCREMENT)
-                            this.emitUnary(node, parentPrecedence, "++");
-                        else if (node.kind == node_7.NodeKind.POSTFIX_DECREMENT)
-                            this.emitUnary(node, parentPrecedence, "--");
-                        else if (node.kind == node_7.NodeKind.ADD) {
-                            this.emitBinary(node, parentPrecedence, " + ", parser_5.Precedence.ADD, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.ASSIGN) {
-                            this.emitBinary(node, parentPrecedence, " = ", parser_5.Precedence.ASSIGN, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.BITWISE_AND) {
-                            this.emitBinary(node, parentPrecedence, " & ", parser_5.Precedence.BITWISE_AND, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.BITWISE_OR) {
-                            this.emitBinary(node, parentPrecedence, " | ", parser_5.Precedence.BITWISE_OR, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.BITWISE_XOR) {
-                            this.emitBinary(node, parentPrecedence, " ^ ", parser_5.Precedence.BITWISE_XOR, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.DIVIDE) {
-                            this.emitBinary(node, parentPrecedence, " / ", parser_5.Precedence.MULTIPLY, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.EQUAL) {
-                            this.emitBinary(node, parentPrecedence, " === ", parser_5.Precedence.EQUAL, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.GREATER_THAN) {
-                            this.emitBinary(node, parentPrecedence, " > ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.GREATER_THAN_EQUAL) {
-                            this.emitBinary(node, parentPrecedence, " >= ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.LESS_THAN) {
-                            this.emitBinary(node, parentPrecedence, " < ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.LESS_THAN_EQUAL) {
-                            this.emitBinary(node, parentPrecedence, " <= ", parser_5.Precedence.COMPARE, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.LOGICAL_AND) {
-                            this.emitBinary(node, parentPrecedence, " && ", parser_5.Precedence.LOGICAL_AND, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.LOGICAL_OR) {
-                            this.emitBinary(node, parentPrecedence, " || ", parser_5.Precedence.LOGICAL_OR, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.NOT_EQUAL) {
-                            this.emitBinary(node, parentPrecedence, " !== ", parser_5.Precedence.EQUAL, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.REMAINDER) {
-                            this.emitBinary(node, parentPrecedence, " % ", parser_5.Precedence.MULTIPLY, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.SHIFT_LEFT) {
-                            this.emitBinary(node, parentPrecedence, " << ", parser_5.Precedence.SHIFT, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.SHIFT_RIGHT) {
-                            this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", parser_5.Precedence.SHIFT, js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.SUBTRACT) {
-                            this.emitBinary(node, parentPrecedence, " - ", parser_5.Precedence.ADD, node.parent.kind == node_7.NodeKind.INT32 ? js_2.EmitBinary.CAST_TO_INT : js_2.EmitBinary.NORMAL);
-                        }
-                        else if (node.kind == node_7.NodeKind.MULTIPLY) {
-                            let left = node.binaryLeft();
-                            let right = node.binaryRight();
-                            let isUnsigned = node.isUnsignedOperator();
-                            if (isUnsigned && parentPrecedence > parser_5.Precedence.SHIFT) {
-                                this.code.append("(");
-                            }
-                            if (left.intValue && right.intValue) {
-                                this.code.append("__imul(");
-                                this.emitExpression(left, parser_5.Precedence.LOWEST);
-                                this.code.append(", ");
-                                this.emitExpression(right, parser_5.Precedence.LOWEST);
-                                this.code.append(")");
-                                if (isUnsigned) {
-                                    this.code.append(" >>> 0");
-                                    if (parentPrecedence > parser_5.Precedence.SHIFT) {
-                                        this.code.append(")");
-                                    }
-                                }
-                            }
-                            else {
-                                this.emitExpression(left, parser_5.Precedence.LOWEST);
-                                this.code.append(" * ");
-                                this.emitExpression(right, parser_5.Precedence.LOWEST);
-                            }
-                            this.foundMultiply = true;
-                        }
-                        else {
-                            assert(false);
-                        }
-                    }
-                    return 1;
-                }
-            };
-            AsmSharedOffset = class AsmSharedOffset {
-                constructor() {
-                    this.nextLocalOffset = 0;
-                    this.localCount = 0;
-                }
-            };
-        }
-    };
-});
-System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"], function (exports_20, context_20) {
-    "use strict";
-    var __moduleName = context_20 && context_20.id;
-    // function jsKindCastsOperandsToInt(kind: NodeKind): boolean {
-    //   return
-    //     kind == NodeKind.SHIFT_LEFT || kind == NodeKind.SHIFT_RIGHT ||
-    //     kind == NodeKind.BITWISE_OR || kind == NodeKind.BITWISE_AND || kind == NodeKind.BITWISE_XOR;
-    // }
-    function turboASMJsEmit(compiler) {
-        let code = stringbuilder_10.StringBuilder_new();
-        let result = new TurboASMJsResult();
-        result.context = compiler.context;
-        result.code = code;
-        code.append("function TurboModule(global, env, buffer) {\n");
-        code.emitIndent(1);
-        code.append(compiler.runtimeSource);
-        result.emitStatements(compiler.global.firstChild);
-        result.emitVirtuals();
-        if (result.foundMultiply) {
-            code.append("\n");
-            code.append("let __imul = Math.imul || function(a, b) {\n");
-            code.append("return (a * (b >>> 16) << 16) + a * (b & 65535) | 0;\n");
-            code.append("};\n");
-        }
-        code.append("return {\n");
-        code.append(`   getMemoryUsage:getMemoryUsage${exportedFunctions.length > 0 ? "," : ""}\n`);
-        exportedFunctions.forEach((name, index) => {
-            code.append(`   ${name}:${name}${index < exportedFunctions.length - 1 ? "," : ""}\n`);
-        });
-        code.append("}\n");
-        code.indent -= 1;
-        code.clearIndent(1);
-        code.append("}\n");
-        code.append(compiler.wrapperSource);
-        compiler.outputJS = code.finish();
-    }
-    exports_20("turboASMJsEmit", turboASMJsEmit);
-    var stringbuilder_10, node_8, parser_6, js_3, symbol_8, turboJsOptimiztion, classMap, virtualMap, currentClass, turboTargetPointer, namespace, exportedFunctions, TurboASMJsResult;
-    return {
-        setters: [
-            function (stringbuilder_10_1) {
-                stringbuilder_10 = stringbuilder_10_1;
-            },
-            function (node_8_1) {
-                node_8 = node_8_1;
-            },
-            function (parser_6_1) {
-                parser_6 = parser_6_1;
-            },
-            function (js_3_1) {
-                js_3 = js_3_1;
-            },
-            function (symbol_8_1) {
-                symbol_8 = symbol_8_1;
-            }
-        ],
-        execute: function () {
-            turboJsOptimiztion = 0;
-            classMap = new Map();
-            virtualMap = new Map();
-            namespace = "";
-            exportedFunctions = [];
-            TurboASMJsResult = class TurboASMJsResult {
-                emitNewlineBefore(node) {
-                    if (this.previousNode != null && (!node_8.isCompactNodeKind(this.previousNode.kind) || !node_8.isCompactNodeKind(node.kind))) {
-                        this.code.append("\n");
-                    }
-                    this.previousNode = null;
-                }
-                emitNewlineAfter(node) {
-                    this.previousNode = node;
-                }
-                emitStatements(node) {
-                    while (node != null) {
-                        this.emitStatement(node);
-                        node = node.nextSibling;
-                    }
-                }
-                emitBlock(node, needBraces) {
-                    this.previousNode = null;
-                    if (needBraces) {
-                        this.code.append("{\n", 1);
-                    }
-                    this.emitStatements(node.firstChild);
-                    if (needBraces) {
-                        this.code.clearIndent(1);
-                        this.code.append("}");
-                        this.code.indent -= 1;
-                    }
-                    this.previousNode = null;
-                }
-                emitUnary(node, parentPrecedence, operator) {
-                    let isPostfix = node_8.isUnaryPostfix(node.kind);
-                    let shouldCastToInt = !node.resolvedType.isFloat() && node.kind == node_8.NodeKind.NEGATIVE && !js_3.jsKindCastsOperandsToInt(node.parent.kind);
-                    let isUnsigned = node.isUnsignedOperator();
-                    let operatorPrecedence = shouldCastToInt ? isUnsigned ? parser_6.Precedence.SHIFT : parser_6.Precedence.BITWISE_OR : isPostfix ? parser_6.Precedence.UNARY_POSTFIX : parser_6.Precedence.UNARY_PREFIX;
-                    if (parentPrecedence > operatorPrecedence) {
-                        this.code.append("(");
-                    }
-                    if (!isPostfix) {
-                        this.code.append(operator);
-                    }
-                    this.emitExpression(node.unaryValue(), operatorPrecedence);
-                    if (isPostfix) {
-                        this.code.append(operator);
-                    }
-                    if (shouldCastToInt) {
-                        this.code.append(isUnsigned ? " >>> 0" : " | 0");
-                    }
-                    if (parentPrecedence > operatorPrecedence) {
-                        this.code.append(")");
-                    }
-                }
-                emitBinary(node, parentPrecedence, operator, operatorPrecedence, mode) {
-                    let isRightAssociative = node.kind == node_8.NodeKind.ASSIGN;
-                    let isUnsigned = node.isUnsignedOperator();
-                    // Avoid casting when the parent operator already does a cast
-                    let shouldCastToInt = mode == js_3.EmitBinary.CAST_TO_INT && (isUnsigned || !js_3.jsKindCastsOperandsToInt(node.parent.kind));
-                    let selfPrecedence = shouldCastToInt ? isUnsigned ? parser_6.Precedence.SHIFT : parser_6.Precedence.BITWISE_OR : parentPrecedence;
-                    if (parentPrecedence > selfPrecedence) {
-                        this.code.append("(");
-                    }
-                    if (selfPrecedence > operatorPrecedence) {
-                        this.code.append("(");
-                    }
-                    this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence);
-                    this.code.append(operator);
-                    this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1));
-                    if (selfPrecedence > operatorPrecedence) {
-                        this.code.append(")");
-                    }
-                    if (shouldCastToInt) {
-                        this.code.append(isUnsigned ? " >>> 0" : " | 0");
-                    }
-                    if (parentPrecedence > selfPrecedence) {
-                        this.code.append(")");
-                    }
-                }
-                emitCommaSeparatedExpressions(start, stop, needComma = false) {
-                    while (start != stop) {
-                        if (needComma) {
-                            this.code.append(" , ");
-                            needComma = false;
-                        }
-                        this.emitExpression(start, parser_6.Precedence.LOWEST);
-                        start = start.nextSibling;
-                        if (start != stop) {
+                emitConstructor(node) {
+                    let constructorNode = node.constructorNode();
+                    let callSymbol = constructorNode.symbol;
+                    let child = node.firstChild.nextSibling;
+                    this.code.append(`${callSymbol.parent().name}_new(`);
+                    while (child != null) {
+                        this.emitExpression(child, parser_5.Precedence.MEMBER, true);
+                        child = child.nextSibling;
+                        if (child) {
                             this.code.append(", ");
                         }
                     }
-                }
-                emitExpression(node, parentPrecedence) {
-                    if (node.kind == node_8.NodeKind.NAME) {
-                        let symbol = node.symbol;
-                        if (symbol.kind == symbol_8.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                            this.code.append("global.");
-                        }
-                        this.emitSymbolName(symbol);
-                    }
-                    else if (node.kind == node_8.NodeKind.NULL) {
-                        this.code.append("0");
-                    }
-                    else if (node.kind == node_8.NodeKind.UNDEFINED) {
-                        this.code.append("undefined");
-                    }
-                    else if (node.kind == node_8.NodeKind.BOOLEAN) {
-                        this.code.append(node.intValue != 0 ? "true" : "false");
-                    }
-                    else if (node.kind == node_8.NodeKind.INT32) {
-                        if (parentPrecedence == parser_6.Precedence.MEMBER) {
-                            this.code.append("(");
-                        }
-                        this.code.append(node.resolvedType.isUnsigned() ? (node.intValue).toString() : node.intValue.toString());
-                        if (parentPrecedence == parser_6.Precedence.MEMBER) {
-                            this.code.append(")");
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.FLOAT32) {
-                        if (parentPrecedence == parser_6.Precedence.MEMBER) {
-                            this.code.append("(");
-                        }
-                        this.code.append(node.floatValue.toString());
-                        if (parentPrecedence == parser_6.Precedence.MEMBER) {
-                            this.code.append(")");
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.STRING) {
-                        this.code.append(`\`${node.stringValue}\``);
-                    }
-                    else if (node.kind == node_8.NodeKind.CAST) {
-                        let context = this.context;
-                        let value = node.castValue();
-                        let from = value.resolvedType.underlyingType(context);
-                        let type = node.resolvedType.underlyingType(context);
-                        let fromSize = from.variableSizeOf(context);
-                        let typeSize = type.variableSizeOf(context);
-                        // The cast isn't needed if it's to a wider integer type
-                        if (from == type || fromSize < typeSize) {
-                            this.emitExpression(value, parentPrecedence);
-                        }
-                        else {
-                            // Sign-extend
-                            if (type == context.sbyteType || type == context.shortType) {
-                                if (parentPrecedence > parser_6.Precedence.SHIFT) {
-                                    this.code.append("(");
-                                }
-                                let shift = (32 - typeSize * 8).toString();
-                                this.emitExpression(value, parser_6.Precedence.SHIFT);
-                                this.code.append(" << ");
-                                this.code.append(shift);
-                                this.code.append(" >> ");
-                                this.code.append(shift);
-                                if (parentPrecedence > parser_6.Precedence.SHIFT) {
-                                    this.code.append(")");
-                                }
-                            }
-                            else if (type == context.byteType || type == context.ushortType) {
-                                if (parentPrecedence > parser_6.Precedence.BITWISE_AND) {
-                                    this.code.append("(");
-                                }
-                                this.emitExpression(value, parser_6.Precedence.BITWISE_AND);
-                                this.code.append(" & ");
-                                this.code.append(type.integerBitMask(context).toString());
-                                if (parentPrecedence > parser_6.Precedence.BITWISE_AND) {
-                                    this.code.append(")");
-                                }
-                            }
-                            else if (type == context.int32Type) {
-                                if (parentPrecedence > parser_6.Precedence.BITWISE_OR) {
-                                    this.code.append("(");
-                                }
-                                this.emitExpression(value, parser_6.Precedence.BITWISE_OR);
-                                this.code.append(" | 0");
-                                if (parentPrecedence > parser_6.Precedence.BITWISE_OR) {
-                                    this.code.append(")");
-                                }
-                            }
-                            else if (type == context.uint32Type) {
-                                if (parentPrecedence > parser_6.Precedence.SHIFT) {
-                                    this.code.append("(");
-                                }
-                                this.emitExpression(value, parser_6.Precedence.SHIFT);
-                                this.code.append(" >>> 0");
-                                if (parentPrecedence > parser_6.Precedence.SHIFT) {
-                                    this.code.append(")");
-                                }
-                            }
-                            else {
-                                this.emitExpression(value, parentPrecedence);
-                            }
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.DOT) {
-                        let dotTarget = node.dotTarget();
-                        let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
-                        let targetSymbolName;
-                        if (dotTarget.symbol) {
-                            targetSymbolName = dotTarget.symbol.name;
-                        }
-                        else {
-                            targetSymbolName = "(::unknown::)";
-                        }
-                        let resolvedNode = null;
-                        if (node.resolvedType.pointerTo) {
-                            resolvedNode = node.resolvedType.pointerTo.symbol.node;
-                        }
-                        else {
-                            resolvedNode = node.resolvedType.symbol.node;
-                        }
-                        if (resolvedTargetNode.isDeclareOrTurbo()) {
-                            let ref = targetSymbolName == "this" ? "ptr" : targetSymbolName;
-                            if (node.symbol.kind == symbol_8.SymbolKind.VARIABLE_INSTANCE) {
-                                let memory = classMap.get(currentClass).members[node.symbol.name].memory;
-                                let offset = classMap.get(currentClass).members[node.symbol.name].offset;
-                                let shift = classMap.get(currentClass).members[node.symbol.name].shift;
-                                //check if
-                                if (node.parent.kind == node_8.NodeKind.DOT) {
-                                    //store the variable pointer, we need to move it as function argument
-                                    turboTargetPointer = `${namespace}${memory}[(${ref} + ${offset}) >> ${shift}]`;
-                                    //emit class name for static call
-                                    this.code.append(`${resolvedNode.symbol.name}`);
-                                }
-                                else {
-                                    this.code.append(`${namespace}${memory}[(${ref} + ${offset}) >> ${shift}]`);
-                                }
-                            }
-                            else if (node.symbol.kind == symbol_8.SymbolKind.FUNCTION_INSTANCE) {
-                                turboTargetPointer = ref;
-                                this.code.append(resolvedTargetNode.stringValue);
-                                this.code.append(".");
-                                this.emitSymbolName(node.symbol);
-                            }
-                            else {
-                                this.emitExpression(dotTarget, parser_6.Precedence.MEMBER);
-                                this.code.append(".");
-                                this.emitSymbolName(node.symbol);
-                            }
-                        }
-                        else {
-                            this.emitExpression(node.dotTarget(), parser_6.Precedence.MEMBER);
-                            this.code.append(".");
-                            this.emitSymbolName(node.symbol);
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.HOOK) {
-                        if (parentPrecedence > parser_6.Precedence.ASSIGN) {
-                            this.code.append("(");
-                        }
-                        this.emitExpression(node.hookValue(), parser_6.Precedence.LOGICAL_OR);
-                        this.code.append(" ? ");
-                        this.emitExpression(node.hookTrue(), parser_6.Precedence.ASSIGN);
-                        this.code.append(" : ");
-                        this.emitExpression(node.hookFalse(), parser_6.Precedence.ASSIGN);
-                        if (parentPrecedence > parser_6.Precedence.ASSIGN) {
-                            this.code.append(")");
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.INDEX) {
-                        let value = node.indexTarget();
-                        this.emitExpression(value, parser_6.Precedence.UNARY_POSTFIX);
-                        this.code.append("[");
-                        this.emitCommaSeparatedExpressions(value.nextSibling, null);
-                        this.code.append("]");
-                    }
-                    else if (node.kind == node_8.NodeKind.CALL) {
-                        if (node.expandCallIntoOperatorTree()) {
-                            this.emitExpression(node, parentPrecedence);
-                        }
-                        else {
-                            let value = node.callValue();
-                            this.emitExpression(value, parser_6.Precedence.UNARY_POSTFIX);
-                            if (value.symbol == null || !value.symbol.isGetter()) {
-                                this.code.append("(");
-                                let needComma = false;
-                                if (node.firstChild) {
-                                    let firstNode = node.firstChild.resolvedType.symbol.node;
-                                    if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo() && turboTargetPointer) {
-                                        this.code.append(`${turboTargetPointer}`);
-                                        needComma = true;
-                                    }
-                                }
-                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
-                                this.code.append(")");
-                            }
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.NEW) {
-                        let resolvedNode = node.resolvedType.symbol.node;
-                        let type = node.newType();
-                        let size = type.resolvedType.allocationSizeOf(this.context);
-                        assert(size > 0);
-                        // Pass the object size as the first argument
-                        this.code.append(`malloc(${size}|0)`); //TODO: access functions from function table using function index
-                    }
-                    else if (node.kind == node_8.NodeKind.NOT) {
-                        let value = node.unaryValue();
-                        // Automatically invert operators for readability
-                        value.expandCallIntoOperatorTree();
-                        let invertedKind = node_8.invertedBinaryKind(value.kind);
-                        if (invertedKind != value.kind) {
-                            value.kind = invertedKind;
-                            this.emitExpression(value, parentPrecedence);
-                        }
-                        else {
-                            this.emitUnary(node, parentPrecedence, "!");
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.COMPLEMENT)
-                        this.emitUnary(node, parentPrecedence, "~");
-                    else if (node.kind == node_8.NodeKind.NEGATIVE)
-                        this.emitUnary(node, parentPrecedence, "-");
-                    else if (node.kind == node_8.NodeKind.POSITIVE)
-                        this.emitUnary(node, parentPrecedence, "+");
-                    else if (node.kind == node_8.NodeKind.PREFIX_INCREMENT)
-                        this.emitUnary(node, parentPrecedence, "++");
-                    else if (node.kind == node_8.NodeKind.PREFIX_DECREMENT)
-                        this.emitUnary(node, parentPrecedence, "--");
-                    else if (node.kind == node_8.NodeKind.POSTFIX_INCREMENT)
-                        this.emitUnary(node, parentPrecedence, "++");
-                    else if (node.kind == node_8.NodeKind.POSTFIX_DECREMENT)
-                        this.emitUnary(node, parentPrecedence, "--");
-                    else if (node.kind == node_8.NodeKind.ADD) {
-                        this.emitBinary(node, parentPrecedence, " + ", parser_6.Precedence.ADD, node.parent.kind == node_8.NodeKind.INT32 ? js_3.EmitBinary.CAST_TO_INT : js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.ASSIGN) {
-                        this.emitBinary(node, parentPrecedence, " = ", parser_6.Precedence.ASSIGN, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.BITWISE_AND) {
-                        this.emitBinary(node, parentPrecedence, " & ", parser_6.Precedence.BITWISE_AND, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.BITWISE_OR) {
-                        this.emitBinary(node, parentPrecedence, " | ", parser_6.Precedence.BITWISE_OR, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.BITWISE_XOR) {
-                        this.emitBinary(node, parentPrecedence, " ^ ", parser_6.Precedence.BITWISE_XOR, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.DIVIDE) {
-                        this.emitBinary(node, parentPrecedence, " / ", parser_6.Precedence.MULTIPLY, node.parent.kind == node_8.NodeKind.INT32 ? js_3.EmitBinary.CAST_TO_INT : js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " === ", parser_6.Precedence.EQUAL, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.GREATER_THAN) {
-                        this.emitBinary(node, parentPrecedence, " > ", parser_6.Precedence.COMPARE, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.GREATER_THAN_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " >= ", parser_6.Precedence.COMPARE, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.LESS_THAN) {
-                        this.emitBinary(node, parentPrecedence, " < ", parser_6.Precedence.COMPARE, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.LESS_THAN_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " <= ", parser_6.Precedence.COMPARE, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.LOGICAL_AND) {
-                        this.emitBinary(node, parentPrecedence, " && ", parser_6.Precedence.LOGICAL_AND, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.LOGICAL_OR) {
-                        this.emitBinary(node, parentPrecedence, " || ", parser_6.Precedence.LOGICAL_OR, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.NOT_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " !== ", parser_6.Precedence.EQUAL, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.REMAINDER) {
-                        this.emitBinary(node, parentPrecedence, " % ", parser_6.Precedence.MULTIPLY, node.parent.kind == node_8.NodeKind.INT32 ? js_3.EmitBinary.CAST_TO_INT : js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.SHIFT_LEFT) {
-                        this.emitBinary(node, parentPrecedence, " << ", parser_6.Precedence.SHIFT, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.SHIFT_RIGHT) {
-                        this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", parser_6.Precedence.SHIFT, js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.SUBTRACT) {
-                        this.emitBinary(node, parentPrecedence, " - ", parser_6.Precedence.ADD, node.parent.kind == node_8.NodeKind.INT32 ? js_3.EmitBinary.CAST_TO_INT : js_3.EmitBinary.NORMAL);
-                    }
-                    else if (node.kind == node_8.NodeKind.MULTIPLY) {
-                        let left = node.binaryLeft();
-                        let right = node.binaryRight();
-                        let isUnsigned = node.isUnsignedOperator();
-                        if (isUnsigned && parentPrecedence > parser_6.Precedence.SHIFT) {
-                            this.code.append("(");
-                        }
-                        if (left.intValue && right.intValue) {
-                            this.code.append("__imul(");
-                            this.emitExpression(left, parser_6.Precedence.LOWEST);
-                            this.code.append(", ");
-                            this.emitExpression(right, parser_6.Precedence.LOWEST);
-                            this.code.append(")");
-                            if (isUnsigned) {
-                                this.code.append(" >>> 0");
-                                if (parentPrecedence > parser_6.Precedence.SHIFT) {
-                                    this.code.append(")");
-                                }
-                            }
-                        }
-                        else {
-                            this.emitExpression(left, parser_6.Precedence.LOWEST);
-                            this.code.append(" * ");
-                            this.emitExpression(right, parser_6.Precedence.LOWEST);
-                        }
-                        this.foundMultiply = true;
-                    }
-                    else {
-                        assert(false);
-                    }
-                }
-                emitSymbolName(symbol) {
-                    let name = symbol.rename != null ? symbol.rename : symbol.name;
-                    this.code.append(name);
-                    return name;
-                }
-                emitStatement(node) {
-                    if (node.kind == node_8.NodeKind.EXTENDS) {
-                        console.log("Extends found");
-                        this.code.append(" /*extends*/ ");
-                    }
-                    else if (node.kind == node_8.NodeKind.MODULE) {
-                    }
-                    else if (node.kind == node_8.NodeKind.CLASS) {
-                    }
-                    else if (node.kind == node_8.NodeKind.FUNCTION) {
-                        let body = node.functionBody();
-                        if (body == null) {
-                            return;
-                        }
-                        let symbol = node.symbol;
-                        let needsSemicolon = false;
-                        this.emitNewlineBefore(node);
-                        let isConstructor = symbol.name == "constructor";
-                        let isTurbo = node.parent.isTurbo();
-                        if (symbol.kind == symbol_8.SymbolKind.FUNCTION_INSTANCE) {
-                            if (isConstructor && isTurbo) {
-                                this.code.append("function ");
-                                this.emitSymbolName(symbol.parent());
-                                this.code.append("_new");
-                                needsSemicolon = false;
-                            }
-                            else {
-                                if (isTurbo) {
-                                    this.code.append("function ");
-                                    this.emitSymbolName(symbol.parent());
-                                    this.code.append("_");
-                                    if (node.isVirtual()) {
-                                        this.code.append(symbol.name + "_impl");
-                                    }
-                                    else {
-                                        this.emitSymbolName(symbol);
-                                    }
-                                    needsSemicolon = false;
-                                }
-                                else {
-                                    if (node.isStatic()) {
-                                        this.code.append("static ");
-                                    }
-                                    this.emitSymbolName(symbol);
-                                }
-                            }
-                        }
-                        else if (node.isExport()) {
-                            this.code.append("let ");
-                            this.emitSymbolName(symbol);
-                            this.code.append(" = function ");
-                            this.emitSymbolName(symbol);
-                            needsSemicolon = true;
-                        }
-                        else {
-                            this.code.append("function ");
-                            this.emitSymbolName(symbol);
-                        }
-                        this.code.append("(");
-                        let returnType = node.functionReturnType();
-                        let child = node.functionFirstArgumentIgnoringThis();
-                        let needComma = false;
-                        let signature = "";
-                        if (!isConstructor && isTurbo && !node.isStatic()) {
-                            this.code.append("ptr");
-                            signature += "ptr";
-                            needComma = true;
-                        }
-                        while (child != returnType) {
-                            assert(child.kind == node_8.NodeKind.VARIABLE);
-                            if (needComma) {
-                                this.code.append(", ");
-                                signature += ",";
-                                needComma = false;
-                            }
-                            this.emitSymbolName(child.symbol);
-                            if (child.firstChild != child.lastChild && child.lastChild.hasValue) {
-                                this.code.append(` = ${child.lastChild.rawValue}`);
-                            }
-                            signature += child.symbol.name;
-                            child = child.nextSibling;
-                            if (child != returnType) {
-                                this.code.append(", ");
-                                signature += ", ";
-                            }
-                        }
-                        this.code.append(") ");
-                        let parent = symbol.parent();
-                        let parentName = parent ? parent.name : "";
-                        let classDef = classMap.get(parentName);
-                        if (isConstructor && isTurbo) {
-                            this.code.append("{\n", 1);
-                            this.code.append(`let ptr = ${namespace}malloc(${parentName}.SIZE, ${parentName}.ALIGN);\n`);
-                            this.code.append(`${namespace}HEAP32[ptr >> 2] = ${classDef.name}.CLSID;\n`);
-                            this.code.append(`${parentName}_init_mem(ptr, `);
-                            this.code.append(`${signature});\n`);
-                            this.code.append("return ptr;\n", -1);
-                            this.code.append("}\n\n");
-                            this.code.append(`function ${classDef.name}_init_mem(ptr, `);
-                            this.code.append(`${signature}) {\n`, 1);
-                        }
-                        if (node.isVirtual()) {
-                            let chunkIndex = this.code.breakChunk();
-                            this.updateVirtualTable(node, chunkIndex, classDef.base, signature);
-                        }
-                        this.emitBlock(node.functionBody(), !isConstructor || !isTurbo);
-                        if (node.isVirtual()) {
-                            this.code.breakChunk();
-                        }
-                        if (isConstructor && isTurbo) {
-                            this.code.append(`return ptr;\n`);
-                            this.code.clearIndent(1);
-                            this.code.append("}");
-                            this.code.indent -= 1;
-                        }
-                        // this.code.append(needsSemicolon ? ";\n" : "\n");
-                        if (node.isExport()) {
-                            exportedFunctions.push(this.emitSymbolName(symbol));
-                            this.code.append(" = ");
-                            this.emitSymbolName(symbol);
-                            this.code.append(";\n");
-                        }
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_8.NodeKind.IF) {
-                        this.emitNewlineBefore(node);
-                        while (true) {
-                            this.code.append("if (");
-                            this.emitExpression(node.ifValue(), parser_6.Precedence.LOWEST);
-                            this.code.append(") ");
-                            this.emitBlock(node.ifTrue(), true);
-                            let no = node.ifFalse();
-                            if (no == null) {
-                                this.code.append("\n");
-                                break;
-                            }
-                            this.code.append("\n\n");
-                            this.code.append("else ");
-                            if (no.firstChild == null || no.firstChild != no.lastChild || no.firstChild.kind != node_8.NodeKind.IF) {
-                                this.emitBlock(no, true);
-                                this.code.append("\n");
-                                break;
-                            }
-                            node = no.firstChild;
-                        }
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_8.NodeKind.WHILE) {
-                        this.emitNewlineBefore(node);
-                        this.code.append("while (");
-                        this.emitExpression(node.whileValue(), parser_6.Precedence.LOWEST);
-                        this.code.append(") ");
-                        this.emitBlock(node.whileBody(), true);
-                        this.code.append("\n");
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_8.NodeKind.BREAK) {
-                        this.emitNewlineBefore(node);
-                        this.code.append("break;\n");
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_8.NodeKind.CONTINUE) {
-                        this.emitNewlineBefore(node);
-                        this.code.append("continue;\n");
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_8.NodeKind.EXPRESSION) {
-                        this.emitNewlineBefore(node);
-                        this.emitExpression(node.expressionValue(), parser_6.Precedence.LOWEST);
-                        this.code.append(";\n");
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_8.NodeKind.EMPTY) {
-                    }
-                    else if (node.kind == node_8.NodeKind.RETURN) {
-                        let value = node.returnValue();
-                        //this.emitNewlineBefore(node);
-                        if (value != null) {
-                            this.code.append("return ");
-                            this.emitExpression(value, parser_6.Precedence.LOWEST);
-                            this.code.append(";\n");
-                        }
-                        else {
-                            this.code.append("return;\n");
-                        }
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_8.NodeKind.BLOCK) {
-                        if (node.parent.kind == node_8.NodeKind.BLOCK) {
-                            this.emitStatements(node.firstChild);
-                        }
-                        else {
-                            this.emitNewlineBefore(node);
-                            this.emitBlock(node, true);
-                            this.code.append("\n");
-                            this.emitNewlineAfter(node);
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.VARIABLES) {
-                        this.emitNewlineBefore(node);
-                        this.code.append("let ");
-                        let child = node.firstChild;
-                        while (child != null) {
-                            let value = child.variableValue();
-                            this.emitSymbolName(child.symbol);
-                            child = child.nextSibling;
-                            if (child != null) {
-                                this.code.append(", ");
-                            }
-                            assert(value != null);
-                            this.code.append(" = ");
-                            this.emitExpression(value, parser_6.Precedence.LOWEST);
-                        }
-                        this.code.append(";\n");
-                        this.emitNewlineAfter(node);
-                    }
-                    else if (node.kind == node_8.NodeKind.ENUM) {
-                        if (node.isExport()) {
-                            this.emitNewlineBefore(node);
-                            exportedFunctions.push(this.emitSymbolName(node.symbol));
-                            this.code.append(" = {\n");
-                            this.code.indent += 1;
-                            // Emit enum values
-                            let child = node.firstChild;
-                            while (child != null) {
-                                assert(child.kind == node_8.NodeKind.VARIABLE);
-                                // this.code.emitIndent();
-                                this.emitSymbolName(child.symbol);
-                                this.code.append(": ");
-                                this.code.append(child.symbol.offset.toString());
-                                child = child.nextSibling;
-                                this.code.append(child != null ? ",\n" : "\n");
-                            }
-                            this.code.clearIndent(1);
-                            this.code.append("};\n");
-                            this.emitNewlineAfter(node);
-                        }
-                        else if (turboJsOptimiztion == 0) {
-                            this.emitNewlineBefore(node);
-                            // this.code.emitIndent();
-                            this.code.append("let ");
-                            this.emitSymbolName(node.symbol);
-                            this.code.append(";\n");
-                            // this.code.emitIndent();
-                            this.code.append("(function (");
-                            this.emitSymbolName(node.symbol);
-                            this.code.append(") {\n");
-                            this.code.indent += 1;
-                            // Emit enum values
-                            let child = node.firstChild;
-                            while (child != null) {
-                                assert(child.kind == node_8.NodeKind.VARIABLE);
-                                // this.code.emitIndent();
-                                this.emitSymbolName(node.symbol);
-                                this.code.append("[");
-                                this.emitSymbolName(node.symbol);
-                                this.code.append("['");
-                                this.emitSymbolName(child.symbol);
-                                this.code.append("'] = ");
-                                this.code.append(child.symbol.offset.toString());
-                                this.code.append("] = ");
-                                this.code.append("'");
-                                this.emitSymbolName(child.symbol);
-                                this.code.append("'");
-                                child = child.nextSibling;
-                                this.code.append(";\n");
-                            }
-                            this.code.clearIndent(1);
-                            this.code.append("})(");
-                            this.emitSymbolName(node.symbol);
-                            this.code.append(" || (");
-                            this.emitSymbolName(node.symbol);
-                            this.code.append(" = {}));\n");
-                            this.emitNewlineAfter(node);
-                        }
-                    }
-                    else if (node.kind == node_8.NodeKind.CONSTANTS) {
-                    }
-                    else {
-                        assert(false);
-                    }
+                    this.code.append(")|0");
                 }
                 emitVirtuals() {
                     this.code.append("\n");
@@ -11954,16 +10650,16 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         name: node.symbol.name,
                         size: 4,
                         align: 4,
-                        clsid: this.computeClassId(node.symbol.name),
+                        clsid: computeClassId(node.symbol.name),
                         members: {},
                         code: ""
                     };
-                    if (node.firstChild && node.firstChild.kind == node_8.NodeKind.EXTENDS) {
+                    if (node.firstChild && node.firstChild.kind == node_7.NodeKind.EXTENDS) {
                         def.base = node.firstChild.firstChild.stringValue;
                     }
                     let argument = node.firstChild;
                     while (argument != null) {
-                        if (argument.kind == node_8.NodeKind.VARIABLE) {
+                        if (argument.kind == node_7.NodeKind.VARIABLE) {
                             let typeSize;
                             let memory;
                             let offset;
@@ -11975,7 +10671,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                                 offset = 4 + (argument.offset * typeSize);
                                 shift = Math.log2(typeSize);
                             }
-                            else if (resolvedType.symbol.kind == symbol_8.SymbolKind.TYPE_CLASS) {
+                            else if (resolvedType.symbol.kind == symbol_7.SymbolKind.TYPE_CLASS) {
                                 typeSize = 4;
                                 memory = `HEAP32`;
                                 offset = 4 + (argument.offset * typeSize);
@@ -11983,7 +10679,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                             }
                             else {
                                 typeSize = resolvedType.symbol.byteSize;
-                                memory = `_mem_${this.getMemoryType(argument.firstChild.stringValue)}`;
+                                memory = `HEAP${getMemoryType(argument.firstChild.stringValue)}`;
                                 offset = 4 + (argument.offset * typeSize);
                                 shift = Math.log2(typeSize);
                             }
@@ -12001,65 +10697,214 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                     classMap.set(node.symbol.name, def);
                     return def;
                 }
-                computeClassId(name) {
-                    let n = name.length;
-                    for (let i = 0; i < name.length; i++) {
-                        let c = name.charAt(i);
-                        let v = 0;
-                        if (c >= 'A' && c <= 'Z')
-                            v = c.charCodeAt(0) - 'A'.charCodeAt(0);
-                        else if (c >= 'a' && c <= 'z')
-                            v = c.charCodeAt(0) - 'a'.charCodeAt(0) + 26;
-                        else if (c >= '0' && c <= '9')
-                            v = c.charCodeAt(0) - '0'.charCodeAt(0) + 52;
-                        else if (c == '_')
-                            v = 62;
-                        else if (c == '>')
-                            v = 63;
-                        else
-                            throw "Bad character in class name: " + c;
-                        n = (((n & 0x1FFFFFF) << 3) | (n >>> 25)) ^ v;
+                collectLocalVariables(node, vars = []) {
+                    if (node.kind == node_7.NodeKind.VARIABLE) {
+                        if (node.symbol.kind == symbol_7.SymbolKind.VARIABLE_LOCAL) {
+                            vars.push(node);
+                        }
                     }
-                    return n;
+                    let child = node.firstChild;
+                    while (child != null) {
+                        this.collectLocalVariables(child, vars);
+                        child = child.nextSibling;
+                    }
+                    return vars;
                 }
-                getMemoryType(name) {
-                    if (name == "int32") {
-                        return "i32";
+                prepareToEmit(node) {
+                    if (node.kind == node_7.NodeKind.STRING) {
+                        let text = node.stringValue;
+                        let length = text.length;
+                        let offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
                     }
-                    else if (name == "int16") {
-                        return "i16";
+                    else if (node.kind == node_7.NodeKind.VARIABLE) {
+                        let symbol = node.symbol;
+                        if (symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
+                            let sizeOf = symbol.resolvedType.variableSizeOf(this.context);
+                            let value = symbol.node.variableValue();
+                            // Copy the initial value into the memory initializer
+                            let offset = symbol.offset;
+                            // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
+                            // symbol.byteOffset = offset;
+                            if (sizeOf == 1) {
+                                if (symbol.resolvedType.isUnsigned()) {
+                                }
+                                else {
+                                }
+                            }
+                            else if (sizeOf == 2) {
+                                if (symbol.resolvedType.isUnsigned()) {
+                                }
+                                else {
+                                }
+                            }
+                            else if (sizeOf == 4) {
+                                if (symbol.resolvedType.isFloat()) {
+                                }
+                                else {
+                                    if (symbol.resolvedType.isUnsigned()) {
+                                    }
+                                    else {
+                                    }
+                                }
+                            }
+                            else if (sizeOf == 8) {
+                                if (symbol.resolvedType.isDouble()) {
+                                }
+                                else {
+                                    //TODO Implement Int64 write
+                                    if (symbol.resolvedType.isUnsigned()) {
+                                    }
+                                    else {
+                                    }
+                                }
+                            }
+                            else
+                                assert(false);
+                            // Make sure the heap offset is tracked
+                            if (symbol.name == "currentHeapPointer") {
+                                assert(this.currentHeapPointer == -1);
+                                this.currentHeapPointer = symbol.offset;
+                            }
+                            else if (symbol.name == "originalHeapPointer") {
+                                assert(this.originalHeapPointer == -1);
+                                this.originalHeapPointer = symbol.offset;
+                            }
+                        }
                     }
-                    else if (name == "int8") {
-                        return "i8";
+                    else if (node.kind == node_7.NodeKind.FUNCTION) {
+                        let returnType = node.functionReturnType();
+                        let shared = new AsmSharedOffset();
+                        let argumentTypesFirst = null;
+                        let argumentTypesLast = null;
+                        // Make sure to include the implicit "this" variable as a normal argument
+                        let argument = node.functionFirstArgument();
+                        while (argument != returnType) {
+                            let type = asmWrapType(this.getAsmType(argument.variableType().resolvedType));
+                            if (argumentTypesFirst == null)
+                                argumentTypesFirst = type;
+                            else
+                                argumentTypesLast.next = type;
+                            argumentTypesLast = type;
+                            shared.nextLocalOffset = shared.nextLocalOffset + 1;
+                            argument = argument.nextSibling;
+                        }
+                        let signatureIndex = this.allocateSignature(argumentTypesFirst, asmWrapType(this.getAsmType(returnType.resolvedType)));
+                        let body = node.functionBody();
+                        let symbol = node.symbol;
+                        // Functions without bodies are imports
+                        if (body == null) {
+                            // let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                            // symbol.offset = this.importCount;
+                            // this.allocateImport(signatureIndex, moduleName, symbol.name);
+                            node = node.nextSibling;
+                            return;
+                        }
+                        symbol.offset = this.functionCount;
+                        let fn = this.allocateFunction(symbol, signatureIndex);
+                        // Make sure "malloc" is tracked
+                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
+                            assert(this.mallocFunctionIndex == -1);
+                            this.mallocFunctionIndex = symbol.offset;
+                        }
+                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.name == "free") {
+                            assert(this.freeFunctionIndex == -1);
+                            this.freeFunctionIndex = symbol.offset;
+                        }
+                        // Make "init_malloc" as start function
+                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.name == "init_malloc") {
+                            assert(this.startFunctionIndex == -1);
+                            this.startFunctionIndex = symbol.offset;
+                        }
+                        if (node.isExport()) {
+                            fn.isExported = true;
+                        }
+                        // Assign local variable offsets
+                        asmAssignLocalVariableOffsets(fn, body, shared);
+                        fn.localCount = shared.localCount;
                     }
-                    else if (name == "uint32") {
-                        return "u32";
+                    let child = node.firstChild;
+                    while (child != null) {
+                        this.prepareToEmit(child);
+                        child = child.nextSibling;
                     }
-                    else if (name == "uint16") {
-                        return "u16";
+                }
+                allocateFunction(symbol, signatureIndex) {
+                    let fn = new AsmFunction();
+                    fn.symbol = symbol;
+                    fn.signatureIndex = signatureIndex;
+                    if (this.firstFunction == null)
+                        this.firstFunction = fn;
+                    else
+                        this.lastFunction.next = fn;
+                    this.lastFunction = fn;
+                    this.functionCount = this.functionCount + 1;
+                    functionMap.set(symbol.name, fn);
+                    return fn;
+                }
+                allocateSignature(argumentTypes, returnType) {
+                    assert(returnType != null);
+                    assert(returnType.next == null);
+                    let signature = new AsmSignature();
+                    signature.argumentTypes = argumentTypes;
+                    signature.returnType = returnType;
+                    let check = this.firstSignature;
+                    let i = 0;
+                    while (check != null) {
+                        if (asmAreSignaturesEqual(signature, check)) {
+                            return i;
+                        }
+                        check = check.next;
+                        i = i + 1;
                     }
-                    else if (name == "uint8") {
-                        return "u8";
+                    if (this.firstSignature == null)
+                        this.firstSignature = signature;
+                    else
+                        this.lastSignature.next = signature;
+                    this.lastSignature = signature;
+                    signatureMap.set(i, signature);
+                    this.signatureCount = this.signatureCount + 1;
+                    return i;
+                }
+                getAsmType(type) {
+                    let context = this.context;
+                    if (type == context.booleanType || type.isInteger() || type.isReference()) {
+                        return AsmType.INT;
                     }
-                    else if (name == "float32") {
-                        return "f32";
+                    else if (type.isLong() || type.isReference()) {
+                        return AsmType.INT; // We don't have native I64 and we will not emulate it.
                     }
-                    else if (name == "float64") {
-                        return "f64";
+                    else if (type.isDouble()) {
+                        return AsmType.DOUBLE;
                     }
-                    //Pointer object
-                    return "i32";
+                    else if (type.isFloat()) {
+                        return AsmType.FLOAT;
+                    }
+                    if (type == context.voidType) {
+                        return AsmType.VOID;
+                    }
+                    assert(false);
+                    return AsmType.VOID;
+                }
+                emitNullInitializer(node) {
+                    let identifier = getIdentifier(node);
+                    if (identifier.float) {
+                        this.code.append(identifier.left);
+                    }
+                    this.code.append(`0${identifier.double ? ".0" : ""}`);
+                    if (identifier.float) {
+                        this.code.append(identifier.right);
+                    }
                 }
             };
-            exports_20("TurboASMJsResult", TurboASMJsResult);
+            exports_19("TurboASMJsModule", TurboASMJsModule);
         }
     };
 });
-System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "c", "js", "turbojs", "wasm", "library/library", "asmjs", "turboasmjs"], function (exports_21, context_21) {
+System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "c", "js", "turbojs", "wasm", "library/library", "turboasmjs"], function (exports_20, context_20) {
     "use strict";
-    var __moduleName = context_21 && context_21.id;
+    var __moduleName = context_20 && context_20.id;
     function replaceFileExtension(path, extension) {
-        var builder = stringbuilder_11.StringBuilder_new();
+        var builder = stringbuilder_10.StringBuilder_new();
         var dot = path.lastIndexOf(".");
         var forward = path.lastIndexOf("/");
         var backward = path.lastIndexOf("\\");
@@ -12069,15 +10914,15 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
         }
         return builder.append(path).append(extension).finish();
     }
-    exports_21("replaceFileExtension", replaceFileExtension);
-    var checker_1, node_9, log_4, preprocessor_1, scope_1, lexer_4, parser_7, shaking_1, stringbuilder_11, c_1, js_4, turbojs_1, wasm_1, library_1, asmjs_1, turboasmjs_1, CompileTarget, Compiler;
+    exports_20("replaceFileExtension", replaceFileExtension);
+    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_4, parser_6, shaking_1, stringbuilder_10, c_1, js_3, turbojs_1, wasm_1, library_1, turboasmjs_1, CompileTarget, Compiler;
     return {
         setters: [
             function (checker_1_1) {
                 checker_1 = checker_1_1;
             },
-            function (node_9_1) {
-                node_9 = node_9_1;
+            function (node_8_1) {
+                node_8 = node_8_1;
             },
             function (log_4_1) {
                 log_4 = log_4_1;
@@ -12091,20 +10936,20 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             function (lexer_4_1) {
                 lexer_4 = lexer_4_1;
             },
-            function (parser_7_1) {
-                parser_7 = parser_7_1;
+            function (parser_6_1) {
+                parser_6 = parser_6_1;
             },
             function (shaking_1_1) {
                 shaking_1 = shaking_1_1;
             },
-            function (stringbuilder_11_1) {
-                stringbuilder_11 = stringbuilder_11_1;
+            function (stringbuilder_10_1) {
+                stringbuilder_10 = stringbuilder_10_1;
             },
             function (c_1_1) {
                 c_1 = c_1_1;
             },
-            function (js_4_1) {
-                js_4 = js_4_1;
+            function (js_3_1) {
+                js_3 = js_3_1;
             },
             function (turbojs_1_1) {
                 turbojs_1 = turbojs_1_1;
@@ -12114,9 +10959,6 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             },
             function (library_1_1) {
                 library_1 = library_1_1;
-            },
-            function (asmjs_1_1) {
-                asmjs_1 = asmjs_1_1;
             },
             function (turboasmjs_1_1) {
                 turboasmjs_1 = turboasmjs_1_1;
@@ -12135,7 +10977,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                 CompileTarget[CompileTarget["ASMJS"] = 5] = "ASMJS";
                 CompileTarget[CompileTarget["WEBASSEMBLY"] = 6] = "WEBASSEMBLY";
             })(CompileTarget || (CompileTarget = {}));
-            exports_21("CompileTarget", CompileTarget);
+            exports_20("CompileTarget", CompileTarget);
             Compiler = class Compiler {
                 initialize(target, outputName) {
                     assert(this.log == null);
@@ -12169,8 +11011,8 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     context.log = this.log;
                     context.target = this.target;
                     context.pointerByteSize = 4; // Assume 32-bit code generation for now
-                    var global = new node_9.Node();
-                    global.kind = node_9.NodeKind.GLOBAL;
+                    var global = new node_8.Node();
+                    global.kind = node_8.NodeKind.GLOBAL;
                     var scope = new scope_1.Scope();
                     global.scope = scope;
                     // Hard-coded types
@@ -12211,7 +11053,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     source = this.firstSource;
                     while (source != null) {
                         if (source.firstToken != null) {
-                            source.file = parser_7.parse(source.firstToken, this.log);
+                            source.file = parser_6.parse(source.firstToken, this.log);
                         }
                         source = source.next;
                     }
@@ -12259,13 +11101,12 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                         c_1.cEmit(this);
                     }
                     else if (this.target == CompileTarget.JAVASCRIPT) {
-                        js_4.jsEmit(this);
+                        js_3.jsEmit(this);
                     }
                     else if (this.target == CompileTarget.TURBO_JAVASCRIPT) {
                         turbojs_1.turboJsEmit(this);
                     }
                     else if (this.target == CompileTarget.ASMJS) {
-                        asmjs_1.asmEmit(this);
                     }
                     else if (this.target == CompileTarget.TURBO_ASMJS) {
                         turboasmjs_1.turboASMJsEmit(this);
@@ -12277,13 +11118,13 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     return true;
                 }
             };
-            exports_21("Compiler", Compiler);
+            exports_20("Compiler", Compiler);
         }
     };
 });
-System.register("const", [], function (exports_22, context_22) {
+System.register("const", [], function (exports_21, context_21) {
     "use strict";
-    var __moduleName = context_22 && context_22.id;
+    var __moduleName = context_21 && context_21.id;
     var MIN_INT32_VALUE, MAX_INT32_VALUE, MIN_UINT32_VALUE, MAX_UINT32_VALUE, MIN_INT64_VALUE, MAX_INT64_VALUE, MIN_UINT64_VALUE, MAX_UINT64_VALUE;
     return {
         setters: [],
@@ -12291,89 +11132,89 @@ System.register("const", [], function (exports_22, context_22) {
             /**
              * Created by Nidin Vinayakan on 11/01/17.
              */
-            exports_22("MIN_INT32_VALUE", MIN_INT32_VALUE = -Math.pow(2, 31));
-            exports_22("MAX_INT32_VALUE", MAX_INT32_VALUE = Math.pow(2, 31) - 1);
-            exports_22("MIN_UINT32_VALUE", MIN_UINT32_VALUE = 0);
-            exports_22("MAX_UINT32_VALUE", MAX_UINT32_VALUE = Math.pow(2, 32) - 1);
+            exports_21("MIN_INT32_VALUE", MIN_INT32_VALUE = -Math.pow(2, 31));
+            exports_21("MAX_INT32_VALUE", MAX_INT32_VALUE = Math.pow(2, 31) - 1);
+            exports_21("MIN_UINT32_VALUE", MIN_UINT32_VALUE = 0);
+            exports_21("MAX_UINT32_VALUE", MAX_UINT32_VALUE = Math.pow(2, 32) - 1);
             //FIXME: Cannot represent 64 bit integer in javascript
-            exports_22("MIN_INT64_VALUE", MIN_INT64_VALUE = -Math.pow(2, 63));
-            exports_22("MAX_INT64_VALUE", MAX_INT64_VALUE = Math.pow(2, 63) - 1);
-            exports_22("MIN_UINT64_VALUE", MIN_UINT64_VALUE = 0);
-            exports_22("MAX_UINT64_VALUE", MAX_UINT64_VALUE = Math.pow(2, 64) - 1);
+            exports_21("MIN_INT64_VALUE", MIN_INT64_VALUE = -Math.pow(2, 63));
+            exports_21("MAX_INT64_VALUE", MAX_INT64_VALUE = Math.pow(2, 63) - 1);
+            exports_21("MIN_UINT64_VALUE", MIN_UINT64_VALUE = 0);
+            exports_21("MAX_UINT64_VALUE", MAX_UINT64_VALUE = Math.pow(2, 64) - 1);
         }
     };
 });
-System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope", "stringbuilder", "imports", "const"], function (exports_23, context_23) {
+System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope", "stringbuilder", "imports", "const"], function (exports_22, context_22) {
     "use strict";
-    var __moduleName = context_23 && context_23.id;
+    var __moduleName = context_22 && context_22.id;
     function addScopeToSymbol(symbol, parentScope) {
         var scope = new scope_2.Scope();
         scope.parent = parentScope;
         scope.symbol = symbol;
         symbol.scope = scope;
     }
-    exports_23("addScopeToSymbol", addScopeToSymbol);
+    exports_22("addScopeToSymbol", addScopeToSymbol);
     function linkSymbolToNode(symbol, node) {
         node.symbol = symbol;
         node.scope = symbol.scope;
         symbol.range = node.internalRange != null ? node.internalRange : node.range;
         symbol.node = node;
     }
-    exports_23("linkSymbolToNode", linkSymbolToNode);
+    exports_22("linkSymbolToNode", linkSymbolToNode);
     function initialize(context, node, parentScope, mode) {
         var kind = node.kind;
         if (node.parent != null) {
             var parentKind = node.parent.kind;
             // Validate node placement
-            if (kind != node_10.NodeKind.VARIABLE && kind != node_10.NodeKind.VARIABLES &&
-                (kind != node_10.NodeKind.FUNCTION || parentKind != node_10.NodeKind.CLASS) &&
-                (parentKind == node_10.NodeKind.FILE) != (parentKind == node_10.NodeKind.MODULE || kind == node_10.NodeKind.MODULE || kind == node_10.NodeKind.CLASS || kind == node_10.NodeKind.ENUM || kind == node_10.NodeKind.FUNCTION || kind == node_10.NodeKind.CONSTANTS)) {
+            if (kind != node_9.NodeKind.VARIABLE && kind != node_9.NodeKind.VARIABLES &&
+                (kind != node_9.NodeKind.FUNCTION || parentKind != node_9.NodeKind.CLASS) &&
+                (parentKind == node_9.NodeKind.FILE) != (parentKind == node_9.NodeKind.MODULE || kind == node_9.NodeKind.MODULE || kind == node_9.NodeKind.CLASS || kind == node_9.NodeKind.ENUM || kind == node_9.NodeKind.FUNCTION || kind == node_9.NodeKind.CONSTANTS)) {
                 context.log.error(node.range, "This statement is not allowed here");
             }
         }
         // Module
-        if (kind == node_10.NodeKind.MODULE) {
+        if (kind == node_9.NodeKind.MODULE) {
             assert(node.symbol == null);
-            var symbol = new symbol_9.Symbol();
-            symbol.kind = symbol_9.SymbolKind.TYPE_MODULE;
+            var symbol = new symbol_8.Symbol();
+            symbol.kind = symbol_8.SymbolKind.TYPE_MODULE;
             symbol.name = node.stringValue;
             symbol.resolvedType = new type_2.Type();
             symbol.resolvedType.symbol = symbol;
-            symbol.flags = symbol_9.SYMBOL_FLAG_IS_REFERENCE;
+            symbol.flags = symbol_8.SYMBOL_FLAG_IS_REFERENCE;
             addScopeToSymbol(symbol, parentScope);
             linkSymbolToNode(symbol, node);
             parentScope.define(context.log, symbol, scope_2.ScopeHint.NORMAL);
             parentScope = symbol.scope;
         }
         // Class
-        if (kind == node_10.NodeKind.CLASS || kind == node_10.NodeKind.ENUM) {
+        if (kind == node_9.NodeKind.CLASS || kind == node_9.NodeKind.ENUM) {
             assert(node.symbol == null);
-            var symbol = new symbol_9.Symbol();
-            symbol.kind = kind == node_10.NodeKind.CLASS ? symbol_9.SymbolKind.TYPE_CLASS : symbol_9.SymbolKind.TYPE_ENUM;
+            var symbol = new symbol_8.Symbol();
+            symbol.kind = kind == node_9.NodeKind.CLASS ? symbol_8.SymbolKind.TYPE_CLASS : symbol_8.SymbolKind.TYPE_ENUM;
             symbol.name = node.stringValue;
             symbol.resolvedType = new type_2.Type();
             symbol.resolvedType.symbol = symbol;
-            symbol.flags = symbol_9.SYMBOL_FLAG_IS_REFERENCE;
+            symbol.flags = symbol_8.SYMBOL_FLAG_IS_REFERENCE;
             addScopeToSymbol(symbol, parentScope);
             linkSymbolToNode(symbol, node);
             parentScope.define(context.log, symbol, scope_2.ScopeHint.NORMAL);
             parentScope = symbol.scope;
         }
-        else if (kind == node_10.NodeKind.FUNCTION) {
+        else if (kind == node_9.NodeKind.FUNCTION) {
             assert(node.symbol == null);
-            var symbol = new symbol_9.Symbol();
+            var symbol = new symbol_8.Symbol();
             symbol.kind =
-                node.parent.kind == node_10.NodeKind.CLASS ? symbol_9.SymbolKind.FUNCTION_INSTANCE :
-                    symbol_9.SymbolKind.FUNCTION_GLOBAL;
+                node.parent.kind == node_9.NodeKind.CLASS ? symbol_8.SymbolKind.FUNCTION_INSTANCE :
+                    symbol_8.SymbolKind.FUNCTION_GLOBAL;
             symbol.name = node.stringValue;
             if (node.isOperator()) {
                 if (symbol.name == "+" || symbol.name == "-") {
                     if (node.functionFirstArgument() == node.functionReturnType()) {
-                        symbol.flags = symbol_9.SYMBOL_FLAG_IS_UNARY_OPERATOR;
+                        symbol.flags = symbol_8.SYMBOL_FLAG_IS_UNARY_OPERATOR;
                         symbol.rename = symbol.name == "+" ? "op_positive" : "op_negative";
                     }
                     else {
-                        symbol.flags = symbol_9.SYMBOL_FLAG_IS_BINARY_OPERATOR;
+                        symbol.flags = symbol_8.SYMBOL_FLAG_IS_BINARY_OPERATOR;
                         symbol.rename = symbol.name == "+" ? "op_add" : "op_subtract";
                     }
                 }
@@ -12408,30 +11249,30 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                             scope_2.ScopeHint.NORMAL);
             parentScope = symbol.scope;
             // All instance functions have a special "this" type
-            if (symbol.kind != symbol_9.SymbolKind.FUNCTION_INSTANCE) {
+            if (symbol.kind != symbol_8.SymbolKind.FUNCTION_INSTANCE) {
             }
             else {
                 var parent = symbol.parent();
                 initializeSymbol(context, parent);
-                node.insertChildBefore(node.functionFirstArgument(), node_10.createVariable("this", node_10.createType(parent.resolvedType), null));
+                node.insertChildBefore(node.functionFirstArgument(), node_9.createVariable("this", node_9.createType(parent.resolvedType), null));
             }
         }
-        else if (kind == node_10.NodeKind.VARIABLE) {
+        else if (kind == node_9.NodeKind.VARIABLE) {
             assert(node.symbol == null);
-            var symbol = new symbol_9.Symbol();
+            var symbol = new symbol_8.Symbol();
             symbol.kind =
-                node.parent.kind == node_10.NodeKind.CLASS ? symbol_9.SymbolKind.VARIABLE_INSTANCE :
-                    node.parent.kind == node_10.NodeKind.FUNCTION ? symbol_9.SymbolKind.VARIABLE_ARGUMENT :
-                        node.parent.kind == node_10.NodeKind.CONSTANTS || node.parent.kind == node_10.NodeKind.ENUM ? symbol_9.SymbolKind.VARIABLE_CONSTANT :
-                            node.parent.kind == node_10.NodeKind.VARIABLES && node.parent.parent.kind == node_10.NodeKind.FILE ? symbol_9.SymbolKind.VARIABLE_GLOBAL :
-                                symbol_9.SymbolKind.VARIABLE_LOCAL;
+                node.parent.kind == node_9.NodeKind.CLASS ? symbol_8.SymbolKind.VARIABLE_INSTANCE :
+                    node.parent.kind == node_9.NodeKind.FUNCTION ? symbol_8.SymbolKind.VARIABLE_ARGUMENT :
+                        node.parent.kind == node_9.NodeKind.CONSTANTS || node.parent.kind == node_9.NodeKind.ENUM ? symbol_8.SymbolKind.VARIABLE_CONSTANT :
+                            node.parent.kind == node_9.NodeKind.VARIABLES && node.parent.parent.kind == node_9.NodeKind.FILE ? symbol_8.SymbolKind.VARIABLE_GLOBAL :
+                                symbol_8.SymbolKind.VARIABLE_LOCAL;
             symbol.name = node.stringValue;
             symbol.scope = parentScope;
             linkSymbolToNode(symbol, node);
             parentScope.define(context.log, symbol, scope_2.ScopeHint.NORMAL);
         }
-        else if (kind == node_10.NodeKind.BLOCK) {
-            if (node.parent.kind != node_10.NodeKind.FUNCTION) {
+        else if (kind == node_9.NodeKind.BLOCK) {
+            if (node.parent.kind != node_9.NodeKind.FUNCTION) {
                 var scope = new scope_2.Scope();
                 scope.parent = parentScope;
                 parentScope = scope;
@@ -12444,7 +11285,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             initialize(context, child, parentScope, mode);
             child = child.nextSibling;
         }
-        if (kind == node_10.NodeKind.FILE && mode == CheckMode.INITIALIZE) {
+        if (kind == node_9.NodeKind.FILE && mode == CheckMode.INITIALIZE) {
             context.booleanType = parentScope.findLocal("boolean", scope_2.ScopeHint.NORMAL).resolvedType;
             context.byteType = parentScope.findLocal("byte", scope_2.ScopeHint.NORMAL).resolvedType;
             context.int32Type = parentScope.findLocal("int32", scope_2.ScopeHint.NORMAL).resolvedType;
@@ -12458,88 +11299,88 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             context.float32Type = parentScope.findLocal("float32", scope_2.ScopeHint.NORMAL).resolvedType;
             context.float64Type = parentScope.findLocal("float64", scope_2.ScopeHint.NORMAL).resolvedType;
             prepareNativeType(context.booleanType, 1, 0);
-            prepareNativeType(context.byteType, 1, symbol_9.SYMBOL_FLAG_NATIVE_INTEGER | symbol_9.SYMBOL_FLAG_IS_UNSIGNED);
-            prepareNativeType(context.sbyteType, 1, symbol_9.SYMBOL_FLAG_NATIVE_INTEGER);
-            prepareNativeType(context.shortType, 2, symbol_9.SYMBOL_FLAG_NATIVE_INTEGER);
-            prepareNativeType(context.ushortType, 2, symbol_9.SYMBOL_FLAG_NATIVE_INTEGER | symbol_9.SYMBOL_FLAG_IS_UNSIGNED);
-            prepareNativeType(context.int32Type, 4, symbol_9.SYMBOL_FLAG_NATIVE_INTEGER);
-            prepareNativeType(context.int64Type, 8, symbol_9.SYMBOL_FLAG_NATIVE_LONG);
-            prepareNativeType(context.uint32Type, 4, symbol_9.SYMBOL_FLAG_NATIVE_INTEGER | symbol_9.SYMBOL_FLAG_IS_UNSIGNED);
-            prepareNativeType(context.uint64Type, 8, symbol_9.SYMBOL_FLAG_NATIVE_LONG | symbol_9.SYMBOL_FLAG_IS_UNSIGNED);
-            prepareNativeType(context.stringType, 4, symbol_9.SYMBOL_FLAG_IS_REFERENCE);
-            prepareNativeType(context.float32Type, 4, symbol_9.SYMBOL_FLAG_NATIVE_FLOAT);
-            prepareNativeType(context.float64Type, 8, symbol_9.SYMBOL_FLAG_NATIVE_DOUBLE);
+            prepareNativeType(context.byteType, 1, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
+            prepareNativeType(context.sbyteType, 1, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER);
+            prepareNativeType(context.shortType, 2, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER);
+            prepareNativeType(context.ushortType, 2, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
+            prepareNativeType(context.int32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER);
+            prepareNativeType(context.int64Type, 8, symbol_8.SYMBOL_FLAG_NATIVE_LONG);
+            prepareNativeType(context.uint32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
+            prepareNativeType(context.uint64Type, 8, symbol_8.SYMBOL_FLAG_NATIVE_LONG | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
+            prepareNativeType(context.stringType, 4, symbol_8.SYMBOL_FLAG_IS_REFERENCE);
+            prepareNativeType(context.float32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_FLOAT);
+            prepareNativeType(context.float64Type, 8, symbol_8.SYMBOL_FLAG_NATIVE_DOUBLE);
         }
     }
-    exports_23("initialize", initialize);
+    exports_22("initialize", initialize);
     function prepareNativeType(type, byteSizeAndMaxAlignment, flags) {
         var symbol = type.symbol;
-        symbol.kind = symbol_9.SymbolKind.TYPE_NATIVE;
+        symbol.kind = symbol_8.SymbolKind.TYPE_NATIVE;
         symbol.byteSize = byteSizeAndMaxAlignment;
         symbol.maxAlignment = byteSizeAndMaxAlignment;
         symbol.flags = flags;
     }
     function forbidFlag(context, node, flag, text) {
         if ((node.flags & flag) != 0) {
-            var range = node_10.rangeForFlag(node.firstFlag, flag);
+            var range = node_9.rangeForFlag(node.firstFlag, flag);
             if (range != null) {
                 node.flags = node.flags & ~flag;
                 context.log.error(range, text);
             }
         }
     }
-    exports_23("forbidFlag", forbidFlag);
+    exports_22("forbidFlag", forbidFlag);
     function requireFlag(context, node, flag, text) {
         if ((node.flags & flag) == 0) {
             node.flags = node.flags | flag;
             context.log.error(node.range, text);
         }
     }
-    exports_23("requireFlag", requireFlag);
+    exports_22("requireFlag", requireFlag);
     function initializeSymbol(context, symbol) {
-        if (symbol.state == symbol_9.SymbolState.INITIALIZED) {
+        if (symbol.state == symbol_8.SymbolState.INITIALIZED) {
             assert(symbol.resolvedType != null);
             return;
         }
-        assert(symbol.state == symbol_9.SymbolState.UNINITIALIZED);
-        symbol.state = symbol_9.SymbolState.INITIALIZING;
+        assert(symbol.state == symbol_8.SymbolState.UNINITIALIZED);
+        symbol.state = symbol_8.SymbolState.INITIALIZING;
         // Most flags aren't supported yet
         var node = symbol.node;
         // forbidFlag(context, node, NODE_FLAG_EXPORT, "Unsupported flag 'export'");
-        forbidFlag(context, node, node_10.NODE_FLAG_PROTECTED, "Unsupported flag 'protected'");
+        forbidFlag(context, node, node_9.NODE_FLAG_PROTECTED, "Unsupported flag 'protected'");
         //forbidFlag(context, node, NODE_FLAG_STATIC, "Unsupported flag 'static'");
         // Module
-        if (symbol.kind == symbol_9.SymbolKind.TYPE_MODULE) {
-            forbidFlag(context, node, node_10.NODE_FLAG_GET, "Cannot use 'get' on a module");
-            forbidFlag(context, node, node_10.NODE_FLAG_SET, "Cannot use 'set' on a module");
-            forbidFlag(context, node, node_10.NODE_FLAG_PUBLIC, "Cannot use 'public' on a module");
-            forbidFlag(context, node, node_10.NODE_FLAG_PRIVATE, "Cannot use 'private' on a module");
+        if (symbol.kind == symbol_8.SymbolKind.TYPE_MODULE) {
+            forbidFlag(context, node, node_9.NODE_FLAG_GET, "Cannot use 'get' on a module");
+            forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use 'set' on a module");
+            forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' on a module");
+            forbidFlag(context, node, node_9.NODE_FLAG_PRIVATE, "Cannot use 'private' on a module");
         }
-        else if (symbol.kind == symbol_9.SymbolKind.TYPE_CLASS || symbol.kind == symbol_9.SymbolKind.TYPE_NATIVE) {
-            forbidFlag(context, node, node_10.NODE_FLAG_GET, "Cannot use 'get' on a class");
-            forbidFlag(context, node, node_10.NODE_FLAG_SET, "Cannot use 'set' on a class");
-            forbidFlag(context, node, node_10.NODE_FLAG_PUBLIC, "Cannot use 'public' on a class");
-            forbidFlag(context, node, node_10.NODE_FLAG_PRIVATE, "Cannot use 'private' on a class");
+        else if (symbol.kind == symbol_8.SymbolKind.TYPE_CLASS || symbol.kind == symbol_8.SymbolKind.TYPE_NATIVE) {
+            forbidFlag(context, node, node_9.NODE_FLAG_GET, "Cannot use 'get' on a class");
+            forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use 'set' on a class");
+            forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' on a class");
+            forbidFlag(context, node, node_9.NODE_FLAG_PRIVATE, "Cannot use 'private' on a class");
         }
-        else if (symbol.kind == symbol_9.SymbolKind.TYPE_INTERFACE) {
-            forbidFlag(context, node, node_10.NODE_FLAG_GET, "Cannot use 'get' on a interface");
-            forbidFlag(context, node, node_10.NODE_FLAG_SET, "Cannot use 'set' on a interface");
-            forbidFlag(context, node, node_10.NODE_FLAG_PUBLIC, "Cannot use 'public' on a interface");
-            forbidFlag(context, node, node_10.NODE_FLAG_PRIVATE, "Cannot use 'private' on a interface");
+        else if (symbol.kind == symbol_8.SymbolKind.TYPE_INTERFACE) {
+            forbidFlag(context, node, node_9.NODE_FLAG_GET, "Cannot use 'get' on a interface");
+            forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use 'set' on a interface");
+            forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' on a interface");
+            forbidFlag(context, node, node_9.NODE_FLAG_PRIVATE, "Cannot use 'private' on a interface");
         }
-        else if (symbol.kind == symbol_9.SymbolKind.TYPE_ENUM) {
-            forbidFlag(context, node, node_10.NODE_FLAG_GET, "Cannot use 'get' on an enum");
-            forbidFlag(context, node, node_10.NODE_FLAG_SET, "Cannot use 'set' on an enum");
-            forbidFlag(context, node, node_10.NODE_FLAG_PUBLIC, "Cannot use 'public' on an enum");
-            forbidFlag(context, node, node_10.NODE_FLAG_PRIVATE, "Cannot use 'private' on an enum");
+        else if (symbol.kind == symbol_8.SymbolKind.TYPE_ENUM) {
+            forbidFlag(context, node, node_9.NODE_FLAG_GET, "Cannot use 'get' on an enum");
+            forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use 'set' on an enum");
+            forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' on an enum");
+            forbidFlag(context, node, node_9.NODE_FLAG_PRIVATE, "Cannot use 'private' on an enum");
             symbol.resolvedType = new type_2.Type();
             symbol.resolvedType.symbol = symbol;
             var underlyingSymbol = symbol.resolvedType.underlyingType(context).symbol;
             symbol.byteSize = underlyingSymbol.byteSize;
             symbol.maxAlignment = underlyingSymbol.maxAlignment;
         }
-        else if (symbol_9.isFunction(symbol.kind)) {
-            if (node.firstChild.kind == node_10.NodeKind.PARAMETERS) {
+        else if (symbol_8.isFunction(symbol.kind)) {
+            if (node.firstChild.kind == node_9.NodeKind.PARAMETERS) {
                 resolve(context, node.firstChild, symbol.scope);
             }
             var body = node.functionBody();
@@ -12550,28 +11391,28 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             var argumentCount = 0;
             var child = node.functionFirstArgument();
             while (child != returnType) {
-                assert(child.kind == node_10.NodeKind.VARIABLE);
-                assert(child.symbol.kind == symbol_9.SymbolKind.VARIABLE_ARGUMENT);
+                assert(child.kind == node_9.NodeKind.VARIABLE);
+                assert(child.symbol.kind == symbol_8.SymbolKind.VARIABLE_ARGUMENT);
                 initializeSymbol(context, child.symbol);
                 child.symbol.offset = argumentCount;
                 argumentCount = argumentCount + 1;
                 child = child.nextSibling;
             }
-            if (symbol.kind != symbol_9.SymbolKind.FUNCTION_INSTANCE) {
-                forbidFlag(context, node, node_10.NODE_FLAG_GET, "Cannot use 'get' here");
-                forbidFlag(context, node, node_10.NODE_FLAG_SET, "Cannot use 'set' here");
-                forbidFlag(context, node, node_10.NODE_FLAG_PUBLIC, "Cannot use 'public' here");
-                forbidFlag(context, node, node_10.NODE_FLAG_PRIVATE, "Cannot use 'private' here");
+            if (symbol.kind != symbol_8.SymbolKind.FUNCTION_INSTANCE) {
+                forbidFlag(context, node, node_9.NODE_FLAG_GET, "Cannot use 'get' here");
+                forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use 'set' here");
+                forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' here");
+                forbidFlag(context, node, node_9.NODE_FLAG_PRIVATE, "Cannot use 'private' here");
             }
             else if (node.isGet()) {
-                forbidFlag(context, node, node_10.NODE_FLAG_SET, "Cannot use both 'get' and 'set'");
+                forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use both 'get' and 'set'");
                 // Validate argument count including "this"
                 if (argumentCount != 1) {
                     context.log.error(symbol.range, "Getters must not have any arguments");
                 }
             }
             else if (node.isSet()) {
-                symbol.rename = stringbuilder_12.StringBuilder_new()
+                symbol.rename = stringbuilder_11.StringBuilder_new()
                     .append("set_")
                     .append(symbol.name)
                     .finish();
@@ -12583,7 +11424,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             else if (node.isOperator()) {
                 if (symbol.name == "~" || symbol.name == "++" || symbol.name == "--") {
                     if (argumentCount != 1) {
-                        context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
+                        context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
                             .append("Operator '")
                             .append(symbol.name)
                             .append("' must not have any arguments")
@@ -12592,7 +11433,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
                 else if (symbol.name == "+" || symbol.name == "-") {
                     if (argumentCount > 2) {
-                        context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
+                        context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
                             .append("Operator '")
                             .append(symbol.name)
                             .append("' must have at most one argument")
@@ -12605,7 +11446,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                 }
                 else if (argumentCount != 2) {
-                    context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
+                    context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
                         .append("Operator '")
                         .append(symbol.name)
                         .append("' must have exactly one argument")
@@ -12614,15 +11455,15 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             symbol.resolvedType = new type_2.Type();
             symbol.resolvedType.symbol = symbol;
-            if (symbol.kind == symbol_9.SymbolKind.FUNCTION_INSTANCE) {
+            if (symbol.kind == symbol_8.SymbolKind.FUNCTION_INSTANCE) {
                 var parent = symbol.parent();
                 var shouldConvertInstanceToGlobal = false;
-                forbidFlag(context, node, node_10.NODE_FLAG_EXTERN, "Cannot use 'extern' on an instance function");
-                forbidFlag(context, node, node_10.NODE_FLAG_DECLARE, "Cannot use 'declare' on an instance function");
+                forbidFlag(context, node, node_9.NODE_FLAG_EXTERN, "Cannot use 'extern' on an instance function");
+                forbidFlag(context, node, node_9.NODE_FLAG_DECLARE, "Cannot use 'declare' on an instance function");
                 // Functions inside declared classes are automatically declared
                 if (parent.node.isDeclare()) {
                     if (body == null) {
-                        node.flags = node.flags | node_10.NODE_FLAG_DECLARE;
+                        node.flags = node.flags | node_9.NODE_FLAG_DECLARE;
                     }
                     else {
                         shouldConvertInstanceToGlobal = true;
@@ -12634,14 +11475,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                     // Functions inside extern classes are automatically extern
                     if (parent.node.isExport()) {
-                        node.flags = node.flags | node_10.NODE_FLAG_EXTERN;
+                        node.flags = node.flags | node_9.NODE_FLAG_EXTERN;
                     }
                 }
                 // Rewrite this symbol as a global function instead of an instance function
                 if (shouldConvertInstanceToGlobal) {
-                    symbol.kind = symbol_9.SymbolKind.FUNCTION_GLOBAL;
-                    symbol.flags = symbol.flags | symbol_9.SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL;
-                    symbol.rename = stringbuilder_12.StringBuilder_new()
+                    symbol.kind = symbol_8.SymbolKind.FUNCTION_GLOBAL;
+                    symbol.flags = symbol.flags | symbol_8.SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL;
+                    symbol.rename = stringbuilder_11.StringBuilder_new()
                         .append(parent.name)
                         .appendChar('_')
                         .append(symbol.rename != null ? symbol.rename : symbol.name)
@@ -12652,26 +11493,26 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else if (body == null) {
-                forbidFlag(context, node, node_10.NODE_FLAG_EXTERN, "Cannot use 'extern' on an unimplemented function");
+                forbidFlag(context, node, node_9.NODE_FLAG_EXTERN, "Cannot use 'extern' on an unimplemented function");
                 if (!node.parent || !node.parent.isDeclare()) {
-                    requireFlag(context, node, node_10.NODE_FLAG_DECLARE, "Declared functions must be prefixed with 'declare'");
+                    requireFlag(context, node, node_9.NODE_FLAG_DECLARE, "Declared functions must be prefixed with 'declare'");
                 }
             }
             else {
-                forbidFlag(context, node, node_10.NODE_FLAG_DECLARE, "Cannot use 'declare' on a function with an implementation");
+                forbidFlag(context, node, node_9.NODE_FLAG_DECLARE, "Cannot use 'declare' on a function with an implementation");
             }
             context.isUnsafeAllowed = oldUnsafeAllowed;
         }
-        else if (symbol_9.isVariable(symbol.kind)) {
-            forbidFlag(context, node, node_10.NODE_FLAG_GET, "Cannot use 'get' on a variable");
-            forbidFlag(context, node, node_10.NODE_FLAG_SET, "Cannot use 'set' on a variable");
+        else if (symbol_8.isVariable(symbol.kind)) {
+            forbidFlag(context, node, node_9.NODE_FLAG_GET, "Cannot use 'get' on a variable");
+            forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use 'set' on a variable");
             var type = node.variableType();
             var value = node.variableValue();
             var oldUnsafeAllowed = context.isUnsafeAllowed;
             context.isUnsafeAllowed = context.isUnsafeAllowed || node.isUnsafe();
-            if (symbol.kind != symbol_9.SymbolKind.VARIABLE_INSTANCE) {
-                forbidFlag(context, node, node_10.NODE_FLAG_PUBLIC, "Cannot use 'public' here");
-                forbidFlag(context, node, node_10.NODE_FLAG_PRIVATE, "Cannot use 'private' here");
+            if (symbol.kind != symbol_8.SymbolKind.VARIABLE_INSTANCE) {
+                forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' here");
+                forbidFlag(context, node, node_9.NODE_FLAG_PRIVATE, "Cannot use 'private' here");
             }
             if (type != null) {
                 resolveAsType(context, type, symbol.scope);
@@ -12687,7 +11528,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             // Validate the variable type
             if (symbol.resolvedType == context.voidType || symbol.resolvedType == context.nullType) {
-                context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                     .append("Cannot create a variable with type '")
                     .append(symbol.resolvedType.toString())
                     .appendChar('\'')
@@ -12695,14 +11536,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 symbol.resolvedType = context.errorType;
             }
             // Resolve constant values at initialization time
-            if (symbol.kind == symbol_9.SymbolKind.VARIABLE_CONSTANT) {
+            if (symbol.kind == symbol_8.SymbolKind.VARIABLE_CONSTANT) {
                 if (value != null) {
                     resolveAsExpression(context, value, symbol.scope);
                     checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), type_2.ConversionKind.IMPLICIT);
-                    if (value.kind == node_10.NodeKind.INT32 || value.kind == node_10.NodeKind.INT64 || value.kind == node_10.NodeKind.BOOLEAN) {
+                    if (value.kind == node_9.NodeKind.INT32 || value.kind == node_9.NodeKind.INT64 || value.kind == node_9.NodeKind.BOOLEAN) {
                         symbol.offset = value.intValue;
                     }
-                    else if (value.kind == node_10.NodeKind.FLOAT32 || value.kind == node_10.NodeKind.FLOAT64) {
+                    else if (value.kind == node_9.NodeKind.FLOAT32 || value.kind == node_9.NodeKind.FLOAT64) {
                         symbol.offset = value.floatValue;
                     }
                     else if (value.resolvedType != context.errorType) {
@@ -12730,7 +11571,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 while (scope != null) {
                     var shadowed = scope.findLocal(symbol.name, scope_2.ScopeHint.NORMAL);
                     if (shadowed != null) {
-                        context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("The symbol '")
                             .append(symbol.name)
                             .append("' shadows another symbol with the same name in a parent scope")
@@ -12750,9 +11591,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             assert(false);
         }
         assert(symbol.resolvedType != null);
-        symbol.state = symbol_9.SymbolState.INITIALIZED;
+        symbol.state = symbol_8.SymbolState.INITIALIZED;
     }
-    exports_23("initializeSymbol", initializeSymbol);
+    exports_22("initializeSymbol", initializeSymbol);
     function resolveChildren(context, node, parentScope) {
         var child = node.firstChild;
         while (child != null) {
@@ -12761,7 +11602,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             child = child.nextSibling;
         }
     }
-    exports_23("resolveChildren", resolveChildren);
+    exports_22("resolveChildren", resolveChildren);
     function resolveChildrenAsExpressions(context, node, parentScope) {
         var child = node.firstChild;
         while (child != null) {
@@ -12769,9 +11610,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             child = child.nextSibling;
         }
     }
-    exports_23("resolveChildrenAsExpressions", resolveChildrenAsExpressions);
+    exports_22("resolveChildrenAsExpressions", resolveChildrenAsExpressions);
     function resolveAsExpression(context, node, parentScope) {
-        assert(node_10.isExpression(node));
+        assert(node_9.isExpression(node));
         resolve(context, node, parentScope);
         assert(node.resolvedType != null);
         if (node.resolvedType != context.errorType) {
@@ -12779,15 +11620,15 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 context.log.error(node.range, "Expected expression but found type");
                 node.resolvedType = context.errorType;
             }
-            else if (node.resolvedType == context.voidType && node.parent.kind != node_10.NodeKind.EXPRESSION) {
+            else if (node.resolvedType == context.voidType && node.parent.kind != node_9.NodeKind.EXPRESSION) {
                 context.log.error(node.range, "This expression does not return a value");
                 node.resolvedType = context.errorType;
             }
         }
     }
-    exports_23("resolveAsExpression", resolveAsExpression);
+    exports_22("resolveAsExpression", resolveAsExpression);
     function resolveAsType(context, node, parentScope) {
-        assert(node_10.isExpression(node));
+        assert(node_9.isExpression(node));
         resolve(context, node, parentScope);
         assert(node.resolvedType != null);
         if (node.resolvedType != context.errorType && !node.isType()) {
@@ -12795,10 +11636,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             node.resolvedType = context.errorType;
         }
     }
-    exports_23("resolveAsType", resolveAsType);
+    exports_22("resolveAsType", resolveAsType);
     function canConvert(context, node, to, kind) {
         var from = node.resolvedType;
-        assert(node_10.isExpression(node));
+        assert(node_9.isExpression(node));
         assert(from != null);
         assert(to != null);
         // Early-out if the types are identical or errors
@@ -12827,7 +11668,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             // Only allow lossless conversions implicitly
             if (kind == type_2.ConversionKind.EXPLICIT || from.symbol.byteSize < to.symbol.byteSize ||
-                node.kind == node_10.NodeKind.INT32 && (to.isUnsigned()
+                node.kind == node_9.NodeKind.INT32 && (to.isUnsigned()
                     ? node.intValue >= 0 && node.intValue <= const_1.MAX_UINT32_VALUE
                     : node.intValue >= const_1.MIN_INT32_VALUE && node.intValue <= const_1.MAX_INT32_VALUE)) {
                 return true;
@@ -12855,9 +11696,6 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             return true;
         }
         else if (from.isFloat() && to.isDouble()) {
-            if (kind == type_2.ConversionKind.IMPLICIT) {
-                return false;
-            }
             return true;
         }
         else if (from.isDouble() && to.isFloat()) {
@@ -12875,10 +11713,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         return false;
     }
-    exports_23("canConvert", canConvert);
+    exports_22("canConvert", canConvert);
     function checkConversion(context, node, to, kind) {
         if (!canConvert(context, node, to, kind)) {
-            context.log.error(node.range, stringbuilder_12.StringBuilder_new()
+            context.log.error(node.range, stringbuilder_11.StringBuilder_new()
                 .append("Cannot convert from type '")
                 .append(node.resolvedType.toString())
                 .append("' to type '")
@@ -12888,50 +11726,50 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             node.resolvedType = context.errorType;
         }
     }
-    exports_23("checkConversion", checkConversion);
+    exports_22("checkConversion", checkConversion);
     function checkStorage(context, target) {
-        assert(node_10.isExpression(target));
-        if (target.resolvedType != context.errorType && target.kind != node_10.NodeKind.INDEX && target.kind != node_10.NodeKind.DEREFERENCE &&
-            (target.kind != node_10.NodeKind.NAME && target.kind != node_10.NodeKind.DOT || target.symbol != null && (!symbol_9.isVariable(target.symbol.kind) || target.symbol.kind == symbol_9.SymbolKind.VARIABLE_CONSTANT))) {
+        assert(node_9.isExpression(target));
+        if (target.resolvedType != context.errorType && target.kind != node_9.NodeKind.INDEX && target.kind != node_9.NodeKind.DEREFERENCE &&
+            (target.kind != node_9.NodeKind.NAME && target.kind != node_9.NodeKind.DOT || target.symbol != null && (!symbol_8.isVariable(target.symbol.kind) || target.symbol.kind == symbol_8.SymbolKind.VARIABLE_CONSTANT))) {
             context.log.error(target.range, "Cannot store to this location");
             target.resolvedType = context.errorType;
         }
     }
-    exports_23("checkStorage", checkStorage);
+    exports_22("checkStorage", checkStorage);
     function createDefaultValueForType(context, type) {
         if (type.isLong()) {
-            return node_10.createLong(0);
+            return node_9.createLong(0);
         }
         else if (type.isInteger()) {
-            return node_10.createInt(0);
+            return node_9.createInt(0);
         }
         else if (type.isDouble()) {
-            return node_10.createDouble(0);
+            return node_9.createDouble(0);
         }
         else if (type.isFloat()) {
-            return node_10.createFloat(0);
+            return node_9.createFloat(0);
         }
         if (type == context.booleanType) {
-            return node_10.createboolean(false);
+            return node_9.createboolean(false);
         }
         assert(type.isReference());
-        return node_10.createNull();
+        return node_9.createNull();
     }
-    exports_23("createDefaultValueForType", createDefaultValueForType);
+    exports_22("createDefaultValueForType", createDefaultValueForType);
     function simplifyBinary(node) {
         var left = node.binaryLeft();
         var right = node.binaryRight();
         // Canonicalize commutative operators
-        if ((node.kind == node_10.NodeKind.ADD || node.kind == node_10.NodeKind.MULTIPLY ||
-            node.kind == node_10.NodeKind.BITWISE_AND || node.kind == node_10.NodeKind.BITWISE_OR || node.kind == node_10.NodeKind.BITWISE_XOR) &&
-            left.kind == node_10.NodeKind.INT32 && right.kind != node_10.NodeKind.INT32) {
+        if ((node.kind == node_9.NodeKind.ADD || node.kind == node_9.NodeKind.MULTIPLY ||
+            node.kind == node_9.NodeKind.BITWISE_AND || node.kind == node_9.NodeKind.BITWISE_OR || node.kind == node_9.NodeKind.BITWISE_XOR) &&
+            left.kind == node_9.NodeKind.INT32 && right.kind != node_9.NodeKind.INT32) {
             node.appendChild(left.remove());
             left = node.binaryLeft();
             right = node.binaryRight();
         }
         // Convert multiplication or division by a power of 2 into a shift
-        if ((node.kind == node_10.NodeKind.MULTIPLY || (node.kind == node_10.NodeKind.DIVIDE || node.kind == node_10.NodeKind.REMAINDER) && node.resolvedType.isUnsigned()) &&
-            right.kind == node_10.NodeKind.INT32 && imports_3.isPositivePowerOf2(right.intValue)) {
+        if ((node.kind == node_9.NodeKind.MULTIPLY || (node.kind == node_9.NodeKind.DIVIDE || node.kind == node_9.NodeKind.REMAINDER) && node.resolvedType.isUnsigned()) &&
+            right.kind == node_9.NodeKind.INT32 && imports_2.isPositivePowerOf2(right.intValue)) {
             // Extract the shift from the value
             var shift = -1;
             var value = right.intValue;
@@ -12940,32 +11778,32 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 shift = shift + 1;
             }
             // "x * 16" => "x << 4"
-            if (node.kind == node_10.NodeKind.MULTIPLY) {
-                node.kind = node_10.NodeKind.SHIFT_LEFT;
+            if (node.kind == node_9.NodeKind.MULTIPLY) {
+                node.kind = node_9.NodeKind.SHIFT_LEFT;
                 right.intValue = shift;
             }
-            else if (node.kind == node_10.NodeKind.DIVIDE) {
-                node.kind = node_10.NodeKind.SHIFT_RIGHT;
+            else if (node.kind == node_9.NodeKind.DIVIDE) {
+                node.kind = node_9.NodeKind.SHIFT_RIGHT;
                 right.intValue = shift;
             }
-            else if (node.kind == node_10.NodeKind.REMAINDER) {
-                node.kind = node_10.NodeKind.BITWISE_AND;
+            else if (node.kind == node_9.NodeKind.REMAINDER) {
+                node.kind = node_9.NodeKind.BITWISE_AND;
                 right.intValue = right.intValue - 1;
             }
             else {
                 assert(false);
             }
         }
-        else if (node.kind == node_10.NodeKind.ADD && right.kind == node_10.NodeKind.NEGATIVE) {
-            node.kind = node_10.NodeKind.SUBTRACT;
+        else if (node.kind == node_9.NodeKind.ADD && right.kind == node_9.NodeKind.NEGATIVE) {
+            node.kind = node_9.NodeKind.SUBTRACT;
             right.replaceWith(right.unaryValue().remove());
         }
-        else if (node.kind == node_10.NodeKind.ADD && right.isNegativeInteger()) {
-            node.kind = node_10.NodeKind.SUBTRACT;
+        else if (node.kind == node_9.NodeKind.ADD && right.isNegativeInteger()) {
+            node.kind = node_9.NodeKind.SUBTRACT;
             right.intValue = -right.intValue;
         }
     }
-    exports_23("simplifyBinary", simplifyBinary);
+    exports_22("simplifyBinary", simplifyBinary);
     function binaryHasUnsignedArguments(node) {
         var left = node.binaryLeft();
         var right = node.binaryRight();
@@ -12974,7 +11812,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         return leftType.isUnsigned() && rightType.isUnsigned() || leftType.isUnsigned() && right.isNonNegativeInteger() ||
             left.isNonNegativeInteger() && rightType.isUnsigned();
     }
-    exports_23("binaryHasUnsignedArguments", binaryHasUnsignedArguments);
+    exports_22("binaryHasUnsignedArguments", binaryHasUnsignedArguments);
     function isBinaryLong(node) {
         var left = node.binaryLeft();
         var right = node.binaryRight();
@@ -12982,7 +11820,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         var rightType = right.resolvedType;
         return leftType.isLong() || rightType.isLong();
     }
-    exports_23("isBinaryLong", isBinaryLong);
+    exports_22("isBinaryLong", isBinaryLong);
     function isBinaryDouble(node) {
         var left = node.binaryLeft();
         var right = node.binaryRight();
@@ -12990,10 +11828,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         var rightType = right.resolvedType;
         return leftType.isDouble() || rightType.isDouble();
     }
-    exports_23("isBinaryDouble", isBinaryDouble);
+    exports_22("isBinaryDouble", isBinaryDouble);
     function isSymbolAccessAllowed(context, symbol, node, range) {
         if (symbol.isUnsafe() && !context.isUnsafeAllowed) {
-            context.log.error(range, stringbuilder_12.StringBuilder_new()
+            context.log.error(range, stringbuilder_11.StringBuilder_new()
                 .append("Cannot use symbol '")
                 .append(symbol.name)
                 .append("' outside an 'unsafe' block")
@@ -13003,7 +11841,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         if (symbol.node != null && symbol.node.isPrivate()) {
             var parent = symbol.parent();
             if (parent != null && context.enclosingClass != parent) {
-                context.log.error(range, stringbuilder_12.StringBuilder_new()
+                context.log.error(range, stringbuilder_11.StringBuilder_new()
                     .append("Cannot access private symbol '")
                     .append(symbol.name)
                     .append("' here")
@@ -13011,16 +11849,16 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 return false;
             }
         }
-        if (symbol_9.isFunction(symbol.kind) && (symbol.isSetter() ? !node.isAssignTarget() : !node.isCallValue())) {
+        if (symbol_8.isFunction(symbol.kind) && (symbol.isSetter() ? !node.isAssignTarget() : !node.isCallValue())) {
             if (symbol.isSetter()) {
-                context.log.error(range, stringbuilder_12.StringBuilder_new()
+                context.log.error(range, stringbuilder_11.StringBuilder_new()
                     .append("Cannot use setter '")
                     .append(symbol.name)
                     .append("' here")
                     .finish());
             }
             else {
-                context.log.error(range, stringbuilder_12.StringBuilder_new()
+                context.log.error(range, stringbuilder_11.StringBuilder_new()
                     .append("Must call function '")
                     .append(symbol.name)
                     .appendChar('\'')
@@ -13030,18 +11868,18 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         return true;
     }
-    exports_23("isSymbolAccessAllowed", isSymbolAccessAllowed);
+    exports_22("isSymbolAccessAllowed", isSymbolAccessAllowed);
     function resolve(context, node, parentScope) {
         var kind = node.kind;
-        assert(kind == node_10.NodeKind.FILE || parentScope != null);
+        assert(kind == node_9.NodeKind.FILE || parentScope != null);
         if (node.resolvedType != null) {
             return;
         }
         node.resolvedType = context.errorType;
-        if (kind == node_10.NodeKind.FILE || kind == node_10.NodeKind.GLOBAL) {
+        if (kind == node_9.NodeKind.FILE || kind == node_9.NodeKind.GLOBAL) {
             resolveChildren(context, node, parentScope);
         }
-        else if (kind == node_10.NodeKind.MODULE) {
+        else if (kind == node_9.NodeKind.MODULE) {
             var oldEnclosingModule = context.enclosingModule;
             initializeSymbol(context, node.symbol);
             context.enclosingModule = node.symbol;
@@ -13051,34 +11889,34 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             // }
             context.enclosingModule = oldEnclosingModule;
         }
-        else if (kind == node_10.NodeKind.CLASS) {
+        else if (kind == node_9.NodeKind.CLASS) {
             var oldEnclosingClass = context.enclosingClass;
             initializeSymbol(context, node.symbol);
             context.enclosingClass = node.symbol;
             resolveChildren(context, node, node.scope);
-            if (node.symbol.kind == symbol_9.SymbolKind.TYPE_CLASS) {
+            if (node.symbol.kind == symbol_8.SymbolKind.TYPE_CLASS) {
                 node.symbol.determineClassLayout(context);
             }
             context.enclosingClass = oldEnclosingClass;
         }
-        else if (kind == node_10.NodeKind.INTERFACE) {
+        else if (kind == node_9.NodeKind.INTERFACE) {
             var oldEnclosingClass = context.enclosingClass;
             initializeSymbol(context, node.symbol);
             context.enclosingClass = node.symbol;
             resolveChildren(context, node, node.scope);
-            if (node.symbol.kind == symbol_9.SymbolKind.TYPE_CLASS) {
+            if (node.symbol.kind == symbol_8.SymbolKind.TYPE_CLASS) {
                 node.symbol.determineClassLayout(context);
             }
             context.enclosingClass = oldEnclosingClass;
         }
-        else if (kind == node_10.NodeKind.ENUM) {
+        else if (kind == node_9.NodeKind.ENUM) {
             initializeSymbol(context, node.symbol);
             resolveChildren(context, node, node.scope);
         }
-        else if (kind == node_10.NodeKind.FUNCTION) {
+        else if (kind == node_9.NodeKind.FUNCTION) {
             var body = node.functionBody();
             initializeSymbol(context, node.symbol);
-            if (node.stringValue == "constructor" && node.parent.kind == node_10.NodeKind.CLASS) {
+            if (node.stringValue == "constructor" && node.parent.kind == node_9.NodeKind.CLASS) {
                 node.parent.constructorFunctionNode = node;
             }
             if (body != null) {
@@ -13091,7 +11929,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 context.isUnsafeAllowed = oldUnsafeAllowed;
             }
         }
-        else if (kind == node_10.NodeKind.VARIABLE) {
+        else if (kind == node_9.NodeKind.VARIABLE) {
             var symbol = node.symbol;
             initializeSymbol(context, symbol);
             var oldUnsafeAllowed = context.isUnsafeAllowed;
@@ -13104,7 +11942,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     value.becomeValueTypeOf(symbol, context);
                 }
                 // Variable initializers must be compile-time constants
-                if (symbol.kind == symbol_9.SymbolKind.VARIABLE_GLOBAL && value.kind != node_10.NodeKind.INT32 && value.kind != node_10.NodeKind.BOOLEAN && value.kind != node_10.NodeKind.NULL) {
+                if (symbol.kind == symbol_8.SymbolKind.VARIABLE_GLOBAL && value.kind != node_9.NodeKind.INT32 && value.kind != node_9.NodeKind.BOOLEAN && value.kind != node_9.NodeKind.NULL) {
                 }
             }
             else if (symbol.resolvedType != context.errorType) {
@@ -13113,16 +11951,16 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.appendChild(value);
             }
             // Allocate global variables
-            if (symbol.kind == symbol_9.SymbolKind.VARIABLE_GLOBAL && symbol.resolvedType != context.errorType) {
+            if (symbol.kind == symbol_8.SymbolKind.VARIABLE_GLOBAL && symbol.resolvedType != context.errorType) {
                 symbol.offset = context.allocateGlobalVariableOffset(symbol.resolvedType.variableSizeOf(context), symbol.resolvedType.variableAlignmentOf(context));
             }
             context.isUnsafeAllowed = oldUnsafeAllowed;
         }
-        else if (kind == node_10.NodeKind.BREAK || kind == node_10.NodeKind.CONTINUE) {
+        else if (kind == node_9.NodeKind.BREAK || kind == node_9.NodeKind.CONTINUE) {
             var found = false;
             var n = node;
             while (n != null) {
-                if (n.kind == node_10.NodeKind.WHILE) {
+                if (n.kind == node_9.NodeKind.WHILE) {
                     found = true;
                     break;
                 }
@@ -13132,63 +11970,63 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 context.log.error(node.range, "Cannot use this statement outside of a loop");
             }
         }
-        else if (kind == node_10.NodeKind.BLOCK) {
+        else if (kind == node_9.NodeKind.BLOCK) {
             var oldUnsafeAllowed = context.isUnsafeAllowed;
             if (node.isUnsafe())
                 context.isUnsafeAllowed = true;
             resolveChildren(context, node, node.scope);
             context.isUnsafeAllowed = oldUnsafeAllowed;
         }
-        else if (kind == node_10.NodeKind.CONSTANTS || kind == node_10.NodeKind.VARIABLES) {
+        else if (kind == node_9.NodeKind.CONSTANTS || kind == node_9.NodeKind.VARIABLES) {
             resolveChildren(context, node, parentScope);
         }
-        else if (kind == node_10.NodeKind.INT32) {
+        else if (kind == node_9.NodeKind.INT32) {
             // Use the positive flag to differentiate between -2147483648 and 2147483648
             node.resolvedType = node.intValue < 0 && !node.isPositive() ? context.uint32Type : context.int32Type;
         }
-        else if (kind == node_10.NodeKind.INT64) {
+        else if (kind == node_9.NodeKind.INT64) {
             node.resolvedType = node.intValue < 0 && !node.isPositive() ? context.uint64Type : context.int64Type;
         }
-        else if (kind == node_10.NodeKind.FLOAT32) {
+        else if (kind == node_9.NodeKind.FLOAT32) {
             node.resolvedType = context.float32Type;
         }
-        else if (kind == node_10.NodeKind.FLOAT64) {
+        else if (kind == node_9.NodeKind.FLOAT64) {
             node.resolvedType = context.float64Type;
         }
-        else if (kind == node_10.NodeKind.STRING) {
+        else if (kind == node_9.NodeKind.STRING) {
             node.resolvedType = context.stringType;
         }
-        else if (kind == node_10.NodeKind.BOOLEAN) {
+        else if (kind == node_9.NodeKind.BOOLEAN) {
             node.resolvedType = context.booleanType;
         }
-        else if (kind == node_10.NodeKind.NULL) {
+        else if (kind == node_9.NodeKind.NULL) {
             node.resolvedType = context.nullType;
         }
-        else if (kind == node_10.NodeKind.INDEX) {
+        else if (kind == node_9.NodeKind.INDEX) {
             resolveChildrenAsExpressions(context, node, parentScope);
             var target = node.indexTarget();
             let type = target.resolvedType;
             if (type != context.errorType) {
                 var symbol = type.hasInstanceMembers() ? type.findMember("[]", scope_2.ScopeHint.NORMAL) : null;
                 if (symbol == null) {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot index into type '")
                         .append(target.resolvedType.toString())
                         .appendChar('\'')
                         .finish());
                 }
                 else {
-                    assert(symbol.kind == symbol_9.SymbolKind.FUNCTION_INSTANCE || symbol.kind == symbol_9.SymbolKind.FUNCTION_GLOBAL && symbol.shouldConvertInstanceToGlobal());
+                    assert(symbol.kind == symbol_8.SymbolKind.FUNCTION_INSTANCE || symbol.kind == symbol_8.SymbolKind.FUNCTION_GLOBAL && symbol.shouldConvertInstanceToGlobal());
                     // Convert to a regular function call and resolve that instead
-                    node.kind = node_10.NodeKind.CALL;
+                    node.kind = node_9.NodeKind.CALL;
                     target.remove();
-                    node.insertChildBefore(node.firstChild, node_10.createMemberReference(target, symbol));
+                    node.insertChildBefore(node.firstChild, node_9.createMemberReference(target, symbol));
                     node.resolvedType = null;
                     resolveAsExpression(context, node, parentScope);
                 }
             }
         }
-        else if (kind == node_10.NodeKind.ALIGN_OF) {
+        else if (kind == node_9.NodeKind.ALIGN_OF) {
             let type = node.alignOfType();
             resolveAsType(context, type, parentScope);
             node.resolvedType = context.int32Type;
@@ -13196,7 +12034,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.becomeIntegerConstant(type.resolvedType.allocationAlignmentOf(context));
             }
         }
-        else if (kind == node_10.NodeKind.SIZE_OF) {
+        else if (kind == node_9.NodeKind.SIZE_OF) {
             let type = node.sizeOfType();
             resolveAsType(context, type, parentScope);
             node.resolvedType = context.int32Type;
@@ -13204,7 +12042,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.becomeIntegerConstant(type.resolvedType.allocationSizeOf(context));
             }
         }
-        else if (kind == node_10.NodeKind.THIS) {
+        else if (kind == node_9.NodeKind.THIS) {
             let symbol = parentScope.findNested("this", scope_2.ScopeHint.NORMAL, scope_2.FindNested.NORMAL);
             if (symbol == null) {
                 context.log.error(node.range, "Cannot use 'this' here");
@@ -13213,14 +12051,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.becomeSymbolReference(symbol);
             }
         }
-        else if (kind == node_10.NodeKind.PARSE_ERROR) {
+        else if (kind == node_9.NodeKind.PARSE_ERROR) {
             node.resolvedType = context.errorType;
         }
-        else if (kind == node_10.NodeKind.NAME) {
+        else if (kind == node_9.NodeKind.NAME) {
             let name = node.stringValue;
             let symbol = parentScope.findNested(name, scope_2.ScopeHint.NORMAL, scope_2.FindNested.NORMAL);
             if (symbol == null) {
-                var builder = stringbuilder_12.StringBuilder_new()
+                var builder = stringbuilder_11.StringBuilder_new()
                     .append("No symbol named '")
                     .append(name)
                     .append("' here");
@@ -13238,8 +12076,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     builder.append(", did you mean 'boolean'?");
                 context.log.error(node.range, builder.finish());
             }
-            else if (symbol.state == symbol_9.SymbolState.INITIALIZING) {
-                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
+            else if (symbol.state == symbol_8.SymbolState.INITIALIZING) {
+                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
                     .append("Cyclic reference to symbol '")
                     .append(name)
                     .append("' here")
@@ -13250,7 +12088,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.symbol = symbol;
                 node.resolvedType = symbol.resolvedType;
                 // Inline constants
-                if (symbol.kind == symbol_9.SymbolKind.VARIABLE_CONSTANT) {
+                if (symbol.kind == symbol_8.SymbolKind.VARIABLE_CONSTANT) {
                     if (symbol.resolvedType == context.booleanType) {
                         node.becomebooleaneanConstant(symbol.offset != 0);
                     }
@@ -13260,7 +12098,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
         }
-        else if (kind == node_10.NodeKind.CAST) {
+        else if (kind == node_9.NodeKind.CAST) {
             let value = node.castValue();
             let type = node.castType();
             resolveAsExpression(context, value, parentScope);
@@ -13269,24 +12107,24 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             checkConversion(context, value, castedType, type_2.ConversionKind.EXPLICIT);
             node.resolvedType = castedType;
             // Automatically fold constants
-            if (value.kind == node_10.NodeKind.INT32 && castedType.isInteger()) {
+            if (value.kind == node_9.NodeKind.INT32 && castedType.isInteger()) {
                 let result = value.intValue;
                 let shift = 32 - castedType.integerBitCount(context);
                 node.becomeIntegerConstant(castedType.isUnsigned()
                     ? castedType.integerBitMask(context) & result
                     : result << shift >> shift);
             }
-            else if (value.kind == node_10.NodeKind.INT32 && castedType.isFloat()) {
+            else if (value.kind == node_9.NodeKind.INT32 && castedType.isFloat()) {
                 node.becomeFloatConstant(value.intValue);
             }
-            else if (value.kind == node_10.NodeKind.INT32 && castedType.isDouble()) {
+            else if (value.kind == node_9.NodeKind.INT32 && castedType.isDouble()) {
                 node.becomeDoubleConstant(value.intValue);
             }
-            else if (value.kind == node_10.NodeKind.FLOAT32 && castedType.isInteger()) {
+            else if (value.kind == node_9.NodeKind.FLOAT32 && castedType.isInteger()) {
                 node.becomeIntegerConstant(Math.round(value.floatValue));
             }
         }
-        else if (kind == node_10.NodeKind.DOT) {
+        else if (kind == node_9.NodeKind.DOT) {
             let target = node.dotTarget();
             resolve(context, target, parentScope);
             if (target.resolvedType != context.errorType) {
@@ -13297,7 +12135,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     if (name.length > 0) {
                         var symbol = target.resolvedType.findMember(name, node.isAssignTarget() ? scope_2.ScopeHint.PREFER_SETTER : scope_2.ScopeHint.PREFER_GETTER);
                         if (symbol == null) {
-                            context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                                 .append("No member named '")
                                 .append(name)
                                 .append("' on type '")
@@ -13306,8 +12144,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                                 .finish());
                         }
                         else if (symbol.isGetter()) {
-                            node.kind = node_10.NodeKind.CALL;
-                            node.appendChild(node_10.createMemberReference(target.remove(), symbol));
+                            node.kind = node_9.NodeKind.CALL;
+                            node.appendChild(node_9.createMemberReference(target.remove(), symbol));
                             node.resolvedType = null;
                             resolveAsExpression(context, node, parentScope);
                             return;
@@ -13317,14 +12155,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                             node.symbol = symbol;
                             node.resolvedType = symbol.resolvedType;
                             // Inline constants
-                            if (symbol.kind == symbol_9.SymbolKind.VARIABLE_CONSTANT) {
+                            if (symbol.kind == symbol_8.SymbolKind.VARIABLE_CONSTANT) {
                                 node.becomeIntegerConstant(symbol.offset);
                             }
                         }
                     }
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("The type '")
                         .append(target.resolvedType.toString())
                         .append("' has no members")
@@ -13332,14 +12170,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
         }
-        else if (kind == node_10.NodeKind.CALL) {
+        else if (kind == node_9.NodeKind.CALL) {
             let value = node.callValue();
             resolveAsExpression(context, value, parentScope);
             if (value.resolvedType != context.errorType) {
                 let symbol = value.symbol;
                 // Only functions are callable
-                if (symbol == null || !symbol_9.isFunction(symbol.kind)) {
-                    context.log.error(value.range, stringbuilder_12.StringBuilder_new()
+                if (symbol == null || !symbol_8.isFunction(symbol.kind)) {
+                    context.log.error(value.range, stringbuilder_11.StringBuilder_new()
                         .append("Cannot call value of type '")
                         .append(value.resolvedType.toString())
                         .appendChar('\'')
@@ -13348,7 +12186,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 else {
                     initializeSymbol(context, symbol);
                     if (symbol.shouldConvertInstanceToGlobal()) {
-                        let name = node_10.createSymbolReference(symbol);
+                        let name = node_9.createSymbolReference(symbol);
                         node.insertChildBefore(value, name.withRange(value.internalRange));
                         node.insertChildBefore(value, value.dotTarget().remove());
                         value.remove();
@@ -13366,7 +12204,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                     // Not enough arguments?
                     if (argumentVariable != returnType) {
-                        context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("Not enough arguments for function '")
                             .append(symbol.name)
                             .appendChar('\'')
@@ -13377,7 +12215,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                             resolveAsExpression(context, argumentValue, parentScope);
                             argumentValue = argumentValue.nextSibling;
                         }
-                        context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("Too many arguments for function '")
                             .append(symbol.name)
                             .appendChar('\'')
@@ -13388,7 +12226,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
         }
-        else if (kind == node_10.NodeKind.DELETE) {
+        else if (kind == node_9.NodeKind.DELETE) {
             let value = node.deleteType();
             if (value != null) {
                 resolveAsExpression(context, value, parentScope);
@@ -13397,14 +12235,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else {
-                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
+                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
                     .append("Expected delete value '")
                     .append(context.currentReturnType.toString())
                     .appendChar('\'')
                     .finish());
             }
         }
-        else if (kind == node_10.NodeKind.RETURN) {
+        else if (kind == node_9.NodeKind.RETURN) {
             let value = node.returnValue();
             if (value != null) {
                 resolveAsExpression(context, value, parentScope);
@@ -13418,22 +12256,22 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else if (context.currentReturnType != null && context.currentReturnType != context.voidType) {
-                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
+                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
                     .append("Expected return value in function returning '")
                     .append(context.currentReturnType.toString())
                     .appendChar('\'')
                     .finish());
             }
         }
-        else if (kind == node_10.NodeKind.EMPTY) {
+        else if (kind == node_9.NodeKind.EMPTY) {
         }
-        else if (kind == node_10.NodeKind.PARAMETERS) {
+        else if (kind == node_9.NodeKind.PARAMETERS) {
             context.log.error(node.range, "Generics are not implemented yet");
         }
-        else if (kind == node_10.NodeKind.EXTENDS) {
+        else if (kind == node_9.NodeKind.EXTENDS) {
             resolveAsType(context, node.extendsType(), parentScope);
         }
-        else if (kind == node_10.NodeKind.IMPLEMENTS) {
+        else if (kind == node_9.NodeKind.IMPLEMENTS) {
             let child = node.firstChild;
             while (child != null) {
                 resolveAsType(context, child, parentScope);
@@ -13441,17 +12279,17 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             context.log.error(node.range, "Interfaces are not implemented yet");
         }
-        else if (kind == node_10.NodeKind.EXPRESSION) {
+        else if (kind == node_9.NodeKind.EXPRESSION) {
             resolveAsExpression(context, node.expressionValue(), parentScope);
         }
-        else if (kind == node_10.NodeKind.WHILE) {
+        else if (kind == node_9.NodeKind.WHILE) {
             let value = node.whileValue();
             let body = node.whileBody();
             resolveAsExpression(context, value, parentScope);
             checkConversion(context, value, context.booleanType, type_2.ConversionKind.IMPLICIT);
             resolve(context, body, parentScope);
         }
-        else if (kind == node_10.NodeKind.IF) {
+        else if (kind == node_9.NodeKind.IF) {
             let value = node.ifValue();
             let yes = node.ifTrue();
             let no = node.ifFalse();
@@ -13462,7 +12300,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 resolve(context, no, parentScope);
             }
         }
-        else if (kind == node_10.NodeKind.HOOK) {
+        else if (kind == node_9.NodeKind.HOOK) {
             let value = node.hookValue();
             let yes = node.hookTrue();
             let no = node.hookFalse();
@@ -13474,7 +12312,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let commonType = (yes.resolvedType == context.nullType ? no : yes).resolvedType;
             if (yes.resolvedType != commonType && (yes.resolvedType != context.nullType || !commonType.isReference()) &&
                 no.resolvedType != commonType && (no.resolvedType != context.nullType || !commonType.isReference())) {
-                context.log.error(log_5.spanRanges(yes.range, no.range), stringbuilder_12.StringBuilder_new()
+                context.log.error(log_5.spanRanges(yes.range, no.range), stringbuilder_11.StringBuilder_new()
                     .append("Type '")
                     .append(yes.resolvedType.toString())
                     .append("' is not the same as type '")
@@ -13484,32 +12322,32 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             node.resolvedType = commonType;
         }
-        else if (kind == node_10.NodeKind.ASSIGN) {
+        else if (kind == node_9.NodeKind.ASSIGN) {
             let left = node.binaryLeft();
             let right = node.binaryRight();
-            if (left.kind == node_10.NodeKind.INDEX) {
+            if (left.kind == node_9.NodeKind.INDEX) {
                 resolveChildrenAsExpressions(context, left, parentScope);
                 var target = left.indexTarget();
                 var type = target.resolvedType;
                 if (type != context.errorType) {
                     var symbol = type.hasInstanceMembers() ? type.findMember("[]=", scope_2.ScopeHint.NORMAL) : null;
                     if (symbol == null) {
-                        context.log.error(left.internalRange, stringbuilder_12.StringBuilder_new()
+                        context.log.error(left.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("Cannot index into type '")
                             .append(target.resolvedType.toString())
                             .appendChar('\'')
                             .finish());
                     }
                     else {
-                        assert(symbol.kind == symbol_9.SymbolKind.FUNCTION_INSTANCE);
+                        assert(symbol.kind == symbol_8.SymbolKind.FUNCTION_INSTANCE);
                         // Convert to a regular function call and resolve that instead
-                        node.kind = node_10.NodeKind.CALL;
+                        node.kind = node_9.NodeKind.CALL;
                         target.remove();
                         left.remove();
                         while (left.lastChild != null) {
                             node.insertChildBefore(node.firstChild, left.lastChild.remove());
                         }
-                        node.insertChildBefore(node.firstChild, node_10.createMemberReference(target, symbol));
+                        node.insertChildBefore(node.firstChild, node_9.createMemberReference(target, symbol));
                         node.internalRange = log_5.spanRanges(left.internalRange, right.range);
                         node.resolvedType = null;
                         resolveAsExpression(context, node, parentScope);
@@ -13520,7 +12358,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             resolveAsExpression(context, left, parentScope);
             // Automatically call setters
             if (left.symbol != null && left.symbol.isSetter()) {
-                node.kind = node_10.NodeKind.CALL;
+                node.kind = node_9.NodeKind.CALL;
                 node.internalRange = left.internalRange;
                 node.resolvedType = null;
                 resolveAsExpression(context, node, parentScope);
@@ -13531,12 +12369,12 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             checkStorage(context, left);
             node.resolvedType = left.resolvedType;
         }
-        else if (kind == node_10.NodeKind.NEW) {
+        else if (kind == node_9.NodeKind.NEW) {
             let type = node.newType();
             resolveAsType(context, type, parentScope);
             if (type.resolvedType != context.errorType) {
                 if (!type.resolvedType.isClass()) {
-                    context.log.error(type.range, stringbuilder_12.StringBuilder_new()
+                    context.log.error(type.range, stringbuilder_11.StringBuilder_new()
                         .append("Cannot construct type '")
                         .append(type.resolvedType.toString())
                         .appendChar('\'')
@@ -13557,7 +12395,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 argumentVariable = argumentVariable.nextSibling;
             }
         }
-        else if (kind == node_10.NodeKind.POINTER_TYPE) {
+        else if (kind == node_9.NodeKind.POINTER_TYPE) {
             var value = node.unaryValue();
             resolveAsType(context, value, parentScope);
             if (context.target == compiler_3.CompileTarget.JAVASCRIPT) {
@@ -13579,13 +12417,13 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
         }
-        else if (kind == node_10.NodeKind.DEREFERENCE) {
+        else if (kind == node_9.NodeKind.DEREFERENCE) {
             var value = node.unaryValue();
             resolveAsExpression(context, value, parentScope);
             var type = value.resolvedType;
             if (type != context.errorType) {
                 if (type.pointerTo == null) {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot dereference type '")
                         .append(type.toString())
                         .appendChar('\'')
@@ -13596,34 +12434,34 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
         }
-        else if (kind == node_10.NodeKind.ADDRESS_OF) {
+        else if (kind == node_9.NodeKind.ADDRESS_OF) {
             var value = node.unaryValue();
             resolveAsExpression(context, value, parentScope);
             context.log.error(node.internalRange, "The address-of operator is not supported");
         }
-        else if (node_10.isUnary(kind)) {
+        else if (node_9.isUnary(kind)) {
             var value = node.unaryValue();
             resolveAsExpression(context, value, parentScope);
             // Operator "!" is hard-coded
-            if (kind == node_10.NodeKind.NOT) {
+            if (kind == node_9.NodeKind.NOT) {
                 checkConversion(context, value, context.booleanType, type_2.ConversionKind.IMPLICIT);
                 node.resolvedType = context.booleanType;
             }
             else if (value.resolvedType.isInteger()) {
                 if (value.resolvedType.isUnsigned()) {
-                    node.flags = node.flags | node_10.NODE_FLAG_UNSIGNED_OPERATOR;
+                    node.flags = node.flags | node_9.NODE_FLAG_UNSIGNED_OPERATOR;
                     node.resolvedType = context.uint32Type;
                 }
                 else {
                     node.resolvedType = context.int32Type;
                 }
                 // Automatically fold constants
-                if (value.kind == node_10.NodeKind.INT32) {
+                if (value.kind == node_9.NodeKind.INT32) {
                     var input = value.intValue;
                     var output = input;
-                    if (kind == node_10.NodeKind.COMPLEMENT)
+                    if (kind == node_9.NodeKind.COMPLEMENT)
                         output = ~input;
-                    else if (kind == node_10.NodeKind.NEGATIVE)
+                    else if (kind == node_9.NodeKind.NEGATIVE)
                         output = -input;
                     node.becomeIntegerConstant(output);
                 }
@@ -13631,12 +12469,12 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             else if (value.resolvedType.isDouble()) {
                 node.resolvedType = context.float64Type;
                 // Automatically fold constants
-                if (value.kind == node_10.NodeKind.FLOAT64) {
+                if (value.kind == node_9.NodeKind.FLOAT64) {
                     var input = value.doubleValue;
                     var output = input;
-                    if (kind == node_10.NodeKind.COMPLEMENT)
+                    if (kind == node_9.NodeKind.COMPLEMENT)
                         output = ~input;
-                    else if (kind == node_10.NodeKind.NEGATIVE)
+                    else if (kind == node_9.NodeKind.NEGATIVE)
                         output = -input;
                     node.becomeDoubleConstant(output);
                 }
@@ -13644,12 +12482,12 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             else if (value.resolvedType.isFloat()) {
                 node.resolvedType = context.float32Type;
                 // Automatically fold constants
-                if (value.kind == node_10.NodeKind.FLOAT32) {
+                if (value.kind == node_9.NodeKind.FLOAT32) {
                     var input = value.floatValue;
                     var output = input;
-                    if (kind == node_10.NodeKind.COMPLEMENT)
+                    if (kind == node_9.NodeKind.COMPLEMENT)
                         output = ~input;
-                    else if (kind == node_10.NodeKind.NEGATIVE)
+                    else if (kind == node_9.NodeKind.NEGATIVE)
                         output = -input;
                     node.becomeFloatConstant(output);
                 }
@@ -13659,13 +12497,13 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 var symbol = value.resolvedType.findMember(name, scope_2.ScopeHint.NOT_BINARY);
                 // Automatically call the function
                 if (symbol != null) {
-                    node.appendChild(node_10.createMemberReference(value.remove(), symbol).withRange(node.range).withInternalRange(node.internalRange));
-                    node.kind = node_10.NodeKind.CALL;
+                    node.appendChild(node_9.createMemberReference(value.remove(), symbol).withRange(node.range).withInternalRange(node.internalRange));
+                    node.kind = node_9.NodeKind.CALL;
                     node.resolvedType = null;
                     resolveAsExpression(context, node, parentScope);
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot use unary operator '")
                         .append(name)
                         .append("' with type '")
@@ -13675,7 +12513,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
         }
-        else if (node_10.isBinary(kind)) {
+        else if (node_9.isBinary(kind)) {
             let left = node.binaryLeft();
             let right = node.binaryRight();
             resolveAsExpression(context, left, parentScope);
@@ -13687,20 +12525,20 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             let rightType = right.resolvedType;
             // Operators "&&" and "||" are hard-coded
-            if (kind == node_10.NodeKind.LOGICAL_OR || kind == node_10.NodeKind.LOGICAL_AND) {
+            if (kind == node_9.NodeKind.LOGICAL_OR || kind == node_9.NodeKind.LOGICAL_AND) {
                 checkConversion(context, left, context.booleanType, type_2.ConversionKind.IMPLICIT);
                 checkConversion(context, right, context.booleanType, type_2.ConversionKind.IMPLICIT);
                 node.resolvedType = context.booleanType;
             }
-            else if (kind == node_10.NodeKind.ADD && leftType.pointerTo != null && rightType.isInteger()) {
+            else if (kind == node_9.NodeKind.ADD && leftType.pointerTo != null && rightType.isInteger()) {
                 node.resolvedType = leftType;
             }
-            else if ((kind == node_10.NodeKind.LESS_THAN || kind == node_10.NodeKind.LESS_THAN_EQUAL ||
-                kind == node_10.NodeKind.GREATER_THAN || kind == node_10.NodeKind.GREATER_THAN_EQUAL) && (leftType.pointerTo != null || rightType.pointerTo != null)) {
+            else if ((kind == node_9.NodeKind.LESS_THAN || kind == node_9.NodeKind.LESS_THAN_EQUAL ||
+                kind == node_9.NodeKind.GREATER_THAN || kind == node_9.NodeKind.GREATER_THAN_EQUAL) && (leftType.pointerTo != null || rightType.pointerTo != null)) {
                 node.resolvedType = context.booleanType;
                 // Both pointer types must be exactly the same
                 if (leftType != rightType) {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot compare type '")
                         .append(leftType.toString())
                         .append("' with type '")
@@ -13709,51 +12547,51 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                         .finish());
                 }
             }
-            else if ((leftType.isInteger() || leftType.isLong()) && kind != node_10.NodeKind.EQUAL && kind != node_10.NodeKind.NOT_EQUAL) {
+            else if ((leftType.isInteger() || leftType.isLong()) && kind != node_9.NodeKind.EQUAL && kind != node_9.NodeKind.NOT_EQUAL) {
                 // Arithmetic operators
-                if (kind == node_10.NodeKind.ADD ||
-                    kind == node_10.NodeKind.SUBTRACT ||
-                    kind == node_10.NodeKind.MULTIPLY ||
-                    kind == node_10.NodeKind.DIVIDE ||
-                    kind == node_10.NodeKind.REMAINDER ||
-                    kind == node_10.NodeKind.BITWISE_AND ||
-                    kind == node_10.NodeKind.BITWISE_OR ||
-                    kind == node_10.NodeKind.BITWISE_XOR ||
-                    kind == node_10.NodeKind.SHIFT_LEFT ||
-                    kind == node_10.NodeKind.SHIFT_RIGHT) {
+                if (kind == node_9.NodeKind.ADD ||
+                    kind == node_9.NodeKind.SUBTRACT ||
+                    kind == node_9.NodeKind.MULTIPLY ||
+                    kind == node_9.NodeKind.DIVIDE ||
+                    kind == node_9.NodeKind.REMAINDER ||
+                    kind == node_9.NodeKind.BITWISE_AND ||
+                    kind == node_9.NodeKind.BITWISE_OR ||
+                    kind == node_9.NodeKind.BITWISE_XOR ||
+                    kind == node_9.NodeKind.SHIFT_LEFT ||
+                    kind == node_9.NodeKind.SHIFT_RIGHT) {
                     let isUnsigned = binaryHasUnsignedArguments(node);
                     let isLong = isBinaryLong(node);
                     let commonType = isUnsigned ? (isLong ? context.uint64Type : context.uint32Type) : (isLong ? context.int64Type : context.int32Type);
                     if (isUnsigned) {
-                        node.flags = node.flags | node_10.NODE_FLAG_UNSIGNED_OPERATOR;
+                        node.flags = node.flags | node_9.NODE_FLAG_UNSIGNED_OPERATOR;
                     }
                     checkConversion(context, left, commonType, type_2.ConversionKind.IMPLICIT);
                     checkConversion(context, right, commonType, type_2.ConversionKind.IMPLICIT);
                     node.resolvedType = commonType;
                     // Automatically fold constants
-                    if (left.kind == node_10.NodeKind.INT32 && right.kind == node_10.NodeKind.INT32) {
+                    if (left.kind == node_9.NodeKind.INT32 && right.kind == node_9.NodeKind.INT32) {
                         var inputLeft = left.intValue;
                         var inputRight = right.intValue;
                         var output = 0;
-                        if (kind == node_10.NodeKind.ADD)
+                        if (kind == node_9.NodeKind.ADD)
                             output = inputLeft + inputRight;
-                        else if (kind == node_10.NodeKind.BITWISE_AND)
+                        else if (kind == node_9.NodeKind.BITWISE_AND)
                             output = inputLeft & inputRight;
-                        else if (kind == node_10.NodeKind.BITWISE_OR)
+                        else if (kind == node_9.NodeKind.BITWISE_OR)
                             output = inputLeft | inputRight;
-                        else if (kind == node_10.NodeKind.BITWISE_XOR)
+                        else if (kind == node_9.NodeKind.BITWISE_XOR)
                             output = inputLeft ^ inputRight;
-                        else if (kind == node_10.NodeKind.DIVIDE)
+                        else if (kind == node_9.NodeKind.DIVIDE)
                             output = inputLeft / inputRight;
-                        else if (kind == node_10.NodeKind.MULTIPLY)
+                        else if (kind == node_9.NodeKind.MULTIPLY)
                             output = inputLeft * inputRight;
-                        else if (kind == node_10.NodeKind.REMAINDER)
+                        else if (kind == node_9.NodeKind.REMAINDER)
                             output = inputLeft % inputRight;
-                        else if (kind == node_10.NodeKind.SHIFT_LEFT)
+                        else if (kind == node_9.NodeKind.SHIFT_LEFT)
                             output = inputLeft << inputRight;
-                        else if (kind == node_10.NodeKind.SHIFT_RIGHT)
+                        else if (kind == node_9.NodeKind.SHIFT_RIGHT)
                             output = isUnsigned ? ((inputLeft) >> (inputRight)) : inputLeft >> inputRight;
-                        else if (kind == node_10.NodeKind.SUBTRACT)
+                        else if (kind == node_9.NodeKind.SUBTRACT)
                             output = inputLeft - inputRight;
                         else
                             return;
@@ -13763,14 +12601,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                         simplifyBinary(node);
                     }
                 }
-                else if (kind == node_10.NodeKind.LESS_THAN ||
-                    kind == node_10.NodeKind.LESS_THAN_EQUAL ||
-                    kind == node_10.NodeKind.GREATER_THAN ||
-                    kind == node_10.NodeKind.GREATER_THAN_EQUAL) {
+                else if (kind == node_9.NodeKind.LESS_THAN ||
+                    kind == node_9.NodeKind.LESS_THAN_EQUAL ||
+                    kind == node_9.NodeKind.GREATER_THAN ||
+                    kind == node_9.NodeKind.GREATER_THAN_EQUAL) {
                     var expectedType = binaryHasUnsignedArguments(node) ? context.uint32Type :
                         context.int32Type;
                     if (expectedType == context.uint32Type) {
-                        node.flags = node.flags | node_10.NODE_FLAG_UNSIGNED_OPERATOR;
+                        node.flags = node.flags | node_9.NODE_FLAG_UNSIGNED_OPERATOR;
                     }
                     if (leftType != rightType) {
                         checkConversion(context, left, expectedType, type_2.ConversionKind.IMPLICIT);
@@ -13782,51 +12620,51 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     context.log.error(node.internalRange, "This operator is not currently supported");
                 }
             }
-            else if ((leftType.isFloat() || leftType.isDouble()) && kind != node_10.NodeKind.EQUAL && kind != node_10.NodeKind.NOT_EQUAL) {
+            else if ((leftType.isFloat() || leftType.isDouble()) && kind != node_9.NodeKind.EQUAL && kind != node_9.NodeKind.NOT_EQUAL) {
                 // Arithmetic operators
-                if (kind == node_10.NodeKind.ADD ||
-                    kind == node_10.NodeKind.SUBTRACT ||
-                    kind == node_10.NodeKind.MULTIPLY ||
-                    kind == node_10.NodeKind.DIVIDE ||
-                    kind == node_10.NodeKind.REMAINDER ||
-                    kind == node_10.NodeKind.BITWISE_AND ||
-                    kind == node_10.NodeKind.BITWISE_OR ||
-                    kind == node_10.NodeKind.BITWISE_XOR ||
-                    kind == node_10.NodeKind.SHIFT_LEFT ||
-                    kind == node_10.NodeKind.SHIFT_RIGHT) {
+                if (kind == node_9.NodeKind.ADD ||
+                    kind == node_9.NodeKind.SUBTRACT ||
+                    kind == node_9.NodeKind.MULTIPLY ||
+                    kind == node_9.NodeKind.DIVIDE ||
+                    kind == node_9.NodeKind.REMAINDER ||
+                    kind == node_9.NodeKind.BITWISE_AND ||
+                    kind == node_9.NodeKind.BITWISE_OR ||
+                    kind == node_9.NodeKind.BITWISE_XOR ||
+                    kind == node_9.NodeKind.SHIFT_LEFT ||
+                    kind == node_9.NodeKind.SHIFT_RIGHT) {
                     let commonType = isBinaryDouble(node) ? context.float64Type : context.float32Type;
                     checkConversion(context, left, commonType, type_2.ConversionKind.IMPLICIT);
                     checkConversion(context, right, commonType, type_2.ConversionKind.IMPLICIT);
                     node.resolvedType = commonType;
                     // Automatically fold constants
-                    if ((left.kind == node_10.NodeKind.FLOAT32 || left.kind == node_10.NodeKind.FLOAT64) &&
-                        (right.kind == node_10.NodeKind.FLOAT32 || right.kind == node_10.NodeKind.FLOAT64)) {
+                    if ((left.kind == node_9.NodeKind.FLOAT32 || left.kind == node_9.NodeKind.FLOAT64) &&
+                        (right.kind == node_9.NodeKind.FLOAT32 || right.kind == node_9.NodeKind.FLOAT64)) {
                         let inputLeft = left.floatValue;
                         let inputRight = right.floatValue;
                         let output = 0;
-                        if (kind == node_10.NodeKind.ADD)
+                        if (kind == node_9.NodeKind.ADD)
                             output = inputLeft + inputRight;
-                        else if (kind == node_10.NodeKind.BITWISE_AND)
+                        else if (kind == node_9.NodeKind.BITWISE_AND)
                             output = inputLeft & inputRight;
-                        else if (kind == node_10.NodeKind.BITWISE_OR)
+                        else if (kind == node_9.NodeKind.BITWISE_OR)
                             output = inputLeft | inputRight;
-                        else if (kind == node_10.NodeKind.BITWISE_XOR)
+                        else if (kind == node_9.NodeKind.BITWISE_XOR)
                             output = inputLeft ^ inputRight;
-                        else if (kind == node_10.NodeKind.DIVIDE)
+                        else if (kind == node_9.NodeKind.DIVIDE)
                             output = inputLeft / inputRight;
-                        else if (kind == node_10.NodeKind.MULTIPLY)
+                        else if (kind == node_9.NodeKind.MULTIPLY)
                             output = inputLeft * inputRight;
-                        else if (kind == node_10.NodeKind.REMAINDER)
+                        else if (kind == node_9.NodeKind.REMAINDER)
                             output = inputLeft % inputRight;
-                        else if (kind == node_10.NodeKind.SHIFT_LEFT)
+                        else if (kind == node_9.NodeKind.SHIFT_LEFT)
                             output = inputLeft << inputRight;
-                        else if (kind == node_10.NodeKind.SHIFT_RIGHT)
+                        else if (kind == node_9.NodeKind.SHIFT_RIGHT)
                             output = inputLeft >> inputRight;
-                        else if (kind == node_10.NodeKind.SUBTRACT)
+                        else if (kind == node_9.NodeKind.SUBTRACT)
                             output = inputLeft - inputRight;
                         else
                             return;
-                        if (left.kind == node_10.NodeKind.FLOAT32) {
+                        if (left.kind == node_9.NodeKind.FLOAT32) {
                             node.becomeFloatConstant(output);
                         }
                         else {
@@ -13837,10 +12675,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                         simplifyBinary(node);
                     }
                 }
-                else if (kind == node_10.NodeKind.LESS_THAN ||
-                    kind == node_10.NodeKind.LESS_THAN_EQUAL ||
-                    kind == node_10.NodeKind.GREATER_THAN ||
-                    kind == node_10.NodeKind.GREATER_THAN_EQUAL) {
+                else if (kind == node_9.NodeKind.LESS_THAN ||
+                    kind == node_9.NodeKind.LESS_THAN_EQUAL ||
+                    kind == node_9.NodeKind.GREATER_THAN ||
+                    kind == node_9.NodeKind.GREATER_THAN_EQUAL) {
                     var expectedType = context.float32Type;
                     if (leftType != rightType) {
                         checkConversion(context, left, expectedType, type_2.ConversionKind.IMPLICIT);
@@ -13854,34 +12692,34 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             else if (leftType != context.errorType) {
                 var name = node.internalRange.toString();
-                var symbol = leftType.findMember(kind == node_10.NodeKind.NOT_EQUAL ? "==" :
-                    kind == node_10.NodeKind.LESS_THAN_EQUAL ? ">" :
-                        kind == node_10.NodeKind.GREATER_THAN_EQUAL ? "<" :
+                var symbol = leftType.findMember(kind == node_9.NodeKind.NOT_EQUAL ? "==" :
+                    kind == node_9.NodeKind.LESS_THAN_EQUAL ? ">" :
+                        kind == node_9.NodeKind.GREATER_THAN_EQUAL ? "<" :
                             name, scope_2.ScopeHint.NOT_UNARY);
                 // Automatically call the function
                 if (symbol != null) {
-                    left = node_10.createMemberReference(left.remove(), symbol).withRange(node.range).withInternalRange(node.internalRange);
+                    left = node_9.createMemberReference(left.remove(), symbol).withRange(node.range).withInternalRange(node.internalRange);
                     right.remove();
-                    if (kind == node_10.NodeKind.NOT_EQUAL ||
-                        kind == node_10.NodeKind.LESS_THAN_EQUAL ||
-                        kind == node_10.NodeKind.GREATER_THAN_EQUAL) {
-                        var call = node_10.createCall(left);
+                    if (kind == node_9.NodeKind.NOT_EQUAL ||
+                        kind == node_9.NodeKind.LESS_THAN_EQUAL ||
+                        kind == node_9.NodeKind.GREATER_THAN_EQUAL) {
+                        var call = node_9.createCall(left);
                         call.appendChild(right);
-                        node.kind = node_10.NodeKind.NOT;
+                        node.kind = node_9.NodeKind.NOT;
                         node.appendChild(call.withRange(node.range).withInternalRange(node.range));
                     }
                     else {
                         node.appendChild(left);
                         node.appendChild(right);
-                        node.kind = node_10.NodeKind.CALL;
+                        node.kind = node_9.NodeKind.CALL;
                     }
                     node.resolvedType = null;
                     resolveAsExpression(context, node, parentScope);
                 }
-                else if (kind == node_10.NodeKind.EQUAL || kind == node_10.NodeKind.NOT_EQUAL) {
+                else if (kind == node_9.NodeKind.EQUAL || kind == node_9.NodeKind.NOT_EQUAL) {
                     node.resolvedType = context.booleanType;
                     if (leftType != context.errorType && rightType != context.errorType && leftType != rightType && !canConvert(context, right, leftType, type_2.ConversionKind.IMPLICIT) && !canConvert(context, left, rightType, type_2.ConversionKind.IMPLICIT)) {
-                        context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("Cannot compare type '")
                             .append(leftType.toString())
                             .append("' with type '")
@@ -13891,7 +12729,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot use binary operator '")
                         .append(name)
                         .append("' with type '")
@@ -13902,22 +12740,22 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
         else {
-            console.error(`Unexpected kind: ${node_10.NodeKind[kind]}`);
+            console.error(`Unexpected kind: ${node_9.NodeKind[kind]}`);
             assert(false);
         }
     }
-    exports_23("resolve", resolve);
-    var symbol_9, type_2, node_10, compiler_3, log_5, scope_2, stringbuilder_12, imports_3, const_1, CheckContext, CheckMode;
+    exports_22("resolve", resolve);
+    var symbol_8, type_2, node_9, compiler_3, log_5, scope_2, stringbuilder_11, imports_2, const_1, CheckContext, CheckMode;
     return {
         setters: [
-            function (symbol_9_1) {
-                symbol_9 = symbol_9_1;
+            function (symbol_8_1) {
+                symbol_8 = symbol_8_1;
             },
             function (type_2_1) {
                 type_2 = type_2_1;
             },
-            function (node_10_1) {
-                node_10 = node_10_1;
+            function (node_9_1) {
+                node_9 = node_9_1;
             },
             function (compiler_3_1) {
                 compiler_3 = compiler_3_1;
@@ -13928,11 +12766,11 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             function (scope_2_1) {
                 scope_2 = scope_2_1;
             },
-            function (stringbuilder_12_1) {
-                stringbuilder_12 = stringbuilder_12_1;
+            function (stringbuilder_11_1) {
+                stringbuilder_11 = stringbuilder_11_1;
             },
-            function (imports_3_1) {
-                imports_3 = imports_3_1;
+            function (imports_2_1) {
+                imports_2 = imports_2_1;
             },
             function (const_1_1) {
                 const_1 = const_1_1;
@@ -13944,47 +12782,47 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
              */
             CheckContext = class CheckContext {
                 allocateGlobalVariableOffset(sizeOf, alignmentOf) {
-                    var offset = imports_3.alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
+                    var offset = imports_2.alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
                     this.nextGlobalVariableOffset = offset + sizeOf;
                     return offset;
                 }
             };
-            exports_23("CheckContext", CheckContext);
+            exports_22("CheckContext", CheckContext);
             (function (CheckMode) {
                 CheckMode[CheckMode["NORMAL"] = 0] = "NORMAL";
                 CheckMode[CheckMode["INITIALIZE"] = 1] = "INITIALIZE";
             })(CheckMode || (CheckMode = {}));
-            exports_23("CheckMode", CheckMode);
+            exports_22("CheckMode", CheckMode);
         }
     };
 });
-System.register("symbol", ["node", "imports"], function (exports_24, context_24) {
+System.register("symbol", ["node", "imports"], function (exports_23, context_23) {
     "use strict";
-    var __moduleName = context_24 && context_24.id;
+    var __moduleName = context_23 && context_23.id;
     function isModule(kind) {
         return kind == SymbolKind.TYPE_MODULE;
     }
-    exports_24("isModule", isModule);
+    exports_23("isModule", isModule);
     function isType(kind) {
         return kind >= SymbolKind.TYPE_CLASS && kind <= SymbolKind.TYPE_NATIVE;
     }
-    exports_24("isType", isType);
+    exports_23("isType", isType);
     function isFunction(kind) {
         return kind >= SymbolKind.FUNCTION_INSTANCE && kind <= SymbolKind.FUNCTION_GLOBAL;
     }
-    exports_24("isFunction", isFunction);
+    exports_23("isFunction", isFunction);
     function isVariable(kind) {
         return kind >= SymbolKind.VARIABLE_ARGUMENT && kind <= SymbolKind.VARIABLE_LOCAL;
     }
-    exports_24("isVariable", isVariable);
-    var node_11, imports_4, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, Symbol;
+    exports_23("isVariable", isVariable);
+    var node_10, imports_3, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, Symbol;
     return {
         setters: [
-            function (node_11_1) {
-                node_11 = node_11_1;
+            function (node_10_1) {
+                node_10 = node_10_1;
             },
-            function (imports_4_1) {
-                imports_4 = imports_4_1;
+            function (imports_3_1) {
+                imports_3 = imports_3_1;
             }
         ],
         execute: function () {
@@ -14003,23 +12841,23 @@ System.register("symbol", ["node", "imports"], function (exports_24, context_24)
                 SymbolKind[SymbolKind["VARIABLE_INSTANCE"] = 11] = "VARIABLE_INSTANCE";
                 SymbolKind[SymbolKind["VARIABLE_LOCAL"] = 12] = "VARIABLE_LOCAL";
             })(SymbolKind || (SymbolKind = {}));
-            exports_24("SymbolKind", SymbolKind);
+            exports_23("SymbolKind", SymbolKind);
             (function (SymbolState) {
                 SymbolState[SymbolState["UNINITIALIZED"] = 0] = "UNINITIALIZED";
                 SymbolState[SymbolState["INITIALIZING"] = 1] = "INITIALIZING";
                 SymbolState[SymbolState["INITIALIZED"] = 2] = "INITIALIZED";
             })(SymbolState || (SymbolState = {}));
-            exports_24("SymbolState", SymbolState);
-            exports_24("SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL", SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL = 1 << 0);
-            exports_24("SYMBOL_FLAG_IS_BINARY_OPERATOR", SYMBOL_FLAG_IS_BINARY_OPERATOR = 1 << 1);
-            exports_24("SYMBOL_FLAG_IS_REFERENCE", SYMBOL_FLAG_IS_REFERENCE = 1 << 2);
-            exports_24("SYMBOL_FLAG_IS_UNARY_OPERATOR", SYMBOL_FLAG_IS_UNARY_OPERATOR = 1 << 3);
-            exports_24("SYMBOL_FLAG_IS_UNSIGNED", SYMBOL_FLAG_IS_UNSIGNED = 1 << 4);
-            exports_24("SYMBOL_FLAG_NATIVE_INTEGER", SYMBOL_FLAG_NATIVE_INTEGER = 1 << 5);
-            exports_24("SYMBOL_FLAG_NATIVE_LONG", SYMBOL_FLAG_NATIVE_LONG = 1 << 6);
-            exports_24("SYMBOL_FLAG_NATIVE_FLOAT", SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7);
-            exports_24("SYMBOL_FLAG_NATIVE_DOUBLE", SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8);
-            exports_24("SYMBOL_FLAG_USED", SYMBOL_FLAG_USED = 1 << 9);
+            exports_23("SymbolState", SymbolState);
+            exports_23("SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL", SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL = 1 << 0);
+            exports_23("SYMBOL_FLAG_IS_BINARY_OPERATOR", SYMBOL_FLAG_IS_BINARY_OPERATOR = 1 << 1);
+            exports_23("SYMBOL_FLAG_IS_REFERENCE", SYMBOL_FLAG_IS_REFERENCE = 1 << 2);
+            exports_23("SYMBOL_FLAG_IS_UNARY_OPERATOR", SYMBOL_FLAG_IS_UNARY_OPERATOR = 1 << 3);
+            exports_23("SYMBOL_FLAG_IS_UNSIGNED", SYMBOL_FLAG_IS_UNSIGNED = 1 << 4);
+            exports_23("SYMBOL_FLAG_NATIVE_INTEGER", SYMBOL_FLAG_NATIVE_INTEGER = 1 << 5);
+            exports_23("SYMBOL_FLAG_NATIVE_LONG", SYMBOL_FLAG_NATIVE_LONG = 1 << 6);
+            exports_23("SYMBOL_FLAG_NATIVE_FLOAT", SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7);
+            exports_23("SYMBOL_FLAG_NATIVE_DOUBLE", SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8);
+            exports_23("SYMBOL_FLAG_USED", SYMBOL_FLAG_USED = 1 << 9);
             Symbol = class Symbol {
                 constructor() {
                     this.state = SymbolState.UNINITIALIZED;
@@ -14027,7 +12865,7 @@ System.register("symbol", ["node", "imports"], function (exports_24, context_24)
                     this.maxAlignment = 0;
                 }
                 isEnumValue() {
-                    return this.node.parent.kind == node_11.NodeKind.ENUM;
+                    return this.node.parent.kind == node_10.NodeKind.ENUM;
                 }
                 isUnsafe() {
                     return this.node != null && this.node.isUnsafe();
@@ -14052,7 +12890,7 @@ System.register("symbol", ["node", "imports"], function (exports_24, context_24)
                 }
                 parent() {
                     var parent = this.node.parent;
-                    return parent.kind == node_11.NodeKind.CLASS ? parent.symbol : null;
+                    return parent.kind == node_10.NodeKind.CLASS ? parent.symbol : null;
                 }
                 resolvedTypeUnderlyingIfEnumValue(context) {
                     return this.isEnumValue() ? this.resolvedType.underlyingType(context) : this.resolvedType;
@@ -14067,13 +12905,13 @@ System.register("symbol", ["node", "imports"], function (exports_24, context_24)
                     var child = this.node.firstChild;
                     var maxAlignment = 1;
                     while (child != null) {
-                        if (child.kind == node_11.NodeKind.VARIABLE) {
+                        if (child.kind == node_10.NodeKind.VARIABLE) {
                             var type = child.symbol.resolvedType;
                             // Ignore invalid members
                             if (type != context.errorType) {
                                 var alignmentOf = type.variableAlignmentOf(context);
                                 // Align the member to the next available slot
-                                offset = imports_4.alignToNextMultipleOf(offset, alignmentOf);
+                                offset = imports_3.alignToNextMultipleOf(offset, alignmentOf);
                                 if (alignmentOf > maxAlignment)
                                     maxAlignment = alignmentOf;
                                 // Allocate the member by extending the object
@@ -14088,26 +12926,26 @@ System.register("symbol", ["node", "imports"], function (exports_24, context_24)
                         offset = 1;
                     }
                     // The object size must be a multiple of the maximum alignment for arrays to work correctly
-                    offset = imports_4.alignToNextMultipleOf(offset, maxAlignment);
+                    offset = imports_3.alignToNextMultipleOf(offset, maxAlignment);
                     this.byteSize = offset;
                     this.maxAlignment = maxAlignment;
                 }
             };
-            exports_24("Symbol", Symbol);
+            exports_23("Symbol", Symbol);
         }
     };
 });
-System.register("type", ["symbol", "stringbuilder"], function (exports_25, context_25) {
+System.register("type", ["symbol", "stringbuilder"], function (exports_24, context_24) {
     "use strict";
-    var __moduleName = context_25 && context_25.id;
-    var symbol_10, stringbuilder_13, ConversionKind, Type;
+    var __moduleName = context_24 && context_24.id;
+    var symbol_9, stringbuilder_12, ConversionKind, Type;
     return {
         setters: [
-            function (symbol_10_1) {
-                symbol_10 = symbol_10_1;
+            function (symbol_9_1) {
+                symbol_9 = symbol_9_1;
             },
-            function (stringbuilder_13_1) {
-                stringbuilder_13 = stringbuilder_13_1;
+            function (stringbuilder_12_1) {
+                stringbuilder_12 = stringbuilder_12_1;
             }
         ],
         execute: function () {
@@ -14115,31 +12953,31 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_25, conte
                 ConversionKind[ConversionKind["IMPLICIT"] = 0] = "IMPLICIT";
                 ConversionKind[ConversionKind["EXPLICIT"] = 1] = "EXPLICIT";
             })(ConversionKind || (ConversionKind = {}));
-            exports_25("ConversionKind", ConversionKind);
+            exports_24("ConversionKind", ConversionKind);
             Type = class Type {
                 isClass() {
-                    return this.symbol != null && this.symbol.kind == symbol_10.SymbolKind.TYPE_CLASS;
+                    return this.symbol != null && this.symbol.kind == symbol_9.SymbolKind.TYPE_CLASS;
                 }
                 isEnum() {
-                    return this.symbol != null && this.symbol.kind == symbol_10.SymbolKind.TYPE_ENUM;
+                    return this.symbol != null && this.symbol.kind == symbol_9.SymbolKind.TYPE_ENUM;
                 }
                 isInteger() {
-                    return this.symbol != null && (this.symbol.flags & symbol_10.SYMBOL_FLAG_NATIVE_INTEGER) != 0 || this.isEnum();
+                    return this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_NATIVE_INTEGER) != 0 || this.isEnum();
                 }
                 isLong() {
-                    return this.symbol != null && (this.symbol.flags & symbol_10.SYMBOL_FLAG_NATIVE_LONG) != 0;
+                    return this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_NATIVE_LONG) != 0;
                 }
                 isUnsigned() {
-                    return this.symbol != null && (this.symbol.flags & symbol_10.SYMBOL_FLAG_IS_UNSIGNED) != 0;
+                    return this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_IS_UNSIGNED) != 0;
                 }
                 isFloat() {
-                    return this.symbol != null && (this.symbol.flags & symbol_10.SYMBOL_FLAG_NATIVE_FLOAT) != 0;
+                    return this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_NATIVE_FLOAT) != 0;
                 }
                 isDouble() {
-                    return this.symbol != null && (this.symbol.flags & symbol_10.SYMBOL_FLAG_NATIVE_DOUBLE) != 0;
+                    return this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_NATIVE_DOUBLE) != 0;
                 }
                 isReference() {
-                    return this.pointerTo != null || this.symbol != null && (this.symbol.flags & symbol_10.SYMBOL_FLAG_IS_REFERENCE) != 0;
+                    return this.pointerTo != null || this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_IS_REFERENCE) != 0;
                 }
                 underlyingType(context) {
                     return this.isEnum() ? context.int32Type : this.pointerTo != null ? context.uint32Type : this;
@@ -14174,7 +13012,7 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_25, conte
                 toString() {
                     if (this.cachedToString == null) {
                         this.cachedToString =
-                            this.pointerTo != null ? stringbuilder_13.StringBuilder_new().appendChar('*').append(this.pointerTo.toString()).finish() :
+                            this.pointerTo != null ? stringbuilder_12.StringBuilder_new().appendChar('*').append(this.pointerTo.toString()).finish() :
                                 this.symbol.name;
                     }
                     return this.cachedToString;
@@ -14185,28 +13023,28 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_25, conte
                 }
                 hasInstanceMembers() {
                     var symbol = this.symbol;
-                    return symbol != null && (symbol.kind == symbol_10.SymbolKind.TYPE_CLASS || symbol.kind == symbol_10.SymbolKind.TYPE_NATIVE);
+                    return symbol != null && (symbol.kind == symbol_9.SymbolKind.TYPE_CLASS || symbol.kind == symbol_9.SymbolKind.TYPE_NATIVE);
                 }
             };
-            exports_25("Type", Type);
+            exports_24("Type", Type);
         }
     };
 });
-System.register("node", ["symbol"], function (exports_26, context_26) {
+System.register("node", ["symbol"], function (exports_25, context_25) {
     "use strict";
-    var __moduleName = context_26 && context_26.id;
+    var __moduleName = context_25 && context_25.id;
     function isUnary(kind) {
         return kind >= NodeKind.ADDRESS_OF && kind <= NodeKind.PREFIX_INCREMENT;
     }
-    exports_26("isUnary", isUnary);
+    exports_25("isUnary", isUnary);
     function isUnaryPostfix(kind) {
         return kind >= NodeKind.POSTFIX_DECREMENT && kind <= NodeKind.POSTFIX_INCREMENT;
     }
-    exports_26("isUnaryPostfix", isUnaryPostfix);
+    exports_25("isUnaryPostfix", isUnaryPostfix);
     function isBinary(kind) {
         return kind >= NodeKind.ADD && kind <= NodeKind.SUBTRACT;
     }
-    exports_26("isBinary", isBinary);
+    exports_25("isBinary", isBinary);
     function invertedBinaryKind(kind) {
         if (kind == NodeKind.EQUAL)
             return NodeKind.NOT_EQUAL;
@@ -14222,15 +13060,15 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
             return NodeKind.GREATER_THAN;
         return kind;
     }
-    exports_26("invertedBinaryKind", invertedBinaryKind);
+    exports_25("invertedBinaryKind", invertedBinaryKind);
     function isExpression(node) {
         return node.kind >= NodeKind.ALIGN_OF && node.kind <= NodeKind.SUBTRACT;
     }
-    exports_26("isExpression", isExpression);
+    exports_25("isExpression", isExpression);
     function isCompactNodeKind(kind) {
         return kind == NodeKind.CONSTANTS || kind == NodeKind.EXPRESSION || kind == NodeKind.VARIABLES;
     }
-    exports_26("isCompactNodeKind", isCompactNodeKind);
+    exports_25("isCompactNodeKind", isCompactNodeKind);
     function appendFlag(first, flag, range) {
         let link = new NodeFlag();
         link.flag = flag;
@@ -14247,7 +13085,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         secondToLast.next = link;
         return first;
     }
-    exports_26("appendFlag", appendFlag);
+    exports_25("appendFlag", appendFlag);
     function allFlags(link) {
         let all = 0;
         while (link != null) {
@@ -14256,7 +13094,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         }
         return all;
     }
-    exports_26("allFlags", allFlags);
+    exports_25("allFlags", allFlags);
     function rangeForFlag(link, flag) {
         while (link != null) {
             if (link.flag == flag) {
@@ -14266,7 +13104,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         }
         return null;
     }
-    exports_26("rangeForFlag", rangeForFlag);
+    exports_25("rangeForFlag", rangeForFlag);
     function createNew(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -14274,7 +13112,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(type);
         return node;
     }
-    exports_26("createNew", createNew);
+    exports_25("createNew", createNew);
     function createDelete(value) {
         assert(value == null || isExpression(value));
         let node = new Node();
@@ -14284,7 +13122,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         }
         return node;
     }
-    exports_26("createDelete", createDelete);
+    exports_25("createDelete", createDelete);
     function createHook(test, primary, secondary) {
         assert(isExpression(test));
         assert(isExpression(primary));
@@ -14296,7 +13134,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(secondary);
         return node;
     }
-    exports_26("createHook", createHook);
+    exports_25("createHook", createHook);
     function createIndex(target) {
         assert(isExpression(target));
         let node = new Node();
@@ -14304,25 +13142,25 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(target);
         return node;
     }
-    exports_26("createIndex", createIndex);
+    exports_25("createIndex", createIndex);
     function createNull() {
         let node = new Node();
         node.kind = NodeKind.NULL;
         return node;
     }
-    exports_26("createNull", createNull);
+    exports_25("createNull", createNull);
     function createUndefined() {
         let node = new Node();
         node.kind = NodeKind.UNDEFINED;
         return node;
     }
-    exports_26("createUndefined", createUndefined);
+    exports_25("createUndefined", createUndefined);
     function createThis() {
         let node = new Node();
         node.kind = NodeKind.THIS;
         return node;
     }
-    exports_26("createThis", createThis);
+    exports_25("createThis", createThis);
     function createAddressOf(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -14330,7 +13168,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(value);
         return node;
     }
-    exports_26("createAddressOf", createAddressOf);
+    exports_25("createAddressOf", createAddressOf);
     function createDereference(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -14338,7 +13176,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(value);
         return node;
     }
-    exports_26("createDereference", createDereference);
+    exports_25("createDereference", createDereference);
     function createAlignOf(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -14346,7 +13184,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(type);
         return node;
     }
-    exports_26("createAlignOf", createAlignOf);
+    exports_25("createAlignOf", createAlignOf);
     function createSizeOf(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -14354,56 +13192,56 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(type);
         return node;
     }
-    exports_26("createSizeOf", createSizeOf);
+    exports_25("createSizeOf", createSizeOf);
     function createboolean(value) {
         let node = new Node();
         node.kind = NodeKind.BOOLEAN;
         node.intValue = value ? 1 : 0;
         return node;
     }
-    exports_26("createboolean", createboolean);
+    exports_25("createboolean", createboolean);
     function createInt(value) {
         let node = new Node();
         node.kind = NodeKind.INT32;
         node.intValue = value;
         return node;
     }
-    exports_26("createInt", createInt);
+    exports_25("createInt", createInt);
     function createLong(value) {
         let node = new Node();
         node.kind = NodeKind.INT64;
         node.longValue = value;
         return node;
     }
-    exports_26("createLong", createLong);
+    exports_25("createLong", createLong);
     function createFloat(value) {
         let node = new Node();
         node.kind = NodeKind.FLOAT32;
         node.floatValue = value;
         return node;
     }
-    exports_26("createFloat", createFloat);
+    exports_25("createFloat", createFloat);
     function createDouble(value) {
         let node = new Node();
         node.kind = NodeKind.FLOAT64;
         node.doubleValue = value;
         return node;
     }
-    exports_26("createDouble", createDouble);
+    exports_25("createDouble", createDouble);
     function createString(value) {
         let node = new Node();
         node.kind = NodeKind.STRING;
         node.stringValue = value;
         return node;
     }
-    exports_26("createString", createString);
+    exports_25("createString", createString);
     function createName(value) {
         let node = new Node();
         node.kind = NodeKind.NAME;
         node.referenceValue = value;
         return node;
     }
-    exports_26("createName", createName);
+    exports_25("createName", createName);
     function createType(type) {
         assert(type != null);
         let node = new Node();
@@ -14411,13 +13249,13 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.resolvedType = type;
         return node;
     }
-    exports_26("createType", createType);
+    exports_25("createType", createType);
     function createEmpty() {
         let node = new Node();
         node.kind = NodeKind.EMPTY;
         return node;
     }
-    exports_26("createEmpty", createEmpty);
+    exports_25("createEmpty", createEmpty);
     function createExpression(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -14425,41 +13263,41 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(value);
         return node;
     }
-    exports_26("createExpression", createExpression);
+    exports_25("createExpression", createExpression);
     function createBlock() {
         let node = new Node();
         node.kind = NodeKind.BLOCK;
         return node;
     }
-    exports_26("createBlock", createBlock);
+    exports_25("createBlock", createBlock);
     function createModule(name) {
         let node = new Node();
         node.kind = NodeKind.MODULE;
         node.stringValue = name;
         return node;
     }
-    exports_26("createModule", createModule);
+    exports_25("createModule", createModule);
     function createClass(name) {
         let node = new Node();
         node.kind = NodeKind.CLASS;
         node.stringValue = name;
         return node;
     }
-    exports_26("createClass", createClass);
+    exports_25("createClass", createClass);
     function createInterface(name) {
         let node = new Node();
         node.kind = NodeKind.INTERFACE;
         node.stringValue = name;
         return node;
     }
-    exports_26("createInterface", createInterface);
+    exports_25("createInterface", createInterface);
     function createEnum(name) {
         let node = new Node();
         node.kind = NodeKind.ENUM;
         node.stringValue = name;
         return node;
     }
-    exports_26("createEnum", createEnum);
+    exports_25("createEnum", createEnum);
     function createIf(value, trueBranch, falseBranch) {
         assert(isExpression(value));
         assert(trueBranch.kind == NodeKind.BLOCK);
@@ -14473,7 +13311,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         }
         return node;
     }
-    exports_26("createIf", createIf);
+    exports_25("createIf", createIf);
     function createWhile(value, body) {
         assert(isExpression(value));
         assert(body.kind == NodeKind.BLOCK);
@@ -14483,7 +13321,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(body);
         return node;
     }
-    exports_26("createWhile", createWhile);
+    exports_25("createWhile", createWhile);
     function createReturn(value) {
         assert(value == null || isExpression(value));
         let node = new Node();
@@ -14493,25 +13331,25 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         }
         return node;
     }
-    exports_26("createReturn", createReturn);
+    exports_25("createReturn", createReturn);
     function createVariables() {
         let node = new Node();
         node.kind = NodeKind.VARIABLES;
         return node;
     }
-    exports_26("createVariables", createVariables);
+    exports_25("createVariables", createVariables);
     function createConstants() {
         let node = new Node();
         node.kind = NodeKind.CONSTANTS;
         return node;
     }
-    exports_26("createConstants", createConstants);
+    exports_25("createConstants", createConstants);
     function createParameters() {
         let node = new Node();
         node.kind = NodeKind.PARAMETERS;
         return node;
     }
-    exports_26("createParameters", createParameters);
+    exports_25("createParameters", createParameters);
     function createExtends(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -14519,20 +13357,20 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(type);
         return node;
     }
-    exports_26("createExtends", createExtends);
+    exports_25("createExtends", createExtends);
     function createImplements() {
         let node = new Node();
         node.kind = NodeKind.IMPLEMENTS;
         return node;
     }
-    exports_26("createImplements", createImplements);
+    exports_25("createImplements", createImplements);
     function createParameter(name) {
         let node = new Node();
         node.kind = NodeKind.PARAMETER;
         node.stringValue = name;
         return node;
     }
-    exports_26("createParameter", createParameter);
+    exports_25("createParameter", createParameter);
     function createVariable(name, type, value) {
         assert(type == null || isExpression(type));
         assert(value == null || isExpression(value));
@@ -14545,14 +13383,14 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         }
         return node;
     }
-    exports_26("createVariable", createVariable);
+    exports_25("createVariable", createVariable);
     function createFunction(name) {
         let node = new Node();
         node.kind = NodeKind.FUNCTION;
         node.stringValue = name;
         return node;
     }
-    exports_26("createFunction", createFunction);
+    exports_25("createFunction", createFunction);
     function createUnary(kind, value) {
         assert(isUnary(kind));
         assert(isExpression(value));
@@ -14561,7 +13399,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(value);
         return node;
     }
-    exports_26("createUnary", createUnary);
+    exports_25("createUnary", createUnary);
     function createBinary(kind, left, right) {
         assert(isBinary(kind));
         assert(isExpression(left));
@@ -14572,7 +13410,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(right);
         return node;
     }
-    exports_26("createBinary", createBinary);
+    exports_25("createBinary", createBinary);
     function createCall(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -14580,7 +13418,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(value);
         return node;
     }
-    exports_26("createCall", createCall);
+    exports_25("createCall", createCall);
     function createCast(value, type) {
         assert(isExpression(value));
         assert(isExpression(type));
@@ -14590,7 +13428,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(type);
         return node;
     }
-    exports_26("createCast", createCast);
+    exports_25("createCast", createCast);
     function createDot(value, name) {
         assert(isExpression(value));
         let node = new Node();
@@ -14599,32 +13437,32 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
         node.appendChild(value);
         return node;
     }
-    exports_26("createDot", createDot);
+    exports_25("createDot", createDot);
     function createSymbolReference(symbol) {
         let node = createName(symbol.name);
         node.symbol = symbol;
         node.resolvedType = symbol.resolvedType;
         return node;
     }
-    exports_26("createSymbolReference", createSymbolReference);
+    exports_25("createSymbolReference", createSymbolReference);
     function createMemberReference(value, symbol) {
         let node = createDot(value, symbol.name);
         node.symbol = symbol;
         node.resolvedType = symbol.resolvedType;
         return node;
     }
-    exports_26("createMemberReference", createMemberReference);
+    exports_25("createMemberReference", createMemberReference);
     function createParseError() {
         let node = new Node();
         node.kind = NodeKind.PARSE_ERROR;
         return node;
     }
-    exports_26("createParseError", createParseError);
-    var symbol_11, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NodeFlag, Node;
+    exports_25("createParseError", createParseError);
+    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NodeFlag, Node;
     return {
         setters: [
-            function (symbol_11_1) {
-                symbol_11 = symbol_11_1;
+            function (symbol_10_1) {
+                symbol_10 = symbol_10_1;
             }
         ],
         execute: function () {
@@ -14715,26 +13553,26 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
                 NodeKind[NodeKind["SHIFT_RIGHT"] = 75] = "SHIFT_RIGHT";
                 NodeKind[NodeKind["SUBTRACT"] = 76] = "SUBTRACT";
             })(NodeKind || (NodeKind = {}));
-            exports_26("NodeKind", NodeKind);
-            exports_26("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
-            exports_26("NODE_FLAG_EXPORT", NODE_FLAG_EXPORT = 1 << 1);
-            exports_26("NODE_FLAG_EXTERN", NODE_FLAG_EXTERN = 1 << 2);
-            exports_26("NODE_FLAG_GET", NODE_FLAG_GET = 1 << 3);
-            exports_26("NODE_FLAG_OPERATOR", NODE_FLAG_OPERATOR = 1 << 4);
-            exports_26("NODE_FLAG_POSITIVE", NODE_FLAG_POSITIVE = 1 << 5);
-            exports_26("NODE_FLAG_PRIVATE", NODE_FLAG_PRIVATE = 1 << 6);
-            exports_26("NODE_FLAG_PROTECTED", NODE_FLAG_PROTECTED = 1 << 7);
-            exports_26("NODE_FLAG_PUBLIC", NODE_FLAG_PUBLIC = 1 << 8);
-            exports_26("NODE_FLAG_SET", NODE_FLAG_SET = 1 << 9);
-            exports_26("NODE_FLAG_STATIC", NODE_FLAG_STATIC = 1 << 10);
-            exports_26("NODE_FLAG_UNSAFE", NODE_FLAG_UNSAFE = 1 << 11);
-            exports_26("NODE_FLAG_UNSAFE_TURBO", NODE_FLAG_UNSAFE_TURBO = 1 << 12);
-            exports_26("NODE_FLAG_UNSIGNED_OPERATOR", NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13);
-            exports_26("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 14);
-            exports_26("NODE_FLAG_START", NODE_FLAG_START = 1 << 15);
+            exports_25("NodeKind", NodeKind);
+            exports_25("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
+            exports_25("NODE_FLAG_EXPORT", NODE_FLAG_EXPORT = 1 << 1);
+            exports_25("NODE_FLAG_EXTERN", NODE_FLAG_EXTERN = 1 << 2);
+            exports_25("NODE_FLAG_GET", NODE_FLAG_GET = 1 << 3);
+            exports_25("NODE_FLAG_OPERATOR", NODE_FLAG_OPERATOR = 1 << 4);
+            exports_25("NODE_FLAG_POSITIVE", NODE_FLAG_POSITIVE = 1 << 5);
+            exports_25("NODE_FLAG_PRIVATE", NODE_FLAG_PRIVATE = 1 << 6);
+            exports_25("NODE_FLAG_PROTECTED", NODE_FLAG_PROTECTED = 1 << 7);
+            exports_25("NODE_FLAG_PUBLIC", NODE_FLAG_PUBLIC = 1 << 8);
+            exports_25("NODE_FLAG_SET", NODE_FLAG_SET = 1 << 9);
+            exports_25("NODE_FLAG_STATIC", NODE_FLAG_STATIC = 1 << 10);
+            exports_25("NODE_FLAG_UNSAFE", NODE_FLAG_UNSAFE = 1 << 11);
+            exports_25("NODE_FLAG_UNSAFE_TURBO", NODE_FLAG_UNSAFE_TURBO = 1 << 12);
+            exports_25("NODE_FLAG_UNSIGNED_OPERATOR", NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13);
+            exports_25("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 14);
+            exports_25("NODE_FLAG_START", NODE_FLAG_START = 1 << 15);
             NodeFlag = class NodeFlag {
             };
-            exports_26("NodeFlag", NodeFlag);
+            exports_25("NodeFlag", NodeFlag);
             Node = class Node {
                 get hasValue() {
                     return this._hasValue;
@@ -14797,17 +13635,20 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
                     this._rawValue = newValue;
                 }
                 becomeTypeOf(node, context) {
-                    this.resolvedType.symbol.byteSize = node.resolvedType.symbol.byteSize;
-                    this.resolvedType.symbol.flags = node.resolvedType.symbol.flags;
-                    this.resolvedType.symbol.kind = node.resolvedType.symbol.kind;
-                    this.resolvedType.symbol.maxAlignment = node.resolvedType.symbol.maxAlignment;
-                    this.resolvedType.symbol.name = node.resolvedType.symbol.name;
+                    // this.resolvedType.symbol.byteSize = node.resolvedType.symbol.byteSize;
+                    // this.resolvedType.symbol.flags = node.resolvedType.symbol.flags;
+                    // this.resolvedType.symbol.kind = node.resolvedType.symbol.kind;
+                    // this.resolvedType.symbol.maxAlignment = node.resolvedType.symbol.maxAlignment;
+                    // this.resolvedType.symbol.name = node.resolvedType.symbol.name;
+                    //
                     switch (node.resolvedType) {
                         case context.int64Type:
                             this.kind = NodeKind.INT64;
+                            this.resolvedType = context.int64Type;
                             break;
                         case context.float64Type:
                             this.kind = NodeKind.FLOAT64;
+                            this.resolvedType = context.float64Type;
                             break;
                     }
                     if (node.flags) {
@@ -15041,7 +13882,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
                     this.nextSibling = null;
                 }
                 isType() {
-                    return this.kind == NodeKind.TYPE || this.kind == NodeKind.POINTER_TYPE || this.symbol != null && symbol_11.isType(this.symbol.kind);
+                    return this.kind == NodeKind.TYPE || this.kind == NodeKind.POINTER_TYPE || this.symbol != null && symbol_10.isType(this.symbol.kind);
                 }
                 isCallValue() {
                     return this.parent.kind == NodeKind.CALL && this == this.parent.callValue();
@@ -15071,7 +13912,7 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
                     assert(this.childCount() >= 2);
                     assert(this.symbol != null);
                     let child = this.functionFirstArgument();
-                    if (this.symbol.kind == symbol_11.SymbolKind.FUNCTION_INSTANCE) {
+                    if (this.symbol.kind == symbol_10.SymbolKind.FUNCTION_INSTANCE) {
                         child = child.nextSibling;
                     }
                     return child;
@@ -15303,13 +14144,13 @@ System.register("node", ["symbol"], function (exports_26, context_26) {
                     return false;
                 }
             };
-            exports_26("Node", Node);
+            exports_25("Node", Node);
         }
     };
 });
-System.register("log", ["stringbuilder"], function (exports_27, context_27) {
+System.register("log", ["stringbuilder"], function (exports_26, context_26) {
     "use strict";
-    var __moduleName = context_27 && context_27.id;
+    var __moduleName = context_26 && context_26.id;
     function createRange(source, start, end) {
         assert(start <= end);
         var range = new Range();
@@ -15318,25 +14159,25 @@ System.register("log", ["stringbuilder"], function (exports_27, context_27) {
         range.end = end;
         return range;
     }
-    exports_27("createRange", createRange);
+    exports_26("createRange", createRange);
     function spanRanges(left, right) {
         assert(left.source == right.source);
         assert(left.start <= right.start);
         assert(left.end <= right.end);
         return createRange(left.source, left.start, right.end);
     }
-    exports_27("spanRanges", spanRanges);
-    var stringbuilder_14, LineColumn, Source, Range, DiagnosticKind, Diagnostic, Log;
+    exports_26("spanRanges", spanRanges);
+    var stringbuilder_13, LineColumn, Source, Range, DiagnosticKind, Diagnostic, Log;
     return {
         setters: [
-            function (stringbuilder_14_1) {
-                stringbuilder_14 = stringbuilder_14_1;
+            function (stringbuilder_13_1) {
+                stringbuilder_13 = stringbuilder_13_1;
             }
         ],
         execute: function () {
             LineColumn = class LineColumn {
             };
-            exports_27("LineColumn", LineColumn);
+            exports_26("LineColumn", LineColumn);
             Source = class Source {
                 indexToLineColumn(index) {
                     var contents = this.contents;
@@ -15361,7 +14202,7 @@ System.register("log", ["stringbuilder"], function (exports_27, context_27) {
                     return location;
                 }
             };
-            exports_27("Source", Source);
+            exports_26("Source", Source);
             Range = class Range {
                 toString() {
                     return this.source.contents.slice(this.start, this.end);
@@ -15386,12 +14227,12 @@ System.register("log", ["stringbuilder"], function (exports_27, context_27) {
                     return createRange(this.source, this.end, this.end);
                 }
             };
-            exports_27("Range", Range);
+            exports_26("Range", Range);
             (function (DiagnosticKind) {
                 DiagnosticKind[DiagnosticKind["ERROR"] = 0] = "ERROR";
                 DiagnosticKind[DiagnosticKind["WARNING"] = 1] = "WARNING";
             })(DiagnosticKind || (DiagnosticKind = {}));
-            exports_27("DiagnosticKind", DiagnosticKind);
+            exports_26("DiagnosticKind", DiagnosticKind);
             Diagnostic = class Diagnostic {
                 appendSourceName(builder, location) {
                     builder
@@ -15435,7 +14276,7 @@ System.register("log", ["stringbuilder"], function (exports_27, context_27) {
                     builder.append('\n');
                 }
             };
-            exports_27("Diagnostic", Diagnostic);
+            exports_26("Diagnostic", Diagnostic);
             Log = class Log {
                 error(range, message) {
                     this.append(range, message, DiagnosticKind.ERROR);
@@ -15455,7 +14296,7 @@ System.register("log", ["stringbuilder"], function (exports_27, context_27) {
                     this.last = diagnostic;
                 }
                 toString() {
-                    var builder = stringbuilder_14.StringBuilder_new();
+                    var builder = stringbuilder_13.StringBuilder_new();
                     var diagnostic = this.first;
                     while (diagnostic != null) {
                         var location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
@@ -15479,39 +14320,39 @@ System.register("log", ["stringbuilder"], function (exports_27, context_27) {
                     return false;
                 }
             };
-            exports_27("Log", Log);
+            exports_26("Log", Log);
         }
     };
 });
-System.register("main", ["log", "stringbuilder", "compiler"], function (exports_28, context_28) {
+System.register("main", ["log", "stringbuilder", "compiler"], function (exports_27, context_27) {
     "use strict";
-    var __moduleName = context_28 && context_28.id;
+    var __moduleName = context_27 && context_27.id;
     function writeLogToTerminal(log) {
         var diagnostic = log.first;
         while (diagnostic != null) {
             var location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
             // Source
-            var builder = stringbuilder_15.StringBuilder_new();
+            var builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendSourceName(builder, location);
             stdlib.Terminal_setColor(Color.BOLD);
             stdlib.Terminal_write(builder.finish());
             // Kind
-            builder = stringbuilder_15.StringBuilder_new();
+            builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendKind(builder);
             stdlib.Terminal_setColor(diagnostic.kind == log_6.DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
             stdlib.Terminal_write(builder.finish());
             // Message
-            builder = stringbuilder_15.StringBuilder_new();
+            builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendMessage(builder);
             stdlib.Terminal_setColor(Color.BOLD);
             stdlib.Terminal_write(builder.finish());
             // Line contents
-            builder = stringbuilder_15.StringBuilder_new();
+            builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendLineContents(builder, location);
             stdlib.Terminal_setColor(Color.DEFAULT);
             stdlib.Terminal_write(builder.finish());
             // Range
-            builder = stringbuilder_15.StringBuilder_new();
+            builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendRange(builder, location);
             stdlib.Terminal_setColor(Color.GREEN);
             stdlib.Terminal_write(builder.finish());
@@ -15519,7 +14360,7 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
         }
         stdlib.Terminal_setColor(Color.DEFAULT);
     }
-    exports_28("writeLogToTerminal", writeLogToTerminal);
+    exports_27("writeLogToTerminal", writeLogToTerminal);
     function printError(text) {
         stdlib.Terminal_setColor(Color.RED);
         stdlib.Terminal_write("error: ");
@@ -15528,7 +14369,7 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
         stdlib.Terminal_write("\n");
         stdlib.Terminal_setColor(Color.DEFAULT);
     }
-    exports_28("printError", printError);
+    exports_27("printError", printError);
     function main_addArgument(text) {
         var argument = new CommandLineArgument();
         argument.text = text;
@@ -15538,12 +14379,12 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
             lastArgument.next = argument;
         lastArgument = argument;
     }
-    exports_28("main_addArgument", main_addArgument);
+    exports_27("main_addArgument", main_addArgument);
     function main_reset() {
         firstArgument = null;
         lastArgument = null;
     }
-    exports_28("main_reset", main_reset);
+    exports_27("main_reset", main_reset);
     function printUsage() {
         stdlib.Terminal_write(`
 Usage: thinc [FLAGS] [INPUTS]
@@ -15560,7 +14401,7 @@ Examples:
 
 `);
     }
-    exports_28("printUsage", printUsage);
+    exports_27("printUsage", printUsage);
     function main_entry() {
         var target = compiler_4.CompileTarget.NONE;
         var argument = firstArgument;
@@ -15605,7 +14446,7 @@ Examples:
                     output = argument.text;
                 }
                 else {
-                    printError(stringbuilder_15.StringBuilder_new().append("Invalid flag: ").append(text).finish());
+                    printError(stringbuilder_14.StringBuilder_new().append("Invalid flag: ").append(text).finish());
                     return 1;
                 }
             }
@@ -15654,7 +14495,7 @@ Examples:
             else if (!text.startsWith("-")) {
                 var contents = stdlib.IO_readTextFile(text);
                 if (contents == null) {
-                    printError(stringbuilder_15.StringBuilder_new().append("Cannot read from ").append(text).finish());
+                    printError(stringbuilder_14.StringBuilder_new().append("Cannot read from ").append(text).finish());
                     return 1;
                 }
                 compiler.addInput(text, contents);
@@ -15670,23 +14511,24 @@ Examples:
                 stdlib.IO_writeTextFile(compiler_4.replaceFileExtension(output, ".h"), compiler.outputH) ||
                 target == compiler_4.CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
                 target == compiler_4.CompileTarget.TURBO_JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
+                target == compiler_4.CompileTarget.TURBO_ASMJS && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
                 target == compiler_4.CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
                     stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {
                 return 0;
             }
-            printError(stringbuilder_15.StringBuilder_new().append("Cannot write to ").append(output).finish());
+            printError(stringbuilder_14.StringBuilder_new().append("Cannot write to ").append(output).finish());
         }
         return 1;
     }
-    exports_28("main_entry", main_entry);
-    var log_6, stringbuilder_15, compiler_4, Color, CommandLineArgument, firstArgument, lastArgument, main;
+    exports_27("main_entry", main_entry);
+    var log_6, stringbuilder_14, compiler_4, Color, CommandLineArgument, firstArgument, lastArgument, main;
     return {
         setters: [
             function (log_6_1) {
                 log_6 = log_6_1;
             },
-            function (stringbuilder_15_1) {
-                stringbuilder_15 = stringbuilder_15_1;
+            function (stringbuilder_14_1) {
+                stringbuilder_14 = stringbuilder_14_1;
             },
             function (compiler_4_1) {
                 compiler_4 = compiler_4_1;
@@ -15700,11 +14542,11 @@ Examples:
                 Color[Color["GREEN"] = 3] = "GREEN";
                 Color[Color["MAGENTA"] = 4] = "MAGENTA";
             })(Color || (Color = {}));
-            exports_28("Color", Color);
+            exports_27("Color", Color);
             CommandLineArgument = class CommandLineArgument {
             };
-            exports_28("CommandLineArgument", CommandLineArgument);
-            exports_28("main", main = {
+            exports_27("CommandLineArgument", CommandLineArgument);
+            exports_27("main", main = {
                 addArgument: main_addArgument,
                 reset: main_reset,
                 entry: main_entry

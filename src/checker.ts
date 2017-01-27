@@ -694,9 +694,6 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         return true;
     }
     else if (from.isFloat() && to.isDouble()) {
-        if(kind == ConversionKind.IMPLICIT){
-            return false;
-        }
         return true;
     }
     else if (from.isDouble() && to.isFloat()) {

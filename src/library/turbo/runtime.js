@@ -12,11 +12,12 @@ var HEAPF64 = new global.Float64Array(buffer);
 var NULL = 0;
 var STACKTOP=env.STACKTOP|0;
 var STACK_MAX=env.STACK_MAX|0;
-var PREV_INUSE = 0x1;
-var PREV_INUSE = 0x1;
-var IS_MMAPPED = 0x2;
-var NON_MAIN_ARENA = 0x4;
-var SIZE_BITS = 0x7;//(PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA) | 0;
+
+// var PREV_INUSE = 0x1;
+// var PREV_INUSE = 0x1;
+// var IS_MMAPPED = 0x2;
+// var NON_MAIN_ARENA = 0x4;
+// var SIZE_BITS = 0x7;//(PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA) | 0;
 // var firstFreeChunk = 0;
 // var lastFreeChunk = 0;
 // var numFreeChunks = 0;
@@ -28,10 +29,10 @@ var SIZE_BITS = 0x7;//(PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA) | 0;
 //     global.Date.now.bind(global.Date));
 // var _now = global.performance;
 // Map of class type IDs to type objects.
-var _idToType = 8;
+// var _idToType = 8;
 
-function init() {
-    HEAP32[2 >> 2] = buffer.byteLength | 0;
+// function init() {
+//     HEAP32[2 >> 2] = buffer.byteLength | 0;
 
     // if (global.isShared) {
     //     internal_alloc = alloc_sab;
@@ -41,42 +42,42 @@ function init() {
     //     internal_alloc = alloc_ab;
     //     HEAP32[1>>2] = 16 | 0;
     // }
-}
+// }
 
 
-function malloc(nbytes, alignment) {
-    nbytes |= 0;
-    alignment |= 0;
-    var ptr = alloc_sab(nbytes, alignment);
-    if (ptr == 0)
-        throw new Error("Out of memory");
-    return ptr|0;
-}
-function free(ptr) {
-    ptr |= 0;
-    clearInuse(ptr);
-    if (firstFreeChunk == 0) {
-        firstFreeChunk = ptr;
-    }
-
-    freeMemory = freeMemory + getChunkSize(ptr);
-
-    var chunkptr = ptr + 4;
-    if (lastFreeChunk > 0) {
-        HEAPU32[chunkptr>>2] = lastFreeChunk;//backward pointer to prev chunk
-        HEAPU32[lastFreeChunk>>2] = ptr;//forward pointer to next chunk of prev chunk
-    } else {
-        HEAPU32[chunkptr>>2] = 0;//no backward pointer, this is the first free chunk
-    }
-
-    HEAPU32[ptr>>2] = 0;//no forward pointer
-
-    lastFreeChunk = ptr;
-    numFreeChunks = numFreeChunks + 1;
-}
+// function malloc(nbytes, alignment) {
+//     nbytes |= 0;
+//     alignment |= 0;
+//     var ptr = alloc_sab(nbytes, alignment);
+//     if (ptr == 0)
+//         throw new Error("Out of memory");
+//     return ptr|0;
+// }
+// function free(ptr) {
+//     ptr |= 0;
+//     clearInuse(ptr);
+//     if (firstFreeChunk == 0) {
+//         firstFreeChunk = ptr;
+//     }
+//
+//     freeMemory = freeMemory + getChunkSize(ptr);
+//
+//     var chunkptr = ptr + 4;
+//     if (lastFreeChunk > 0) {
+//         HEAPU32[chunkptr>>2] = lastFreeChunk;//backward pointer to prev chunk
+//         HEAPU32[lastFreeChunk>>2] = ptr;//forward pointer to next chunk of prev chunk
+//     } else {
+//         HEAPU32[chunkptr>>2] = 0;//no backward pointer, this is the first free chunk
+//     }
+//
+//     HEAPU32[ptr>>2] = 0;//no forward pointer
+//
+//     lastFreeChunk = ptr;
+//     numFreeChunks = numFreeChunks + 1;
+// }
 // function identify(ptr) {
 //     if (ptr == 0)
-//         return null;
+//         return 0;
 //     return _idToType[HEAP32[ptr >> 2]];
 // }
 // function _badType(self) {
@@ -209,109 +210,102 @@ function _notify(self) {
         global.Atomics.wake(HEAP32, (self + 4) >> 2, Number.POSITIVE_INFINITY);
 }*/
 
-function getMemoryUsage() {
-    var top = global.Atomics.load(HEAP32, 1);
-    top -= freeMemory;
-    var usage = top / (1024 * 1024);
-    var mb = Math.fround(usage);
-    return (mb == 0 ? usage : mb) + "MB";
-}
-function getFreeChunk(nbytes) {
-    nbytes = nbytes | 0;
-    if (numFreeChunks > (0 | 0)) {
-        var freeChunk = findChunk(nbytes);
-        if (freeChunk > (0 | 0)) {
-            if (freeChunk == firstFreeChunk) {
-                firstFreeChunk = nextFree(freeChunk);
-            }
-            if (freeChunk == lastFreeChunk) {
-                lastFreeChunk = (0 | 0);
-            }
-            numFreeChunks = numFreeChunks - (1 | 0);
-            setInuse(freeChunk);
-            freeMemory = freeMemory - getChunkSize(freeChunk);
-            return freeChunk;
-        }
-    }
-    return 0 | 0;
-}
-function findChunk(nbytes) {
-    nbytes = nbytes | 0;
-    var chunk = firstFreeChunk;
-    while (chunk != 0) {
-        if (getChunkSize(chunk) == nbytes) {
-            return chunk;
-        }
-        chunk = HEAPU32[chunk>>2];
-    }
-    return null;
-}
-function prevFree(ptr) {
-    return HEAPU32[(ptr + 4)>>2];
-}
-function nextFree(ptr) {
-    return HEAPU32[ptr>>2];
-}
-/* Set size at head, without disturbing its use bit */
-function setHeadSize(ptr, s) {
-    HEAPU32[ptr>>2] = (HEAPU32[ptr>>2] & SIZE_BITS) | s;
-}
-
-/* Set size/use field */
-function setHead(ptr, s) {
-    HEAPU32[ptr>>2] = s;
-}
-
-/* Set size at footer (only when chunk is not in use) */
-function setFoot(ptr, s) {
-    HEAPU32[(ptr + s)>>2] = s;
-}
-
-function getPrevInuse(ptr) {
-    return HEAPU32[(ptr - 8)>>2] & (PREV_INUSE);
-}
-function setInuse(ptr) {
-    HEAPU32[(ptr - 4)>>2] |= PREV_INUSE;
-}
-function getInuse(ptr) {
-    return HEAPU32[(ptr - 4)>>2] & PREV_INUSE;
-}
-function clearInuse(ptr) {
-    HEAPU32[(ptr - 4)>>2] &= ~PREV_INUSE;
-}
-function getChunkSize(ptr) {
-    return HEAPU32[(ptr - 4)>>2] & ~(PREV_INUSE);
-}
-
-function alloc_sab(nbytes, alignment) {
-    nbytes = nbytes | 0;
-    alignment = alignment | 0;
-    if (numFreeChunks > 0) {
-        var chunk = getFreeChunk(nbytes);
-        if (chunk > (0 | 0)) {
-            return chunk;
-        }
-    }
-
-    do {
-        var ptr = global.Atomics.load(HEAP32, 1);
-        var q = (ptr + (alignment - 1)) & ~(alignment - 1);
-        var top = q + nbytes;
-        if (top >= HEAP32[2>>2])
-            return 0;
-    } while (global.Atomics.compareExchange(HEAP32, 1, ptr, top) != ptr);
-
-    return q;
-}
-function alloc_ab(nbytes, alignment) {
-    nbytes = nbytes | 0;
-    alignment = alignment | 0;
-
-    var ptr = HEAP32[1>>2] | 0;
-    ptr = ((ptr + (alignment - 1)) & ~(alignment - 1)) | 0;
-    var top = (ptr + nbytes) | 0;
-    if (top >= HEAP32[2>>2])
-        return 0 | 0;
-    HEAP32[1>>2] = top | 0;
-    return ptr | 0;
-}
+// function getFreeChunk(nbytes) {
+//     nbytes = nbytes | 0;
+//     if (numFreeChunks > (0 | 0)) {
+//         var freeChunk = findChunk(nbytes);
+//         if (freeChunk > (0 | 0)) {
+//             if (freeChunk == firstFreeChunk) {
+//                 firstFreeChunk = nextFree(freeChunk);
+//             }
+//             if (freeChunk == lastFreeChunk) {
+//                 lastFreeChunk = (0 | 0);
+//             }
+//             numFreeChunks = numFreeChunks - (1 | 0);
+//             setInuse(freeChunk);
+//             freeMemory = freeMemory - getChunkSize(freeChunk);
+//             return freeChunk;
+//         }
+//     }
+//     return 0 | 0;
+// }
+// function findChunk(nbytes) {
+//     nbytes = nbytes | 0;
+//     var chunk = firstFreeChunk;
+//     while (chunk != 0) {
+//         if (getChunkSize(chunk) == nbytes) {
+//             return chunk;
+//         }
+//         chunk = HEAPU32[chunk>>2];
+//     }
+//     return 0;
+// }
+// function prevFree(ptr) {
+//     return HEAPU32[(ptr + 4)>>2];
+// }
+// function nextFree(ptr) {
+//     return HEAPU32[ptr>>2];
+// }
+// /* Set size at head, without disturbing its use bit */
+// function setHeadSize(ptr, s) {
+//     HEAPU32[ptr>>2] = (HEAPU32[ptr>>2] & SIZE_BITS) | s;
+// }
+//
+// /* Set size/use field */
+// function setHead(ptr, s) {
+//     HEAPU32[ptr>>2] = s;
+// }
+//
+// /* Set size at footer (only when chunk is not in use) */
+// function setFoot(ptr, s) {
+//     HEAPU32[(ptr + s)>>2] = s;
+// }
+//
+// function getPrevInuse(ptr) {
+//     return HEAPU32[(ptr - 8)>>2] & (PREV_INUSE);
+// }
+// function setInuse(ptr) {
+//     HEAPU32[(ptr - 4)>>2] |= PREV_INUSE;
+// }
+// function getInuse(ptr) {
+//     return HEAPU32[(ptr - 4)>>2] & PREV_INUSE;
+// }
+// function clearInuse(ptr) {
+//     HEAPU32[(ptr - 4)>>2] &= ~PREV_INUSE;
+// }
+// function getChunkSize(ptr) {
+//     return HEAPU32[(ptr - 4)>>2] & ~(PREV_INUSE);
+// }
+//
+// function alloc_sab(nbytes, alignment) {
+//     nbytes = nbytes | 0;
+//     alignment = alignment | 0;
+//     if (numFreeChunks > 0) {
+//         var chunk = getFreeChunk(nbytes);
+//         if (chunk > (0 | 0)) {
+//             return chunk;
+//         }
+//     }
+//
+//     do {
+//         var ptr = global.Atomics.load(HEAP32, 1);
+//         var q = (ptr + (alignment - 1)) & ~(alignment - 1);
+//         var top = q + nbytes;
+//         if (top >= HEAP32[2>>2])
+//             return 0;
+//     } while (global.Atomics.compareExchange(HEAP32, 1, ptr, top) != ptr);
+//
+//     return q;
+// }
+// function alloc_ab(nbytes, alignment) {
+//     nbytes = nbytes | 0;
+//     alignment = alignment | 0;
+//
+//     var ptr = HEAP32[1>>2] | 0;
+//     ptr = ((ptr + (alignment - 1)) & ~(alignment - 1)) | 0;
+//     var top = (ptr + nbytes) | 0;
+//     if (top >= HEAP32[2>>2])
+//         return 0 | 0;
+//     HEAP32[1>>2] = top | 0;
+//     return ptr | 0;
+// }

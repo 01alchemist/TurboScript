@@ -1,0 +1,349 @@
+// These will be filled in by the WebAssembly code generator
+var originalHeapPointer: *byte = null;
+var currentHeapPointer: *byte = null;
+
+var freeMemory: int32 = 0;
+var numFreeChunks: int32 = 0;
+var firstFree: int32 = 0;
+var lastFree: int32 = 0;
+
+const PREV_INUSE:int32 = 1;
+const IS_MMAPPED:int32 = 2;
+const NON_MAIN_ARENA:int32 = 4;
+const SIZE_BITS:int32 = PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA;
+
+//An allocated chunk looks like this:
+/*
+    chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |             Size of previous chunk, if allocated            | |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |             Size of chunk, in bytes                         |P|
+      mem-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |             User data starts here...                          .
+            .                                                               .
+            .             (malloc_usable_size() bytes)                      .
+            .                                                               |
+nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |             Size of chunk                                     |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
+//Free chunks are stored in circular doubly-linked lists, and look like this:
+/*
+    chunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |             Size of previous chunk                            |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    `head:' |             Size of chunk, in bytes                         |P|
+      mem-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |             Forward pointer to next chunk in list             |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |             Back pointer to previous chunk in list            |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |             Unused space (may be 0 bytes long)                .
+            .                                                               .
+            .                                                               |
+nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    `foot:' |             Size of chunk, in bytes                           |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
+
+export function init_malloc():void{
+    numFreeChunks = 0;
+    firstFree = 0;
+    lastFree = 0;
+    originalHeapPointer = 40 as *byte;
+    currentHeapPointer  = 40 as *byte;
+}
+
+export function malloc(nbytes: int32): *byte {
+
+    //All loc variable should declare here before assigning named value
+    var alignment:int32 = 8;
+
+    nbytes = (nbytes + (alignment - 1)) & ~(alignment - 1) as int32;
+    var chunkSize = nbytes + 8;
+
+    var freeChunk = getFreeChunk(chunkSize);
+     if(freeChunk as int32 > 0){
+        return freeChunk;
+    }
+
+    var offset:int32 = currentHeapPointer as int32;
+    offset = offset + 7;
+    offset = offset & ~7;
+    // offset = ((currentHeapPointer as int32 + 7) & ~(7) as int32) as *byte;
+
+    var top = offset + chunkSize;
+
+    var ptr = (offset + 4) as *byte; //skip prev size
+    setHeadSize(ptr, chunkSize);
+    setInuse((ptr + 4) as *byte);
+    setFoot(ptr, chunkSize);
+
+    currentHeapPointer = (top + 4) as *byte;
+
+    offset = offset + 8;
+
+    // Make sure the memory starts off at zero
+    ptr = offset as *byte;
+    while ((ptr as int32) < (top as int32)) {
+      *(ptr as *int32) = 0;
+      ptr = ptr + 4;
+    }
+
+    return offset as *byte;
+}
+export function free(ptr:*byte):void{
+
+    var chunkptr:*byte = null;
+    var tmp1:int32 = 0;
+
+    clearInuse(ptr);
+    if(firstFree == 0){
+        firstFree = ptr as int32;
+    }
+
+    tmp1 = freeMemory as int32;
+    tmp1 = tmp1 + getChunkSize(ptr) as int32;
+    freeMemory = tmp1 as int32;
+
+    chunkptr = ptr + 4;
+    if(lastFree > 0){
+        *(chunkptr as *int32) = lastFree;//backward pointer to prev chunk
+        *(lastFree as *int32) = ptr as int32;//forward pointer to next chunk of prev chunk
+    }else{
+        *(chunkptr as *int32) = 0;//no backward pointer, this is the first free chunk
+    }
+
+    *(ptr as *int32) = 0;//no forward pointer
+
+    lastFree = ptr as int32;
+    numFreeChunks = numFreeChunks + 1;
+}
+export function getFreeChunk(nbytes: int32):*byte{
+
+    var freeChunk:*byte = null;
+    var tmp1:int32 = 0;
+    var tmp2:int32 = 0;
+    var tmp3:int32 = 0;
+    var tmp4:int32 = 0;
+
+    tmp1 = firstFree;
+    tmp2 = lastFree;
+    tmp3 = freeMemory;
+
+    if(numFreeChunks > 0){
+        freeChunk = findChunk(nbytes);
+        if(freeChunk as int32 > 0){
+            if(freeChunk as int32 == tmp1){
+                firstFree = nextFree(freeChunk) as int32;
+            }
+            if(freeChunk as int32 == tmp2){
+                lastFree = 0;
+            }
+            numFreeChunks = numFreeChunks - 1;
+            setInuse(freeChunk);
+            tmp4 = getChunkSize(freeChunk);
+            tmp3 = tmp3 - tmp4;
+            freeMemory = tmp3;
+            return freeChunk;
+        }
+    }
+    return null;
+}
+export function findChunk(nbytes: int32):*byte{
+    var chunk:*byte = null;
+    var tmp1:int32 = 0;
+
+    chunk = firstFree as *byte;
+    while(chunk != null){
+        tmp1= getChunkSize(chunk);
+        if(tmp1 == nbytes){
+            return chunk;
+        }
+        chunk = *(chunk as *int32) as *byte;
+    }
+    return null;
+}
+export function getHeapPtr(): int32 {
+    return currentHeapPointer as int32;
+}
+export function getFreeMemory(): int32 {
+    return freeMemory;
+}
+export function getOriginalHeapPtr(): int32 {
+    return originalHeapPointer as int32;
+}
+export function getNumFreeChunks():int32{
+    return numFreeChunks as int32;
+}
+export function getFirstFree():int32{
+    return firstFree;
+}
+export function getLastFree():int32{
+    return lastFree;
+}
+export function prevFree(ptr:*byte):int32{
+    return  *(ptr as *int32 + 4) as int32;
+}
+export function nextFree(ptr:*byte):int32{
+    return *(ptr as *int32) as int32;
+}
+/* Set size at head, without disturbing its use bit */
+function setHeadSize(ptr:*byte, s:int32):void  {
+    *(ptr as *int32) = (*(ptr as *int32) & SIZE_BITS) | s;
+}
+
+/* Set size/use field */
+function setHead(ptr:*byte, s:int32):void {
+   *(ptr as *int32) = s;
+}
+
+/* Set size at footer (only when chunk is not in use) */
+function setFoot(ptr:*byte, s:int32):void {
+    var chunkptr:int32 = 0;
+    var size:int32 = 0;
+    size = *(ptr as *int32);
+    chunkptr = (ptr as int32) + size;
+    *(chunkptr as *int32) = s;
+}
+
+export function getPrevInuse(ptr:*byte):int32 {
+    var chunkptr:int32 = 0;
+    chunkptr = (ptr as int32) - 8;
+    return *(chunkptr as *int32) & (PREV_INUSE);
+}
+export function setInuse(ptr:*byte):void{
+    var chunkptr:int32 = 0;
+    chunkptr = (ptr as int32) - 4;
+    *(chunkptr as *int32) =  *(chunkptr as *int32) | PREV_INUSE;
+}
+export function getInuse(ptr:*byte):int32{
+    var chunkptr:int32 = 0;
+    chunkptr = (ptr as int32) - 4;
+    return *(chunkptr as *int32) & (PREV_INUSE);
+}
+export function clearInuse(ptr:*byte):void{
+    var chunkptr:int32 = 0;
+    chunkptr = (ptr as int32) - 4;
+    *(chunkptr as *int32) = *(chunkptr as *int32) & ~(PREV_INUSE);
+}
+export function getChunkSize(ptr:*byte):int32{
+    var chunkptr:int32 = 0;
+    chunkptr = (ptr as int32) - 4;
+    return *(chunkptr as *int32) & ~(PREV_INUSE) as int32;
+}
+/* malloc */
+// var SIZE_SZ:int32 = 4;
+// var MALLOC_ALIGNMENT:int32 = 8;//2 * SIZE_SZ;
+// var MALLOC_ALIGN_MASK:int32 = MALLOC_ALIGNMENT - 1;
+//
+// var PREV_INUSE:int32 = 0x1;
+// var IS_MMAPPED:int32 = 0x2;
+// var NON_MAIN_ARENA:int32 = 0x4;
+// var SIZE_BITS:int32 = PREV_INUSE|IS_MMAPPED|NON_MAIN_ARENA;
+//
+// class chunk{
+//     prevSize:int32;
+//     size:int32;
+//     forward:int32;
+//     backward:int32;
+//     forwardLarge:int32;
+//     backwardLarge:int32;
+// }
+// function prev_inuse(p:*chunk):int32 {
+//     return (p as chunk).size & PREV_INUSE;
+// }
+// function chunksize(p:*chunk):int32 {
+//     return (p as chunk).size & ~(SIZE_BITS);
+// }
+// /* Ptr to next physical malloc_chunk. */
+// function next_chunk(p:*chunk):*chunk {
+//     ((*p as int32) + (p as chunk).size & ~(SIZE_BITS)) as *chunk;
+// }
+//
+// /* Ptr to previous physical malloc_chunk */
+// function prev_chunk(p:*chunk):*chunk {
+//     ((*p as int32) - (p as chunk).prevSize) as *chunk;
+// }
+//
+// /* Treat space at ptr + offset as a chunk */
+// function chunk_at_offset(p:*chunk, s:int32):*chunk{
+//     return ((*p as int32) + s) as *chunk;
+// }
+//
+// /* extract p's inuse bit */
+// function inuse(p:*chunk):int32{
+//  return ((*p as int32) + (((p as chunk).size & ~SIZE_BITS) as chunk).size) & PREV_INUSE;
+// }
+//
+// /* set/clear chunk as being inuse without otherwise disturbing */
+// function set_inuse(p:*chunk):int32{
+//  return ((*p as int32) + (((p as chunk).size & ~SIZE_BITS) as chunk).size) = ((*p as int32) + (((p as chunk).size & ~SIZE_BITS) as chunk).size) | PREV_INUSE;
+// }
+//
+// function clear_inuse(p:*chunk):int32{
+//  return ((*p as int32) + (((p as chunk).size & ~SIZE_BITS) as chunk).size) = ((*p as int32) + (((p as chunk).size & ~SIZE_BITS) as chunk).size) & ~(PREV_INUSE);
+// }
+
+function memcpy(target: *byte, source: *byte, length: int32): void {
+    // No-op if either of the inputs are null
+    if (source == null || target == null) {
+      return;
+    }
+
+    // Optimized aligned copy
+    if (length >= 16 && (source as int32) % 4 == (target as int32) % 4) {
+      // Pick off the beginning
+      while ((target as int32) % 4 != 0) {
+        *target = *source;
+        target = target + 1;
+        source = source + 1;
+        length = length - 1;
+      }
+
+      // Pick off the end
+      while (length % 4 != 0) {
+        length = length - 1;
+        *(target + length) = *(source + length);
+      }
+
+      // Zip over the middle
+      var end = target + length;
+      while (target < end) {
+        *(target as *int32) = *(source as *int32);
+        target = target + 4;
+        source = source + 4;
+      }
+    }
+
+    // Slow unaligned copy
+    else {
+      var end = target + length;
+      while (target < end) {
+        *target = *source;
+        target = target + 1;
+        source = source + 1;
+      }
+    }
+}
+
+function memcmp(a: *byte, b: *byte, length: int32): int32 {
+    // No-op if either of the inputs are null
+    if (a == null || b == null) {
+      return 0;
+    }
+
+    // Return the first non-zero difference
+    while (length > 0) {
+      var delta = *a as int32 - *b as int32;
+      if (delta != 0) {
+        return delta;
+      }
+      a = a + 1;
+      b = b + 1;
+      length = length - 1;
+    }
+
+    // Both inputs are identical
+    return 0;
+}
