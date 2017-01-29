@@ -1,0 +1,7 @@
+//import * as Math from "Math"; TODO: Standardize import
+
+function test(): void {
+    let a: float32 = 0.1;
+    // let b:float32 = 0.1;
+    let c = Math.sin(a);
+}

@@ -17,11 +17,13 @@ export enum NodeKind {
     PARAMETER,
     PARAMETERS,
     VARIABLE,
+    IMPORT,
 
         // Statements
     BLOCK,
     BREAK,
     MODULE,
+    IMPORTS,
     CLASS,
     INTERFACE,
     CONSTANTS,
@@ -46,6 +48,7 @@ export enum NodeKind {
     DOT,
     HOOK,
     INDEX,
+    ANY,
     INT32,
     INT64,
     FLOAT32,
@@ -143,6 +146,8 @@ export const NODE_FLAG_UNSAFE_TURBO = 1 << 12;
 export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13;
 export const NODE_FLAG_VIRTUAL = 1 << 14;
 export const NODE_FLAG_START = 1 << 15;
+export const NODE_FLAG_IMPORT = 1 << 16;
+export const NODE_FLAG_ANYFUNC = 1 << 17;
 
 export class NodeFlag {
     flag: int32;
@@ -417,6 +422,10 @@ export class Node {
 
     isStatic(): boolean {
         return (this.flags & NODE_FLAG_STATIC) != 0;
+    }
+
+    isAnyfunc(): boolean {
+        return (this.flags & NODE_FLAG_ANYFUNC) != 0;
     }
 
     isDeclareOrTurbo(): boolean {
@@ -971,6 +980,13 @@ export function createInt(value: int32): Node {
     return node;
 }
 
+export function createAny(): Node {
+    let node = new Node();
+    node.kind = NodeKind.ANY;
+    node.stringValue = "any";
+    return node;
+}
+
 export function createLong(value: int64): Node {
     let node = new Node();
     node.kind = NodeKind.INT64;
@@ -1093,6 +1109,19 @@ export function createReturn(value: Node): Node {
     if (value != null) {
         node.appendChild(value);
     }
+    return node;
+}
+
+export function createImports(): Node {
+    let node = new Node();
+    node.kind = NodeKind.IMPORTS;
+    return node;
+}
+
+export function createImport(name:string): Node {
+    let node = new Node();
+    node.kind = NodeKind.IMPORT;
+    node.stringValue = name;
     return node;
 }
 

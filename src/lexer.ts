@@ -48,6 +48,7 @@ export enum TokenKind {
     RIGHT_BRACKET,
     RIGHT_PARENTHESIS,
     SEMICOLON,
+    FROM,
     SHIFT_LEFT,
     SHIFT_RIGHT,
 
@@ -67,6 +68,7 @@ export enum TokenKind {
     EXTERN,
     FALSE,
     FUNCTION,
+    ANYFUNC,
     IF,
     IMPLEMENTS,
     IMPORT,
@@ -179,6 +181,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.SHIFT_RIGHT) return "'>>'";
 
     // Keywords
+    if (token == TokenKind.FROM) return "'from'";
     if (token == TokenKind.ALIGNOF) return "'alignof'";
     if (token == TokenKind.AS) return "'as'";
     if (token == TokenKind.BREAK) return "'break'";
@@ -194,9 +197,11 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.EXTERN) return "'extern'";
     if (token == TokenKind.FALSE) return "'false'";
     if (token == TokenKind.FUNCTION) return "'function'";
+    if (token == TokenKind.ANYFUNC) return "'anyfunc'";
     if (token == TokenKind.IF) return "'if'";
     if (token == TokenKind.IMPLEMENTS) return "'implements'";
-    if (token == TokenKind.IMPORT) return "'import'";
+    // if (token == TokenKind.IMPORT) return "'import'"; //TODO: Standardize import
+    if (token == TokenKind.IMPORT) return "'@import'";
     if (token == TokenKind.INTERFACE) return "'interface'";
     if (token == TokenKind.LET) return "'let'";
     if (token == TokenKind.NEW) return "'new'";
@@ -316,6 +321,7 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "null") kind = TokenKind.NULL;
                     else if (text == "this") kind = TokenKind.THIS;
                     else if (text == "true") kind = TokenKind.TRUE;
+                    else if (text == "from") kind = TokenKind.FROM;
                 }
 
                 else if (length == 5) {
@@ -330,7 +336,7 @@ export function tokenize(source: Source, log: Log): Token {
                     if (text == "export") kind = TokenKind.EXPORT;
                     else if (text == "module") kind = TokenKind.MODULE;
                     else if (text == "extern") kind = TokenKind.EXTERN;
-                    else if (text == "import") kind = TokenKind.IMPORT;
+                    // else if (text == "import") kind = TokenKind.IMPORT;
                     else if (text == "public") kind = TokenKind.PUBLIC;
                     else if (text == "return") kind = TokenKind.RETURN;
                     else if (text == "sizeof") kind = TokenKind.SIZEOF;
@@ -346,6 +352,7 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "extends") kind = TokenKind.EXTENDS;
                     else if (text == "private") kind = TokenKind.PRIVATE;
                     else if (text == "@unsafe") kind = TokenKind.UNSAFE_TURBO;
+                    else if (text == "anyfunc") kind = TokenKind.ANYFUNC;
                 }
 
                 else {

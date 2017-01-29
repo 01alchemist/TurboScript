@@ -31,6 +31,9 @@ export class CheckContext {
     currentReturnType: Type;
     nextGlobalVariableOffset: int32;
 
+    //Foreign type
+    anyType: Type;
+
     // Native types
     booleanType: Type;
     sbyteType: Type;
@@ -50,14 +53,14 @@ export class CheckContext {
     voidType: Type;
 
     allocateGlobalVariableOffset(sizeOf: int32, alignmentOf: int32): int32 {
-        var offset = alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
+        let offset = alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
         this.nextGlobalVariableOffset = offset + sizeOf;
         return offset;
     }
 }
 
 export function addScopeToSymbol(symbol: Symbol, parentScope: Scope): void {
-    var scope = new Scope();
+    let scope = new Scope();
     scope.parent = parentScope;
     scope.symbol = symbol;
     symbol.scope = scope;
@@ -76,13 +79,13 @@ export enum CheckMode {
 }
 
 export function initialize(context: CheckContext, node: Node, parentScope: Scope, mode: CheckMode): void {
-    var kind = node.kind;
+    let kind = node.kind;
 
     if (node.parent != null) {
-        var parentKind = node.parent.kind;
+        let parentKind = node.parent.kind;
 
         // Validate node placement
-        if (kind != NodeKind.VARIABLE && kind != NodeKind.VARIABLES &&
+        if (kind != NodeKind.IMPORTS && kind != NodeKind.VARIABLE && kind != NodeKind.VARIABLES &&
             (kind != NodeKind.FUNCTION || parentKind != NodeKind.CLASS) &&
             (parentKind == NodeKind.FILE) != (parentKind == NodeKind.MODULE || kind == NodeKind.MODULE || kind == NodeKind.CLASS || kind == NodeKind.ENUM || kind == NodeKind.FUNCTION || kind == NodeKind.CONSTANTS)) {
             context.log.error(node.range, "This statement is not allowed here");
@@ -92,7 +95,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Module
     if (kind == NodeKind.MODULE) {
         assert(node.symbol == null);
-        var symbol = new Symbol();
+        let symbol = new Symbol();
         symbol.kind = SymbolKind.TYPE_MODULE;
         symbol.name = node.stringValue;
         symbol.resolvedType = new Type();
@@ -107,7 +110,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Class
     if (kind == NodeKind.CLASS || kind == NodeKind.ENUM) {
         assert(node.symbol == null);
-        var symbol = new Symbol();
+        let symbol = new Symbol();
         symbol.kind = kind == NodeKind.CLASS ? SymbolKind.TYPE_CLASS : SymbolKind.TYPE_ENUM;
         symbol.name = node.stringValue;
         symbol.resolvedType = new Type();
@@ -122,7 +125,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Function
     else if (kind == NodeKind.FUNCTION) {
         assert(node.symbol == null);
-        var symbol = new Symbol();
+        let symbol = new Symbol();
         symbol.kind =
             node.parent.kind == NodeKind.CLASS ? SymbolKind.FUNCTION_INSTANCE :
                 SymbolKind.FUNCTION_GLOBAL;
@@ -171,7 +174,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         // All instance functions have a special "this" type
         if (symbol.kind != SymbolKind.FUNCTION_INSTANCE) {
         } else {
-            var parent = symbol.parent();
+            let parent = symbol.parent();
             initializeSymbol(context, parent);
             node.insertChildBefore(node.functionFirstArgument(), createVariable("this", createType(parent.resolvedType), null));
         }
@@ -180,7 +183,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Variable
     else if (kind == NodeKind.VARIABLE) {
         assert(node.symbol == null);
-        var symbol = new Symbol();
+        let symbol = new Symbol();
         symbol.kind =
             node.parent.kind == NodeKind.CLASS ? SymbolKind.VARIABLE_INSTANCE :
                 node.parent.kind == NodeKind.FUNCTION ? SymbolKind.VARIABLE_ARGUMENT :
@@ -196,7 +199,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Block
     else if (kind == NodeKind.BLOCK) {
         if (node.parent.kind != NodeKind.FUNCTION) {
-            var scope = new Scope();
+            let scope = new Scope();
             scope.parent = parentScope;
             parentScope = scope;
         }
@@ -204,7 +207,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     }
 
     // Children
-    var child = node.firstChild;
+    let child = node.firstChild;
     while (child != null) {
         initialize(context, child, parentScope, mode);
         child = child.nextSibling;
@@ -243,7 +246,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
 }
 
 function prepareNativeType(type: Type, byteSizeAndMaxAlignment: int32, flags: int32): void {
-    var symbol = type.symbol;
+    let symbol = type.symbol;
     symbol.kind = SymbolKind.TYPE_NATIVE;
     symbol.byteSize = byteSizeAndMaxAlignment;
     symbol.maxAlignment = byteSizeAndMaxAlignment;
@@ -252,7 +255,7 @@ function prepareNativeType(type: Type, byteSizeAndMaxAlignment: int32, flags: in
 
 export function forbidFlag(context: CheckContext, node: Node, flag: int32, text: string): void {
     if ((node.flags & flag) != 0) {
-        var range = rangeForFlag(node.firstFlag, flag);
+        let range = rangeForFlag(node.firstFlag, flag);
 
         if (range != null) {
             node.flags = node.flags & ~flag;
@@ -278,7 +281,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
     symbol.state = SymbolState.INITIALIZING;
 
     // Most flags aren't supported yet
-    var node = symbol.node;
+    let node = symbol.node;
     // forbidFlag(context, node, NODE_FLAG_EXPORT, "Unsupported flag 'export'");
     forbidFlag(context, node, NODE_FLAG_PROTECTED, "Unsupported flag 'protected'");
     //forbidFlag(context, node, NODE_FLAG_STATIC, "Unsupported flag 'static'");
@@ -316,7 +319,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
         symbol.resolvedType = new Type();
         symbol.resolvedType.symbol = symbol;
-        var underlyingSymbol = symbol.resolvedType.underlyingType(context).symbol;
+        let underlyingSymbol = symbol.resolvedType.underlyingType(context).symbol;
         symbol.byteSize = underlyingSymbol.byteSize;
         symbol.maxAlignment = underlyingSymbol.maxAlignment;
     }
@@ -327,14 +330,14 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             resolve(context, node.firstChild, symbol.scope);
         }
 
-        var body = node.functionBody();
-        var returnType = node.functionReturnType();
-        var oldUnsafeAllowed = context.isUnsafeAllowed;
+        let body = node.functionBody();
+        let returnType = node.functionReturnType();
+        let oldUnsafeAllowed = context.isUnsafeAllowed;
         context.isUnsafeAllowed = node.isUnsafe();
         resolveAsType(context, returnType, symbol.scope.parent);
 
-        var argumentCount = 0;
-        var child = node.functionFirstArgument();
+        let argumentCount = 0;
+        let child = node.functionFirstArgument();
         while (child != returnType) {
             assert(child.kind == NodeKind.VARIABLE);
             assert(child.symbol.kind == SymbolKind.VARIABLE_ARGUMENT);
@@ -413,8 +416,8 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         symbol.resolvedType.symbol = symbol;
 
         if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
-            var parent = symbol.parent();
-            var shouldConvertInstanceToGlobal = false;
+            let parent = symbol.parent();
+            let shouldConvertInstanceToGlobal = false;
 
             forbidFlag(context, node, NODE_FLAG_EXTERN, "Cannot use 'extern' on an instance function");
             forbidFlag(context, node, NODE_FLAG_DECLARE, "Cannot use 'declare' on an instance function");
@@ -449,7 +452,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                     .appendChar('_')
                     .append(symbol.rename != null ? symbol.rename : symbol.name)
                     .finish();
-                var argument = node.functionFirstArgument();
+                let argument = node.functionFirstArgument();
                 assert(argument.symbol.name == "this");
                 argument.symbol.rename = "__this";
             }
@@ -475,9 +478,9 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a variable");
         forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a variable");
 
-        var type = node.variableType();
-        var value = node.variableValue();
-        var oldUnsafeAllowed = context.isUnsafeAllowed;
+        let type = node.variableType();
+        let value = node.variableValue();
+        let oldUnsafeAllowed = context.isUnsafeAllowed;
         context.isUnsafeAllowed = context.isUnsafeAllowed || node.isUnsafe();
 
         if (symbol.kind != SymbolKind.VARIABLE_INSTANCE) {
@@ -533,7 +536,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             // Automatically initialize enum values using the previous enum
             else if (symbol.isEnumValue()) {
                 if (node.previousSibling != null) {
-                    var previousSymbol = node.previousSibling.symbol;
+                    let previousSymbol = node.previousSibling.symbol;
                     initializeSymbol(context, previousSymbol);
                     symbol.offset = previousSymbol.offset + 1;
                 } else {
@@ -548,9 +551,9 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
         // Disallow shadowing at function scope
         if (symbol.scope.symbol == null) {
-            var scope = symbol.scope.parent;
+            let scope = symbol.scope.parent;
             while (scope != null) {
-                var shadowed = scope.findLocal(symbol.name, ScopeHint.NORMAL);
+                let shadowed = scope.findLocal(symbol.name, ScopeHint.NORMAL);
                 if (shadowed != null) {
                     context.log.error(node.internalRange, StringBuilder_new()
                         .append("The symbol '")
@@ -580,7 +583,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 }
 
 export function resolveChildren(context: CheckContext, node: Node, parentScope: Scope): void {
-    var child = node.firstChild;
+    let child = node.firstChild;
     while (child != null) {
         resolve(context, child, parentScope);
         assert(child.resolvedType != null);
@@ -589,7 +592,7 @@ export function resolveChildren(context: CheckContext, node: Node, parentScope: 
 }
 
 export function resolveChildrenAsExpressions(context: CheckContext, node: Node, parentScope: Scope): void {
-    var child = node.firstChild;
+    let child = node.firstChild;
     while (child != null) {
         resolveAsExpression(context, child, parentScope);
         child = child.nextSibling;
@@ -626,7 +629,7 @@ export function resolveAsType(context: CheckContext, node: Node, parentScope: Sc
 }
 
 export function canConvert(context: CheckContext, node: Node, to: Type, kind: ConversionKind): boolean {
-    var from = node.resolvedType;
+    let from = node.resolvedType;
 
     assert(isExpression(node));
     assert(from != null);
@@ -759,8 +762,8 @@ export function createDefaultValueForType(context: CheckContext, type: Type): No
 }
 
 export function simplifyBinary(node: Node): void {
-    var left = node.binaryLeft();
-    var right = node.binaryRight();
+    let left = node.binaryLeft();
+    let right = node.binaryRight();
 
     // Canonicalize commutative operators
     if ((node.kind == NodeKind.ADD || node.kind == NodeKind.MULTIPLY ||
@@ -775,8 +778,8 @@ export function simplifyBinary(node: Node): void {
     if ((node.kind == NodeKind.MULTIPLY || (node.kind == NodeKind.DIVIDE || node.kind == NodeKind.REMAINDER) && node.resolvedType.isUnsigned()) &&
         right.kind == NodeKind.INT32 && isPositivePowerOf2(right.intValue)) {
         // Extract the shift from the value
-        var shift = -1;
-        var value = right.intValue;
+        let shift = -1;
+        let value = right.intValue;
         while (value != 0) {
             value = value >> 1;
             shift = shift + 1;
@@ -819,29 +822,29 @@ export function simplifyBinary(node: Node): void {
 }
 
 export function binaryHasUnsignedArguments(node: Node): boolean {
-    var left = node.binaryLeft();
-    var right = node.binaryRight();
-    var leftType = left.resolvedType;
-    var rightType = right.resolvedType;
+    let left = node.binaryLeft();
+    let right = node.binaryRight();
+    let leftType = left.resolvedType;
+    let rightType = right.resolvedType;
 
     return leftType.isUnsigned() && rightType.isUnsigned() || leftType.isUnsigned() && right.isNonNegativeInteger() ||
         left.isNonNegativeInteger() && rightType.isUnsigned();
 }
 
 export function isBinaryLong(node: Node): boolean {
-    var left = node.binaryLeft();
-    var right = node.binaryRight();
-    var leftType = left.resolvedType;
-    var rightType = right.resolvedType;
+    let left = node.binaryLeft();
+    let right = node.binaryRight();
+    let leftType = left.resolvedType;
+    let rightType = right.resolvedType;
 
     return leftType.isLong() || rightType.isLong();
 }
 
 export function isBinaryDouble(node: Node): boolean {
-    var left = node.binaryLeft();
-    var right = node.binaryRight();
-    var leftType = left.resolvedType;
-    var rightType = right.resolvedType;
+    let left = node.binaryLeft();
+    let right = node.binaryRight();
+    let leftType = left.resolvedType;
+    let rightType = right.resolvedType;
 
     return leftType.isDouble() || rightType.isDouble();
 }
@@ -857,7 +860,7 @@ export function isSymbolAccessAllowed(context: CheckContext, symbol: Symbol, nod
     }
 
     if (symbol.node != null && symbol.node.isPrivate()) {
-        var parent = symbol.parent();
+        let parent = symbol.parent();
 
         if (parent != null && context.enclosingClass != parent) {
             context.log.error(range, StringBuilder_new()
@@ -893,7 +896,7 @@ export function isSymbolAccessAllowed(context: CheckContext, symbol: Symbol, nod
 }
 
 export function resolve(context: CheckContext, node: Node, parentScope: Scope): void {
-    var kind = node.kind;
+    let kind = node.kind;
     assert(kind == NodeKind.FILE || parentScope != null);
 
     if (node.resolvedType != null) {
@@ -907,7 +910,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.MODULE) {
-        var oldEnclosingModule = context.enclosingModule;
+        let oldEnclosingModule = context.enclosingModule;
         initializeSymbol(context, node.symbol);
         context.enclosingModule = node.symbol;
         resolveChildren(context, node, node.scope);
@@ -917,8 +920,12 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         context.enclosingModule = oldEnclosingModule;
     }
 
+    else if (kind == NodeKind.IMPORT) {
+         let symbol = node.symbol;
+    }
+
     else if (kind == NodeKind.CLASS) {
-        var oldEnclosingClass = context.enclosingClass;
+        let oldEnclosingClass = context.enclosingClass;
         initializeSymbol(context, node.symbol);
         context.enclosingClass = node.symbol;
         resolveChildren(context, node, node.scope);
@@ -929,7 +936,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.INTERFACE) {
-        var oldEnclosingClass = context.enclosingClass;
+        let oldEnclosingClass = context.enclosingClass;
         initializeSymbol(context, node.symbol);
         context.enclosingClass = node.symbol;
         resolveChildren(context, node, node.scope);
@@ -945,7 +952,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.FUNCTION) {
-        var body = node.functionBody();
+        let body = node.functionBody();
         initializeSymbol(context, node.symbol);
 
         if (node.stringValue == "constructor" && node.parent.kind == NodeKind.CLASS) {
@@ -953,8 +960,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         if (body != null) {
-            var oldReturnType = context.currentReturnType;
-            var oldUnsafeAllowed = context.isUnsafeAllowed;
+            let oldReturnType = context.currentReturnType;
+            let oldUnsafeAllowed = context.isUnsafeAllowed;
             context.currentReturnType = node.functionReturnType().resolvedType;
             context.isUnsafeAllowed = node.isUnsafe();
             resolveChildren(context, body, node.scope);
@@ -964,13 +971,13 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.VARIABLE) {
-        var symbol = node.symbol;
+        let symbol = node.symbol;
         initializeSymbol(context, symbol);
 
-        var oldUnsafeAllowed = context.isUnsafeAllowed;
+        let oldUnsafeAllowed = context.isUnsafeAllowed;
         context.isUnsafeAllowed = context.isUnsafeAllowed || node.isUnsafe();
 
-        var value = node.variableValue();
+        let value = node.variableValue();
         if (value != null) {
             resolveAsExpression(context, value, parentScope);
 
@@ -1001,8 +1008,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.BREAK || kind == NodeKind.CONTINUE) {
-        var found = false;
-        var n = node;
+        let found = false;
+        let n = node;
         while (n != null) {
             if (n.kind == NodeKind.WHILE) {
                 found = true;
@@ -1016,14 +1023,19 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.BLOCK) {
-        var oldUnsafeAllowed = context.isUnsafeAllowed;
+        let oldUnsafeAllowed = context.isUnsafeAllowed;
         if (node.isUnsafe()) context.isUnsafeAllowed = true;
         resolveChildren(context, node, node.scope);
         context.isUnsafeAllowed = oldUnsafeAllowed;
     }
 
-    else if (kind == NodeKind.CONSTANTS || kind == NodeKind.VARIABLES) {
+    else if (kind == NodeKind.IMPORTS || kind == NodeKind.CONSTANTS || kind == NodeKind.VARIABLES) {
         resolveChildren(context, node, parentScope);
+    }
+
+    else if (kind == NodeKind.ANY) {
+        //imported functions have anyType
+        node.resolvedType = context.anyType;
     }
 
     else if (kind == NodeKind.INT32) {
@@ -1058,11 +1070,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     else if (kind == NodeKind.INDEX) {
         resolveChildrenAsExpressions(context, node, parentScope);
 
-        var target = node.indexTarget();
+        let target = node.indexTarget();
         let type = target.resolvedType;
 
         if (type != context.errorType) {
-            var symbol = type.hasInstanceMembers() ? type.findMember("[]", ScopeHint.NORMAL) : null;
+            let symbol = type.hasInstanceMembers() ? type.findMember("[]", ScopeHint.NORMAL) : null;
 
             if (symbol == null) {
                 context.log.error(node.internalRange, StringBuilder_new()
@@ -1123,7 +1135,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let symbol = parentScope.findNested(name, ScopeHint.NORMAL, FindNested.NORMAL);
 
         if (symbol == null) {
-            var builder = StringBuilder_new()
+            let builder = StringBuilder_new()
                 .append("No symbol named '")
                 .append(name)
                 .append("' here");
@@ -1206,11 +1218,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         if (target.resolvedType != context.errorType) {
             if (target.isType() && (target.resolvedType.isEnum() || target.resolvedType.hasInstanceMembers()) ||
                 !target.isType() && target.resolvedType.hasInstanceMembers()) {
-                var name = node.stringValue;
+                let name = node.stringValue;
 
                 // Empty names are left over from parse errors that have already been reported
                 if (name.length > 0) {
-                    var symbol = target.resolvedType.findMember(name, node.isAssignTarget() ? ScopeHint.PREFER_SETTER : ScopeHint.PREFER_GETTER);
+                    let symbol = target.resolvedType.findMember(name, node.isAssignTarget() ? ScopeHint.PREFER_SETTER : ScopeHint.PREFER_GETTER);
 
                     if (symbol == null) {
                         context.log.error(node.internalRange, StringBuilder_new()
@@ -1281,9 +1293,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     value = name;
                 }
 
-                var returnType = symbol.node.functionReturnType();
-                var argumentVariable = symbol.node.functionFirstArgumentIgnoringThis();
-                var argumentValue = value.nextSibling;
+                let returnType = symbol.node.functionReturnType();
+                let argumentVariable = symbol.node.functionFirstArgumentIgnoringThis();
+                let argumentValue = value.nextSibling;
 
                 // Match argument values with variables
                 while (argumentVariable != returnType && argumentValue != null) {
@@ -1442,11 +1454,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         if (left.kind == NodeKind.INDEX) {
             resolveChildrenAsExpressions(context, left, parentScope);
 
-            var target = left.indexTarget();
-            var type = target.resolvedType;
+            let target = left.indexTarget();
+            let type = target.resolvedType;
 
             if (type != context.errorType) {
-                var symbol = type.hasInstanceMembers() ? type.findMember("[]=", ScopeHint.NORMAL) : null;
+                let symbol = type.hasInstanceMembers() ? type.findMember("[]=", ScopeHint.NORMAL) : null;
 
                 if (symbol == null) {
                     context.log.error(left.internalRange, StringBuilder_new()
@@ -1531,7 +1543,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.POINTER_TYPE) {
-        var value = node.unaryValue();
+        let value = node.unaryValue();
         resolveAsType(context, value, parentScope);
 
         if (context.target == CompileTarget.JAVASCRIPT) {
@@ -1543,7 +1555,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
          }*/
 
         else {
-            var type = value.resolvedType;
+            let type = value.resolvedType;
 
             if (type != context.errorType) {
                 // if ((!type.isInteger() && !type.symbol.node.isTurbo()) && type.pointerTo == null) {
@@ -1562,9 +1574,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.DEREFERENCE) {
-        var value = node.unaryValue();
+        let value = node.unaryValue();
         resolveAsExpression(context, value, parentScope);
-        var type = value.resolvedType;
+        let type = value.resolvedType;
 
         if (type != context.errorType) {
             if (type.pointerTo == null) {
@@ -1582,13 +1594,13 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.ADDRESS_OF) {
-        var value = node.unaryValue();
+        let value = node.unaryValue();
         resolveAsExpression(context, value, parentScope);
         context.log.error(node.internalRange, "The address-of operator is not supported");
     }
 
     else if (isUnary(kind)) {
-        var value = node.unaryValue();
+        let value = node.unaryValue();
         resolveAsExpression(context, value, parentScope);
 
         // Operator "!" is hard-coded
@@ -1608,8 +1620,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             // Automatically fold constants
             if (value.kind == NodeKind.INT32) {
-                var input = value.intValue;
-                var output = input;
+                let input = value.intValue;
+                let output = input;
                 if (kind == NodeKind.COMPLEMENT) output = ~input;
                 else if (kind == NodeKind.NEGATIVE) output = -input;
                 node.becomeIntegerConstant(output);
@@ -1623,8 +1635,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             // Automatically fold constants
             if (value.kind == NodeKind.FLOAT64) {
-                var input = value.doubleValue;
-                var output = input;
+                let input = value.doubleValue;
+                let output = input;
                 if (kind == NodeKind.COMPLEMENT) output = ~input;
                 else if (kind == NodeKind.NEGATIVE) output = -input;
                 node.becomeDoubleConstant(output);
@@ -1638,8 +1650,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             // Automatically fold constants
             if (value.kind == NodeKind.FLOAT32) {
-                var input = value.floatValue;
-                var output = input;
+                let input = value.floatValue;
+                let output = input;
                 if (kind == NodeKind.COMPLEMENT) output = ~input;
                 else if (kind == NodeKind.NEGATIVE) output = -input;
                 node.becomeFloatConstant(output);
@@ -1648,8 +1660,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
         // Support custom operators
         else if (value.resolvedType != context.errorType) {
-            var name = node.internalRange.toString();
-            var symbol = value.resolvedType.findMember(name, ScopeHint.NOT_BINARY);
+            let name = node.internalRange.toString();
+            let symbol = value.resolvedType.findMember(name, ScopeHint.NOT_BINARY);
 
             // Automatically call the function
             if (symbol != null) {
@@ -1741,9 +1753,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
                 // Automatically fold constants
                 if (left.kind == NodeKind.INT32 && right.kind == NodeKind.INT32) {
-                    var inputLeft = left.intValue;
-                    var inputRight = right.intValue;
-                    var output = 0;
+                    let inputLeft = left.intValue;
+                    let inputRight = right.intValue;
+                    let output = 0;
                     if (kind == NodeKind.ADD) output = inputLeft + inputRight;
                     else if (kind == NodeKind.BITWISE_AND) output = inputLeft & inputRight;
                     else if (kind == NodeKind.BITWISE_OR) output = inputLeft | inputRight;
@@ -1769,7 +1781,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 kind == NodeKind.LESS_THAN_EQUAL ||
                 kind == NodeKind.GREATER_THAN ||
                 kind == NodeKind.GREATER_THAN_EQUAL) {
-                var expectedType =
+                let expectedType =
                     binaryHasUnsignedArguments(node) ? context.uint32Type :
                         context.int32Type;
 
@@ -1845,7 +1857,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 kind == NodeKind.LESS_THAN_EQUAL ||
                 kind == NodeKind.GREATER_THAN ||
                 kind == NodeKind.GREATER_THAN_EQUAL) {
-                var expectedType = context.float32Type;
+                let expectedType = context.float32Type;
 
                 if (leftType != rightType) {
                     checkConversion(context, left, expectedType, ConversionKind.IMPLICIT);
@@ -1863,8 +1875,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
         // Support custom operators
         else if (leftType != context.errorType) {
-            var name = node.internalRange.toString();
-            var symbol = leftType.findMember(
+            let name = node.internalRange.toString();
+            let symbol = leftType.findMember(
                 kind == NodeKind.NOT_EQUAL ? "==" :
                     kind == NodeKind.LESS_THAN_EQUAL ? ">" :
                         kind == NodeKind.GREATER_THAN_EQUAL ? "<" :
@@ -1879,7 +1891,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 if (kind == NodeKind.NOT_EQUAL ||
                     kind == NodeKind.LESS_THAN_EQUAL ||
                     kind == NodeKind.GREATER_THAN_EQUAL) {
-                    var call = createCall(left);
+                    let call = createCall(left);
                     call.appendChild(right);
                     node.kind = NodeKind.NOT;
                     node.appendChild(call.withRange(node.range).withInternalRange(node.range));

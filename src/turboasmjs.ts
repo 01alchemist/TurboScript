@@ -15,7 +15,7 @@ const ASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
 let turboJsOptimiztion: uint8 = 0;
 let classMap: Map<string, any> = new Map<string, any>();
 let functionMap: Map<string, any> = new Map<string, any>();
-let signatureMap: Map<string, any> = new Map<string, any>();
+let signatureMap: Map<number, any> = new Map<number, any>();
 let virtualMap: Map<string, any> = new Map<string, any>();
 let currentClass: string;
 let turboTargetPointer: string; //to store temporary pointer for variable access rewrite
@@ -838,6 +838,14 @@ export class TurboASMJsModule {
 
         }
 
+        else if (node.kind == NodeKind.IMPORTS) {
+            let child = node.firstChild;
+            while (child) {
+                assert(child.kind == NodeKind.IMPORT);
+                child = child.nextSibling;
+            }
+        }
+
         else if (node.kind == NodeKind.CLASS) {
 
             currentClass = node.symbol.name;
@@ -1481,6 +1489,14 @@ export class TurboASMJsModule {
             //TODO: write to initial memory
         }
 
+        else if (node.kind == NodeKind.IMPORTS) {
+            let child = node.firstChild;
+            while (child) {
+                assert(child.kind == NodeKind.IMPORT);
+                child = child.nextSibling;
+            }
+        }
+
         else if (node.kind == NodeKind.VARIABLE) {
             let symbol = node.symbol;
 
@@ -1537,6 +1553,10 @@ export class TurboASMJsModule {
             }
         }
 
+        else if (node.kind == NodeKind.CLASS) {
+            //console.log(node.symbol.name);
+        }
+
         else if (node.kind == NodeKind.FUNCTION) {
 
             let returnType = node.functionReturnType();
@@ -1559,6 +1579,8 @@ export class TurboASMJsModule {
             let signatureIndex = this.allocateSignature(argumentTypesFirst, asmWrapType(this.getAsmType(returnType.resolvedType)));
             let body = node.functionBody();
             let symbol = node.symbol;
+
+            // console.log(symbol.name);
 
             // Functions without bodies are imports
             if (body == null) {
@@ -1602,6 +1624,20 @@ export class TurboASMJsModule {
             this.prepareToEmit(child);
             child = child.nextSibling;
         }
+    }
+
+    allocateImport(signatureIndex: int32, mod: string, name: string): AsmImport {
+        let result = new AsmImport();
+        result.signatureIndex = signatureIndex;
+        result.module = mod;
+        result.name = name;
+
+        if (this.firstImport == null) this.firstImport = result;
+        else this.lastImport.next = result;
+        this.lastImport = result;
+
+        this.importCount = this.importCount + 1;
+        return result;
     }
 
     allocateFunction(symbol: Symbol, signatureIndex: int32): AsmFunction {

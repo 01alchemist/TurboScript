@@ -94,6 +94,7 @@ export class Compiler {
         global.scope = scope;
 
         // Hard-coded types
+        context.anyType = scope.defineNativeType(context.log, "any");
         context.errorType = scope.defineNativeType(context.log, "<error>");
         context.nullType = scope.defineNativeType(context.log, "null");
         context.undefinedType = scope.defineNativeType(context.log, "undefined");

@@ -1449,6 +1449,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
         if (token == TokenKind.SHIFT_RIGHT)
             return "'>>'";
         // Keywords
+        if (token == TokenKind.FROM)
+            return "'from'";
         if (token == TokenKind.ALIGNOF)
             return "'alignof'";
         if (token == TokenKind.AS)
@@ -1479,12 +1481,15 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
             return "'false'";
         if (token == TokenKind.FUNCTION)
             return "'function'";
+        if (token == TokenKind.ANYFUNC)
+            return "'anyfunc'";
         if (token == TokenKind.IF)
             return "'if'";
         if (token == TokenKind.IMPLEMENTS)
             return "'implements'";
+        // if (token == TokenKind.IMPORT) return "'import'"; //TODO: Standardize import
         if (token == TokenKind.IMPORT)
-            return "'import'";
+            return "'@import'";
         if (token == TokenKind.INTERFACE)
             return "'interface'";
         if (token == TokenKind.LET)
@@ -1631,6 +1636,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.THIS;
                         else if (text == "true")
                             kind = TokenKind.TRUE;
+                        else if (text == "from")
+                            kind = TokenKind.FROM;
                     }
                     else if (length == 5) {
                         if (text == "break")
@@ -1651,8 +1658,6 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.MODULE;
                         else if (text == "extern")
                             kind = TokenKind.EXTERN;
-                        else if (text == "import")
-                            kind = TokenKind.IMPORT;
                         else if (text == "public")
                             kind = TokenKind.PUBLIC;
                         else if (text == "return")
@@ -1679,6 +1684,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.PRIVATE;
                         else if (text == "@unsafe")
                             kind = TokenKind.UNSAFE_TURBO;
+                        else if (text == "anyfunc")
+                            kind = TokenKind.ANYFUNC;
                     }
                     else {
                         if (text == "continue")
@@ -2071,59 +2078,61 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                 TokenKind[TokenKind["RIGHT_BRACKET"] = 38] = "RIGHT_BRACKET";
                 TokenKind[TokenKind["RIGHT_PARENTHESIS"] = 39] = "RIGHT_PARENTHESIS";
                 TokenKind[TokenKind["SEMICOLON"] = 40] = "SEMICOLON";
-                TokenKind[TokenKind["SHIFT_LEFT"] = 41] = "SHIFT_LEFT";
-                TokenKind[TokenKind["SHIFT_RIGHT"] = 42] = "SHIFT_RIGHT";
+                TokenKind[TokenKind["FROM"] = 41] = "FROM";
+                TokenKind[TokenKind["SHIFT_LEFT"] = 42] = "SHIFT_LEFT";
+                TokenKind[TokenKind["SHIFT_RIGHT"] = 43] = "SHIFT_RIGHT";
                 // Keywords
-                TokenKind[TokenKind["ALIGNOF"] = 43] = "ALIGNOF";
-                TokenKind[TokenKind["AS"] = 44] = "AS";
-                TokenKind[TokenKind["BREAK"] = 45] = "BREAK";
-                TokenKind[TokenKind["MODULE"] = 46] = "MODULE";
-                TokenKind[TokenKind["CLASS"] = 47] = "CLASS";
-                TokenKind[TokenKind["CONST"] = 48] = "CONST";
-                TokenKind[TokenKind["CONTINUE"] = 49] = "CONTINUE";
-                TokenKind[TokenKind["DECLARE"] = 50] = "DECLARE";
-                TokenKind[TokenKind["ELSE"] = 51] = "ELSE";
-                TokenKind[TokenKind["ENUM"] = 52] = "ENUM";
-                TokenKind[TokenKind["EXPORT"] = 53] = "EXPORT";
-                TokenKind[TokenKind["EXTENDS"] = 54] = "EXTENDS";
-                TokenKind[TokenKind["EXTERN"] = 55] = "EXTERN";
-                TokenKind[TokenKind["FALSE"] = 56] = "FALSE";
-                TokenKind[TokenKind["FUNCTION"] = 57] = "FUNCTION";
-                TokenKind[TokenKind["IF"] = 58] = "IF";
-                TokenKind[TokenKind["IMPLEMENTS"] = 59] = "IMPLEMENTS";
-                TokenKind[TokenKind["IMPORT"] = 60] = "IMPORT";
-                TokenKind[TokenKind["INTERFACE"] = 61] = "INTERFACE";
-                TokenKind[TokenKind["LET"] = 62] = "LET";
-                TokenKind[TokenKind["NEW"] = 63] = "NEW";
-                TokenKind[TokenKind["DELETE"] = 64] = "DELETE";
-                TokenKind[TokenKind["NULL"] = 65] = "NULL";
-                TokenKind[TokenKind["UNDEFINED"] = 66] = "UNDEFINED";
-                TokenKind[TokenKind["OPERATOR"] = 67] = "OPERATOR";
-                TokenKind[TokenKind["PRIVATE"] = 68] = "PRIVATE";
-                TokenKind[TokenKind["PROTECTED"] = 69] = "PROTECTED";
-                TokenKind[TokenKind["PUBLIC"] = 70] = "PUBLIC";
-                TokenKind[TokenKind["RETURN"] = 71] = "RETURN";
-                TokenKind[TokenKind["SIZEOF"] = 72] = "SIZEOF";
-                TokenKind[TokenKind["STATIC"] = 73] = "STATIC";
-                TokenKind[TokenKind["THIS"] = 74] = "THIS";
-                TokenKind[TokenKind["TRUE"] = 75] = "TRUE";
-                TokenKind[TokenKind["UNSAFE"] = 76] = "UNSAFE";
-                TokenKind[TokenKind["UNSAFE_TURBO"] = 77] = "UNSAFE_TURBO";
-                TokenKind[TokenKind["START"] = 78] = "START";
-                TokenKind[TokenKind["VIRTUAL"] = 79] = "VIRTUAL";
-                TokenKind[TokenKind["VAR"] = 80] = "VAR";
-                TokenKind[TokenKind["WHILE"] = 81] = "WHILE";
+                TokenKind[TokenKind["ALIGNOF"] = 44] = "ALIGNOF";
+                TokenKind[TokenKind["AS"] = 45] = "AS";
+                TokenKind[TokenKind["BREAK"] = 46] = "BREAK";
+                TokenKind[TokenKind["MODULE"] = 47] = "MODULE";
+                TokenKind[TokenKind["CLASS"] = 48] = "CLASS";
+                TokenKind[TokenKind["CONST"] = 49] = "CONST";
+                TokenKind[TokenKind["CONTINUE"] = 50] = "CONTINUE";
+                TokenKind[TokenKind["DECLARE"] = 51] = "DECLARE";
+                TokenKind[TokenKind["ELSE"] = 52] = "ELSE";
+                TokenKind[TokenKind["ENUM"] = 53] = "ENUM";
+                TokenKind[TokenKind["EXPORT"] = 54] = "EXPORT";
+                TokenKind[TokenKind["EXTENDS"] = 55] = "EXTENDS";
+                TokenKind[TokenKind["EXTERN"] = 56] = "EXTERN";
+                TokenKind[TokenKind["FALSE"] = 57] = "FALSE";
+                TokenKind[TokenKind["FUNCTION"] = 58] = "FUNCTION";
+                TokenKind[TokenKind["ANYFUNC"] = 59] = "ANYFUNC";
+                TokenKind[TokenKind["IF"] = 60] = "IF";
+                TokenKind[TokenKind["IMPLEMENTS"] = 61] = "IMPLEMENTS";
+                TokenKind[TokenKind["IMPORT"] = 62] = "IMPORT";
+                TokenKind[TokenKind["INTERFACE"] = 63] = "INTERFACE";
+                TokenKind[TokenKind["LET"] = 64] = "LET";
+                TokenKind[TokenKind["NEW"] = 65] = "NEW";
+                TokenKind[TokenKind["DELETE"] = 66] = "DELETE";
+                TokenKind[TokenKind["NULL"] = 67] = "NULL";
+                TokenKind[TokenKind["UNDEFINED"] = 68] = "UNDEFINED";
+                TokenKind[TokenKind["OPERATOR"] = 69] = "OPERATOR";
+                TokenKind[TokenKind["PRIVATE"] = 70] = "PRIVATE";
+                TokenKind[TokenKind["PROTECTED"] = 71] = "PROTECTED";
+                TokenKind[TokenKind["PUBLIC"] = 72] = "PUBLIC";
+                TokenKind[TokenKind["RETURN"] = 73] = "RETURN";
+                TokenKind[TokenKind["SIZEOF"] = 74] = "SIZEOF";
+                TokenKind[TokenKind["STATIC"] = 75] = "STATIC";
+                TokenKind[TokenKind["THIS"] = 76] = "THIS";
+                TokenKind[TokenKind["TRUE"] = 77] = "TRUE";
+                TokenKind[TokenKind["UNSAFE"] = 78] = "UNSAFE";
+                TokenKind[TokenKind["UNSAFE_TURBO"] = 79] = "UNSAFE_TURBO";
+                TokenKind[TokenKind["START"] = 80] = "START";
+                TokenKind[TokenKind["VIRTUAL"] = 81] = "VIRTUAL";
+                TokenKind[TokenKind["VAR"] = 82] = "VAR";
+                TokenKind[TokenKind["WHILE"] = 83] = "WHILE";
                 // Preprocessor
-                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 82] = "PREPROCESSOR_DEFINE";
-                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 83] = "PREPROCESSOR_ELIF";
-                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 84] = "PREPROCESSOR_ELSE";
-                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 85] = "PREPROCESSOR_ENDIF";
-                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 86] = "PREPROCESSOR_ERROR";
-                TokenKind[TokenKind["PREPROCESSOR_IF"] = 87] = "PREPROCESSOR_IF";
-                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 88] = "PREPROCESSOR_NEEDED";
-                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 89] = "PREPROCESSOR_NEWLINE";
-                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 90] = "PREPROCESSOR_UNDEF";
-                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 91] = "PREPROCESSOR_WARNING";
+                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 84] = "PREPROCESSOR_DEFINE";
+                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 85] = "PREPROCESSOR_ELIF";
+                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 86] = "PREPROCESSOR_ELSE";
+                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 87] = "PREPROCESSOR_ENDIF";
+                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 88] = "PREPROCESSOR_ERROR";
+                TokenKind[TokenKind["PREPROCESSOR_IF"] = 89] = "PREPROCESSOR_IF";
+                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 90] = "PREPROCESSOR_NEEDED";
+                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 91] = "PREPROCESSOR_NEWLINE";
+                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 92] = "PREPROCESSOR_UNDEF";
+                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 93] = "PREPROCESSOR_WARNING";
             })(TokenKind || (TokenKind = {}));
             exports_3("TokenKind", TokenKind);
             Token = class Token {
@@ -2139,10 +2148,10 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
         return precedence == Precedence.ASSIGN || precedence == Precedence.EXPONENT;
     }
     function parse(firstToken, log) {
-        var context = new ParserContext();
+        let context = new ParserContext();
         context.current = firstToken;
         context.log = log;
-        var file = new node_1.Node();
+        let file = new node_1.Node();
         file.kind = node_1.NodeKind.FILE;
         if (!context.parseStatements(file)) {
             return null;
@@ -2224,8 +2233,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     if (!this.peek(kind)) {
                         if (this.lastError != this.current) {
                             this.lastError = this.current;
-                            var previousLine = this.previous.range.enclosingLine();
-                            var currentLine = this.current.range.enclosingLine();
+                            let previousLine = this.previous.range.enclosingLine();
+                            let currentLine = this.current.range.enclosingLine();
                             // Show missing token errors on the previous line for clarity
                             if (kind != lexer_1.TokenKind.IDENTIFIER && !previousLine.equals(currentLine)) {
                                 this.log.error(previousLine.rangeAtEnd(), stringbuilder_2.StringBuilder_new()
@@ -2249,9 +2258,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                 }
                 parseUnaryPrefix(kind, mode) {
                     assert(node_1.isUnary(kind));
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
-                    var value = this.parseExpression(Precedence.UNARY_PREFIX, mode);
+                    let value = this.parseExpression(Precedence.UNARY_PREFIX, mode);
                     if (value == null) {
                         return null;
                     }
@@ -2261,11 +2270,11 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     if (localPrecedence >= operatorPrecedence) {
                         return left;
                     }
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
                     // Reduce the precedence for right-associative operators
-                    var precedence = isRightAssociative(operatorPrecedence) ? (operatorPrecedence - 1) : operatorPrecedence;
-                    var right = this.parseExpression(precedence, ParseKind.EXPRESSION);
+                    let precedence = isRightAssociative(operatorPrecedence) ? (operatorPrecedence - 1) : operatorPrecedence;
+                    let right = this.parseExpression(precedence, ParseKind.EXPRESSION);
                     if (right == null) {
                         return null;
                     }
@@ -2275,19 +2284,19 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     if (localPrecedence >= Precedence.UNARY_POSTFIX) {
                         return value;
                     }
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
                     return node_1.createUnary(kind, value).withRange(log_2.spanRanges(value.range, token.range)).withInternalRange(token.range);
                 }
                 parseQuotedString(range) {
                     assert(range.end - range.start >= 2);
-                    var text = range.source.contents;
-                    var end = range.start + 1;
-                    var limit = range.end - 1;
-                    var start = end;
-                    var builder = stringbuilder_2.StringBuilder_new();
+                    let text = range.source.contents;
+                    let end = range.start + 1;
+                    let limit = range.end - 1;
+                    let start = end;
+                    let builder = stringbuilder_2.StringBuilder_new();
                     while (end < limit) {
-                        var c = text[end];
+                        let c = text[end];
                         if (c == '\\') {
                             builder.appendSlice(text, start, end);
                             end = end + 1;
@@ -2304,7 +2313,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             else if (c == '"' || c == '\'' || c == '`' || c == '\n' || c == '\\')
                                 start = end;
                             else {
-                                var escape = log_2.createRange(range.source, range.start + end - 1, range.start + end + 1);
+                                let escape = log_2.createRange(range.source, range.start + end - 1, range.start + end + 1);
                                 this.log.error(escape, stringbuilder_2.StringBuilder_new()
                                     .append("Invalid escape code '")
                                     .append(escape.toString())
@@ -2318,7 +2327,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return builder.appendSlice(text, start, end).finish();
                 }
                 parsePrefix(mode) {
-                    var token = this.current;
+                    let token = this.current;
                     if (this.peek(lexer_1.TokenKind.IDENTIFIER)) {
                         this.advance();
                         return node_1.createName(token.range.toString()).withRange(token.range);
@@ -2340,7 +2349,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return node_1.createThis().withRange(token.range);
                         }
                         if (this.peek(lexer_1.TokenKind.CHARACTER)) {
-                            var text = this.parseQuotedString(token.range);
+                            let text = this.parseQuotedString(token.range);
                             if (text == null) {
                                 return null;
                             }
@@ -2352,7 +2361,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return node_1.createInt(text.charCodeAt(0)).withRange(token.range);
                         }
                         if (this.peek(lexer_1.TokenKind.STRING)) {
-                            var text = this.parseQuotedString(token.range);
+                            let text = this.parseQuotedString(token.range);
                             if (text == null) {
                                 return null;
                             }
@@ -2360,7 +2369,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return node_1.createString(text).withRange(token.range);
                         }
                         if (this.peek(lexer_1.TokenKind.INT32)) {
-                            var value = node_1.createInt(0);
+                            let value = node_1.createInt(0);
                             if (!this.parseInt(token.range, value)) {
                                 value = node_1.createParseError();
                             }
@@ -2368,7 +2377,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return value.withRange(token.range);
                         }
                         if (this.peek(lexer_1.TokenKind.FLOAT32)) {
-                            var value = node_1.createFloat(0);
+                            let value = node_1.createFloat(0);
                             if (!this.parseFloat(token.range, value)) {
                                 value = node_1.createParseError();
                             }
@@ -2382,7 +2391,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return node_1.createboolean(false).withRange(token.range);
                         }
                         if (this.eat(lexer_1.TokenKind.NEW)) {
-                            var type = this.parseType();
+                            let type = this.parseType();
                             if (type == null) {
                                 return null;
                             }
@@ -2392,8 +2401,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             if (!this.expect(lexer_1.TokenKind.LEFT_PARENTHESIS)) {
                                 return null;
                             }
-                            var type = this.parseType();
-                            var close = this.current;
+                            let type = this.parseType();
+                            let close = this.current;
                             if (type == null || !this.expect(lexer_1.TokenKind.RIGHT_PARENTHESIS)) {
                                 return null;
                             }
@@ -2403,16 +2412,16 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             if (!this.expect(lexer_1.TokenKind.LEFT_PARENTHESIS)) {
                                 return null;
                             }
-                            var type = this.parseType();
-                            var close = this.current;
+                            let type = this.parseType();
+                            let close = this.current;
                             if (type == null || !this.expect(lexer_1.TokenKind.RIGHT_PARENTHESIS)) {
                                 return null;
                             }
                             return node_1.createSizeOf(type).withRange(log_2.spanRanges(token.range, close.range));
                         }
                         if (this.eat(lexer_1.TokenKind.LEFT_PARENTHESIS)) {
-                            var value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
-                            var close = this.current;
+                            let value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+                            let close = this.current;
                             if (value == null || !this.expect(lexer_1.TokenKind.RIGHT_PARENTHESIS)) {
                                 return null;
                             }
@@ -2438,12 +2447,12 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return null;
                 }
                 parseInfix(precedence, node, mode) {
-                    var token = this.current.range;
+                    let token = this.current.range;
                     // Dot
                     if (this.peek(lexer_1.TokenKind.DOT) && precedence < Precedence.MEMBER) {
                         this.advance();
-                        var name = this.current;
-                        var range = name.range;
+                        let name = this.current;
+                        let range = name.range;
                         // Allow contextual keywords
                         if (lexer_1.isKeyword(name.kind)) {
                             this.advance();
@@ -2503,25 +2512,25 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         // Cast
                         if (this.peek(lexer_1.TokenKind.AS) && precedence < Precedence.UNARY_PREFIX) {
                             this.advance();
-                            var type = this.parseType();
+                            let type = this.parseType();
                             if (type == null) {
                                 return null;
                             }
                             return node_1.createCast(node, type).withRange(log_2.spanRanges(node.range, type.range)).withInternalRange(token);
                         }
                         // Call or index
-                        var isIndex = this.peek(lexer_1.TokenKind.LEFT_BRACKET);
+                        let isIndex = this.peek(lexer_1.TokenKind.LEFT_BRACKET);
                         if ((isIndex || this.peek(lexer_1.TokenKind.LEFT_PARENTHESIS)) && precedence < Precedence.UNARY_POSTFIX) {
                             return this.parseArgumentList(node.range, isIndex ? node_1.createIndex(node) : node_1.createCall(node));
                         }
                         // Hook
                         if (this.peek(lexer_1.TokenKind.QUESTION_MARK) && precedence < Precedence.ASSIGN) {
                             this.advance();
-                            var middle = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+                            let middle = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                             if (middle == null || !this.expect(lexer_1.TokenKind.COLON)) {
                                 return null;
                             }
-                            var right = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+                            let right = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                             if (right == null) {
                                 return null;
                             }
@@ -2531,31 +2540,31 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return node;
                 }
                 parseDelete() {
-                    var token = this.current;
+                    let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.DELETE);
                     this.advance();
-                    var value = null;
+                    let value = null;
                     if (!this.peek(lexer_1.TokenKind.SEMICOLON)) {
                         value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                         if (value == null) {
                             return null;
                         }
                     }
-                    var semicolon = this.current;
+                    let semicolon = this.current;
                     this.expect(lexer_1.TokenKind.SEMICOLON);
                     return node_1.createDelete(value).withRange(log_2.spanRanges(token.range, semicolon.range));
                 }
                 parseArgumentList(start, node) {
-                    var open = this.current.range;
-                    var isIndex = node.kind == node_1.NodeKind.INDEX;
-                    var left = isIndex ? lexer_1.TokenKind.LEFT_BRACKET : lexer_1.TokenKind.LEFT_PARENTHESIS;
-                    var right = isIndex ? lexer_1.TokenKind.RIGHT_BRACKET : lexer_1.TokenKind.RIGHT_PARENTHESIS;
+                    let open = this.current.range;
+                    let isIndex = node.kind == node_1.NodeKind.INDEX;
+                    let left = isIndex ? lexer_1.TokenKind.LEFT_BRACKET : lexer_1.TokenKind.LEFT_PARENTHESIS;
+                    let right = isIndex ? lexer_1.TokenKind.RIGHT_BRACKET : lexer_1.TokenKind.RIGHT_PARENTHESIS;
                     if (!this.expect(left)) {
                         return null;
                     }
                     if (!this.peek(right)) {
                         while (true) {
-                            var value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+                            let value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                             if (value == null) {
                                 return null;
                             }
@@ -2565,7 +2574,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             }
                         }
                     }
-                    var close = this.current.range;
+                    let close = this.current.range;
                     if (!this.expect(right)) {
                         return null;
                     }
@@ -2573,14 +2582,14 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                 }
                 parseExpression(precedence, mode) {
                     // Prefix
-                    var node = this.parsePrefix(mode);
+                    let node = this.parsePrefix(mode);
                     if (node == null) {
                         return null;
                     }
                     assert(node.range != null);
                     // Infix
                     while (true) {
-                        var result = this.parseInfix(precedence, node, mode);
+                        let result = this.parseInfix(precedence, node, mode);
                         if (result == null) {
                             return null;
                         }
@@ -2596,13 +2605,13 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return this.parseExpression(Precedence.UNARY_POSTFIX, ParseKind.TYPE);
                 }
                 parseIf() {
-                    var token = this.current;
+                    let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.IF);
                     this.advance();
                     if (!this.expect(lexer_1.TokenKind.LEFT_PARENTHESIS)) {
                         return null;
                     }
-                    var value;
+                    let value;
                     // Recover from a missing value
                     if (this.peek(lexer_1.TokenKind.RIGHT_PARENTHESIS)) {
                         this.unexpectedToken();
@@ -2615,11 +2624,11 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return null;
                         }
                     }
-                    var trueBranch = this.parseBody();
+                    let trueBranch = this.parseBody();
                     if (trueBranch == null) {
                         return null;
                     }
-                    var falseBranch = null;
+                    let falseBranch = null;
                     if (this.eat(lexer_1.TokenKind.ELSE)) {
                         falseBranch = this.parseBody();
                         if (falseBranch == null) {
@@ -2629,13 +2638,13 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return node_1.createIf(value, trueBranch, falseBranch).withRange(log_2.spanRanges(token.range, (falseBranch != null ? falseBranch : trueBranch).range));
                 }
                 parseWhile() {
-                    var token = this.current;
+                    let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.WHILE);
                     this.advance();
                     if (!this.expect(lexer_1.TokenKind.LEFT_PARENTHESIS)) {
                         return null;
                     }
-                    var value;
+                    let value;
                     // Recover from a missing value
                     if (this.peek(lexer_1.TokenKind.RIGHT_PARENTHESIS)) {
                         this.unexpectedToken();
@@ -2648,74 +2657,74 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return null;
                         }
                     }
-                    var body = this.parseBody();
+                    let body = this.parseBody();
                     if (body == null) {
                         return null;
                     }
                     return node_1.createWhile(value, body).withRange(log_2.spanRanges(token.range, body.range));
                 }
                 parseBody() {
-                    var node = this.parseStatement(StatementMode.NORMAL);
+                    let node = this.parseStatement(StatementMode.NORMAL);
                     if (node == null) {
                         return null;
                     }
                     if (node.kind == node_1.NodeKind.BLOCK) {
                         return node;
                     }
-                    var block = node_1.createBlock();
+                    let block = node_1.createBlock();
                     block.appendChild(node);
                     return block.withRange(node.range);
                 }
                 parseBlock() {
-                    var open = this.current;
+                    let open = this.current;
                     if (!this.expect(lexer_1.TokenKind.LEFT_BRACE)) {
                         return null;
                     }
-                    var block = node_1.createBlock();
+                    let block = node_1.createBlock();
                     if (!this.parseStatements(block)) {
                         return null;
                     }
-                    var close = this.current;
+                    let close = this.current;
                     if (!this.expect(lexer_1.TokenKind.RIGHT_BRACE)) {
                         return null;
                     }
                     return block.withRange(log_2.spanRanges(open.range, close.range));
                 }
                 parseReturn() {
-                    var token = this.current;
+                    let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.RETURN);
                     this.advance();
-                    var value = null;
+                    let value = null;
                     if (!this.peek(lexer_1.TokenKind.SEMICOLON)) {
                         value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                         if (value == null) {
                             return null;
                         }
                     }
-                    var semicolon = this.current;
+                    let semicolon = this.current;
                     this.expect(lexer_1.TokenKind.SEMICOLON);
                     return node_1.createReturn(value).withRange(log_2.spanRanges(token.range, semicolon.range));
                 }
                 parseEmpty() {
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
                     return node_1.createEmpty().withRange(token.range);
                 }
                 parseEnum(firstFlag) {
-                    var token = this.current;
+                    let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.ENUM);
                     this.advance();
-                    var name = this.current;
+                    let name = this.current;
                     if (!this.expect(lexer_1.TokenKind.IDENTIFIER) || !this.expect(lexer_1.TokenKind.LEFT_BRACE)) {
                         return null;
                     }
-                    var text = name.range.toString();
-                    var node = node_1.createEnum(text);
+                    let text = name.range.toString();
+                    let node = node_1.createEnum(text);
                     node.firstFlag = firstFlag;
                     node.flags = node_1.allFlags(firstFlag);
                     while (!this.peek(lexer_1.TokenKind.END_OF_FILE) && !this.peek(lexer_1.TokenKind.RIGHT_BRACE)) {
-                        var member = this.current.range;
-                        var value = null;
+                        let member = this.current.range;
+                        let value = null;
                         if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                             return null;
                         }
@@ -2725,7 +2734,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                                 return null;
                             }
                         }
-                        var variable = node_1.createVariable(member.toString(), node_1.createName(text), value);
+                        let variable = node_1.createVariable(member.toString(), node_1.createName(text), value);
                         node.appendChild(variable.withRange(value != null ? log_2.spanRanges(member, value.range) : member).withInternalRange(member));
                         // Recover from a terminating semicolon
                         if (this.peek(lexer_1.TokenKind.SEMICOLON)) {
@@ -2739,20 +2748,20 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             break;
                         }
                     }
-                    var close = this.current;
+                    let close = this.current;
                     if (!this.expect(lexer_1.TokenKind.RIGHT_BRACE)) {
                         return null;
                     }
                     return node.withRange(log_2.spanRanges(token.range, close.range)).withInternalRange(name.range);
                 }
                 parseParameters() {
-                    var node = node_1.createParameters();
-                    var open = this.current;
-                    var close;
+                    let node = node_1.createParameters();
+                    let open = this.current;
+                    let close;
                     assert(open.kind == lexer_1.TokenKind.LESS_THAN);
                     this.advance();
                     while (true) {
-                        var name = this.current;
+                        let name = this.current;
                         if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                             close = this.current;
                             if (this.eat(lexer_1.TokenKind.GREATER_THAN)) {
@@ -2771,20 +2780,59 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     }
                     return node.withRange(log_2.spanRanges(open.range, close.range));
                 }
+                parseImports() {
+                    let token = this.current;
+                    assert(token.kind == lexer_1.TokenKind.IMPORT);
+                    this.advance();
+                    let node = node_1.createImports();
+                    node.flags = node.flags | node_1.NODE_FLAG_IMPORT;
+                    if (this.peek(lexer_1.TokenKind.MULTIPLY)) {
+                        assert(this.eat(lexer_1.TokenKind.MULTIPLY));
+                        assert(this.eat(lexer_1.TokenKind.AS));
+                        let importName = this.current;
+                        let range = importName.range;
+                        let _import = node_1.createImport(importName.range.toString());
+                        node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+                        this.advance();
+                    }
+                    else {
+                        if (!this.expect(lexer_1.TokenKind.LEFT_BRACE)) {
+                            return null;
+                        }
+                        while (!this.peek(lexer_1.TokenKind.END_OF_FILE) && !this.peek(lexer_1.TokenKind.RIGHT_BRACE)) {
+                            let importName = this.current;
+                            let range = importName.range;
+                            let _import = node_1.createImport(importName.range.toString());
+                            node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+                            if (!this.eat(lexer_1.TokenKind.COMMA)) {
+                                break;
+                            }
+                        }
+                        this.advance();
+                        assert(this.expect(lexer_1.TokenKind.RIGHT_BRACE));
+                    }
+                    let importFrom = this.current;
+                    this.expect(lexer_1.TokenKind.FROM);
+                    node.stringValue = importFrom.range.toString();
+                    this.advance();
+                    let semicolon = this.current;
+                    this.expect(lexer_1.TokenKind.SEMICOLON);
+                    return node.withRange(log_2.spanRanges(token.range, semicolon.range));
+                }
                 parseModule(firstFlag) {
-                    var token = this.current;
+                    let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.MODULE);
                     this.advance();
-                    var name = this.current;
+                    let name = this.current;
                     if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                         return null;
                     }
-                    var node = node_1.createModule(name.range.toString());
+                    let node = node_1.createModule(name.range.toString());
                     node.firstFlag = firstFlag;
                     node.flags = node_1.allFlags(firstFlag);
                     // Type parameters
                     if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
-                        var parameters = this.parseParameters();
+                        let parameters = this.parseParameters();
                         if (parameters == null) {
                             return null;
                         }
@@ -2794,9 +2842,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         return null;
                     }
                     while (!this.peek(lexer_1.TokenKind.END_OF_FILE) && !this.peek(lexer_1.TokenKind.RIGHT_BRACE)) {
-                        var childFlags = this.parseFlags();
-                        var childName = this.current;
-                        var oldKind = childName.kind;
+                        let childFlags = this.parseFlags();
+                        let childName = this.current;
+                        let oldKind = childName.kind;
                         // Support contextual keywords
                         if (lexer_1.isKeyword(childName.kind)) {
                             childName.kind = lexer_1.TokenKind.IDENTIFIER;
@@ -2806,7 +2854,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                             return null;
                         }
-                        var text = childName.range.toString();
+                        let text = childName.range.toString();
                         // Support operator definitions
                         if (text == "operator" && !this.peek(lexer_1.TokenKind.LEFT_PARENTHESIS) && !this.peek(lexer_1.TokenKind.IDENTIFIER)) {
                             childName.kind = lexer_1.TokenKind.OPERATOR;
@@ -2817,8 +2865,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             continue;
                         }
                         else if (this.peek(lexer_1.TokenKind.IDENTIFIER)) {
-                            var isGet = text == "get";
-                            var isSet = text == "set";
+                            let isGet = text == "get";
+                            let isSet = text == "set";
                             // The "get" and "set" flags are contextual
                             if (isGet || isSet) {
                                 childFlags = node_1.appendFlag(childFlags, isGet ? node_1.NODE_FLAG_GET : node_1.NODE_FLAG_SET, childName.range);
@@ -2857,35 +2905,35 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             }
                         }
                     }
-                    var close = this.current;
+                    let close = this.current;
                     if (!this.expect(lexer_1.TokenKind.RIGHT_BRACE)) {
                         return null;
                     }
                     return node.withRange(log_2.spanRanges(token.range, close.range)).withInternalRange(name.range);
                 }
                 parseClass(firstFlag) {
-                    var token = this.current;
+                    let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.CLASS);
                     this.advance();
-                    var name = this.current;
+                    let name = this.current;
                     if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                         return null;
                     }
-                    var node = node_1.createClass(name.range.toString());
+                    let node = node_1.createClass(name.range.toString());
                     node.firstFlag = firstFlag;
                     node.flags = node_1.allFlags(firstFlag);
                     // Type parameters
                     if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
-                        var parameters = this.parseParameters();
+                        let parameters = this.parseParameters();
                         if (parameters == null) {
                             return null;
                         }
                         node.appendChild(parameters);
                     }
                     // "extends" clause
-                    var extendsToken = this.current;
+                    let extendsToken = this.current;
                     if (this.eat(lexer_1.TokenKind.EXTENDS)) {
-                        var type;
+                        let type;
                         // Recover from a missing type
                         if (this.peek(lexer_1.TokenKind.LEFT_BRACE) || this.peek(lexer_1.TokenKind.IMPLEMENTS)) {
                             this.unexpectedToken();
@@ -2900,10 +2948,10 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         node.appendChild(node_1.createExtends(type).withRange(type.range != null ? log_2.spanRanges(extendsToken.range, type.range) : extendsToken.range));
                     }
                     // "implements" clause
-                    var implementsToken = this.current;
+                    let implementsToken = this.current;
                     if (this.eat(lexer_1.TokenKind.IMPLEMENTS)) {
-                        var list = node_1.createImplements();
-                        var type = null;
+                        let list = node_1.createImplements();
+                        let type = null;
                         while (true) {
                             // Recover from a missing type
                             if (this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
@@ -2925,9 +2973,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         return null;
                     }
                     while (!this.peek(lexer_1.TokenKind.END_OF_FILE) && !this.peek(lexer_1.TokenKind.RIGHT_BRACE)) {
-                        var childFlags = this.parseFlags();
-                        var childName = this.current;
-                        var oldKind = childName.kind;
+                        let childFlags = this.parseFlags();
+                        let childName = this.current;
+                        let oldKind = childName.kind;
                         // Support contextual keywords
                         if (lexer_1.isKeyword(childName.kind)) {
                             childName.kind = lexer_1.TokenKind.IDENTIFIER;
@@ -2937,7 +2985,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                             return null;
                         }
-                        var text = childName.range.toString();
+                        let text = childName.range.toString();
                         // Support operator definitions
                         if (text == "operator" && !this.peek(lexer_1.TokenKind.LEFT_PARENTHESIS) && !this.peek(lexer_1.TokenKind.IDENTIFIER)) {
                             childName.kind = lexer_1.TokenKind.OPERATOR;
@@ -2948,8 +2996,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             continue;
                         }
                         else if (this.peek(lexer_1.TokenKind.IDENTIFIER)) {
-                            var isGet = text == "get";
-                            var isSet = text == "set";
+                            let isGet = text == "get";
+                            let isSet = text == "set";
                             // The "get" and "set" flags are contextual
                             if (isGet || isSet) {
                                 childFlags = node_1.appendFlag(childFlags, isGet ? node_1.NODE_FLAG_GET : node_1.NODE_FLAG_SET, childName.range);
@@ -2988,35 +3036,35 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             }
                         }
                     }
-                    var close = this.current;
+                    let close = this.current;
                     if (!this.expect(lexer_1.TokenKind.RIGHT_BRACE)) {
                         return null;
                     }
                     return node.withRange(log_2.spanRanges(token.range, close.range)).withInternalRange(name.range);
                 }
                 parseInterface(firstFlag) {
-                    var token = this.current;
+                    let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.INTERFACE);
                     this.advance();
-                    var name = this.current;
+                    let name = this.current;
                     if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                         return null;
                     }
-                    var node = node_1.createInterface(name.range.toString());
+                    let node = node_1.createInterface(name.range.toString());
                     node.firstFlag = firstFlag;
                     node.flags = node_1.allFlags(firstFlag);
                     // Type parameters
                     if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
-                        var parameters = this.parseParameters();
+                        let parameters = this.parseParameters();
                         if (parameters == null) {
                             return null;
                         }
                         node.appendChild(parameters);
                     }
                     // "extends" clause
-                    var extendsToken = this.current;
+                    let extendsToken = this.current;
                     if (this.eat(lexer_1.TokenKind.EXTENDS)) {
-                        var type;
+                        let type;
                         // Recover from a missing type
                         if (this.peek(lexer_1.TokenKind.LEFT_BRACE) || this.peek(lexer_1.TokenKind.IMPLEMENTS)) {
                             this.unexpectedToken();
@@ -3031,10 +3079,10 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         node.appendChild(node_1.createExtends(type).withRange(type.range != null ? log_2.spanRanges(extendsToken.range, type.range) : extendsToken.range));
                     }
                     // "implements" clause
-                    var implementsToken = this.current;
+                    let implementsToken = this.current;
                     if (this.eat(lexer_1.TokenKind.IMPLEMENTS)) {
-                        var list = node_1.createImplements();
-                        var type = null;
+                        let list = node_1.createImplements();
+                        let type = null;
                         while (true) {
                             // Recover from a missing type
                             if (this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
@@ -3056,9 +3104,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         return null;
                     }
                     while (!this.peek(lexer_1.TokenKind.END_OF_FILE) && !this.peek(lexer_1.TokenKind.RIGHT_BRACE)) {
-                        var childFlags = this.parseFlags();
-                        var childName = this.current;
-                        var oldKind = childName.kind;
+                        let childFlags = this.parseFlags();
+                        let childName = this.current;
+                        let oldKind = childName.kind;
                         // Support contextual keywords
                         if (lexer_1.isKeyword(childName.kind)) {
                             childName.kind = lexer_1.TokenKind.IDENTIFIER;
@@ -3068,7 +3116,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                             return null;
                         }
-                        var text = childName.range.toString();
+                        let text = childName.range.toString();
                         // Support operator definitions
                         if (text == "operator" && !this.peek(lexer_1.TokenKind.LEFT_PARENTHESIS) && !this.peek(lexer_1.TokenKind.IDENTIFIER)) {
                             childName.kind = lexer_1.TokenKind.OPERATOR;
@@ -3079,8 +3127,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             continue;
                         }
                         else if (this.peek(lexer_1.TokenKind.IDENTIFIER)) {
-                            var isGet = text == "get";
-                            var isSet = text == "set";
+                            let isGet = text == "get";
+                            let isSet = text == "set";
                             // The "get" and "set" flags are contextual
                             if (isGet || isSet) {
                                 childFlags = node_1.appendFlag(childFlags, isGet ? node_1.NODE_FLAG_GET : node_1.NODE_FLAG_SET, childName.range);
@@ -3119,20 +3167,20 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             }
                         }
                     }
-                    var close = this.current;
+                    let close = this.current;
                     if (!this.expect(lexer_1.TokenKind.RIGHT_BRACE)) {
                         return null;
                     }
                     return node.withRange(log_2.spanRanges(token.range, close.range)).withInternalRange(name.range);
                 }
                 parseFunction(firstFlag, parent) {
-                    var isOperator = false;
-                    var token = this.current;
-                    var nameRange;
-                    var name;
+                    let isOperator = false;
+                    let token = this.current;
+                    let nameRange;
+                    let name;
                     // Support custom operators
                     if (parent != null && this.eat(lexer_1.TokenKind.OPERATOR)) {
-                        var end = this.current;
+                        let end = this.current;
                         if (this.eat(lexer_1.TokenKind.LEFT_BRACKET)) {
                             if (!this.expect(lexer_1.TokenKind.RIGHT_BRACKET)) {
                                 return null;
@@ -3206,7 +3254,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         }
                         name = nameRange.toString();
                     }
-                    var node = node_1.createFunction(name);
+                    let node = node_1.createFunction(name);
                     node.firstFlag = firstFlag;
                     node.flags = node_1.allFlags(firstFlag);
                     if (isOperator) {
@@ -3214,7 +3262,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     }
                     // Type parameters
                     if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
-                        var parameters = this.parseParameters();
+                        let parameters = this.parseParameters();
                         if (parameters == null) {
                             return null;
                         }
@@ -3263,29 +3311,34 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     if (!this.expect(lexer_1.TokenKind.RIGHT_PARENTHESIS)) {
                         return null;
                     }
-                    var returnType;
-                    if (this.expect(lexer_1.TokenKind.COLON)) {
-                        returnType = this.parseType();
-                        if (returnType == null) {
-                            // Recover from a missing return type
-                            if (this.peek(lexer_1.TokenKind.SEMICOLON) || this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
-                                returnType = node_1.createParseError();
-                            }
-                            else {
-                                return null;
-                            }
-                        }
-                    }
-                    else if (this.peek(lexer_1.TokenKind.SEMICOLON) || this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
-                        returnType = node_1.createParseError();
+                    let returnType;
+                    if (node.isAnyfunc()) {
+                        returnType = node_1.createAny();
                     }
                     else {
-                        return null;
+                        if (this.expect(lexer_1.TokenKind.COLON)) {
+                            returnType = this.parseType();
+                            if (returnType == null) {
+                                // Recover from a missing return type
+                                if (this.peek(lexer_1.TokenKind.SEMICOLON) || this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
+                                    returnType = node_1.createParseError();
+                                }
+                                else {
+                                    return null;
+                                }
+                            }
+                        }
+                        else if (this.peek(lexer_1.TokenKind.SEMICOLON) || this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
+                            returnType = node_1.createParseError();
+                        }
+                        else {
+                            return null;
+                        }
                     }
                     node.appendChild(returnType);
-                    var block = null;
+                    let block = null;
                     // Is this an import?
-                    var semicolon = this.current;
+                    let semicolon = this.current;
                     if (this.eat(lexer_1.TokenKind.SEMICOLON)) {
                         block = node_1.createEmpty().withRange(semicolon.range);
                     }
@@ -3303,27 +3356,27 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return node.withRange(log_2.spanRanges(token.range, block.range)).withInternalRange(nameRange);
                 }
                 parseVariables(firstFlag, parent) {
-                    var token = this.current;
+                    let token = this.current;
                     // Variables inside class declarations don't use "var"
                     if (parent == null) {
                         assert(token.kind == lexer_1.TokenKind.CONST || token.kind == lexer_1.TokenKind.LET || token.kind == lexer_1.TokenKind.VAR);
                         this.advance();
                     }
-                    var node = token.kind == lexer_1.TokenKind.CONST ? node_1.createConstants() : node_1.createVariables();
+                    let node = token.kind == lexer_1.TokenKind.CONST ? node_1.createConstants() : node_1.createVariables();
                     node.firstFlag = firstFlag;
                     while (true) {
-                        var name = this.current;
+                        let name = this.current;
                         if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                             return null;
                         }
-                        var type = null;
+                        let type = null;
                         if (this.eat(lexer_1.TokenKind.COLON)) {
                             type = this.parseType();
                             if (type == null) {
                                 return null;
                             }
                         }
-                        var value = null;
+                        let value = null;
                         if (this.eat(lexer_1.TokenKind.ASSIGN)) {
                             value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                             if (value == null) {
@@ -3333,10 +3386,10 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             if (parent != null) {
                             }
                         }
-                        var range = value != null ? log_2.spanRanges(name.range, value.range) :
+                        let range = value != null ? log_2.spanRanges(name.range, value.range) :
                             type != null ? log_2.spanRanges(name.range, type.range) :
                                 name.range;
-                        var variable = node_1.createVariable(name.range.toString(), type, value);
+                        let variable = node_1.createVariable(name.range.toString(), type, value);
                         variable.firstFlag = firstFlag;
                         variable.flags = node_1.allFlags(firstFlag);
                         (parent != null ? parent : node).appendChild(variable.withRange(range).withInternalRange(name.range));
@@ -3344,24 +3397,24 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             break;
                         }
                     }
-                    var semicolon = this.current;
+                    let semicolon = this.current;
                     this.expect(lexer_1.TokenKind.SEMICOLON);
                     return node.withRange(log_2.spanRanges(token.range, semicolon.range));
                 }
                 parseLoopJump(kind) {
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
                     this.expect(lexer_1.TokenKind.SEMICOLON);
-                    var node = new node_1.Node();
+                    let node = new node_1.Node();
                     node.kind = kind;
                     return node.withRange(token.range);
                 }
                 parseFlags() {
-                    var firstFlag = null;
-                    var lastFlag = null;
+                    let firstFlag = null;
+                    let lastFlag = null;
                     while (true) {
-                        var token = this.current;
-                        var flag;
+                        let token = this.current;
+                        let flag;
                         if (this.eat(lexer_1.TokenKind.DECLARE))
                             flag = node_1.NODE_FLAG_DECLARE;
                         else if (this.eat(lexer_1.TokenKind.EXPORT))
@@ -3376,6 +3429,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             flag = node_1.NODE_FLAG_PUBLIC;
                         else if (this.eat(lexer_1.TokenKind.STATIC))
                             flag = node_1.NODE_FLAG_STATIC;
+                        else if (this.eat(lexer_1.TokenKind.ANYFUNC))
+                            flag = node_1.NODE_FLAG_ANYFUNC;
                         else if (this.eat(lexer_1.TokenKind.UNSAFE))
                             flag = node_1.NODE_FLAG_UNSAFE;
                         else if (this.eat(lexer_1.TokenKind.UNSAFE_TURBO))
@@ -3386,7 +3441,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             flag = node_1.NODE_FLAG_VIRTUAL;
                         else
                             return firstFlag;
-                        var link = new node_1.NodeFlag();
+                        let link = new node_1.NodeFlag();
                         link.flag = flag;
                         link.range = token.range;
                         if (firstFlag == null)
@@ -3397,9 +3452,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     }
                 }
                 parseUnsafe() {
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
-                    var node = this.parseBlock();
+                    let node = this.parseBlock();
                     if (node == null) {
                         return null;
                     }
@@ -3407,9 +3462,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
                 parseUnsafeTurbo() {
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
-                    var node = this.parseBlock();
+                    let node = this.parseBlock();
                     if (node == null) {
                         return null;
                     }
@@ -3417,9 +3472,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
                 parseStart() {
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
-                    var node = this.parseBlock();
+                    let node = this.parseBlock();
                     if (node == null) {
                         return null;
                     }
@@ -3427,9 +3482,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
                 parseVirtual(firstFlag) {
-                    var token = this.current;
+                    let token = this.current;
                     this.advance();
-                    var node = this.parseFunction(firstFlag, null);
+                    let node = this.parseFunction(firstFlag, null);
                     if (node == null) {
                         return null;
                     }
@@ -3437,7 +3492,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
                 parseStatement(mode) {
-                    var firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
+                    let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
+                    if (this.peek(lexer_1.TokenKind.IMPORT) && firstFlag == null)
+                        return this.parseImports();
                     if (this.peek(lexer_1.TokenKind.UNSAFE) && firstFlag == null)
                         return this.parseUnsafe();
                     if (this.peek(lexer_1.TokenKind.UNSAFE_TURBO) && firstFlag == null)
@@ -3480,17 +3537,17 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     if (this.peek(lexer_1.TokenKind.SEMICOLON))
                         return this.parseEmpty();
                     // Parse an expression statement
-                    var value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+                    let value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                     if (value == null) {
                         return null;
                     }
-                    var semicolon = this.current;
+                    let semicolon = this.current;
                     this.expect(lexer_1.TokenKind.SEMICOLON);
                     return node_1.createExpression(value).withRange(log_2.spanRanges(value.range, semicolon.range));
                 }
                 parseStatements(parent) {
                     while (!this.peek(lexer_1.TokenKind.END_OF_FILE) && !this.peek(lexer_1.TokenKind.RIGHT_BRACE)) {
-                        var child = this.parseStatement(parent.kind == node_1.NodeKind.FILE ? StatementMode.FILE : StatementMode.NORMAL);
+                        let child = this.parseStatement(parent.kind == node_1.NodeKind.FILE ? StatementMode.FILE : StatementMode.NORMAL);
                         if (child == null) {
                             return false;
                         }
@@ -3499,15 +3556,15 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     return true;
                 }
                 parseInt(range, node) {
-                    var source = range.source;
-                    var contents = source.contents;
-                    var i = range.start;
-                    var limit = range.end;
-                    var value = 0;
-                    var base = 10;
+                    let source = range.source;
+                    let contents = source.contents;
+                    let i = range.start;
+                    let limit = range.end;
+                    let value = 0;
+                    let base = 10;
                     // Handle binary, octal, and hexadecimal prefixes
                     if (contents[i] == '0' && i + 1 < limit) {
-                        var c = contents[i + 1];
+                        let c = contents[i + 1];
                         if (c == 'b' || c == 'B')
                             base = 2;
                         else if (c == 'o' || c == 'O')
@@ -3523,10 +3580,10 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     }
                     while (i < limit) {
                         let c = contents[i];
-                        var digit = (c >= 'A' && c <= 'F' ? c.charCodeAt(0) + (10 - 'A'.charCodeAt(0)) :
+                        let digit = (c >= 'A' && c <= 'F' ? c.charCodeAt(0) + (10 - 'A'.charCodeAt(0)) :
                             c >= 'a' && c <= 'f' ? c.charCodeAt(0) + (10 - 'a'.charCodeAt(0)) :
                                 c.charCodeAt(0) - '0'.charCodeAt(0));
-                        var baseValue = Math.imul(value, base) >>> 0;
+                        let baseValue = Math.imul(value, base) >>> 0;
                         // Check for overflow (unsigned integer overflow supposedly doesn't result in undefined behavior)
                         // if (baseValue / base >>> 0 !== value || baseValue > 4294967295 - digit >>> 0) {
                         //     this.log.error(range, "Integer literal is too big to fit in 32 bits");
@@ -9223,6 +9280,7 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
                             return lib;
                         case compiler_2.CompileTarget.TURBO_ASMJS:
                             lib = stdlib.IO_readTextFile("../src/library/asmjs/types.tbs") + "\n";
+                            // lib = stdlib.IO_readTextFile("../src/library/asmjs/math.tbs") + "\n";
                             lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.ASMJS:
@@ -10162,6 +10220,13 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                     }
                     else if (node.kind == node_7.NodeKind.MODULE) {
                     }
+                    else if (node.kind == node_7.NodeKind.IMPORTS) {
+                        let child = node.firstChild;
+                        while (child) {
+                            assert(child.kind == node_7.NodeKind.IMPORT);
+                            child = child.nextSibling;
+                        }
+                    }
                     else if (node.kind == node_7.NodeKind.CLASS) {
                         currentClass = node.symbol.name;
                         let classDef = this.getClassDef(node);
@@ -10716,6 +10781,13 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         let length = text.length;
                         let offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
                     }
+                    else if (node.kind == node_7.NodeKind.IMPORTS) {
+                        let child = node.firstChild;
+                        while (child) {
+                            assert(child.kind == node_7.NodeKind.IMPORT);
+                            child = child.nextSibling;
+                        }
+                    }
                     else if (node.kind == node_7.NodeKind.VARIABLE) {
                         let symbol = node.symbol;
                         if (symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
@@ -10771,6 +10843,8 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                             }
                         }
                     }
+                    else if (node.kind == node_7.NodeKind.CLASS) {
+                    }
                     else if (node.kind == node_7.NodeKind.FUNCTION) {
                         let returnType = node.functionReturnType();
                         let shared = new AsmSharedOffset();
@@ -10791,6 +10865,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         let signatureIndex = this.allocateSignature(argumentTypesFirst, asmWrapType(this.getAsmType(returnType.resolvedType)));
                         let body = node.functionBody();
                         let symbol = node.symbol;
+                        // console.log(symbol.name);
                         // Functions without bodies are imports
                         if (body == null) {
                             // let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
@@ -10827,6 +10902,19 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         this.prepareToEmit(child);
                         child = child.nextSibling;
                     }
+                }
+                allocateImport(signatureIndex, mod, name) {
+                    let result = new AsmImport();
+                    result.signatureIndex = signatureIndex;
+                    result.module = mod;
+                    result.name = name;
+                    if (this.firstImport == null)
+                        this.firstImport = result;
+                    else
+                        this.lastImport.next = result;
+                    this.lastImport = result;
+                    this.importCount = this.importCount + 1;
+                    return result;
                 }
                 allocateFunction(symbol, signatureIndex) {
                     let fn = new AsmFunction();
@@ -11016,6 +11104,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     var scope = new scope_1.Scope();
                     global.scope = scope;
                     // Hard-coded types
+                    context.anyType = scope.defineNativeType(context.log, "any");
                     context.errorType = scope.defineNativeType(context.log, "<error>");
                     context.nullType = scope.defineNativeType(context.log, "null");
                     context.undefinedType = scope.defineNativeType(context.log, "undefined");
@@ -11148,7 +11237,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     "use strict";
     var __moduleName = context_22 && context_22.id;
     function addScopeToSymbol(symbol, parentScope) {
-        var scope = new scope_2.Scope();
+        let scope = new scope_2.Scope();
         scope.parent = parentScope;
         scope.symbol = symbol;
         symbol.scope = scope;
@@ -11162,11 +11251,11 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     exports_22("linkSymbolToNode", linkSymbolToNode);
     function initialize(context, node, parentScope, mode) {
-        var kind = node.kind;
+        let kind = node.kind;
         if (node.parent != null) {
-            var parentKind = node.parent.kind;
+            let parentKind = node.parent.kind;
             // Validate node placement
-            if (kind != node_9.NodeKind.VARIABLE && kind != node_9.NodeKind.VARIABLES &&
+            if (kind != node_9.NodeKind.IMPORTS && kind != node_9.NodeKind.VARIABLE && kind != node_9.NodeKind.VARIABLES &&
                 (kind != node_9.NodeKind.FUNCTION || parentKind != node_9.NodeKind.CLASS) &&
                 (parentKind == node_9.NodeKind.FILE) != (parentKind == node_9.NodeKind.MODULE || kind == node_9.NodeKind.MODULE || kind == node_9.NodeKind.CLASS || kind == node_9.NodeKind.ENUM || kind == node_9.NodeKind.FUNCTION || kind == node_9.NodeKind.CONSTANTS)) {
                 context.log.error(node.range, "This statement is not allowed here");
@@ -11175,7 +11264,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         // Module
         if (kind == node_9.NodeKind.MODULE) {
             assert(node.symbol == null);
-            var symbol = new symbol_8.Symbol();
+            let symbol = new symbol_8.Symbol();
             symbol.kind = symbol_8.SymbolKind.TYPE_MODULE;
             symbol.name = node.stringValue;
             symbol.resolvedType = new type_2.Type();
@@ -11189,7 +11278,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         // Class
         if (kind == node_9.NodeKind.CLASS || kind == node_9.NodeKind.ENUM) {
             assert(node.symbol == null);
-            var symbol = new symbol_8.Symbol();
+            let symbol = new symbol_8.Symbol();
             symbol.kind = kind == node_9.NodeKind.CLASS ? symbol_8.SymbolKind.TYPE_CLASS : symbol_8.SymbolKind.TYPE_ENUM;
             symbol.name = node.stringValue;
             symbol.resolvedType = new type_2.Type();
@@ -11202,7 +11291,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         else if (kind == node_9.NodeKind.FUNCTION) {
             assert(node.symbol == null);
-            var symbol = new symbol_8.Symbol();
+            let symbol = new symbol_8.Symbol();
             symbol.kind =
                 node.parent.kind == node_9.NodeKind.CLASS ? symbol_8.SymbolKind.FUNCTION_INSTANCE :
                     symbol_8.SymbolKind.FUNCTION_GLOBAL;
@@ -11252,14 +11341,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             if (symbol.kind != symbol_8.SymbolKind.FUNCTION_INSTANCE) {
             }
             else {
-                var parent = symbol.parent();
+                let parent = symbol.parent();
                 initializeSymbol(context, parent);
                 node.insertChildBefore(node.functionFirstArgument(), node_9.createVariable("this", node_9.createType(parent.resolvedType), null));
             }
         }
         else if (kind == node_9.NodeKind.VARIABLE) {
             assert(node.symbol == null);
-            var symbol = new symbol_8.Symbol();
+            let symbol = new symbol_8.Symbol();
             symbol.kind =
                 node.parent.kind == node_9.NodeKind.CLASS ? symbol_8.SymbolKind.VARIABLE_INSTANCE :
                     node.parent.kind == node_9.NodeKind.FUNCTION ? symbol_8.SymbolKind.VARIABLE_ARGUMENT :
@@ -11273,14 +11362,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         else if (kind == node_9.NodeKind.BLOCK) {
             if (node.parent.kind != node_9.NodeKind.FUNCTION) {
-                var scope = new scope_2.Scope();
+                let scope = new scope_2.Scope();
                 scope.parent = parentScope;
                 parentScope = scope;
             }
             node.scope = parentScope;
         }
         // Children
-        var child = node.firstChild;
+        let child = node.firstChild;
         while (child != null) {
             initialize(context, child, parentScope, mode);
             child = child.nextSibling;
@@ -11314,7 +11403,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     exports_22("initialize", initialize);
     function prepareNativeType(type, byteSizeAndMaxAlignment, flags) {
-        var symbol = type.symbol;
+        let symbol = type.symbol;
         symbol.kind = symbol_8.SymbolKind.TYPE_NATIVE;
         symbol.byteSize = byteSizeAndMaxAlignment;
         symbol.maxAlignment = byteSizeAndMaxAlignment;
@@ -11322,7 +11411,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     function forbidFlag(context, node, flag, text) {
         if ((node.flags & flag) != 0) {
-            var range = node_9.rangeForFlag(node.firstFlag, flag);
+            let range = node_9.rangeForFlag(node.firstFlag, flag);
             if (range != null) {
                 node.flags = node.flags & ~flag;
                 context.log.error(range, text);
@@ -11345,7 +11434,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         assert(symbol.state == symbol_8.SymbolState.UNINITIALIZED);
         symbol.state = symbol_8.SymbolState.INITIALIZING;
         // Most flags aren't supported yet
-        var node = symbol.node;
+        let node = symbol.node;
         // forbidFlag(context, node, NODE_FLAG_EXPORT, "Unsupported flag 'export'");
         forbidFlag(context, node, node_9.NODE_FLAG_PROTECTED, "Unsupported flag 'protected'");
         //forbidFlag(context, node, NODE_FLAG_STATIC, "Unsupported flag 'static'");
@@ -11375,7 +11464,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             forbidFlag(context, node, node_9.NODE_FLAG_PRIVATE, "Cannot use 'private' on an enum");
             symbol.resolvedType = new type_2.Type();
             symbol.resolvedType.symbol = symbol;
-            var underlyingSymbol = symbol.resolvedType.underlyingType(context).symbol;
+            let underlyingSymbol = symbol.resolvedType.underlyingType(context).symbol;
             symbol.byteSize = underlyingSymbol.byteSize;
             symbol.maxAlignment = underlyingSymbol.maxAlignment;
         }
@@ -11383,13 +11472,13 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             if (node.firstChild.kind == node_9.NodeKind.PARAMETERS) {
                 resolve(context, node.firstChild, symbol.scope);
             }
-            var body = node.functionBody();
-            var returnType = node.functionReturnType();
-            var oldUnsafeAllowed = context.isUnsafeAllowed;
+            let body = node.functionBody();
+            let returnType = node.functionReturnType();
+            let oldUnsafeAllowed = context.isUnsafeAllowed;
             context.isUnsafeAllowed = node.isUnsafe();
             resolveAsType(context, returnType, symbol.scope.parent);
-            var argumentCount = 0;
-            var child = node.functionFirstArgument();
+            let argumentCount = 0;
+            let child = node.functionFirstArgument();
             while (child != returnType) {
                 assert(child.kind == node_9.NodeKind.VARIABLE);
                 assert(child.symbol.kind == symbol_8.SymbolKind.VARIABLE_ARGUMENT);
@@ -11456,8 +11545,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             symbol.resolvedType = new type_2.Type();
             symbol.resolvedType.symbol = symbol;
             if (symbol.kind == symbol_8.SymbolKind.FUNCTION_INSTANCE) {
-                var parent = symbol.parent();
-                var shouldConvertInstanceToGlobal = false;
+                let parent = symbol.parent();
+                let shouldConvertInstanceToGlobal = false;
                 forbidFlag(context, node, node_9.NODE_FLAG_EXTERN, "Cannot use 'extern' on an instance function");
                 forbidFlag(context, node, node_9.NODE_FLAG_DECLARE, "Cannot use 'declare' on an instance function");
                 // Functions inside declared classes are automatically declared
@@ -11487,7 +11576,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                         .appendChar('_')
                         .append(symbol.rename != null ? symbol.rename : symbol.name)
                         .finish();
-                    var argument = node.functionFirstArgument();
+                    let argument = node.functionFirstArgument();
                     assert(argument.symbol.name == "this");
                     argument.symbol.rename = "__this";
                 }
@@ -11506,9 +11595,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         else if (symbol_8.isVariable(symbol.kind)) {
             forbidFlag(context, node, node_9.NODE_FLAG_GET, "Cannot use 'get' on a variable");
             forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use 'set' on a variable");
-            var type = node.variableType();
-            var value = node.variableValue();
-            var oldUnsafeAllowed = context.isUnsafeAllowed;
+            let type = node.variableType();
+            let value = node.variableValue();
+            let oldUnsafeAllowed = context.isUnsafeAllowed;
             context.isUnsafeAllowed = context.isUnsafeAllowed || node.isUnsafe();
             if (symbol.kind != symbol_8.SymbolKind.VARIABLE_INSTANCE) {
                 forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' here");
@@ -11553,7 +11642,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
                 else if (symbol.isEnumValue()) {
                     if (node.previousSibling != null) {
-                        var previousSymbol = node.previousSibling.symbol;
+                        let previousSymbol = node.previousSibling.symbol;
                         initializeSymbol(context, previousSymbol);
                         symbol.offset = previousSymbol.offset + 1;
                     }
@@ -11567,9 +11656,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             // Disallow shadowing at function scope
             if (symbol.scope.symbol == null) {
-                var scope = symbol.scope.parent;
+                let scope = symbol.scope.parent;
                 while (scope != null) {
-                    var shadowed = scope.findLocal(symbol.name, scope_2.ScopeHint.NORMAL);
+                    let shadowed = scope.findLocal(symbol.name, scope_2.ScopeHint.NORMAL);
                     if (shadowed != null) {
                         context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("The symbol '")
@@ -11595,7 +11684,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     exports_22("initializeSymbol", initializeSymbol);
     function resolveChildren(context, node, parentScope) {
-        var child = node.firstChild;
+        let child = node.firstChild;
         while (child != null) {
             resolve(context, child, parentScope);
             assert(child.resolvedType != null);
@@ -11604,7 +11693,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     exports_22("resolveChildren", resolveChildren);
     function resolveChildrenAsExpressions(context, node, parentScope) {
-        var child = node.firstChild;
+        let child = node.firstChild;
         while (child != null) {
             resolveAsExpression(context, child, parentScope);
             child = child.nextSibling;
@@ -11638,7 +11727,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     exports_22("resolveAsType", resolveAsType);
     function canConvert(context, node, to, kind) {
-        var from = node.resolvedType;
+        let from = node.resolvedType;
         assert(node_9.isExpression(node));
         assert(from != null);
         assert(to != null);
@@ -11757,8 +11846,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     exports_22("createDefaultValueForType", createDefaultValueForType);
     function simplifyBinary(node) {
-        var left = node.binaryLeft();
-        var right = node.binaryRight();
+        let left = node.binaryLeft();
+        let right = node.binaryRight();
         // Canonicalize commutative operators
         if ((node.kind == node_9.NodeKind.ADD || node.kind == node_9.NodeKind.MULTIPLY ||
             node.kind == node_9.NodeKind.BITWISE_AND || node.kind == node_9.NodeKind.BITWISE_OR || node.kind == node_9.NodeKind.BITWISE_XOR) &&
@@ -11771,8 +11860,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         if ((node.kind == node_9.NodeKind.MULTIPLY || (node.kind == node_9.NodeKind.DIVIDE || node.kind == node_9.NodeKind.REMAINDER) && node.resolvedType.isUnsigned()) &&
             right.kind == node_9.NodeKind.INT32 && imports_2.isPositivePowerOf2(right.intValue)) {
             // Extract the shift from the value
-            var shift = -1;
-            var value = right.intValue;
+            let shift = -1;
+            let value = right.intValue;
             while (value != 0) {
                 value = value >> 1;
                 shift = shift + 1;
@@ -11805,27 +11894,27 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     exports_22("simplifyBinary", simplifyBinary);
     function binaryHasUnsignedArguments(node) {
-        var left = node.binaryLeft();
-        var right = node.binaryRight();
-        var leftType = left.resolvedType;
-        var rightType = right.resolvedType;
+        let left = node.binaryLeft();
+        let right = node.binaryRight();
+        let leftType = left.resolvedType;
+        let rightType = right.resolvedType;
         return leftType.isUnsigned() && rightType.isUnsigned() || leftType.isUnsigned() && right.isNonNegativeInteger() ||
             left.isNonNegativeInteger() && rightType.isUnsigned();
     }
     exports_22("binaryHasUnsignedArguments", binaryHasUnsignedArguments);
     function isBinaryLong(node) {
-        var left = node.binaryLeft();
-        var right = node.binaryRight();
-        var leftType = left.resolvedType;
-        var rightType = right.resolvedType;
+        let left = node.binaryLeft();
+        let right = node.binaryRight();
+        let leftType = left.resolvedType;
+        let rightType = right.resolvedType;
         return leftType.isLong() || rightType.isLong();
     }
     exports_22("isBinaryLong", isBinaryLong);
     function isBinaryDouble(node) {
-        var left = node.binaryLeft();
-        var right = node.binaryRight();
-        var leftType = left.resolvedType;
-        var rightType = right.resolvedType;
+        let left = node.binaryLeft();
+        let right = node.binaryRight();
+        let leftType = left.resolvedType;
+        let rightType = right.resolvedType;
         return leftType.isDouble() || rightType.isDouble();
     }
     exports_22("isBinaryDouble", isBinaryDouble);
@@ -11839,7 +11928,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             return false;
         }
         if (symbol.node != null && symbol.node.isPrivate()) {
-            var parent = symbol.parent();
+            let parent = symbol.parent();
             if (parent != null && context.enclosingClass != parent) {
                 context.log.error(range, stringbuilder_11.StringBuilder_new()
                     .append("Cannot access private symbol '")
@@ -11870,7 +11959,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     }
     exports_22("isSymbolAccessAllowed", isSymbolAccessAllowed);
     function resolve(context, node, parentScope) {
-        var kind = node.kind;
+        let kind = node.kind;
         assert(kind == node_9.NodeKind.FILE || parentScope != null);
         if (node.resolvedType != null) {
             return;
@@ -11880,7 +11969,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             resolveChildren(context, node, parentScope);
         }
         else if (kind == node_9.NodeKind.MODULE) {
-            var oldEnclosingModule = context.enclosingModule;
+            let oldEnclosingModule = context.enclosingModule;
             initializeSymbol(context, node.symbol);
             context.enclosingModule = node.symbol;
             resolveChildren(context, node, node.scope);
@@ -11889,8 +11978,11 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             // }
             context.enclosingModule = oldEnclosingModule;
         }
+        else if (kind == node_9.NodeKind.IMPORT) {
+            let symbol = node.symbol;
+        }
         else if (kind == node_9.NodeKind.CLASS) {
-            var oldEnclosingClass = context.enclosingClass;
+            let oldEnclosingClass = context.enclosingClass;
             initializeSymbol(context, node.symbol);
             context.enclosingClass = node.symbol;
             resolveChildren(context, node, node.scope);
@@ -11900,7 +11992,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             context.enclosingClass = oldEnclosingClass;
         }
         else if (kind == node_9.NodeKind.INTERFACE) {
-            var oldEnclosingClass = context.enclosingClass;
+            let oldEnclosingClass = context.enclosingClass;
             initializeSymbol(context, node.symbol);
             context.enclosingClass = node.symbol;
             resolveChildren(context, node, node.scope);
@@ -11914,14 +12006,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             resolveChildren(context, node, node.scope);
         }
         else if (kind == node_9.NodeKind.FUNCTION) {
-            var body = node.functionBody();
+            let body = node.functionBody();
             initializeSymbol(context, node.symbol);
             if (node.stringValue == "constructor" && node.parent.kind == node_9.NodeKind.CLASS) {
                 node.parent.constructorFunctionNode = node;
             }
             if (body != null) {
-                var oldReturnType = context.currentReturnType;
-                var oldUnsafeAllowed = context.isUnsafeAllowed;
+                let oldReturnType = context.currentReturnType;
+                let oldUnsafeAllowed = context.isUnsafeAllowed;
                 context.currentReturnType = node.functionReturnType().resolvedType;
                 context.isUnsafeAllowed = node.isUnsafe();
                 resolveChildren(context, body, node.scope);
@@ -11930,11 +12022,11 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
         else if (kind == node_9.NodeKind.VARIABLE) {
-            var symbol = node.symbol;
+            let symbol = node.symbol;
             initializeSymbol(context, symbol);
-            var oldUnsafeAllowed = context.isUnsafeAllowed;
+            let oldUnsafeAllowed = context.isUnsafeAllowed;
             context.isUnsafeAllowed = context.isUnsafeAllowed || node.isUnsafe();
-            var value = node.variableValue();
+            let value = node.variableValue();
             if (value != null) {
                 resolveAsExpression(context, value, parentScope);
                 checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), type_2.ConversionKind.IMPLICIT);
@@ -11957,8 +12049,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             context.isUnsafeAllowed = oldUnsafeAllowed;
         }
         else if (kind == node_9.NodeKind.BREAK || kind == node_9.NodeKind.CONTINUE) {
-            var found = false;
-            var n = node;
+            let found = false;
+            let n = node;
             while (n != null) {
                 if (n.kind == node_9.NodeKind.WHILE) {
                     found = true;
@@ -11971,14 +12063,18 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
         else if (kind == node_9.NodeKind.BLOCK) {
-            var oldUnsafeAllowed = context.isUnsafeAllowed;
+            let oldUnsafeAllowed = context.isUnsafeAllowed;
             if (node.isUnsafe())
                 context.isUnsafeAllowed = true;
             resolveChildren(context, node, node.scope);
             context.isUnsafeAllowed = oldUnsafeAllowed;
         }
-        else if (kind == node_9.NodeKind.CONSTANTS || kind == node_9.NodeKind.VARIABLES) {
+        else if (kind == node_9.NodeKind.IMPORTS || kind == node_9.NodeKind.CONSTANTS || kind == node_9.NodeKind.VARIABLES) {
             resolveChildren(context, node, parentScope);
+        }
+        else if (kind == node_9.NodeKind.ANY) {
+            //imported functions have anyType
+            node.resolvedType = context.anyType;
         }
         else if (kind == node_9.NodeKind.INT32) {
             // Use the positive flag to differentiate between -2147483648 and 2147483648
@@ -12004,10 +12100,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         else if (kind == node_9.NodeKind.INDEX) {
             resolveChildrenAsExpressions(context, node, parentScope);
-            var target = node.indexTarget();
+            let target = node.indexTarget();
             let type = target.resolvedType;
             if (type != context.errorType) {
-                var symbol = type.hasInstanceMembers() ? type.findMember("[]", scope_2.ScopeHint.NORMAL) : null;
+                let symbol = type.hasInstanceMembers() ? type.findMember("[]", scope_2.ScopeHint.NORMAL) : null;
                 if (symbol == null) {
                     context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot index into type '")
@@ -12058,7 +12154,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let name = node.stringValue;
             let symbol = parentScope.findNested(name, scope_2.ScopeHint.NORMAL, scope_2.FindNested.NORMAL);
             if (symbol == null) {
-                var builder = stringbuilder_11.StringBuilder_new()
+                let builder = stringbuilder_11.StringBuilder_new()
                     .append("No symbol named '")
                     .append(name)
                     .append("' here");
@@ -12130,10 +12226,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             if (target.resolvedType != context.errorType) {
                 if (target.isType() && (target.resolvedType.isEnum() || target.resolvedType.hasInstanceMembers()) ||
                     !target.isType() && target.resolvedType.hasInstanceMembers()) {
-                    var name = node.stringValue;
+                    let name = node.stringValue;
                     // Empty names are left over from parse errors that have already been reported
                     if (name.length > 0) {
-                        var symbol = target.resolvedType.findMember(name, node.isAssignTarget() ? scope_2.ScopeHint.PREFER_SETTER : scope_2.ScopeHint.PREFER_GETTER);
+                        let symbol = target.resolvedType.findMember(name, node.isAssignTarget() ? scope_2.ScopeHint.PREFER_SETTER : scope_2.ScopeHint.PREFER_GETTER);
                         if (symbol == null) {
                             context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                                 .append("No member named '")
@@ -12192,9 +12288,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                         value.remove();
                         value = name;
                     }
-                    var returnType = symbol.node.functionReturnType();
-                    var argumentVariable = symbol.node.functionFirstArgumentIgnoringThis();
-                    var argumentValue = value.nextSibling;
+                    let returnType = symbol.node.functionReturnType();
+                    let argumentVariable = symbol.node.functionFirstArgumentIgnoringThis();
+                    let argumentValue = value.nextSibling;
                     // Match argument values with variables
                     while (argumentVariable != returnType && argumentValue != null) {
                         resolveAsExpression(context, argumentValue, parentScope);
@@ -12327,10 +12423,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let right = node.binaryRight();
             if (left.kind == node_9.NodeKind.INDEX) {
                 resolveChildrenAsExpressions(context, left, parentScope);
-                var target = left.indexTarget();
-                var type = target.resolvedType;
+                let target = left.indexTarget();
+                let type = target.resolvedType;
                 if (type != context.errorType) {
-                    var symbol = type.hasInstanceMembers() ? type.findMember("[]=", scope_2.ScopeHint.NORMAL) : null;
+                    let symbol = type.hasInstanceMembers() ? type.findMember("[]=", scope_2.ScopeHint.NORMAL) : null;
                     if (symbol == null) {
                         context.log.error(left.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("Cannot index into type '")
@@ -12396,13 +12492,13 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
         else if (kind == node_9.NodeKind.POINTER_TYPE) {
-            var value = node.unaryValue();
+            let value = node.unaryValue();
             resolveAsType(context, value, parentScope);
             if (context.target == compiler_3.CompileTarget.JAVASCRIPT) {
                 context.log.error(node.internalRange, "Cannot use pointers when compiling to JavaScript");
             }
             else {
-                var type = value.resolvedType;
+                let type = value.resolvedType;
                 if (type != context.errorType) {
                     // if ((!type.isInteger() && !type.symbol.node.isTurbo()) && type.pointerTo == null) {
                     //     context.log.error(node.internalRange, StringBuilder_new()
@@ -12418,9 +12514,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
         else if (kind == node_9.NodeKind.DEREFERENCE) {
-            var value = node.unaryValue();
+            let value = node.unaryValue();
             resolveAsExpression(context, value, parentScope);
-            var type = value.resolvedType;
+            let type = value.resolvedType;
             if (type != context.errorType) {
                 if (type.pointerTo == null) {
                     context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
@@ -12435,12 +12531,12 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
         else if (kind == node_9.NodeKind.ADDRESS_OF) {
-            var value = node.unaryValue();
+            let value = node.unaryValue();
             resolveAsExpression(context, value, parentScope);
             context.log.error(node.internalRange, "The address-of operator is not supported");
         }
         else if (node_9.isUnary(kind)) {
-            var value = node.unaryValue();
+            let value = node.unaryValue();
             resolveAsExpression(context, value, parentScope);
             // Operator "!" is hard-coded
             if (kind == node_9.NodeKind.NOT) {
@@ -12457,8 +12553,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
                 // Automatically fold constants
                 if (value.kind == node_9.NodeKind.INT32) {
-                    var input = value.intValue;
-                    var output = input;
+                    let input = value.intValue;
+                    let output = input;
                     if (kind == node_9.NodeKind.COMPLEMENT)
                         output = ~input;
                     else if (kind == node_9.NodeKind.NEGATIVE)
@@ -12470,8 +12566,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.resolvedType = context.float64Type;
                 // Automatically fold constants
                 if (value.kind == node_9.NodeKind.FLOAT64) {
-                    var input = value.doubleValue;
-                    var output = input;
+                    let input = value.doubleValue;
+                    let output = input;
                     if (kind == node_9.NodeKind.COMPLEMENT)
                         output = ~input;
                     else if (kind == node_9.NodeKind.NEGATIVE)
@@ -12483,8 +12579,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.resolvedType = context.float32Type;
                 // Automatically fold constants
                 if (value.kind == node_9.NodeKind.FLOAT32) {
-                    var input = value.floatValue;
-                    var output = input;
+                    let input = value.floatValue;
+                    let output = input;
                     if (kind == node_9.NodeKind.COMPLEMENT)
                         output = ~input;
                     else if (kind == node_9.NodeKind.NEGATIVE)
@@ -12493,8 +12589,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else if (value.resolvedType != context.errorType) {
-                var name = node.internalRange.toString();
-                var symbol = value.resolvedType.findMember(name, scope_2.ScopeHint.NOT_BINARY);
+                let name = node.internalRange.toString();
+                let symbol = value.resolvedType.findMember(name, scope_2.ScopeHint.NOT_BINARY);
                 // Automatically call the function
                 if (symbol != null) {
                     node.appendChild(node_9.createMemberReference(value.remove(), symbol).withRange(node.range).withInternalRange(node.internalRange));
@@ -12570,9 +12666,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     node.resolvedType = commonType;
                     // Automatically fold constants
                     if (left.kind == node_9.NodeKind.INT32 && right.kind == node_9.NodeKind.INT32) {
-                        var inputLeft = left.intValue;
-                        var inputRight = right.intValue;
-                        var output = 0;
+                        let inputLeft = left.intValue;
+                        let inputRight = right.intValue;
+                        let output = 0;
                         if (kind == node_9.NodeKind.ADD)
                             output = inputLeft + inputRight;
                         else if (kind == node_9.NodeKind.BITWISE_AND)
@@ -12605,7 +12701,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     kind == node_9.NodeKind.LESS_THAN_EQUAL ||
                     kind == node_9.NodeKind.GREATER_THAN ||
                     kind == node_9.NodeKind.GREATER_THAN_EQUAL) {
-                    var expectedType = binaryHasUnsignedArguments(node) ? context.uint32Type :
+                    let expectedType = binaryHasUnsignedArguments(node) ? context.uint32Type :
                         context.int32Type;
                     if (expectedType == context.uint32Type) {
                         node.flags = node.flags | node_9.NODE_FLAG_UNSIGNED_OPERATOR;
@@ -12679,7 +12775,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     kind == node_9.NodeKind.LESS_THAN_EQUAL ||
                     kind == node_9.NodeKind.GREATER_THAN ||
                     kind == node_9.NodeKind.GREATER_THAN_EQUAL) {
-                    var expectedType = context.float32Type;
+                    let expectedType = context.float32Type;
                     if (leftType != rightType) {
                         checkConversion(context, left, expectedType, type_2.ConversionKind.IMPLICIT);
                         checkConversion(context, right, expectedType, type_2.ConversionKind.IMPLICIT);
@@ -12691,8 +12787,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else if (leftType != context.errorType) {
-                var name = node.internalRange.toString();
-                var symbol = leftType.findMember(kind == node_9.NodeKind.NOT_EQUAL ? "==" :
+                let name = node.internalRange.toString();
+                let symbol = leftType.findMember(kind == node_9.NodeKind.NOT_EQUAL ? "==" :
                     kind == node_9.NodeKind.LESS_THAN_EQUAL ? ">" :
                         kind == node_9.NodeKind.GREATER_THAN_EQUAL ? "<" :
                             name, scope_2.ScopeHint.NOT_UNARY);
@@ -12703,7 +12799,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     if (kind == node_9.NodeKind.NOT_EQUAL ||
                         kind == node_9.NodeKind.LESS_THAN_EQUAL ||
                         kind == node_9.NodeKind.GREATER_THAN_EQUAL) {
-                        var call = node_9.createCall(left);
+                        let call = node_9.createCall(left);
                         call.appendChild(right);
                         node.kind = node_9.NodeKind.NOT;
                         node.appendChild(call.withRange(node.range).withInternalRange(node.range));
@@ -12782,7 +12878,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
              */
             CheckContext = class CheckContext {
                 allocateGlobalVariableOffset(sizeOf, alignmentOf) {
-                    var offset = imports_2.alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
+                    let offset = imports_2.alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
                     this.nextGlobalVariableOffset = offset + sizeOf;
                     return offset;
                 }
@@ -13207,6 +13303,13 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
         return node;
     }
     exports_25("createInt", createInt);
+    function createAny() {
+        let node = new Node();
+        node.kind = NodeKind.ANY;
+        node.stringValue = "any";
+        return node;
+    }
+    exports_25("createAny", createAny);
     function createLong(value) {
         let node = new Node();
         node.kind = NodeKind.INT64;
@@ -13332,6 +13435,19 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
         return node;
     }
     exports_25("createReturn", createReturn);
+    function createImports() {
+        let node = new Node();
+        node.kind = NodeKind.IMPORTS;
+        return node;
+    }
+    exports_25("createImports", createImports);
+    function createImport(name) {
+        let node = new Node();
+        node.kind = NodeKind.IMPORT;
+        node.stringValue = name;
+        return node;
+    }
+    exports_25("createImport", createImport);
     function createVariables() {
         let node = new Node();
         node.kind = NodeKind.VARIABLES;
@@ -13458,7 +13574,7 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
         return node;
     }
     exports_25("createParseError", createParseError);
-    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NodeFlag, Node;
+    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NODE_FLAG_IMPORT, NODE_FLAG_ANYFUNC, NodeFlag, Node;
     return {
         setters: [
             function (symbol_10_1) {
@@ -13478,80 +13594,83 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
                 NodeKind[NodeKind["PARAMETER"] = 4] = "PARAMETER";
                 NodeKind[NodeKind["PARAMETERS"] = 5] = "PARAMETERS";
                 NodeKind[NodeKind["VARIABLE"] = 6] = "VARIABLE";
+                NodeKind[NodeKind["IMPORT"] = 7] = "IMPORT";
                 // Statements
-                NodeKind[NodeKind["BLOCK"] = 7] = "BLOCK";
-                NodeKind[NodeKind["BREAK"] = 8] = "BREAK";
-                NodeKind[NodeKind["MODULE"] = 9] = "MODULE";
-                NodeKind[NodeKind["CLASS"] = 10] = "CLASS";
-                NodeKind[NodeKind["INTERFACE"] = 11] = "INTERFACE";
-                NodeKind[NodeKind["CONSTANTS"] = 12] = "CONSTANTS";
-                NodeKind[NodeKind["CONTINUE"] = 13] = "CONTINUE";
-                NodeKind[NodeKind["EMPTY"] = 14] = "EMPTY";
-                NodeKind[NodeKind["ENUM"] = 15] = "ENUM";
-                NodeKind[NodeKind["EXPRESSION"] = 16] = "EXPRESSION";
-                NodeKind[NodeKind["FUNCTION"] = 17] = "FUNCTION";
-                NodeKind[NodeKind["IF"] = 18] = "IF";
-                NodeKind[NodeKind["RETURN"] = 19] = "RETURN";
-                NodeKind[NodeKind["UNSAFE"] = 20] = "UNSAFE";
-                NodeKind[NodeKind["UNSAFE_TURBO"] = 21] = "UNSAFE_TURBO";
-                NodeKind[NodeKind["START"] = 22] = "START";
-                NodeKind[NodeKind["VARIABLES"] = 23] = "VARIABLES";
-                NodeKind[NodeKind["WHILE"] = 24] = "WHILE";
+                NodeKind[NodeKind["BLOCK"] = 8] = "BLOCK";
+                NodeKind[NodeKind["BREAK"] = 9] = "BREAK";
+                NodeKind[NodeKind["MODULE"] = 10] = "MODULE";
+                NodeKind[NodeKind["IMPORTS"] = 11] = "IMPORTS";
+                NodeKind[NodeKind["CLASS"] = 12] = "CLASS";
+                NodeKind[NodeKind["INTERFACE"] = 13] = "INTERFACE";
+                NodeKind[NodeKind["CONSTANTS"] = 14] = "CONSTANTS";
+                NodeKind[NodeKind["CONTINUE"] = 15] = "CONTINUE";
+                NodeKind[NodeKind["EMPTY"] = 16] = "EMPTY";
+                NodeKind[NodeKind["ENUM"] = 17] = "ENUM";
+                NodeKind[NodeKind["EXPRESSION"] = 18] = "EXPRESSION";
+                NodeKind[NodeKind["FUNCTION"] = 19] = "FUNCTION";
+                NodeKind[NodeKind["IF"] = 20] = "IF";
+                NodeKind[NodeKind["RETURN"] = 21] = "RETURN";
+                NodeKind[NodeKind["UNSAFE"] = 22] = "UNSAFE";
+                NodeKind[NodeKind["UNSAFE_TURBO"] = 23] = "UNSAFE_TURBO";
+                NodeKind[NodeKind["START"] = 24] = "START";
+                NodeKind[NodeKind["VARIABLES"] = 25] = "VARIABLES";
+                NodeKind[NodeKind["WHILE"] = 26] = "WHILE";
                 // Expressions
-                NodeKind[NodeKind["ALIGN_OF"] = 25] = "ALIGN_OF";
-                NodeKind[NodeKind["BOOLEAN"] = 26] = "BOOLEAN";
-                NodeKind[NodeKind["CALL"] = 27] = "CALL";
-                NodeKind[NodeKind["CAST"] = 28] = "CAST";
-                NodeKind[NodeKind["DOT"] = 29] = "DOT";
-                NodeKind[NodeKind["HOOK"] = 30] = "HOOK";
-                NodeKind[NodeKind["INDEX"] = 31] = "INDEX";
-                NodeKind[NodeKind["INT32"] = 32] = "INT32";
-                NodeKind[NodeKind["INT64"] = 33] = "INT64";
-                NodeKind[NodeKind["FLOAT32"] = 34] = "FLOAT32";
-                NodeKind[NodeKind["FLOAT64"] = 35] = "FLOAT64";
-                NodeKind[NodeKind["NAME"] = 36] = "NAME";
-                NodeKind[NodeKind["NEW"] = 37] = "NEW";
-                NodeKind[NodeKind["DELETE"] = 38] = "DELETE";
-                NodeKind[NodeKind["NULL"] = 39] = "NULL";
-                NodeKind[NodeKind["UNDEFINED"] = 40] = "UNDEFINED";
-                NodeKind[NodeKind["PARSE_ERROR"] = 41] = "PARSE_ERROR";
-                NodeKind[NodeKind["SIZE_OF"] = 42] = "SIZE_OF";
-                NodeKind[NodeKind["STRING"] = 43] = "STRING";
-                NodeKind[NodeKind["THIS"] = 44] = "THIS";
-                NodeKind[NodeKind["TYPE"] = 45] = "TYPE";
+                NodeKind[NodeKind["ALIGN_OF"] = 27] = "ALIGN_OF";
+                NodeKind[NodeKind["BOOLEAN"] = 28] = "BOOLEAN";
+                NodeKind[NodeKind["CALL"] = 29] = "CALL";
+                NodeKind[NodeKind["CAST"] = 30] = "CAST";
+                NodeKind[NodeKind["DOT"] = 31] = "DOT";
+                NodeKind[NodeKind["HOOK"] = 32] = "HOOK";
+                NodeKind[NodeKind["INDEX"] = 33] = "INDEX";
+                NodeKind[NodeKind["ANY"] = 34] = "ANY";
+                NodeKind[NodeKind["INT32"] = 35] = "INT32";
+                NodeKind[NodeKind["INT64"] = 36] = "INT64";
+                NodeKind[NodeKind["FLOAT32"] = 37] = "FLOAT32";
+                NodeKind[NodeKind["FLOAT64"] = 38] = "FLOAT64";
+                NodeKind[NodeKind["NAME"] = 39] = "NAME";
+                NodeKind[NodeKind["NEW"] = 40] = "NEW";
+                NodeKind[NodeKind["DELETE"] = 41] = "DELETE";
+                NodeKind[NodeKind["NULL"] = 42] = "NULL";
+                NodeKind[NodeKind["UNDEFINED"] = 43] = "UNDEFINED";
+                NodeKind[NodeKind["PARSE_ERROR"] = 44] = "PARSE_ERROR";
+                NodeKind[NodeKind["SIZE_OF"] = 45] = "SIZE_OF";
+                NodeKind[NodeKind["STRING"] = 46] = "STRING";
+                NodeKind[NodeKind["THIS"] = 47] = "THIS";
+                NodeKind[NodeKind["TYPE"] = 48] = "TYPE";
                 // Unary expressions
-                NodeKind[NodeKind["ADDRESS_OF"] = 46] = "ADDRESS_OF";
-                NodeKind[NodeKind["COMPLEMENT"] = 47] = "COMPLEMENT";
-                NodeKind[NodeKind["DEREFERENCE"] = 48] = "DEREFERENCE";
-                NodeKind[NodeKind["NEGATIVE"] = 49] = "NEGATIVE";
-                NodeKind[NodeKind["NOT"] = 50] = "NOT";
-                NodeKind[NodeKind["POINTER_TYPE"] = 51] = "POINTER_TYPE";
-                NodeKind[NodeKind["POSITIVE"] = 52] = "POSITIVE";
-                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 53] = "POSTFIX_DECREMENT";
-                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 54] = "POSTFIX_INCREMENT";
-                NodeKind[NodeKind["PREFIX_DECREMENT"] = 55] = "PREFIX_DECREMENT";
-                NodeKind[NodeKind["PREFIX_INCREMENT"] = 56] = "PREFIX_INCREMENT";
+                NodeKind[NodeKind["ADDRESS_OF"] = 49] = "ADDRESS_OF";
+                NodeKind[NodeKind["COMPLEMENT"] = 50] = "COMPLEMENT";
+                NodeKind[NodeKind["DEREFERENCE"] = 51] = "DEREFERENCE";
+                NodeKind[NodeKind["NEGATIVE"] = 52] = "NEGATIVE";
+                NodeKind[NodeKind["NOT"] = 53] = "NOT";
+                NodeKind[NodeKind["POINTER_TYPE"] = 54] = "POINTER_TYPE";
+                NodeKind[NodeKind["POSITIVE"] = 55] = "POSITIVE";
+                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 56] = "POSTFIX_DECREMENT";
+                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 57] = "POSTFIX_INCREMENT";
+                NodeKind[NodeKind["PREFIX_DECREMENT"] = 58] = "PREFIX_DECREMENT";
+                NodeKind[NodeKind["PREFIX_INCREMENT"] = 59] = "PREFIX_INCREMENT";
                 // Binary expressions
-                NodeKind[NodeKind["ADD"] = 57] = "ADD";
-                NodeKind[NodeKind["ASSIGN"] = 58] = "ASSIGN";
-                NodeKind[NodeKind["BITWISE_AND"] = 59] = "BITWISE_AND";
-                NodeKind[NodeKind["BITWISE_OR"] = 60] = "BITWISE_OR";
-                NodeKind[NodeKind["BITWISE_XOR"] = 61] = "BITWISE_XOR";
-                NodeKind[NodeKind["DIVIDE"] = 62] = "DIVIDE";
-                NodeKind[NodeKind["EQUAL"] = 63] = "EQUAL";
-                NodeKind[NodeKind["EXPONENT"] = 64] = "EXPONENT";
-                NodeKind[NodeKind["GREATER_THAN"] = 65] = "GREATER_THAN";
-                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 66] = "GREATER_THAN_EQUAL";
-                NodeKind[NodeKind["LESS_THAN"] = 67] = "LESS_THAN";
-                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 68] = "LESS_THAN_EQUAL";
-                NodeKind[NodeKind["LOGICAL_AND"] = 69] = "LOGICAL_AND";
-                NodeKind[NodeKind["LOGICAL_OR"] = 70] = "LOGICAL_OR";
-                NodeKind[NodeKind["MULTIPLY"] = 71] = "MULTIPLY";
-                NodeKind[NodeKind["NOT_EQUAL"] = 72] = "NOT_EQUAL";
-                NodeKind[NodeKind["REMAINDER"] = 73] = "REMAINDER";
-                NodeKind[NodeKind["SHIFT_LEFT"] = 74] = "SHIFT_LEFT";
-                NodeKind[NodeKind["SHIFT_RIGHT"] = 75] = "SHIFT_RIGHT";
-                NodeKind[NodeKind["SUBTRACT"] = 76] = "SUBTRACT";
+                NodeKind[NodeKind["ADD"] = 60] = "ADD";
+                NodeKind[NodeKind["ASSIGN"] = 61] = "ASSIGN";
+                NodeKind[NodeKind["BITWISE_AND"] = 62] = "BITWISE_AND";
+                NodeKind[NodeKind["BITWISE_OR"] = 63] = "BITWISE_OR";
+                NodeKind[NodeKind["BITWISE_XOR"] = 64] = "BITWISE_XOR";
+                NodeKind[NodeKind["DIVIDE"] = 65] = "DIVIDE";
+                NodeKind[NodeKind["EQUAL"] = 66] = "EQUAL";
+                NodeKind[NodeKind["EXPONENT"] = 67] = "EXPONENT";
+                NodeKind[NodeKind["GREATER_THAN"] = 68] = "GREATER_THAN";
+                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 69] = "GREATER_THAN_EQUAL";
+                NodeKind[NodeKind["LESS_THAN"] = 70] = "LESS_THAN";
+                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 71] = "LESS_THAN_EQUAL";
+                NodeKind[NodeKind["LOGICAL_AND"] = 72] = "LOGICAL_AND";
+                NodeKind[NodeKind["LOGICAL_OR"] = 73] = "LOGICAL_OR";
+                NodeKind[NodeKind["MULTIPLY"] = 74] = "MULTIPLY";
+                NodeKind[NodeKind["NOT_EQUAL"] = 75] = "NOT_EQUAL";
+                NodeKind[NodeKind["REMAINDER"] = 76] = "REMAINDER";
+                NodeKind[NodeKind["SHIFT_LEFT"] = 77] = "SHIFT_LEFT";
+                NodeKind[NodeKind["SHIFT_RIGHT"] = 78] = "SHIFT_RIGHT";
+                NodeKind[NodeKind["SUBTRACT"] = 79] = "SUBTRACT";
             })(NodeKind || (NodeKind = {}));
             exports_25("NodeKind", NodeKind);
             exports_25("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
@@ -13570,6 +13689,8 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
             exports_25("NODE_FLAG_UNSIGNED_OPERATOR", NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13);
             exports_25("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 14);
             exports_25("NODE_FLAG_START", NODE_FLAG_START = 1 << 15);
+            exports_25("NODE_FLAG_IMPORT", NODE_FLAG_IMPORT = 1 << 16);
+            exports_25("NODE_FLAG_ANYFUNC", NODE_FLAG_ANYFUNC = 1 << 17);
             NodeFlag = class NodeFlag {
             };
             exports_25("NodeFlag", NodeFlag);
@@ -13748,6 +13869,9 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
                 }
                 isStatic() {
                     return (this.flags & NODE_FLAG_STATIC) != 0;
+                }
+                isAnyfunc() {
+                    return (this.flags & NODE_FLAG_ANYFUNC) != 0;
                 }
                 isDeclareOrTurbo() {
                     return (this.flags & (NODE_FLAG_DECLARE | NODE_FLAG_UNSAFE_TURBO)) != 0;

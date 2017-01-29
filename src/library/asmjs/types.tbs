@@ -55,3 +55,8 @@ declare class string {
     startsWith(text: string): boolean { return this.slice(0, text.length) == text; }
     endsWith(text: string): boolean { return this.slice(-text.length, this.length) == text; }
 }
+
+@import
+declare class Math {
+    static anyfunc sin();
+}
