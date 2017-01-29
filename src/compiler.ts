@@ -192,7 +192,7 @@ export class Compiler {
 
         stdlib.Profiler_begin("shaking");
 
-        treeShaking(global);
+        //treeShaking(global);
 
         stdlib.Profiler_end("shaking");
         stdlib.Profiler_begin("emitting");

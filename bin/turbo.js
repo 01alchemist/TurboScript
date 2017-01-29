@@ -1684,6 +1684,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.PRIVATE;
                         else if (text == "@unsafe")
                             kind = TokenKind.UNSAFE_TURBO;
+                        else if (text == "@import")
+                            kind = TokenKind.IMPORT;
                         else if (text == "anyfunc")
                             kind = TokenKind.ANYFUNC;
                     }
@@ -2780,45 +2782,54 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     }
                     return node.withRange(log_2.spanRanges(open.range, close.range));
                 }
-                parseImports() {
-                    let token = this.current;
-                    assert(token.kind == lexer_1.TokenKind.IMPORT);
-                    this.advance();
-                    let node = node_1.createImports();
-                    node.flags = node.flags | node_1.NODE_FLAG_IMPORT;
-                    if (this.peek(lexer_1.TokenKind.MULTIPLY)) {
-                        assert(this.eat(lexer_1.TokenKind.MULTIPLY));
-                        assert(this.eat(lexer_1.TokenKind.AS));
-                        let importName = this.current;
-                        let range = importName.range;
-                        let _import = node_1.createImport(importName.range.toString());
-                        node.appendChild(_import.withRange(range).withInternalRange(importName.range));
-                        this.advance();
-                    }
-                    else {
-                        if (!this.expect(lexer_1.TokenKind.LEFT_BRACE)) {
-                            return null;
-                        }
-                        while (!this.peek(lexer_1.TokenKind.END_OF_FILE) && !this.peek(lexer_1.TokenKind.RIGHT_BRACE)) {
-                            let importName = this.current;
-                            let range = importName.range;
-                            let _import = node_1.createImport(importName.range.toString());
-                            node.appendChild(_import.withRange(range).withInternalRange(importName.range));
-                            if (!this.eat(lexer_1.TokenKind.COMMA)) {
-                                break;
-                            }
-                        }
-                        this.advance();
-                        assert(this.expect(lexer_1.TokenKind.RIGHT_BRACE));
-                    }
-                    let importFrom = this.current;
-                    this.expect(lexer_1.TokenKind.FROM);
-                    node.stringValue = importFrom.range.toString();
-                    this.advance();
-                    let semicolon = this.current;
-                    this.expect(lexer_1.TokenKind.SEMICOLON);
-                    return node.withRange(log_2.spanRanges(token.range, semicolon.range));
-                }
+                //TODO: finalize import method
+                /*parseImports(): Node {
+                 let token = this.current;
+                 assert(token.kind == TokenKind.IMPORT);
+                 this.advance();
+            
+                 let node = createImports();
+                 node.flags = node.flags | NODE_FLAG_IMPORT;
+            
+                 if (this.peek(TokenKind.MULTIPLY)) { //check for wildcard '*' import
+                 assert(this.eat(TokenKind.MULTIPLY));
+                 assert(this.eat(TokenKind.AS));
+            
+                 let importName = this.current;
+                 let range = importName.range;
+                 let _import = createImport(importName.range.toString());
+                 node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+                 this.advance();
+                 }
+                 else {
+            
+                 if (!this.expect(TokenKind.LEFT_BRACE)) {
+                 return null;
+                 }
+                 while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
+            
+                 let importName = this.current;
+                 let range = importName.range;
+                 let _import = createImport(importName.range.toString());
+                 node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+            
+                 if (!this.eat(TokenKind.COMMA)) {
+                 break;
+                 }
+                 }
+            
+                 this.advance();
+                 assert(this.expect(TokenKind.RIGHT_BRACE));
+                 }
+            
+                 let importFrom = this.current;
+                 this.expect(TokenKind.FROM);
+                 node.stringValue = importFrom.range.toString();
+                 this.advance();
+                 let semicolon = this.current;
+                 this.expect(TokenKind.SEMICOLON);
+                 return node.withRange(spanRanges(token.range, semicolon.range));
+                 }*/
                 parseModule(firstFlag) {
                     let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.MODULE);
@@ -3415,7 +3426,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     while (true) {
                         let token = this.current;
                         let flag;
-                        if (this.eat(lexer_1.TokenKind.DECLARE))
+                        if (this.eat(lexer_1.TokenKind.IMPORT))
+                            flag = node_1.NODE_FLAG_IMPORT;
+                        else if (this.eat(lexer_1.TokenKind.DECLARE))
                             flag = node_1.NODE_FLAG_DECLARE;
                         else if (this.eat(lexer_1.TokenKind.EXPORT))
                             flag = node_1.NODE_FLAG_EXPORT;
@@ -3461,6 +3474,16 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     node.flags = node.flags | node_1.NODE_FLAG_UNSAFE;
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
+                parseImport() {
+                    let token = this.current;
+                    this.advance();
+                    let node = this.parseBlock();
+                    if (node == null) {
+                        return null;
+                    }
+                    node.flags = node.flags | node_1.NODE_FLAG_IMPORT;
+                    return node.withRange(log_2.spanRanges(token.range, node.range));
+                }
                 parseUnsafeTurbo() {
                     let token = this.current;
                     this.advance();
@@ -3493,12 +3516,10 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                 }
                 parseStatement(mode) {
                     let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
-                    if (this.peek(lexer_1.TokenKind.IMPORT) && firstFlag == null)
-                        return this.parseImports();
+                    // if (this.peek(TokenKind.IMPORT) && firstFlag == null) return this.parseImport();
                     if (this.peek(lexer_1.TokenKind.UNSAFE) && firstFlag == null)
                         return this.parseUnsafe();
-                    if (this.peek(lexer_1.TokenKind.UNSAFE_TURBO) && firstFlag == null)
-                        return this.parseUnsafeTurbo();
+                    // if (this.peek(TokenKind.UNSAFE_TURBO) && firstFlag == null) return this.parseUnsafeTurbo();
                     if (this.peek(lexer_1.TokenKind.START) && firstFlag == null)
                         return this.parseStart();
                     if (this.peek(lexer_1.TokenKind.CONST) || this.peek(lexer_1.TokenKind.LET) || this.peek(lexer_1.TokenKind.VAR))
@@ -9281,7 +9302,7 @@ System.register("library/library", ["compiler"], function (exports_18, context_1
                         case compiler_2.CompileTarget.TURBO_ASMJS:
                             lib = stdlib.IO_readTextFile("../src/library/asmjs/types.tbs") + "\n";
                             // lib = stdlib.IO_readTextFile("../src/library/asmjs/math.tbs") + "\n";
-                            lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
+                            // lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.ASMJS:
                             lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
@@ -9521,6 +9542,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
         code.append('"use asm";\n');
         code.emitIndent(1);
         code.append(compiler.runtimeSource);
+        code.append('\n');
         module.emitStatements(compiler.global.firstChild);
         //
         // module.emitModule();
@@ -9543,7 +9565,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
         compiler.outputJS = code.finish();
     }
     exports_19("turboASMJsEmit", turboASMJsEmit);
-    var stringbuilder_9, node_7, parser_5, js_2, symbol_7, ASM_MEMORY_INITIALIZER_BASE, turboJsOptimiztion, classMap, functionMap, signatureMap, virtualMap, currentClass, turboTargetPointer, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, TurboASMJsModule;
+    var stringbuilder_9, node_7, parser_5, js_2, symbol_7, ASM_MEMORY_INITIALIZER_BASE, turboJsOptimiztion, importMap, classMap, functionMap, signatureMap, virtualMap, currentClass, turboTargetPointer, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, TurboASMJsModule;
     return {
         setters: [
             function (stringbuilder_9_1) {
@@ -9565,6 +9587,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
         execute: function () {
             ASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
             turboJsOptimiztion = 0;
+            importMap = new Map();
             classMap = new Map();
             functionMap = new Map();
             signatureMap = new Map();
@@ -9626,57 +9649,36 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                 emitNewlineAfter(node) {
                     this.previousNode = node;
                 }
-                emitModule() {
-                    this.emitGlobalDeclarations();
-                    this.emitFunctions();
-                }
-                emitGlobalDeclarations() {
-                    if (!this.firstGlobal) {
+                // emitGlobalDeclarations(): void {
+                //
+                //     if (!this.firstGlobal) {
+                //         return;
+                //     }
+                //
+                //     let global = this.firstGlobal;
+                //     while (global) {
+                //         let dataType: AsmType = typeToAsmType(global.symbol.resolvedType);
+                //         let value = global.symbol.node.variableValue();
+                //         global = global.next;
+                //     }
+                // }
+                emitImports() {
+                    if (!this.firstImport) {
                         return;
                     }
-                    let global = this.firstGlobal;
-                    while (global) {
-                        let dataType = typeToAsmType(global.symbol.resolvedType);
-                        let value = global.symbol.node.variableValue();
-                        global = global.next;
+                    let _import = this.firstImport;
+                    while (_import) {
+                        // let signature: AsmSignature = signatureMap.get(_import.signatureIndex);
+                        // let returnType = signature.returnType;
+                        // let identifier = null;
+                        // if (returnType.id != AsmType.VOID) {
+                        //     identifier = asmTypeToIdentifier(returnType.id);
+                        //     this.code.append(identifier.left);
+                        // }
+                        let importName = _import.module + "_" + _import.name;
+                        this.code.append(importName + " = global." + importName);
+                        _import = _import.next;
                     }
-                }
-                emitFunctions() {
-                    if (!this.firstFunction) {
-                        return;
-                    }
-                    let count = 0;
-                    let fn = this.firstFunction;
-                    this.code.append("\n");
-                    this.emitStatements(fn.symbol.node);
-                    // while (fn != null) {
-                    //
-                    //     this.code.append(`function fun${count} {\n`, 1);
-                    //
-                    //     if (fn.localCount > 0) {
-                    //         let local = fn.firstLocal;
-                    //         while (local) {
-                    //             let asmType: AsmType = symbolToValueType(local.symbol);
-                    //             this.code.append(`var ${local.symbol.name} = `);
-                    //             this.emitNullInitializer(local.symbol.node);
-                    //             this.code.append("\n");
-                    //             local = local.next;
-                    //         }
-                    //
-                    //     }
-                    //
-                    //     let child = fn.symbol.node.functionBody().firstChild;
-                    //     while (child != null) {
-                    //         this.emitStatements(child);
-                    //         child = child.nextSibling;
-                    //     }
-                    //
-                    //     this.code.clearIndent(1);
-                    //     this.code.indent--;
-                    //     this.code.append("}\n");
-                    //     count++;
-                    //     fn = fn.next;
-                    // }
                 }
                 emitStatements(node) {
                     while (node != null) {
@@ -9960,7 +9962,18 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         else {
                             let value = node.callValue();
                             let fn = functionMap.get(value.symbol.name);
-                            let signature = signatureMap.get(fn.signatureIndex);
+                            let signature;
+                            if (!fn) {
+                                if (value.symbol.node.isDeclare() && value.symbol.node.parent.isImport()) {
+                                    let moduleName = value.symbol.node.parent.symbol.name;
+                                    let fnName = value.symbol.name;
+                                    let asmImport = importMap.get(moduleName + "." + fnName);
+                                    signature = signatureMap.get(asmImport.signatureIndex);
+                                }
+                            }
+                            else {
+                                signature = signatureMap.get(fn.signatureIndex);
+                            }
                             let returnType = signature.returnType;
                             let identifier = null;
                             if (returnType.id != AsmType.VOID) {
@@ -10868,9 +10881,13 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         // console.log(symbol.name);
                         // Functions without bodies are imports
                         if (body == null) {
-                            // let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
-                            // symbol.offset = this.importCount;
-                            // this.allocateImport(signatureIndex, moduleName, symbol.name);
+                            // if (node.parent.isImport()) {
+                            //     let _import = importMap.get(node.parent.symbol.name);
+                            //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
+                            // }
+                            let moduleName = symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                            symbol.offset = this.importCount;
+                            this.allocateImport(signatureIndex, moduleName, symbol.name);
                             node = node.nextSibling;
                             return;
                         }
@@ -10914,6 +10931,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         this.lastImport.next = result;
                     this.lastImport = result;
                     this.importCount = this.importCount + 1;
+                    importMap.set(mod + "." + name, result);
                     return result;
                 }
                 allocateFunction(symbol, signatureIndex) {
@@ -10970,6 +10988,9 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                     if (type == context.voidType) {
                         return AsmType.VOID;
                     }
+                    if (type == context.anyType) {
+                        return AsmType.VOID;
+                    }
                     assert(false);
                     return AsmType.VOID;
                 }
@@ -10988,7 +11009,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
         }
     };
 });
-System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "c", "js", "turbojs", "wasm", "library/library", "turboasmjs"], function (exports_20, context_20) {
+System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "stringbuilder", "c", "js", "turbojs", "wasm", "library/library", "turboasmjs"], function (exports_20, context_20) {
     "use strict";
     var __moduleName = context_20 && context_20.id;
     function replaceFileExtension(path, extension) {
@@ -11003,7 +11024,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
         return builder.append(path).append(extension).finish();
     }
     exports_20("replaceFileExtension", replaceFileExtension);
-    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_4, parser_6, shaking_1, stringbuilder_10, c_1, js_3, turbojs_1, wasm_1, library_1, turboasmjs_1, CompileTarget, Compiler;
+    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_4, parser_6, stringbuilder_10, c_1, js_3, turbojs_1, wasm_1, library_1, turboasmjs_1, CompileTarget, Compiler;
     return {
         setters: [
             function (checker_1_1) {
@@ -11026,9 +11047,6 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             },
             function (parser_6_1) {
                 parser_6 = parser_6_1;
-            },
-            function (shaking_1_1) {
-                shaking_1 = shaking_1_1;
             },
             function (stringbuilder_10_1) {
                 stringbuilder_10 = stringbuilder_10_1;
@@ -11183,7 +11201,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                         return false;
                     }
                     stdlib.Profiler_begin("shaking");
-                    shaking_1.treeShaking(global);
+                    //treeShaking(global);
                     stdlib.Profiler_end("shaking");
                     stdlib.Profiler_begin("emitting");
                     if (this.target == CompileTarget.C) {
@@ -12074,6 +12092,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         else if (kind == node_9.NodeKind.ANY) {
             //imported functions have anyType
+            node.kind = node_9.NodeKind.TYPE;
             node.resolvedType = context.anyType;
         }
         else if (kind == node_9.NodeKind.INT32) {
@@ -12299,23 +12318,25 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                         argumentValue = argumentValue.nextSibling;
                     }
                     // Not enough arguments?
-                    if (argumentVariable != returnType) {
-                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
-                            .append("Not enough arguments for function '")
-                            .append(symbol.name)
-                            .appendChar('\'')
-                            .finish());
-                    }
-                    else if (argumentValue != null) {
-                        while (argumentValue != null) {
-                            resolveAsExpression(context, argumentValue, parentScope);
-                            argumentValue = argumentValue.nextSibling;
+                    if (returnType.resolvedType != context.anyType) {
+                        if (argumentVariable != returnType) {
+                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                                .append("Not enough arguments for function '")
+                                .append(symbol.name)
+                                .appendChar('\'')
+                                .finish());
                         }
-                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
-                            .append("Too many arguments for function '")
-                            .append(symbol.name)
-                            .appendChar('\'')
-                            .finish());
+                        else if (argumentValue != null) {
+                            while (argumentValue != null) {
+                                resolveAsExpression(context, argumentValue, parentScope);
+                                argumentValue = argumentValue.nextSibling;
+                            }
+                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                                .append("Too many arguments for function '")
+                                .append(symbol.name)
+                                .appendChar('\'')
+                                .finish());
+                        }
                     }
                     // Pass the return type along
                     node.resolvedType = returnType.resolvedType;
@@ -13303,13 +13324,6 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
         return node;
     }
     exports_25("createInt", createInt);
-    function createAny() {
-        let node = new Node();
-        node.kind = NodeKind.ANY;
-        node.stringValue = "any";
-        return node;
-    }
-    exports_25("createAny", createAny);
     function createLong(value) {
         let node = new Node();
         node.kind = NodeKind.INT64;
@@ -13353,6 +13367,12 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
         return node;
     }
     exports_25("createType", createType);
+    function createAny() {
+        let node = new Node();
+        node.kind = NodeKind.ANY;
+        return node;
+    }
+    exports_25("createAny", createAny);
     function createEmpty() {
         let node = new Node();
         node.kind = NodeKind.EMPTY;
@@ -13860,6 +13880,9 @@ System.register("node", ["symbol"], function (exports_25, context_25) {
                 // }
                 isExport() {
                     return (this.flags & NODE_FLAG_EXPORT) != 0;
+                }
+                isImport() {
+                    return (this.flags & NODE_FLAG_IMPORT) != 0;
                 }
                 isStart() {
                     return (this.flags & NODE_FLAG_START) != 0;

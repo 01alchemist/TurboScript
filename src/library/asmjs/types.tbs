@@ -49,14 +49,14 @@ declare class string {
     indexOf(text: string): int32;
     lastIndexOf(text: string): int32;
     operator == (other: string): boolean;
-    operator [] (index: int32): ushort { return this.charCodeAt(index); }
+    // operator [] (index: int32): ushort { return this.charCodeAt(index); }
     slice(start: int32, end: int32): string;
 
-    startsWith(text: string): boolean { return this.slice(0, text.length) == text; }
-    endsWith(text: string): boolean { return this.slice(-text.length, this.length) == text; }
+    // startsWith(text: string): boolean { return this.slice(0, text.length) == text; }
+    // endsWith(text: string): boolean { return this.slice(-text.length, this.length) == text; }
 }
 
 @import
 declare class Math {
-    static anyfunc sin();
+    static sin(value:float32):float32;
 }

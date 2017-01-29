@@ -13,6 +13,7 @@ import {Type} from "./type";
 const ASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
 
 let turboJsOptimiztion: uint8 = 0;
+let importMap: Map<string, any> = new Map<string, any>();
 let classMap: Map<string, any> = new Map<string, any>();
 let functionMap: Map<string, any> = new Map<string, any>();
 let signatureMap: Map<number, any> = new Map<number, any>();
@@ -118,64 +119,38 @@ export class TurboASMJsModule {
         this.previousNode = node;
     }
 
-    emitModule() {
-        this.emitGlobalDeclarations();
-        this.emitFunctions();
-    }
+    // emitGlobalDeclarations(): void {
+    //
+    //     if (!this.firstGlobal) {
+    //         return;
+    //     }
+    //
+    //     let global = this.firstGlobal;
+    //     while (global) {
+    //         let dataType: AsmType = typeToAsmType(global.symbol.resolvedType);
+    //         let value = global.symbol.node.variableValue();
+    //         global = global.next;
+    //     }
+    // }
 
-    emitGlobalDeclarations(): void {
-
-        if (!this.firstGlobal) {
+    emitImports() {
+        if (!this.firstImport) {
             return;
         }
 
-        let global = this.firstGlobal;
-        while (global) {
-            let dataType: AsmType = typeToAsmType(global.symbol.resolvedType);
-            let value = global.symbol.node.variableValue();
-            global = global.next;
+        let _import: AsmImport = this.firstImport;
+        while (_import) {
+            // let signature: AsmSignature = signatureMap.get(_import.signatureIndex);
+            // let returnType = signature.returnType;
+            // let identifier = null;
+            // if (returnType.id != AsmType.VOID) {
+            //     identifier = asmTypeToIdentifier(returnType.id);
+            //     this.code.append(identifier.left);
+            // }
+            let importName = _import.module + "_" + _import.name;
+            this.code.append(importName + " = global." + importName);
+            _import = _import.next;
         }
-    }
-
-    emitFunctions() {
-        if (!this.firstFunction) {
-            return;
-        }
-        let count = 0;
-        let fn = this.firstFunction;
-
-        this.code.append("\n");
-
-        this.emitStatements(fn.symbol.node);
-
-        // while (fn != null) {
-        //
-        //     this.code.append(`function fun${count} {\n`, 1);
-        //
-        //     if (fn.localCount > 0) {
-        //         let local = fn.firstLocal;
-        //         while (local) {
-        //             let asmType: AsmType = symbolToValueType(local.symbol);
-        //             this.code.append(`var ${local.symbol.name} = `);
-        //             this.emitNullInitializer(local.symbol.node);
-        //             this.code.append("\n");
-        //             local = local.next;
-        //         }
-        //
-        //     }
-        //
-        //     let child = fn.symbol.node.functionBody().firstChild;
-        //     while (child != null) {
-        //         this.emitStatements(child);
-        //         child = child.nextSibling;
-        //     }
-        //
-        //     this.code.clearIndent(1);
-        //     this.code.indent--;
-        //     this.code.append("}\n");
-        //     count++;
-        //     fn = fn.next;
-        // }
     }
 
     emitStatements(node: Node): void {
@@ -536,9 +511,20 @@ export class TurboASMJsModule {
 
             else {
                 let value = node.callValue();
-
                 let fn = functionMap.get(value.symbol.name);
-                let signature = signatureMap.get(fn.signatureIndex);
+                let signature;
+
+                if (!fn) {
+                    if (value.symbol.node.isDeclare() && value.symbol.node.parent.isImport()) {
+                        let moduleName = value.symbol.node.parent.symbol.name;
+                        let fnName = value.symbol.name;
+                        let asmImport: AsmImport = importMap.get(moduleName + "." + fnName);
+                        signature = signatureMap.get(asmImport.signatureIndex);
+                    }
+
+                } else {
+                    signature = signatureMap.get(fn.signatureIndex);
+                }
                 let returnType = signature.returnType;
                 let identifier = null;
                 if (returnType.id != AsmType.VOID) {
@@ -1554,7 +1540,7 @@ export class TurboASMJsModule {
         }
 
         else if (node.kind == NodeKind.CLASS) {
-            //console.log(node.symbol.name);
+
         }
 
         else if (node.kind == NodeKind.FUNCTION) {
@@ -1584,9 +1570,13 @@ export class TurboASMJsModule {
 
             // Functions without bodies are imports
             if (body == null) {
-                // let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
-                // symbol.offset = this.importCount;
-                // this.allocateImport(signatureIndex, moduleName, symbol.name);
+                // if (node.parent.isImport()) {
+                //     let _import = importMap.get(node.parent.symbol.name);
+                //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
+                // }
+                let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                symbol.offset = this.importCount;
+                this.allocateImport(signatureIndex, moduleName, symbol.name);
                 node = node.nextSibling;
                 return;
             }
@@ -1637,6 +1627,9 @@ export class TurboASMJsModule {
         this.lastImport = result;
 
         this.importCount = this.importCount + 1;
+
+        importMap.set(mod + "." + name, result);
+
         return result;
     }
 
@@ -1706,6 +1699,10 @@ export class TurboASMJsModule {
         }
 
         if (type == context.voidType) {
+            return AsmType.VOID;
+        }
+
+        if (type == context.anyType) {
             return AsmType.VOID;
         }
 
@@ -1938,7 +1935,7 @@ export function turboASMJsEmit(compiler: Compiler): void {
     code.append('"use asm";\n');
     code.emitIndent(1);
     code.append(compiler.runtimeSource);
-
+    code.append('\n');
     module.emitStatements(compiler.global.firstChild);
     //
     // module.emitModule();

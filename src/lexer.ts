@@ -352,6 +352,7 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "extends") kind = TokenKind.EXTENDS;
                     else if (text == "private") kind = TokenKind.PRIVATE;
                     else if (text == "@unsafe") kind = TokenKind.UNSAFE_TURBO;
+                    else if (text == "@import") kind = TokenKind.IMPORT;
                     else if (text == "anyfunc") kind = TokenKind.ANYFUNC;
                 }
 

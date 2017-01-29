@@ -1035,6 +1035,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
     else if (kind == NodeKind.ANY) {
         //imported functions have anyType
+        node.kind = NodeKind.TYPE;
         node.resolvedType = context.anyType;
     }
 
@@ -1306,25 +1307,28 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 }
 
                 // Not enough arguments?
-                if (argumentVariable != returnType) {
-                    context.log.error(node.internalRange, StringBuilder_new()
-                        .append("Not enough arguments for function '")
-                        .append(symbol.name)
-                        .appendChar('\'')
-                        .finish());
-                }
+                if (returnType.resolvedType != context.anyType) {
 
-                // Too many arguments?
-                else if (argumentValue != null) {
-                    while (argumentValue != null) {
-                        resolveAsExpression(context, argumentValue, parentScope);
-                        argumentValue = argumentValue.nextSibling;
+                    if (argumentVariable != returnType) {
+                        context.log.error(node.internalRange, StringBuilder_new()
+                            .append("Not enough arguments for function '")
+                            .append(symbol.name)
+                            .appendChar('\'')
+                            .finish());
                     }
-                    context.log.error(node.internalRange, StringBuilder_new()
-                        .append("Too many arguments for function '")
-                        .append(symbol.name)
-                        .appendChar('\'')
-                        .finish());
+
+                    // Too many arguments?
+                    else if (argumentValue != null) {
+                        while (argumentValue != null) {
+                            resolveAsExpression(context, argumentValue, parentScope);
+                            argumentValue = argumentValue.nextSibling;
+                        }
+                        context.log.error(node.internalRange, StringBuilder_new()
+                            .append("Too many arguments for function '")
+                            .append(symbol.name)
+                            .appendChar('\'')
+                            .finish());
+                    }
                 }
 
                 // Pass the return type along

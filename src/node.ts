@@ -412,6 +412,10 @@ export class Node {
         return (this.flags & NODE_FLAG_EXPORT) != 0;
     }
 
+    isImport(): boolean {
+        return (this.flags & NODE_FLAG_IMPORT) != 0;
+    }
+
     isStart(): boolean {
         return (this.flags & NODE_FLAG_START) != 0;
     }
@@ -980,13 +984,6 @@ export function createInt(value: int32): Node {
     return node;
 }
 
-export function createAny(): Node {
-    let node = new Node();
-    node.kind = NodeKind.ANY;
-    node.stringValue = "any";
-    return node;
-}
-
 export function createLong(value: int64): Node {
     let node = new Node();
     node.kind = NodeKind.INT64;
@@ -1027,6 +1024,12 @@ export function createType(type: Type): Node {
     let node = new Node();
     node.kind = NodeKind.TYPE;
     node.resolvedType = type;
+    return node;
+}
+
+export function createAny(): Node {
+    let node = new Node();
+    node.kind = NodeKind.ANY;
     return node;
 }
 
