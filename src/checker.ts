@@ -7,9 +7,9 @@ import {
 import {Type, ConversionKind} from "./type";
 import {
     Node, NodeKind, createVariable, createType, rangeForFlag, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE,
-    NODE_FLAG_PUBLIC, NODE_FLAG_GET, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_PROTECTED, NODE_FLAG_EXTERN,
+    NODE_FLAG_PUBLIC, NODE_FLAG_GET, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_PROTECTED,
     NODE_FLAG_DECLARE, isExpression, createInt, createboolean, createNull, createMemberReference, createSymbolReference,
-    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat
+    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat, NODE_FLAG_IMPORT
 } from "./node";
 import {CompileTarget} from "./compiler";
 import {Log, Range, spanRanges} from "./log";
@@ -419,13 +419,16 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             let parent = symbol.parent();
             let shouldConvertInstanceToGlobal = false;
 
-            forbidFlag(context, node, NODE_FLAG_EXTERN, "Cannot use 'extern' on an instance function");
+            forbidFlag(context, node, NODE_FLAG_EXPORT, "Cannot use 'export' on an instance function");
             forbidFlag(context, node, NODE_FLAG_DECLARE, "Cannot use 'declare' on an instance function");
 
             // Functions inside declared classes are automatically declared
             if (parent.node.isDeclare()) {
                 if (body == null) {
                     node.flags = node.flags | NODE_FLAG_DECLARE;
+                    if(parent.node.isImport()){
+                        node.flags = node.flags | NODE_FLAG_IMPORT;
+                    }
                 } else {
                     shouldConvertInstanceToGlobal = true;
                 }
@@ -437,9 +440,9 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                     context.log.error(node.lastChild.range, "Must implement this function");
                 }
 
-                // Functions inside extern classes are automatically extern
+                // Functions inside export classes are automatically export
                 if (parent.node.isExport()) {
-                    node.flags = node.flags | NODE_FLAG_EXTERN;
+                    node.flags = node.flags | NODE_FLAG_EXPORT;
                 }
             }
 
@@ -460,7 +463,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
         // Imported functions require a modifier for consistency with TypeScript
         else if (body == null) {
-            forbidFlag(context, node, NODE_FLAG_EXTERN, "Cannot use 'extern' on an unimplemented function");
+            forbidFlag(context, node, NODE_FLAG_EXPORT, "Cannot use 'export' on an unimplemented function");
             if (!node.parent || !node.parent.isDeclare()) {
                 requireFlag(context, node, NODE_FLAG_DECLARE, "Declared functions must be prefixed with 'declare'");
             }
@@ -936,17 +939,6 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.CLASS) {
-        let oldEnclosingClass = context.enclosingClass;
-        initializeSymbol(context, node.symbol);
-        context.enclosingClass = node.symbol;
-        resolveChildren(context, node, node.scope);
-        if (node.symbol.kind == SymbolKind.TYPE_CLASS) {
-            node.symbol.determineClassLayout(context);
-        }
-        context.enclosingClass = oldEnclosingClass;
-    }
-
-    else if (kind == NodeKind.INTERFACE) {
         let oldEnclosingClass = context.enclosingClass;
         initializeSymbol(context, node.symbol);
         context.enclosingClass = node.symbol;

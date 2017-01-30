@@ -20,7 +20,7 @@ class Vector {
         this.type = ShapeType.TRIANGLE;
     }
 }
-extern function newVector(x:float32, y:float32, z:float32):Vector {
+export function newVector(x:float32, y:float32, z:float32):Vector {
     let v = new Vector();
     v.x = x;
     v.y = y;

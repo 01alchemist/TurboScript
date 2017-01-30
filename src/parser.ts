@@ -7,9 +7,8 @@ import {
     createCast, createIndex, createCall, createHook, createIf, createWhile, createBlock, createReturn, createEmpty,
     NodeFlag, createEnum, allFlags, createVariable, createParameters, createParameter, createClass, createExtends,
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
-    createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_EXTERN, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
-    NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    createInterface, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
+    createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
+    NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
     createDelete, createImports, NODE_FLAG_IMPORT, createImport, NODE_FLAG_ANYFUNC, createType, createAny
 } from "./node";
 
@@ -1046,168 +1045,6 @@ class ParserContext {
         return node.withRange(spanRanges(token.range, close.range)).withInternalRange(name.range);
     }
 
-    parseInterface(firstFlag: NodeFlag): Node {
-        let token = this.current;
-        assert(token.kind == TokenKind.INTERFACE);
-        this.advance();
-
-        let name = this.current;
-        if (!this.expect(TokenKind.IDENTIFIER)) {
-            return null;
-        }
-
-        let node = createInterface(name.range.toString());
-        node.firstFlag = firstFlag;
-        node.flags = allFlags(firstFlag);
-
-        // Type parameters
-        if (this.peek(TokenKind.LESS_THAN)) {
-            let parameters = this.parseParameters();
-            if (parameters == null) {
-                return null;
-            }
-            node.appendChild(parameters);
-        }
-
-        // "extends" clause
-        let extendsToken = this.current;
-        if (this.eat(TokenKind.EXTENDS)) {
-            let type: Node;
-
-            // Recover from a missing type
-            if (this.peek(TokenKind.LEFT_BRACE) || this.peek(TokenKind.IMPLEMENTS)) {
-                this.unexpectedToken();
-                type = createParseError();
-            }
-
-            else {
-                type = this.parseType();
-                if (type == null) {
-                    return null;
-                }
-            }
-
-            node.appendChild(createExtends(type).withRange(type.range != null ? spanRanges(extendsToken.range, type.range) : extendsToken.range));
-        }
-
-        // "implements" clause
-        let implementsToken = this.current;
-        if (this.eat(TokenKind.IMPLEMENTS)) {
-            let list = createImplements();
-            let type: Node = null;
-            while (true) {
-                // Recover from a missing type
-                if (this.peek(TokenKind.LEFT_BRACE)) {
-                    this.unexpectedToken();
-                    break;
-                }
-
-                type = this.parseType();
-                if (type == null) {
-                    return null;
-                }
-                list.appendChild(type);
-                if (!this.eat(TokenKind.COMMA)) {
-                    break;
-                }
-            }
-            node.appendChild(list.withRange(type != null ? spanRanges(implementsToken.range, type.range) : implementsToken.range));
-        }
-
-        if (!this.expect(TokenKind.LEFT_BRACE)) {
-            return null;
-        }
-
-        while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
-            let childFlags = this.parseFlags();
-            let childName = this.current;
-            let oldKind = childName.kind;
-
-            // Support contextual keywords
-            if (isKeyword(childName.kind)) {
-                childName.kind = TokenKind.IDENTIFIER;
-                this.advance();
-            }
-
-            // The identifier must come first without any keyword
-            if (!this.expect(TokenKind.IDENTIFIER)) {
-                return null;
-            }
-
-            let text = childName.range.toString();
-
-            // Support operator definitions
-            if (text == "operator" && !this.peek(TokenKind.LEFT_PARENTHESIS) && !this.peek(TokenKind.IDENTIFIER)) {
-                childName.kind = TokenKind.OPERATOR;
-                this.current = childName;
-                if (this.parseFunction(childFlags, node) == null) {
-                    return null;
-                }
-                continue;
-            }
-
-            // Is there another identifier after the first one?
-            else if (this.peek(TokenKind.IDENTIFIER)) {
-                let isGet = text == "get";
-                let isSet = text == "set";
-
-                // The "get" and "set" flags are contextual
-                if (isGet || isSet) {
-                    childFlags = appendFlag(childFlags, isGet ? NODE_FLAG_GET : NODE_FLAG_SET, childName.range);
-
-                    // Get the real identifier
-                    childName = this.current;
-                    this.advance();
-                }
-
-                // Recover from an extra "function" token
-                else if (oldKind == TokenKind.FUNCTION) {
-                    this.log.error(childName.range, "Instance functions don't need the 'function' keyword");
-
-                    // Get the real identifier
-                    childName = this.current;
-                    this.advance();
-                }
-
-                // Recover from an extra variable tokens
-                else if (oldKind == TokenKind.CONST || oldKind == TokenKind.LET || oldKind == TokenKind.VAR) {
-                    this.log.error(childName.range, StringBuilder_new()
-                        .append("Instance variables don't need the '")
-                        .append(childName.range.toString())
-                        .append("' keyword")
-                        .finish());
-
-                    // Get the real identifier
-                    childName = this.current;
-                    this.advance();
-                }
-            }
-
-            // Function
-            if (this.peek(TokenKind.LEFT_PARENTHESIS) || this.peek(TokenKind.LESS_THAN)) {
-                this.current = childName;
-                if (this.parseFunction(childFlags, node) == null) {
-                    return null;
-                }
-            }
-
-            // Variable
-            else {
-                this.current = childName;
-                if (this.parseVariables(childFlags, node) == null) {
-                    return null;
-                }
-            }
-        }
-
-        let close = this.current;
-        if (!this.expect(TokenKind.RIGHT_BRACE)) {
-            return null;
-        }
-
-        return node.withRange(spanRanges(token.range, close.range)).withInternalRange(name.range);
-    }
-
     parseFunction(firstFlag: NodeFlag, parent: Node): Node {
         let isOperator = false;
         let token = this.current;
@@ -1515,7 +1352,6 @@ class ParserContext {
             if (this.eat(TokenKind.IMPORT)) flag = NODE_FLAG_IMPORT;
             else if (this.eat(TokenKind.DECLARE)) flag = NODE_FLAG_DECLARE;
             else if (this.eat(TokenKind.EXPORT)) flag = NODE_FLAG_EXPORT;
-            else if (this.eat(TokenKind.EXTERN)) flag = NODE_FLAG_EXTERN;
             else if (this.eat(TokenKind.PRIVATE)) flag = NODE_FLAG_PRIVATE;
             else if (this.eat(TokenKind.PROTECTED)) flag = NODE_FLAG_PROTECTED;
             else if (this.eat(TokenKind.PUBLIC)) flag = NODE_FLAG_PUBLIC;
@@ -1605,16 +1441,15 @@ class ParserContext {
     parseStatement(mode: StatementMode): Node {
         let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
 
-        // if (this.peek(TokenKind.IMPORT) && firstFlag == null) return this.parseImport();
-        if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe();
-        // if (this.peek(TokenKind.UNSAFE_TURBO) && firstFlag == null) return this.parseUnsafeTurbo();
+        // if (this.peek(TokenKind.IMPORT) && firstFlag == null) return this.parseImport(); //disabled or now
+        // if (this.peek(TokenKind.UNSAFE_TURBO) && firstFlag == null) return this.parseUnsafeTurbo(); // disabled for now
+        // if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe(); //disabled for now
         if (this.peek(TokenKind.START) && firstFlag == null) return this.parseStart();
         if (this.peek(TokenKind.CONST) || this.peek(TokenKind.LET) || this.peek(TokenKind.VAR)) return this.parseVariables(firstFlag, null);
         if (this.peek(TokenKind.FUNCTION)) return this.parseFunction(firstFlag, null);
         if (this.peek(TokenKind.VIRTUAL)) return this.parseVirtual(firstFlag);
         if (this.peek(TokenKind.MODULE)) return this.parseModule(firstFlag);
         if (this.peek(TokenKind.CLASS)) return this.parseClass(firstFlag);
-        if (this.peek(TokenKind.INTERFACE)) return this.parseInterface(firstFlag);
         if (this.peek(TokenKind.ENUM)) return this.parseEnum(firstFlag);
 
         // Definition modifiers need to be attached to a definition

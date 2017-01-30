@@ -1,3 +1,4 @@
+///<reference path="declarations.d.ts" />
 import {CheckContext, CheckMode, resolve, initialize} from "./checker";
 import {Node, NodeKind} from "./node";
 import {ByteArray} from "./bytearray";
@@ -12,11 +13,8 @@ import {cEmit} from "./c";
 import {jsEmit} from "./js";
 import {turboJsEmit} from "./turbojs";
 import {wasmEmit} from "./wasm";
-import {libraryTurbo} from "./libraryturbo";
-import {libraryWasm} from "./librarywasm";
-import {libraryDummy} from "./librarydummy";
 import {Library} from "./library/library";
-import {turboASMJsEmit} from "./turboasmjs";
+import {asmJsEmit} from "./asmjs";
 /**
  * Author: Nidin Vinayakan
  */
@@ -26,7 +24,6 @@ export enum CompileTarget {
     C,
     JAVASCRIPT,
     TURBO_JAVASCRIPT,
-    TURBO_ASMJS,
     ASMJS,
     WEBASSEMBLY,
 }
@@ -192,7 +189,7 @@ export class Compiler {
 
         stdlib.Profiler_begin("shaking");
 
-        //treeShaking(global);
+        treeShaking(global);
 
         stdlib.Profiler_end("shaking");
         stdlib.Profiler_begin("emitting");
@@ -210,11 +207,7 @@ export class Compiler {
         }
 
         else if (this.target == CompileTarget.ASMJS) {
-            // asmEmit(this);
-        }
-
-        else if (this.target == CompileTarget.TURBO_ASMJS) {
-            turboASMJsEmit(this);
+            asmJsEmit(this);
         }
 
         else if (this.target == CompileTarget.WEBASSEMBLY) {

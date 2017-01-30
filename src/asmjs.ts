@@ -1,19 +1,27 @@
-///<reference path="declarations.d.ts" />
-
-import {Symbol, SymbolKind, isFunction} from "./symbol";
-import {ByteArray, ByteArray_append32, ByteArray_set32, ByteArray_setString, ByteArray_set16} from "./bytearray";
 import {CheckContext} from "./checker";
-import {alignToNextMultipleOf} from "./imports";
-import {Node, NodeKind, isExpression, isUnary, isCompactNodeKind} from "./node";
-import {Type} from "./type";
-import {StringBuilder_new, StringBuilder} from "./stringbuilder";
-import {Compiler} from "./compiler";
+import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "./stringbuilder";
+import {
+    Node, isCompactNodeKind, isUnaryPostfix, NodeKind, invertedBinaryKind, NODE_FLAG_DECLARE,
+    NODE_FLAG_UNSAFE_TURBO
+} from "./node";
 import {Precedence} from "./parser";
-import {EmitBinary, jsKindCastsOperandsToInt} from "./js";
+import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
+import {SymbolKind, Symbol} from "./symbol";
+import {Compiler} from "./compiler";
+import {Type} from "./type";
 
 const ASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
 
-const debug: boolean = true;
+let optimization: uint8 = 0;
+let importMap: Map<string, any> = new Map<string, any>();
+let classMap: Map<string, any> = new Map<string, any>();
+let functionMap: Map<string, any> = new Map<string, any>();
+let signatureMap: Map<number, any> = new Map<number, any>();
+let virtualMap: Map<string, any> = new Map<string, any>();
+let currentClass: string;
+let turboTargetPointer: string; //to store temporary pointer for variable access rewrite
+let namespace: string = "";
+let exportTable: string[] = [];
 
 enum AsmType {
     VOID,
@@ -29,27 +37,6 @@ enum AsmType {
     EXTERN,
 }
 
-enum AsmSection {
-    Type = 1, //Function signature declarations
-    Import = 2, //Import declarations
-    Function = 3, //Function declarations
-    Table = 4, //Indirect function table and other tables
-    Memory = 5, //Memory attributes
-    Global = 6, //Global declarations
-    Export = 7, //Exports
-    Start = 8, //Start function declaration
-    Element = 9, //Elements section
-    Code = 10, //Function bodies (code)
-    Data = 11, //Data segments
-}
-
-enum AsmExternalKind {
-    Function = 0,
-    Table = 1,
-    Memory = 2,
-    Global = 3,
-}
-
 class AsmWrappedType {
     id: AsmType;
     next: AsmWrappedType;
@@ -61,35 +48,6 @@ class AsmSignature {
     next: AsmSignature;
 }
 
-function asmAreSignaturesEqual(a: AsmSignature, b: AsmSignature): boolean {
-    assert(a.returnType != null);
-    assert(b.returnType != null);
-    assert(a.returnType.next == null);
-    assert(b.returnType.next == null);
-
-    let x = a.argumentTypes;
-    let y = b.argumentTypes;
-
-    while (x != null && y != null) {
-        if (x.id != y.id) {
-            return false;
-        }
-
-        x = x.next;
-        y = y.next;
-    }
-
-    if (x != null || y != null) {
-        return false;
-    }
-
-    if (a.returnType.id != b.returnType.id) {
-        return false;
-    }
-
-    return true;
-}
-
 class AsmGlobal {
     symbol: Symbol;
     next: AsmGlobal;
@@ -98,6 +56,11 @@ class AsmGlobal {
 class AsmLocal {
     symbol: Symbol;
     next: AsmLocal;
+}
+
+class AsmSharedOffset {
+    nextLocalOffset: int32 = 0;
+    localCount: int32 = 0;
 }
 
 class AsmFunction {
@@ -117,7 +80,11 @@ class AsmImport {
     next: AsmImport;
 }
 
-class AsmModule {
+export class AsmJsModule {
+    context: CheckContext;
+    code: StringBuilder;
+    foundMultiply: boolean;
+    previousNode: Node;
 
     firstImport: AsmImport;
     lastImport: AsmImport;
@@ -135,45 +102,11 @@ class AsmModule {
     signatureCount: int32 = 0;
 
     memoryInitializer: ByteArray;
-    currentHeapPointer: int32;
-    originalHeapPointer: int32;
-    mallocFunctionIndex: int32;
-    freeFunctionIndex: int32;
-    startFunctionIndex: int32;
-    context: CheckContext;
-    previousNode: Node;
-    code: StringBuilder;
-
-    constructor() {
-
-    }
-
-    getAsmType(type: Type): AsmType {
-        let context = this.context;
-
-        if (type == context.booleanType || type.isInteger() || type.isReference()) {
-            return AsmType.INT;
-        }
-
-        else if (type.isLong() || type.isReference()) {
-            return AsmType.INT; // We don't have native I64 and we will not emulate it.
-        }
-
-        else if (type.isDouble()) {
-            return AsmType.DOUBLE;
-        }
-
-        else if (type.isFloat()) {
-            return AsmType.FLOAT;
-        }
-
-        if (type == context.voidType) {
-            return AsmType.VOID;
-        }
-
-        assert(false);
-        return AsmType.VOID;
-    }
+    currentHeapPointer: int32 = -1;
+    originalHeapPointer: int32 = -1;
+    mallocFunctionIndex: int32 = -1;
+    freeFunctionIndex: int32 = -1;
+    startFunctionIndex: int32 = -1;
 
     emitNewlineBefore(node: Node): void {
         if (this.previousNode != null && (!isCompactNodeKind(this.previousNode.kind) || !isCompactNodeKind(node.kind))) {
@@ -186,505 +119,84 @@ class AsmModule {
         this.previousNode = node;
     }
 
-    growMemoryInitializer(): void {
-        let array = this.memoryInitializer;
-        let current = array.length;
-        let length = this.context.nextGlobalVariableOffset;
+    // emitGlobalDeclarations(): void {
+    //
+    //     if (!this.firstGlobal) {
+    //         return;
+    //     }
+    //
+    //     let global = this.firstGlobal;
+    //     while (global) {
+    //         let dataType: AsmType = typeToAsmType(global.symbol.resolvedType);
+    //         let value = global.symbol.node.variableValue();
+    //         global = global.next;
+    //     }
+    // }
 
-        while (current < length) {
-            array.append(0);
-            current = current + 1;
-        }
-    }
-
-    allocateImport(signatureIndex: int32, mod: string, name: string): AsmImport {
-        let result = new AsmImport();
-        result.signatureIndex = signatureIndex;
-        result.module = mod;
-        result.name = name;
-
-        if (this.firstImport == null) this.firstImport = result;
-        else this.lastImport.next = result;
-        this.lastImport = result;
-
-        this.importCount = this.importCount + 1;
-        return result;
-    }
-
-    allocateGlobal(symbol: Symbol): AsmGlobal {
-        let global = new AsmGlobal();
-        global.symbol = symbol;
-        symbol.offset = this.globalCount;
-
-        if (this.firstGlobal == null) this.firstGlobal = global;
-        else this.lastGlobal.next = global;
-        this.lastGlobal = global;
-
-        this.globalCount = this.globalCount + 1;
-        return global;
-    }
-
-    allocateFunction(symbol: Symbol, signatureIndex: int32): AsmFunction {
-        let fn = new AsmFunction();
-        fn.symbol = symbol;
-        fn.signatureIndex = signatureIndex;
-
-        if (this.firstFunction == null) this.firstFunction = fn;
-        else this.lastFunction.next = fn;
-        this.lastFunction = fn;
-
-        this.functionCount = this.functionCount + 1;
-        return fn;
-    }
-
-    allocateSignature(argumentTypes: AsmWrappedType, returnType: AsmWrappedType): int32 {
-        assert(returnType != null);
-        assert(returnType.next == null);
-
-        let signature = new AsmSignature();
-        signature.argumentTypes = argumentTypes;
-        signature.returnType = returnType;
-
-        let check = this.firstSignature;
-        let i = 0;
-
-        while (check != null) {
-            if (asmAreSignaturesEqual(signature, check)) {
-                return i;
-            }
-
-            check = check.next;
-            i = i + 1;
-        }
-
-        if (this.firstSignature == null) this.firstSignature = signature;
-        else this.lastSignature.next = signature;
-        this.lastSignature = signature;
-
-        this.signatureCount = this.signatureCount + 1;
-        return i;
-    }
-
-    emitModule(): void {
-
-        this.emitGlobalDeclarations(this.code);
-        // this.emitTables(array);
-        // this.emitSignatures(array);
-        // this.emitImportTable(array);
-        // this.emitFunctionDeclarations(array);
-        // this.emitMemory(array);
-        // this.emitExportTable(array);
-        // this.emitStartFunctionDeclaration(array);
-        // this.emitElements(array);
-        // this.emitFunctionBodies(array);
-        // this.emitDataSegments(array);
-        // this.emitNames(array);
-    }
-
-    emitGlobalDeclarations(code: StringBuilder): void {
-
-        if (!this.firstGlobal) {
+    emitImports() {
+        if (!this.firstImport) {
             return;
         }
 
-        let global = this.firstGlobal;
-        while (global) {
-            let dataType: AsmType = typeToAsmType(global.symbol.resolvedType);
-            let value = global.symbol.node.variableValue();
-
-            if (value) {
-                if (value.rawValue) {
-                    code.append(`var ${global.symbol.name} = `);
-                    switch (dataType) {
-                        case AsmType.INT:
-                            code.append(`${value.rawValue}|0;`);
-                            break;
-                        case AsmType.FLOAT:
-                            code.append(`Math.fround(${value.rawValue});`);
-                            break;
-                        case AsmType.DOUBLE:
-                            code.append(`+${value.rawValue};`);
-                            break;
-                    } //const value
-                } else {
-                    this.emitNode(code, value); //const value
-                }
-            } else {
-                section.data.writeUnsignedLEB128(AsmOpcode[`${dataType}_CONST`]);
-                section.data.writeUnsignedLEB128(0); //const value
-            }
-            section.data.writeUnsignedLEB128(AsmOpcode.END);
-            global = global.next;
-        }
-
-        asmFinishSection(code, section);
-    }
-
-    emitExportTable(code: StringBuilder): void {
-        let i = 0;
-        let fn = this.firstFunction;
-        while (fn != null) {
-            if (fn.isExported) {
-                code.append(`${fn.symbol.name}:${fn.symbol.name},`);
-            }
-            fn = fn.next;
-            i = i + 1;
+        let _import: AsmImport = this.firstImport;
+        while (_import) {
+            let importName = _import.module + "_" + _import.name;
+            this.code.append(`var ${importName} = global.${_import.module}.${_import.name};\n`);
+            _import = _import.next;
         }
     }
 
-    emitFunctionBodies(code: StringBuilder): void {
-        if (!this.firstFunction) {
-            return;
-        }
-        let offset = array.position;
-        let section = asmStartSection(code, AsmSection.Code, "function_bodies");
-        log(section.data, this.functionCount, "num functions");
-        section.data.writeUnsignedLEB128(this.functionCount);
-        let count = 0;
-        let fn = this.firstFunction;
-        while (fn != null) {
-            let sectionOffset = offset + section.data.position;
-            let bodyData: ByteArray = new ByteArray();
-            if (fn.localCount > 0) {
-                let local = fn.firstLocal;
-                while (local) {
-                    let asmType: AsmType = symbolToValueType(local.symbol);
-                    log(bodyData, sectionOffset, asmType, AsmType[asmType]);
-                    bodyData.append(asmType); //value_type
-                    local = local.next;
-                    code.append(`var ${local.symbol.name} = ${symbolToIdentifier(local.symbol)}`);
-                }
-
-            } else {
-                bodyData.writeUnsignedLEB128(0);
-            }
-
-            let child = fn.symbol.node.functionBody().firstChild;
-            while (child != null) {
-                this.emitNode(code, child);
-                child = child.nextSibling;
-            }
-
-            //Copy and finish body
-            section.data.writeUnsignedLEB128(bodyData.length);
-            log(section.data, null, ` - function body ${count++} (${fn.symbol.name})`);
-            log(section.data, bodyData.length, "func body size");
-            section.data.log += bodyData.log;
-            section.data.copy(bodyData);
-
-            fn = fn.next;
-        }
-
-        asmFinishSection(code, section);
-    }
-
-    emitDataSegments(code: StringBuilder): void {
-        this.growMemoryInitializer();
-        let memoryInitializer = this.memoryInitializer;
-        let initializerLength = memoryInitializer.length;
-        let initialHeapPointer = alignToNextMultipleOf(ASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
-
-        // Pass the initial heap pointer to the "malloc" function
-        memoryInitializer.writeUnsignedInt(initialHeapPointer, this.originalHeapPointer);
-        memoryInitializer.writeUnsignedInt(initialHeapPointer, this.currentHeapPointer);
-
-        //data, sequence of size bytes
-        // Copy the entire memory initializer (also includes zero-initialized data for now)
-        let i = 0;
-        let value;
-        code.append(`var DATA_SEGMENT = new Uint8Array([`);
-        while (i < initializerLength) {
-            value = memoryInitializer.get(i);
-            code.append(`${value}${i < initializerLength - 1 ? "," : ""}`);
-            i++;
-        }
-        code.append(`];`);
-    }
-
-    prepareToEmit(node: Node): void {
-        if (node.kind == NodeKind.STRING) {
-            let text = node.stringValue;
-            let length = text.length;
-            let offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
-            node.intValue = offset;
-            this.growMemoryInitializer();
-            let memoryInitializer = this.memoryInitializer;
-
-            // Emit a length-prefixed string
-            ByteArray_set32(memoryInitializer, length);
-            ByteArray_setString(memoryInitializer, offset + 4, text);
-        }
-
-        else if (node.kind == NodeKind.VARIABLE) {
-            let symbol = node.symbol;
-
-            if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                let sizeOf = symbol.resolvedType.variableSizeOf(this.context);
-                let value = symbol.node.variableValue();
-                let memoryInitializer = this.memoryInitializer;
-
-                // Copy the initial value into the memory initializer
-                this.growMemoryInitializer();
-
-                let offset = symbol.offset;
-                // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
-                // symbol.byteOffset = offset;
-
-                if (sizeOf == 1) {
-                    if (symbol.resolvedType.isUnsigned()) {
-                        memoryInitializer.writeUnsignedByte(value.intValue, offset);
-                    } else {
-                        memoryInitializer.writeByte(value.intValue, offset);
-                    }
-                }
-                else if (sizeOf == 2) {
-                    if (symbol.resolvedType.isUnsigned()) {
-                        memoryInitializer.writeUnsignedShort(value.intValue, offset);
-                    } else {
-                        memoryInitializer.writeShort(value.intValue, offset);
-                    }
-                }
-                else if (sizeOf == 4) {
-                    if (symbol.resolvedType.isFloat()) {
-                        memoryInitializer.writeFloat(value.floatValue, offset);
-                    } else {
-                        if (symbol.resolvedType.isUnsigned()) {
-                            memoryInitializer.writeUnsignedInt(value.intValue, offset);
-                        } else {
-                            memoryInitializer.writeInt(value.intValue, offset);
-                        }
-                    }
-                }
-                else if (sizeOf == 8) {
-                    if (symbol.resolvedType.isDouble()) {
-                        memoryInitializer.writeDouble(value.rawValue, offset);
-                    } else {
-                        //TODO Implement Int64 write
-                        if (symbol.resolvedType.isUnsigned()) {
-                            //memoryInitializer.writeUnsignedInt64(value.rawValue, offset);
-                        } else {
-                            //memoryInitializer.writeInt64(value.rawValue, offset);
-                        }
-                    }
-                }
-                else assert(false);
-
-                //let global = this.allocateGlobal(symbol);// Since
-
-                // Make sure the heap offset is tracked
-                if (symbol.name == "currentHeapPointer") {
-                    assert(this.currentHeapPointer == -1);
-                    this.currentHeapPointer = symbol.offset;
-                }
-
-                // Make sure the heap offset is tracked
-                else if (symbol.name == "originalHeapPointer") {
-                    assert(this.originalHeapPointer == -1);
-                    this.originalHeapPointer = symbol.offset;
-                }
-            }
-        }
-
-        else if (node.kind == NodeKind.FUNCTION) {
-
-            let returnType = node.functionReturnType();
-            let shared = new AsmSharedOffset();
-            let argumentTypesFirst: AsmWrappedType = null;
-            let argumentTypesLast: AsmWrappedType = null;
-
-            // Make sure to include the implicit "this" variable as a normal argument
-            let argument = node.functionFirstArgument();
-            while (argument != returnType) {
-                let type = asmWrapType(this.getAsmType(argument.variableType().resolvedType));
-
-                if (argumentTypesFirst == null) argumentTypesFirst = type;
-                else argumentTypesLast.next = type;
-                argumentTypesLast = type;
-
-                shared.nextLocalOffset = shared.nextLocalOffset + 1;
-                argument = argument.nextSibling;
-            }
-            let signatureIndex = this.allocateSignature(argumentTypesFirst, asmWrapType(this.getAsmType(returnType.resolvedType)));
-            let body = node.functionBody();
-            let symbol = node.symbol;
-
-            // Functions without bodies are imports
-            if (body == null) {
-                let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
-                symbol.offset = this.importCount;
-                this.allocateImport(signatureIndex, moduleName, symbol.name);
-                node = node.nextSibling;
-                return;
-            }
-
-            symbol.offset = this.functionCount;
-            let fn = this.allocateFunction(symbol, signatureIndex);
-
-            // Make sure "malloc" is tracked
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
-                assert(this.mallocFunctionIndex == -1);
-                this.mallocFunctionIndex = symbol.offset;
-            }
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "free") {
-                assert(this.freeFunctionIndex == -1);
-                this.freeFunctionIndex = symbol.offset;
-            }
-
-            // Make "init_malloc" as start function
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "init_malloc") {
-                assert(this.startFunctionIndex == -1);
-                this.startFunctionIndex = symbol.offset;
-            }
-
-            if (node.isExport()) {
-                fn.isExported = true;
-            }
-
-            // Assign local variable offsets
-            asmAssignLocalVariableOffsets(fn, body, shared);
-            fn.localCount = shared.localCount;
-        }
-
-        let child = node.firstChild;
-        while (child != null) {
-            this.prepareToEmit(child);
-            child = child.nextSibling;
+    emitStatements(node: Node): void {
+        while (node != null) {
+            this.emitStatement(node);
+            node = node.nextSibling;
         }
     }
 
-    emitConstructor(code: StringBuilder, node: Node): void {
-        let constructorNode = node.constructorNode();
-        let callSymbol = constructorNode.symbol;
-        let child = node.firstChild.nextSibling;
-        while (child != null) {
-            this.emitNode(code, child);
-            child = child.nextSibling;
-        }
-        appendOpcode(code, AsmOpcode.CALL);
-        array.writeUnsignedLEB128(callSymbol.offset);
-    }
-
-    emitLoadFromMemory(code: StringBuilder, type: Type, relativeBase: Node, offset: int32): void {
-        let heapType;
-        let address: string | number = 0;
-        // Relative address
-        if (relativeBase != null) {
-            address = this.emitNode(code, relativeBase);
-        }
-
-        address = `address + ${offset}`;
-
-        let sizeOf = type.variableSizeOf(this.context);
-
-        if (sizeOf == 1) {
-            heapType = type.isUnsigned() ? "U8" : "8";
-            code.append(`HEAP${heapType}[${address}]`);
-        }
-
-        else if (sizeOf == 2) {
-            heapType = type.isUnsigned() ? "U16" : "16";
-            code.append(`HEAP${heapType}[${address}]`);
-        }
-
-        else if (sizeOf == 4) {
-
-            heapType = type.isFloat() ? "F32" : (type.isUnsigned() ? "U32" : "I32");
-            code.append(`HEAP${heapType}[${address}]`);
-        }
-
-        else if (sizeOf == 8) {
-
-            code.append(`HEAPF64[${address}]`);
-        }
-
-        else {
-            assert(false);
-        }
-
-    }
-
-    emitStoreToMemory(code: StringBuilder, type: Type, relativeBase: Node, offset: int32, value: Node): void {
-        let heapType;
-        let address: string | number = 0;
-        // Relative address
-        if (relativeBase != null) {
-            address = this.emitNode(code, relativeBase);
-        }
-
-        address = `${address} + ${offset}`;
-
-        let sizeOf = type.variableSizeOf(this.context);
-
-        let valueRef = this.emitNode(code, value);
-
-        if (sizeOf == 1) {
-            heapType = type.isUnsigned() ? "U8" : "8";
-            code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
-        }
-
-        else if (sizeOf == 2) {
-            heapType = type.isUnsigned() ? "U16" : "16";
-            code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
-        }
-
-        else if (sizeOf == 4) {
-
-            if (type.isFloat()) {
-                code.append(`HEAPF32[${address}] = Math.fround(${valueRef})`);
-            } else {
-                heapType = type.isUnsigned() ? "U32" : "I32";
-                code.append(`HEAP${heapType}[${address}] = ${valueRef}|0`);
-            }
-        }
-
-        else if (sizeOf == 8) {
-
-            code.append(`HEAPF64[${address}] = +${valueRef}`);
-        }
-
-        else {
-            assert(false);
-        }
-    }
-
-    emitBlock(code: StringBuilder, node: Node, needBraces: boolean): void {
+    emitBlock(node: Node, needBraces: boolean): void {
         this.previousNode = null;
         if (needBraces) {
-            code.append("{\n", 1);
+            this.code.append("{\n", 1);
         }
 
-        this.emitNode(code, node.firstChild);
+        this.emitStatements(node.firstChild);
 
         if (needBraces) {
-            code.clearIndent(1);
-            code.append("}");
-            code.indent -= 1;
+            this.code.clearIndent(1);
+            this.code.append("}");
+            this.code.indent -= 1;
         }
         this.previousNode = null;
     }
 
-    emitUnary(code: StringBuilder, node: Node, parentPrecedence: Precedence, operator: string): void {
+    emitUnary(node: Node, parentPrecedence: Precedence, operator: string, forceCast: boolean = false, castToDouble: boolean = false): void {
         let isPostfix = isUnaryPostfix(node.kind);
         let shouldCastToInt = !node.resolvedType.isFloat() && node.kind == NodeKind.NEGATIVE && !jsKindCastsOperandsToInt(node.parent.kind);
         let isUnsigned = node.isUnsignedOperator();
         let operatorPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : isPostfix ? Precedence.UNARY_POSTFIX : Precedence.UNARY_PREFIX;
 
+        let identifier = getIdentifier(node, castToDouble);
+
         if (parentPrecedence > operatorPrecedence) {
             this.code.append("(");
+        }
+
+        if (forceCast) {
+            this.code.append(identifier.left);
         }
 
         if (!isPostfix) {
             this.code.append(operator);
         }
 
-        this.emitExpression(node.unaryValue(), operatorPrecedence);
+        this.emitExpression(node.unaryValue(), operatorPrecedence, forceCast, castToDouble);
 
         if (isPostfix) {
             this.code.append(operator);
         }
 
-        if (shouldCastToInt) {
-            this.code.append(isUnsigned ? " >>> 0" : " | 0");
+        if (forceCast) {
+            this.code.append(identifier.right);
         }
 
         if (parentPrecedence > operatorPrecedence) {
@@ -692,46 +204,48 @@ class AsmModule {
         }
     }
 
-    emitBinary(code: StringBuilder, node: Node, parentPrecedence: Precedence, operator: string, operatorPrecedence: Precedence, mode: EmitBinary): void {
+    emitBinary(node: Node, parentPrecedence: Precedence, operator: string, operatorPrecedence: Precedence, forceCast: boolean = false, castToDouble: boolean = false): void {
         let isRightAssociative = node.kind == NodeKind.ASSIGN;
-        let isUnsigned = node.isUnsignedOperator();
 
-        // Avoid casting when the parent operator already does a cast
-        let shouldCastToInt = mode == EmitBinary.CAST_TO_INT && (isUnsigned || !jsKindCastsOperandsToInt(node.parent.kind));
-        let selfPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : parentPrecedence;
+        //TODO: Avoid casting when the parent operator already does a cast
 
-        if (parentPrecedence > selfPrecedence) {
-            code.append("(");
+        let identifier = getIdentifier(node, castToDouble);
+
+        if (parentPrecedence > operatorPrecedence) {
+            this.code.append("(");
         }
 
-        if (selfPrecedence > operatorPrecedence) {
-            code.append("(");
+        if (!isRightAssociative && forceCast) {
+            this.code.append(identifier.left);
         }
 
-        this.emitNode(code, node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) as Precedence : operatorPrecedence);
-        code.append(operator);
-        this.emitNode(code, node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1) as Precedence);
+        this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) as Precedence : operatorPrecedence, forceCast && !isRightAssociative, castToDouble);
 
-        if (selfPrecedence > operatorPrecedence) {
-            code.append(")");
+        this.code.append(operator);
+
+        if (isRightAssociative && forceCast) {
+            this.code.append(identifier.left);
         }
 
-        if (shouldCastToInt) {
-            code.append(isUnsigned ? " >>> 0" : " | 0");
+        this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1) as Precedence, forceCast, castToDouble);
+
+        if (forceCast) {
+            this.code.append(identifier.right);
         }
 
-        if (parentPrecedence > selfPrecedence) {
-            code.append(")");
+        if (parentPrecedence > operatorPrecedence) {
+            this.code.append(")");
         }
+
     }
 
-    emitCommaSeparatedExpressions(code: StringBuilder, start: Node, stop: Node, needComma: boolean = false): void {
+    emitCommaSeparatedExpressions(start: Node, stop: Node, needComma: boolean = false, castToDouble: boolean = false): void {
         while (start != stop) {
             if (needComma) {
                 this.code.append(" , ");
                 needComma = false;
             }
-            this.emitExpression(start, Precedence.LOWEST);
+            this.emitExpression(start, Precedence.LOWEST, true, castToDouble);
             start = start.nextSibling;
 
             if (start != stop) {
@@ -740,20 +254,584 @@ class AsmModule {
         }
     }
 
-    emitSymbolName(code: StringBuilder, symbol: Symbol): string {
-        let name = symbol.rename != null ? symbol.rename : symbol.name;
-        code.append(name);
-        return name;
-    }
+    emitExpression(node: Node, parentPrecedence: Precedence, forceCast: boolean = false, castToDouble: boolean = false): void {
 
-    emitStatements(code: StringBuilder, node: Node): void {
-        while (node != null) {
-            this.emitStatement(node);
-            node = node.nextSibling;
+        if (node.kind == NodeKind.NAME) {
+            let symbol = node.symbol;
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
+                this.code.append("global.");
+            }
+            if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
+                this.emitLoadFromMemory(symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.offset);
+            } else {
+                if (forceCast) {
+
+                    if (castToDouble || symbol.resolvedType.isDouble()) {
+                        this.code.append("(+");
+                        this.emitSymbolName(symbol);
+                        this.code.append(")");
+                    }
+
+                    else if (symbol.resolvedType.isFloat()) {
+                        this.code.append("fround(");
+                        this.emitSymbolName(symbol);
+                        this.code.append(")");
+                    }
+
+                    else {
+                        this.code.append("(");
+                        this.emitSymbolName(symbol);
+                        this.code.append("|0)");
+                    }
+
+                } else {
+                    this.code.append(symbol.name == "this" ? "ptr" : symbol.name);
+                    // this.emitSymbolName(symbol);
+                }
+            }
+        }
+
+        else if (node.kind == NodeKind.NULL) {
+            this.code.append("0");
+        }
+
+        else if (node.kind == NodeKind.UNDEFINED) {
+            this.code.append("undefined");
+        }
+
+        else if (node.kind == NodeKind.BOOLEAN) {
+            this.code.append(node.intValue != 0 ? "1" : "0");
+        }
+
+        else if (node.kind == NodeKind.INT32 || node.kind == NodeKind.INT64) {
+            // if (parentPrecedence == Precedence.MEMBER) {
+            //     this.code.append("(");
+            // }
+            if (castToDouble) {
+                this.code.append(`(+${node.intValue})`);
+            }
+            else if (parentPrecedence != Precedence.ASSIGN) {
+                this.code.append(`(${node.intValue}|0)`);
+            }
+            else {
+                this.code.append(`${node.intValue}`);
+            }
+
+            // if (parentPrecedence == Precedence.MEMBER) {
+            //     this.code.append(")");
+            // }
+        }
+
+        else if (node.kind == NodeKind.FLOAT32) {
+            if (parentPrecedence == Precedence.MEMBER) {
+                this.code.append("(");
+            }
+
+            if (castToDouble) {
+                if (node.floatValue - (node.floatValue | 0) == 0) {
+                    this.code.append(`${node.floatValue}.0`);
+                } else {
+                    this.code.append(`${node.floatValue}`);
+                }
+            }
+            else {
+                this.code.append(`fround(${node.floatValue})`);
+            }
+
+            if (parentPrecedence == Precedence.MEMBER) {
+                this.code.append(")");
+            }
+        }
+
+        else if (node.kind == NodeKind.FLOAT64) {
+            if (parentPrecedence == Precedence.MEMBER) {
+                this.code.append("(");
+            }
+
+            if (node.floatValue - (node.floatValue | 0) == 0) {
+                this.code.append(`${node.floatValue}.0`);
+            } else {
+                this.code.append(`${node.floatValue}`);
+            }
+
+            if (parentPrecedence == Precedence.MEMBER) {
+                this.code.append(")");
+            }
+        }
+
+        else if (node.kind == NodeKind.STRING) {
+            this.code.append(`\`${node.stringValue}\``);
+        }
+
+        else if (node.kind == NodeKind.CAST) {
+            let context = this.context;
+            let value = node.castValue();
+            let from = value.resolvedType.underlyingType(context);
+            let type = node.resolvedType.underlyingType(context);
+            let fromSize = from.variableSizeOf(context);
+            let typeSize = type.variableSizeOf(context);
+
+            // The cast isn't needed if it's to a wider integer type
+            // if (from == type || fromSize < typeSize) {
+            //     this.emitExpression(value, parentPrecedence);
+            // }
+            //
+            // else {
+            // Sign-extend
+            if (type == context.sbyteType || type == context.shortType) {
+                if (parentPrecedence > Precedence.SHIFT) {
+                    this.code.append("(");
+                }
+
+                let shift = (32 - typeSize * 8).toString();
+                this.emitExpression(value, Precedence.SHIFT, forceCast);
+                this.code.append(" << ");
+                this.code.append(shift);
+                this.code.append(" >> ");
+                this.code.append(shift);
+
+                if (parentPrecedence > Precedence.SHIFT) {
+                    this.code.append(")");
+                }
+            }
+
+            // Mask
+            else if (type == context.byteType || type == context.ushortType) {
+                if (parentPrecedence > Precedence.BITWISE_AND) {
+                    this.code.append("(");
+                }
+
+                this.emitExpression(value, Precedence.BITWISE_AND, forceCast);
+                this.code.append(" & ");
+                this.code.append(type.integerBitMask(context).toString());
+
+                if (parentPrecedence > Precedence.BITWISE_AND) {
+                    this.code.append(")");
+                }
+            }
+
+            // Truncate signed
+            else if (type == context.int32Type) {
+                if (parentPrecedence > Precedence.BITWISE_OR) {
+                    this.code.append("(");
+                }
+
+                this.emitExpression(value, Precedence.BITWISE_OR, forceCast);
+                this.code.append(" | 0");
+
+                if (parentPrecedence > Precedence.BITWISE_OR) {
+                    this.code.append(")");
+                }
+            }
+
+            // Truncate unsigned
+            else if (type == context.uint32Type) {
+                // if (parentPrecedence > Precedence.SHIFT) {
+                //     this.code.append("(");
+                // }
+
+                this.emitExpression(value, Precedence.SHIFT, forceCast);
+                // this.code.append("|0");
+                //
+                // if (parentPrecedence > Precedence.SHIFT) {
+                //     this.code.append(")");
+                // }
+            }
+
+            // No cast needed
+            else {
+                this.emitExpression(value, parentPrecedence, forceCast);
+            }
+            // }
+        }
+
+        else if (node.kind == NodeKind.DOT) {
+            let dotTarget = node.dotTarget();
+            let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
+            let targetSymbolName: string;
+
+            if (dotTarget.symbol) {
+                targetSymbolName = dotTarget.symbol.name;
+            } else {
+                targetSymbolName = "(::unknown::)";
+            }
+
+            let resolvedNode = null;
+
+            if (node.resolvedType.pointerTo) {
+                resolvedNode = node.resolvedType.pointerTo.symbol.node;
+            } else {
+                resolvedNode = node.resolvedType.symbol.node;
+            }
+
+            let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
+
+            if (node.symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
+                this.emitLoadFromMemory(node.symbol.resolvedType, node.dotTarget(), node.symbol.offset);
+            }
+
+            else if (node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+                turboTargetPointer = ref;
+                this.code.append(resolvedTargetNode.stringValue);
+                this.code.append("_");
+                this.emitSymbolName(node.symbol);
+            }
+
+            else {
+                this.emitExpression(dotTarget, Precedence.MEMBER);
+                this.code.append(".");
+                this.emitSymbolName(node.symbol);
+            }
+
+        }
+
+        else if (node.kind == NodeKind.HOOK) {
+            if (parentPrecedence > Precedence.ASSIGN) {
+                this.code.append("(");
+            }
+
+            this.emitExpression(node.hookValue(), Precedence.LOGICAL_OR);
+            this.code.append(" ? ");
+            this.emitExpression(node.hookTrue(), Precedence.ASSIGN);
+            this.code.append(" : ");
+            this.emitExpression(node.hookFalse(), Precedence.ASSIGN);
+
+            if (parentPrecedence > Precedence.ASSIGN) {
+                this.code.append(")");
+            }
+        }
+
+        else if (node.kind == NodeKind.INDEX) {
+            let value = node.indexTarget();
+            this.emitExpression(value, Precedence.UNARY_POSTFIX);
+            this.code.append("[");
+            this.emitCommaSeparatedExpressions(value.nextSibling, null);
+            this.code.append("]");
+        }
+
+        else if (node.kind == NodeKind.CALL) {
+            if (node.expandCallIntoOperatorTree()) {
+                this.emitExpression(node, parentPrecedence);
+            }
+
+            else {
+                let value = node.callValue();
+                let fn = functionMap.get(value.symbol.name);
+                let signature;
+                let isImported = false;
+                let isMath = false;
+                let importedFnName = "";
+
+                if (value.symbol.node.isDeclare() && value.symbol.node.parent.isImport()) {
+                    let moduleName = value.symbol.node.parent.symbol.name;
+                    let fnName = value.symbol.name;
+                    isMath = moduleName == "Math";
+                    importedFnName = moduleName + "_" + fnName;
+                    let asmImport: AsmImport = importMap.get(moduleName + "." + fnName);
+                    signature = signatureMap.get(asmImport.signatureIndex);
+                    isImported = true;
+                } else {
+                    signature = signatureMap.get(fn.signatureIndex);
+                }
+
+                let returnType = signature.returnType;
+                let identifier = null;
+                if (returnType.id != AsmType.VOID) {
+                    identifier = asmTypeToIdentifier(returnType.id);
+                    this.code.append(identifier.left);
+                }
+
+                if (isImported) {
+                    this.code.append(importedFnName);
+                } else {
+                    this.emitExpression(value, Precedence.UNARY_POSTFIX);
+                }
+
+                if (value.symbol == null || !value.symbol.isGetter()) {
+                    this.code.append("(");
+                    let needComma = false;
+                    if (node.firstChild) {
+                        let firstNode = node.firstChild.resolvedType.symbol.node;
+                        if (!firstNode.isDeclare() && node.firstChild.firstChild && turboTargetPointer) {
+                            this.code.append(`${turboTargetPointer}`);
+                            needComma = true;
+                        }
+                    }
+                    this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma, isMath);
+                    this.code.append(")");
+                    if (identifier) {
+                        this.code.append(identifier.right);
+                    }
+                }
+            }
+        }
+
+        else if (node.kind == NodeKind.NEW) {
+            let resolvedNode = node.resolvedType.symbol.node;
+            let type = node.newType();
+            let size = type.resolvedType.allocationSizeOf(this.context);
+            assert(size > 0);
+            // Pass the object size as the first argument
+            //this.code.append(`malloc(${size}|0)`);//TODO: access functions from function table using function index
+            // this.code.append(`${node.resolvedType.symbol.name}_new(`);
+            // this.code.append(`);`);
+            this.emitConstructor(node);
+        }
+
+        else if (node.kind == NodeKind.NOT) {
+            let value = node.unaryValue();
+
+            // Automatically invert operators for readability
+            value.expandCallIntoOperatorTree();
+            let invertedKind = invertedBinaryKind(value.kind);
+
+            if (invertedKind != value.kind) {
+                value.kind = invertedKind;
+                this.emitExpression(value, parentPrecedence);
+            }
+
+            else {
+                this.emitUnary(node, parentPrecedence, "!");
+            }
+        }
+
+        else if (node.kind == NodeKind.COMPLEMENT) this.emitUnary(node, parentPrecedence, "~");
+        else if (node.kind == NodeKind.NEGATIVE) this.emitUnary(node, parentPrecedence, "-");
+        else if (node.kind == NodeKind.POSITIVE) this.emitUnary(node, parentPrecedence, "+");
+        else if (node.kind == NodeKind.PREFIX_INCREMENT) this.emitUnary(node, parentPrecedence, "++");
+        else if (node.kind == NodeKind.PREFIX_DECREMENT) this.emitUnary(node, parentPrecedence, "--");
+        else if (node.kind == NodeKind.POSTFIX_INCREMENT) this.emitUnary(node, parentPrecedence, "++");
+        else if (node.kind == NodeKind.POSTFIX_DECREMENT) this.emitUnary(node, parentPrecedence, "--");
+
+        else if (node.kind == NodeKind.ADD) {
+            this.emitBinary(node, parentPrecedence, " + ", Precedence.ADD, forceCast, castToDouble);
+        }
+        else if (node.kind == NodeKind.ASSIGN) {
+            let left = node.binaryLeft();
+            let right = node.binaryRight();
+            let symbol = left.symbol;
+
+            if (left.kind == NodeKind.DEREFERENCE) {
+                this.emitStoreToMemory(left.resolvedType.underlyingType(this.context), left.unaryValue(), 0, right);
+            }
+            else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
+                this.emitStoreToMemory(symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.offset, right);
+            }
+            else if (symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
+                this.emitStoreToMemory(symbol.resolvedType, left.dotTarget(), symbol.offset, right);
+            }
+            else {
+                this.emitBinary(node, parentPrecedence, " = ", Precedence.ASSIGN, true, castToDouble);
+            }
+        }
+        else if (node.kind == NodeKind.BITWISE_AND) {
+            this.emitBinary(node, parentPrecedence, " & ", Precedence.BITWISE_AND, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.BITWISE_OR) {
+            this.emitBinary(node, parentPrecedence, " | ", Precedence.BITWISE_OR, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.BITWISE_XOR) {
+            this.emitBinary(node, parentPrecedence, " ^ ", Precedence.BITWISE_XOR, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.DIVIDE) {
+            this.emitBinary(node, parentPrecedence, " / ", Precedence.MULTIPLY, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.EQUAL) {
+            this.emitBinary(node, parentPrecedence, " == ", Precedence.EQUAL, forceCast);
+        }
+        else if (node.kind == NodeKind.GREATER_THAN) {
+            this.emitBinary(node, parentPrecedence, " > ", Precedence.COMPARE, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.GREATER_THAN_EQUAL) {
+            this.emitBinary(node, parentPrecedence, " >= ", Precedence.COMPARE, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.LESS_THAN) {
+            this.emitBinary(node, parentPrecedence, " < ", Precedence.COMPARE, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.LESS_THAN_EQUAL) {
+            this.emitBinary(node, parentPrecedence, " <= ", Precedence.COMPARE, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.LOGICAL_AND) {
+            this.emitBinary(node, parentPrecedence, " && ", Precedence.LOGICAL_AND, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.LOGICAL_OR) {
+            this.emitBinary(node, parentPrecedence, " || ", Precedence.LOGICAL_OR, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.NOT_EQUAL) {
+            this.emitBinary(node, parentPrecedence, " != ", Precedence.EQUAL, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.REMAINDER) {
+            this.emitBinary(node, parentPrecedence, " % ", Precedence.MULTIPLY, true, castToDouble);
+        }
+        else if (node.kind == NodeKind.SHIFT_LEFT) {
+            this.emitBinary(node, parentPrecedence, " << ", Precedence.SHIFT);
+        }
+        else if (node.kind == NodeKind.SHIFT_RIGHT) {
+            this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", Precedence.SHIFT);
+        }
+        else if (node.kind == NodeKind.SUBTRACT) {
+            this.emitBinary(node, parentPrecedence, " - ", Precedence.ADD, true, castToDouble);
+        }
+
+        else if (node.kind == NodeKind.MULTIPLY) {
+            let left = node.binaryLeft();
+            let right = node.binaryRight();
+            let isUnsigned = node.isUnsignedOperator();
+
+            if (isUnsigned && parentPrecedence > Precedence.SHIFT) {
+                this.code.append("(");
+            }
+
+            if (left.intValue && right.intValue) {
+                this.code.append("Math_imul(");
+                this.emitExpression(left, Precedence.LOWEST);
+                this.code.append(", ");
+                this.emitExpression(right, Precedence.LOWEST);
+                this.code.append(")");
+
+                if (isUnsigned) {
+                    this.code.append(" >>> 0");
+
+                    if (parentPrecedence > Precedence.SHIFT) {
+                        this.code.append(")");
+                    }
+                }
+
+            } else {
+                this.emitExpression(left, Precedence.MULTIPLY);
+                this.code.append(" * ");
+                this.emitExpression(right, Precedence.MULTIPLY);
+            }
+            this.foundMultiply = true;
+
+        }
+
+        else if (node.kind == NodeKind.DEREFERENCE) {
+            this.emitLoadFromMemory(node.resolvedType.underlyingType(this.context), node.unaryValue(), 0);
+        }
+
+        else {
+            assert(false);
         }
     }
 
-    emitStatement(code: StringBuilder, node: Node): void {
+
+    emitLoadFromMemory(type: Type, relativeBase: Node, offset: int32): void {
+        let heapType;
+        let sizeOf = type.variableSizeOf(this.context);
+        let idLeft = "";
+        let idRight = "";
+        let shift = 0;
+
+        if (sizeOf == 1) {
+            idRight = "|0)";
+            heapType = type.isUnsigned() ? "U8" : "8";
+            this.code.append(`(HEAP${heapType}[(`);
+            shift = 0;
+        }
+
+        else if (sizeOf == 2) {
+            idRight = "|0)";
+            heapType = type.isUnsigned() ? "U16" : "16";
+            this.code.append(`(HEAP${heapType}[(`);
+            shift = 1;
+        }
+
+        else if (sizeOf == 4) {
+
+            if (type.isFloat()) {
+                idLeft = "fround(";
+                idRight = ")";
+                heapType = "F32";
+            } else {
+                idLeft = "(";
+                idRight = "|0)";
+                heapType = type.isUnsigned() ? "U32" : "32";
+            }
+
+            this.code.append(`${idLeft}HEAP${heapType}[(`);
+            shift = 2;
+        }
+
+        else if (sizeOf == 8) {
+            // idLeft = "(+";
+            // idRight = ")";
+            idLeft = "";
+            idRight = "";
+            this.code.append(`${idLeft}HEAPF64[(`);
+            shift = 3;
+        }
+
+        else {
+            assert(false);
+        }
+
+        // Relative address
+        if (relativeBase != null) {
+            this.emitExpression(relativeBase, Precedence.MEMBER);
+            this.code.append(` ${offset == 0 ? "" : "+ (" + offset + "|0) "}) >> ${shift}]`);
+        } else {
+            this.code.append(`${offset == 0 ? "" : offset}) >> ${shift}]`);
+        }
+        this.code.append(idRight);
+    }
+
+    emitStoreToMemory(type: Type, relativeBase: Node, offset: int32, value: Node): void {
+        let heapType;
+
+        let sizeOf = type.variableSizeOf(this.context);
+        let shift = 0;
+        if (sizeOf == 1) {
+            heapType = type.isUnsigned() ? "U8" : "8";
+            this.code.append(`HEAP${heapType}[(`);
+            shift = 0;
+        }
+
+        else if (sizeOf == 2) {
+            heapType = type.isUnsigned() ? "U16" : "16";
+            this.code.append(`HEAP${heapType}[(`);
+            shift = 1;
+        }
+
+        else if (sizeOf == 4) {
+
+            if (type.isFloat()) {
+                this.code.append(`HEAPF32[(`);
+            } else {
+                heapType = type.isUnsigned() ? "U32" : "32";
+                this.code.append(`HEAP${heapType}[(`);
+            }
+            shift = 2;
+        }
+
+        else if (sizeOf == 8) {
+
+            this.code.append(`HEAPF64[(`);
+            shift = 3;
+        }
+
+        else {
+            assert(false);
+        }
+
+        // Relative address
+        if (relativeBase != null) {
+            this.emitExpression(relativeBase, Precedence.ASSIGN);
+            this.code.append(` ${offset == 0 ? "" : "+ (" + offset + "|0)"}) >> ${shift}] = `);
+        } else {
+            this.code.append(`${offset == 0 ? "" : offset}) >> ${shift}] = `);
+        }
+
+        this.emitExpression(value, Precedence.ASSIGN, true);
+    }
+
+    emitSymbolName(symbol: Symbol): string {
+        let name = symbol.rename != null ? symbol.rename : symbol.name;
+        this.code.append(name);
+        return name;
+    }
+
+    emitStatement(node: Node): void {
 
         if (node.kind == NodeKind.EXTENDS) {
             console.log("Extends found");
@@ -764,53 +842,30 @@ class AsmModule {
 
         }
 
+        else if (node.kind == NodeKind.IMPORTS) {
+            let child = node.firstChild;
+            while (child) {
+                assert(child.kind == NodeKind.IMPORT);
+                child = child.nextSibling;
+            }
+        }
+
         else if (node.kind == NodeKind.CLASS) {
 
             currentClass = node.symbol.name;
             let classDef = this.getClassDef(node);
-            let isTurbo = node.isTurbo();
-            // Emit constructor
-            if (!node.isDeclare()) {
-                this.emitNewlineBefore(node);
-                if (isTurbo) {
-                    //Emit class object
-                    // this.code.append(`let ${classDef.name} = {};\n`);
-                    // this.code.append(`var ${classDef.name}_NAME = "${classDef.name}";\n`);
-                    this.code.append(`var ${classDef.name}_SIZE = ${classDef.size};\n`);
-                    this.code.append(`var ${classDef.name}_ALIGN = ${classDef.align};\n`);
-                    this.code.append(`var ${classDef.name}_CLSID = ${classDef.clsid};\n`);
-
-                    if (classDef.base) {
-                        // this.code.append(`var ${classDef.name}_BASE = "${classDef.base}";\n`);
-                    }
-
-                    // this.code.append(`${namespace}_idToType[${classDef.name}.CLSID] = ${classDef.name};\n`);
-
-                } else {
-                    this.code.append(`class ${classDef.name} {`);
-                }
-
-                this.emitNewlineAfter(node);
-            }
-
             // Emit instance functions
             let child = node.firstChild;
             while (child != null) {
                 if (child.kind == NodeKind.FUNCTION) {
-                    if (!isTurbo) this.code.indent += 1;
                     this.emitStatement(child);
-                    if (!isTurbo) this.code.indent -= 1;
                 }
                 child = child.nextSibling;
             }
 
-            if (!node.isDeclare() && !isTurbo) {
-                this.code.clearIndent(1);
-                this.code.append("}\n");
-            }
             if (node.isExport()) {
                 // this.code.append(`${classDef.name} = ${classDef.name};\n`);
-                exportedFunctions.push(classDef.name);
+                //exportTable.push(classDef.name);
             }
         }
 
@@ -825,41 +880,37 @@ class AsmModule {
             this.emitNewlineBefore(node);
 
             let isConstructor: boolean = symbol.name == "constructor";
-            let isTurbo: boolean = node.parent.isTurbo();
 
             if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
 
-                if (isConstructor && isTurbo) {
+                let funcName = "";
+
+                if (isConstructor) {
                     this.code.append("function ");
-                    this.emitSymbolName(symbol.parent());
+                    funcName = this.emitSymbolName(symbol.parent()) + "_new";
                     this.code.append("_new");
                     needsSemicolon = false;
                 } else {
-                    if (isTurbo) {
-                        this.code.append("function ");
-                        this.emitSymbolName(symbol.parent());
-                        this.code.append("_");
-                        if (node.isVirtual()) {
-                            this.code.append(symbol.name + "_impl");
-                        } else {
-                            this.emitSymbolName(symbol);
-                        }
-                        needsSemicolon = false;
+                    this.code.append("function ");
+                    funcName = this.emitSymbolName(symbol.parent()) + "_";
+                    this.code.append("_");
+                    if (node.isVirtual()) {
+                        this.code.append(symbol.name + "_impl");
+                        funcName += symbol.name + "_impl";
                     } else {
-                        if (node.isStatic()) {
-                            this.code.append("static ");
-                        }
-                        this.emitSymbolName(symbol);
+                        funcName += this.emitSymbolName(symbol);
                     }
+                    needsSemicolon = false;
                 }
+
+                exportTable.push(funcName);
             }
 
             else if (node.isExport()) {
-                this.code.append("let ");
-                this.emitSymbolName(symbol);
-                this.code.append(" = function ");
-                this.emitSymbolName(symbol);
-                needsSemicolon = true;
+                this.code.append("function ");
+                let name: string = this.emitSymbolName(symbol);
+                needsSemicolon = false;
+                exportTable.push(name);
             }
 
             else {
@@ -874,7 +925,7 @@ class AsmModule {
             let needComma = false;
             let signature = "";
 
-            if (!isConstructor && isTurbo && !node.isStatic()) {
+            if (symbol.kind == SymbolKind.FUNCTION_INSTANCE && !isConstructor && !node.isStatic()) {
                 this.code.append("ptr");
                 signature += "ptr";
                 needComma = true;
@@ -903,20 +954,38 @@ class AsmModule {
             this.code.append(") ");
 
             let parent = symbol.parent();
-            let parentName: string = parent? parent.name : "";
+            let parentName: string = parent ? parent.name : "";
             let classDef = classMap.get(parentName);
 
-            if (isConstructor && isTurbo) {
+            if (isConstructor) {
+                let size = parent.resolvedType.allocationSizeOf(this.context);
                 this.code.append("{\n", 1);
-                this.code.append(`let ptr = ${namespace}malloc(${parentName}.SIZE, ${parentName}.ALIGN);\n`);
-                this.code.append(`${namespace}HEAP32[ptr >> 2] = ${classDef.name}.CLSID;\n`);
-                this.code.append(`${parentName}_init_mem(ptr, `);
-                this.code.append(`${signature});\n`);
-                this.code.append("return ptr;\n", -1);
+
+                child = node.functionFirstArgumentIgnoringThis();
+
+                while (child != returnType) {
+                    assert(child.kind == NodeKind.VARIABLE);
+                    if (needComma) {
+                        this.code.append(", ");
+                        signature += ",";
+                        needComma = false;
+                    }
+                    this.emitSymbolName(child.symbol);
+                    this.code.append(` = `);
+                    this.emitStatement(child);
+                    this.code.append(`;\n`);
+                    // signature += child.symbol.name;
+                    child = child.nextSibling;
+                }
+
+                this.code.append(`var ptr = 0;\n`);
+                this.code.append(`ptr = ${namespace}malloc(${size})|0;\n`);
+                this.code.append(`return ${parentName}_set(ptr, `);
+                this.code.append(`${signature})|0;\n`, -1);
                 this.code.append("}\n\n");
 
-                this.code.append(`function ${classDef.name}_init_mem(ptr, `);
-                this.code.append(`${signature}) {\n`, 1);
+                this.code.append(`function ${classDef.name}_set(ptr, `);
+                this.code.append(`${signature}) `);
             }
 
             if (node.isVirtual()) {
@@ -924,28 +993,69 @@ class AsmModule {
                 this.updateVirtualTable(node, chunkIndex, classDef.base, signature);
             }
 
-            this.emitBlock(node.functionBody(), !isConstructor || !isTurbo);
+            child = node.functionFirstArgumentIgnoringThis();
+
+            this.code.append("{\n");
+            this.code.emitIndent();
+            this.code.indent++;
+
+            if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+                this.code.append(`ptr = ptr|0;\n`);
+            }
+
+            while (child != returnType) {
+                assert(child.kind == NodeKind.VARIABLE);
+                if (needComma) {
+                    this.code.append(", ");
+                    needComma = false;
+                }
+                this.emitSymbolName(child.symbol);
+                this.code.append(` = `);
+                this.emitStatement(child);
+                this.code.append(`;\n`);
+                child = child.nextSibling;
+            }
+
+            //collect all variables to declare
+            let fnBody = node.functionBody();
+            let vars = this.collectLocalVariables(fnBody);
+
+            vars.forEach((child) => {
+                //declare vars first
+                this.code.append("var ");
+                let value = child.variableValue();
+                this.emitSymbolName(child.symbol);
+                assert(value != null);
+
+                if (isNaN(value.rawValue)) {
+                    vars.push(child);
+                    this.code.append(" = ");
+                    this.emitNullInitializer(value);
+                    this.code.append(";\n");
+                } else {
+                    this.code.append(" = ");
+                    this.emitExpression(value, Precedence.ASSIGN);
+                    this.code.append(";\n");
+                }
+            });
+
+            this.emitBlock(fnBody, false);
+            this.code.indent--;
+            this.code.clearIndent(1);
+            this.code.append("}\n");
 
             if (node.isVirtual()) {
                 this.code.breakChunk();
             }
 
-            if (isConstructor && isTurbo) {
-                this.code.append(`return ptr;\n`);
-                this.code.clearIndent(1);
-                this.code.append("}");
-                this.code.indent -= 1;
-            }
+            // if (isConstructor) {
+            //     this.code.append(`return ptr;\n`);
+            //     this.code.clearIndent(1);
+            //     this.code.append("}");
+            //     this.code.indent -= 1;
+            // }
 
-            // this.code.append(needsSemicolon ? ";\n" : "\n");
-
-            if(node.isExport()){
-                exportedFunctions.push(this.emitSymbolName(symbol));
-                this.code.append(" = ");
-                this.emitSymbolName(symbol);
-                this.code.append(";\n");
-            }
-
+            this.code.append(needsSemicolon ? ";\n" : "\n");
             this.emitNewlineAfter(node);
         }
 
@@ -953,7 +1063,7 @@ class AsmModule {
             this.emitNewlineBefore(node);
             while (true) {
                 this.code.append("if (");
-                this.emitExpression(node.ifValue(), Precedence.LOWEST);
+                this.emitExpression(node.ifValue(), Precedence.COMPARE, true);
                 this.code.append(") ");
                 this.emitBlock(node.ifTrue(), true);
                 let no = node.ifFalse();
@@ -973,10 +1083,19 @@ class AsmModule {
             this.emitNewlineAfter(node);
         }
 
+        else if (node.kind == NodeKind.DELETE) {
+            let value = node.deleteValue();
+
+            this.code.append("free((");
+            this.emitExpression(value, Precedence.LOWEST);
+            this.code.append(")|0);\n");
+
+        }
+
         else if (node.kind == NodeKind.WHILE) {
             this.emitNewlineBefore(node);
             this.code.append("while (");
-            this.emitExpression(node.whileValue(), Precedence.LOWEST);
+            this.emitExpression(node.whileValue(), Precedence.LOWEST, true);
             this.code.append(") ");
             this.emitBlock(node.whileBody(), true);
             this.code.append("\n");
@@ -1009,9 +1128,32 @@ class AsmModule {
             let value = node.returnValue();
             //this.emitNewlineBefore(node);
             if (value != null) {
-                this.code.append("return ");
-                this.emitExpression(value, Precedence.LOWEST);
-                this.code.append(";\n");
+                if (value.kind == NodeKind.NULL) {
+                    this.code.append("return 0;\n");
+                }
+                else {
+
+                    // if (value.kind == NodeKind.NEW) {
+                    //     this.emitConstructor(value);
+                    // }
+
+                    this.code.append("return ");
+
+                    let identifier = getIdentifier(node.lastChild);
+
+                    if (value.kind != NodeKind.CALL) {
+                        this.code.append(identifier.left);
+                    }
+
+                    this.emitExpression(value, Precedence.LOWEST);
+
+                    if (value.kind != NodeKind.CALL) {
+                        this.code.append(identifier.right);
+                    }
+
+                    this.code.append(";\n");
+                }
+
             } else {
                 this.code.append("return;\n");
             }
@@ -1031,29 +1173,59 @@ class AsmModule {
 
         else if (node.kind == NodeKind.VARIABLES) {
             this.emitNewlineBefore(node);
-            this.code.append("let ");
             let child = node.firstChild;
 
             while (child != null) {
-                let value = child.variableValue();
-                this.emitSymbolName(child.symbol);
-                child = child.nextSibling;
-                if (child != null) {
-                    this.code.append(", ");
+
+                if (child.symbol.kind == SymbolKind.VARIABLE_LOCAL) {
+
+                    let value = child.variableValue();
+                    assert(value != null);
+                    if (isNaN(value.rawValue)) {
+                        this.emitSymbolName(child.symbol);
+                        this.code.append(" = ");
+                        this.emitExpression(value, Precedence.ASSIGN, true);
+                        this.code.append(";\n");
+                    }
                 }
-                assert(value != null);
-                this.code.append(" = ");
-                this.emitExpression(value, Precedence.LOWEST);
+
+                child = child.nextSibling;
             }
 
-            this.code.append(";\n");
             this.emitNewlineAfter(node);
+        }
+
+        else if (node.kind == NodeKind.VARIABLE) {
+
+            if (node.symbol.kind == SymbolKind.VARIABLE_ARGUMENT) {
+
+                // this.emitSymbolName(node.symbol);
+                // this.code.append(" = ");
+
+                if (node.symbol.resolvedType.isFloat()) {
+                    this.code.append("fround(");
+                    this.emitSymbolName(node.symbol);
+                    this.code.append(")");
+                }
+                else if (node.symbol.resolvedType.isDouble()) {
+                    this.code.append("+");
+                    this.emitSymbolName(node.symbol);
+
+                } else {
+                    this.emitSymbolName(node.symbol);
+                    this.code.append("|0");
+                }
+            }
+
+            else {
+                assert(false);
+            }
         }
 
         else if (node.kind == NodeKind.ENUM) {
             if (node.isExport()) {
                 this.emitNewlineBefore(node);
-                exportedFunctions.push(this.emitSymbolName(node.symbol));
+                exportTable.push(this.emitSymbolName(node.symbol));
                 this.code.append(" = {\n");
                 this.code.indent += 1;
 
@@ -1072,7 +1244,7 @@ class AsmModule {
                 this.code.clearIndent(1);
                 this.code.append("};\n");
                 this.emitNewlineAfter(node);
-            } else if (turboJsOptimiztion == 0) {
+            } else if (optimization == 0) {
                 this.emitNewlineBefore(node);
                 // this.code.emitIndent();
                 this.code.append("let ");
@@ -1123,1051 +1295,465 @@ class AsmModule {
         }
     }
 
-    emitExpression(code: StringBuilder, node: Node, parentPrecedence: Precedence): void {
-
-        if (node.kind == NodeKind.NAME) {
-            let symbol = node.symbol;
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                this.code.append("global.");
-            }
-            this.emitSymbolName(symbol);
-        }
-
-        else if (node.kind == NodeKind.NULL) {
-            this.code.append("0");
-        }
-
-        else if (node.kind == NodeKind.UNDEFINED) {
-            this.code.append("undefined");
-        }
-
-        else if (node.kind == NodeKind.BOOLEAN) {
-            this.code.append(node.intValue != 0 ? "true" : "false");
-        }
-
-        else if (node.kind == NodeKind.INT32) {
-            if (parentPrecedence == Precedence.MEMBER) {
-                this.code.append("(");
-            }
-
-            this.code.append(node.resolvedType.isUnsigned() ? (node.intValue).toString() : node.intValue.toString());
-
-            if (parentPrecedence == Precedence.MEMBER) {
-                this.code.append(")");
-            }
-        }
-
-        else if (node.kind == NodeKind.FLOAT32) {
-            if (parentPrecedence == Precedence.MEMBER) {
-                this.code.append("(");
-            }
-
-            this.code.append(node.floatValue.toString());
-
-            if (parentPrecedence == Precedence.MEMBER) {
-                this.code.append(")");
-            }
-        }
-
-        else if (node.kind == NodeKind.STRING) {
-            this.code.append(`\`${node.stringValue}\``);
-        }
-
-        else if (node.kind == NodeKind.CAST) {
-            let context = this.context;
-            let value = node.castValue();
-            let from = value.resolvedType.underlyingType(context);
-            let type = node.resolvedType.underlyingType(context);
-            let fromSize = from.variableSizeOf(context);
-            let typeSize = type.variableSizeOf(context);
-
-            // The cast isn't needed if it's to a wider integer type
-            if (from == type || fromSize < typeSize) {
-                this.emitExpression(value, parentPrecedence);
-            }
-
-            else {
-                // Sign-extend
-                if (type == context.sbyteType || type == context.shortType) {
-                    if (parentPrecedence > Precedence.SHIFT) {
-                        this.code.append("(");
-                    }
-
-                    let shift = (32 - typeSize * 8).toString();
-                    this.emitExpression(value, Precedence.SHIFT);
-                    this.code.append(" << ");
-                    this.code.append(shift);
-                    this.code.append(" >> ");
-                    this.code.append(shift);
-
-                    if (parentPrecedence > Precedence.SHIFT) {
-                        this.code.append(")");
-                    }
-                }
-
-                // Mask
-                else if (type == context.byteType || type == context.ushortType) {
-                    if (parentPrecedence > Precedence.BITWISE_AND) {
-                        this.code.append("(");
-                    }
-
-                    this.emitExpression(value, Precedence.BITWISE_AND);
-                    this.code.append(" & ");
-                    this.code.append(type.integerBitMask(context).toString());
-
-                    if (parentPrecedence > Precedence.BITWISE_AND) {
-                        this.code.append(")");
-                    }
-                }
-
-                // Truncate signed
-                else if (type == context.int32Type) {
-                    if (parentPrecedence > Precedence.BITWISE_OR) {
-                        this.code.append("(");
-                    }
-
-                    this.emitExpression(value, Precedence.BITWISE_OR);
-                    this.code.append(" | 0");
-
-                    if (parentPrecedence > Precedence.BITWISE_OR) {
-                        this.code.append(")");
-                    }
-                }
-
-                // Truncate unsigned
-                else if (type == context.uint32Type) {
-                    if (parentPrecedence > Precedence.SHIFT) {
-                        this.code.append("(");
-                    }
-
-                    this.emitExpression(value, Precedence.SHIFT);
-                    this.code.append(" >>> 0");
-
-                    if (parentPrecedence > Precedence.SHIFT) {
-                        this.code.append(")");
-                    }
-                }
-
-                // No cast needed
-                else {
-                    this.emitExpression(value, parentPrecedence);
-                }
-            }
-        }
-
-        else if (node.kind == NodeKind.DOT) {
-            let dotTarget = node.dotTarget();
-            let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
-            let targetSymbolName: string;
-
-            if (dotTarget.symbol) {
-                targetSymbolName = dotTarget.symbol.name;
-            } else {
-                targetSymbolName = "(::unknown::)";
-            }
-
-            let resolvedNode = null;
-
-            if (node.resolvedType.pointerTo) {
-                resolvedNode = node.resolvedType.pointerTo.symbol.node;
-            } else {
-                resolvedNode = node.resolvedType.symbol.node;
-            }
-
-            if (resolvedTargetNode.isDeclareOrTurbo()) {
-
-                let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
-
-                if (node.symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
-                    let memory: string = classMap.get(currentClass).members[node.symbol.name].memory;
-                    let offset: number = classMap.get(currentClass).members[node.symbol.name].offset;
-                    let shift: number = classMap.get(currentClass).members[node.symbol.name].shift;
-
-                    //check if
-                    if (node.parent.kind == NodeKind.DOT) {
-                        //store the variable pointer, we need to move it as function argument
-                        turboTargetPointer = `${namespace}${memory}[(${ref} + ${offset}) >> ${shift}]`;
-                        //emit class name for static call
-                        this.code.append(`${resolvedNode.symbol.name}`);
-                    } else {
-                        this.code.append(`${namespace}${memory}[(${ref} + ${offset}) >> ${shift}]`);
-                    }
-                }
-
-                else if (node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
-                    turboTargetPointer = ref;
-                    this.code.append(resolvedTargetNode.stringValue);
-                    this.code.append(".");
-                    this.emitSymbolName(node.symbol);
-                }
-
-                else {
-                    this.emitExpression(dotTarget, Precedence.MEMBER);
-                    this.code.append(".");
-                    this.emitSymbolName(node.symbol);
-                }
-
-            } else {
-                this.emitExpression(node.dotTarget(), Precedence.MEMBER);
-                this.code.append(".");
-                this.emitSymbolName(node.symbol);
-            }
-        }
-
-        else if (node.kind == NodeKind.HOOK) {
-            if (parentPrecedence > Precedence.ASSIGN) {
-                this.code.append("(");
-            }
-
-            this.emitExpression(node.hookValue(), Precedence.LOGICAL_OR);
-            this.code.append(" ? ");
-            this.emitExpression(node.hookTrue(), Precedence.ASSIGN);
-            this.code.append(" : ");
-            this.emitExpression(node.hookFalse(), Precedence.ASSIGN);
-
-            if (parentPrecedence > Precedence.ASSIGN) {
-                this.code.append(")");
-            }
-        }
-
-        else if (node.kind == NodeKind.INDEX) {
-            let value = node.indexTarget();
-            this.emitExpression(value, Precedence.UNARY_POSTFIX);
-            this.code.append("[");
-            this.emitCommaSeparatedExpressions(value.nextSibling, null);
-            this.code.append("]");
-        }
-
-        else if (node.kind == NodeKind.CALL) {
-            if (node.expandCallIntoOperatorTree()) {
-                this.emitExpression(node, parentPrecedence);
-            }
-
-            else {
-                let value = node.callValue();
-                this.emitExpression(value, Precedence.UNARY_POSTFIX);
-
-                if (value.symbol == null || !value.symbol.isGetter()) {
-                    this.code.append("(");
-                    let needComma = false;
-                    if (node.firstChild) {
-                        let firstNode = node.firstChild.resolvedType.symbol.node;
-                        if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo() && turboTargetPointer) {
-                            this.code.append(`${turboTargetPointer}`);
-                            needComma = true;
-                        }
-                    }
-                    this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
-                    this.code.append(")");
-                }
-            }
-        }
-
-        else if (node.kind == NodeKind.NEW) {
-            let resolvedNode = node.resolvedType.symbol.node;
-            let type = node.newType();
-            if (resolvedNode.isDeclareOrTurbo()) {
-                this.emitExpression(type, Precedence.UNARY_POSTFIX);
-                this.code.append("_new");
-            } else {
-                this.code.append("new ");
-                this.emitExpression(type, Precedence.UNARY_POSTFIX);
-            }
-
-            this.code.append("(");
-            let valueNode = type.nextSibling;
-            while (valueNode) {
-                this.code.append(`${valueNode.rawValue}`);
-
-                if (valueNode.nextSibling) {
-                    this.code.append(",");
-                    valueNode = valueNode.nextSibling;
-                } else {
-                    valueNode = null;
-                }
-            }
-            this.code.append(")");
-
-        }
-
-        else if (node.kind == NodeKind.NOT) {
-            let value = node.unaryValue();
-
-            // Automatically invert operators for readability
-            value.expandCallIntoOperatorTree();
-            let invertedKind = invertedBinaryKind(value.kind);
-
-            if (invertedKind != value.kind) {
-                value.kind = invertedKind;
-                this.emitExpression(value, parentPrecedence);
-            }
-
-            else {
-                this.emitUnary(node, parentPrecedence, "!");
-            }
-        }
-
-        else if (node.kind == NodeKind.COMPLEMENT) this.emitUnary(node, parentPrecedence, "~");
-        else if (node.kind == NodeKind.NEGATIVE) this.emitUnary(node, parentPrecedence, "-");
-        else if (node.kind == NodeKind.POSITIVE) this.emitUnary(node, parentPrecedence, "+");
-        else if (node.kind == NodeKind.PREFIX_INCREMENT) this.emitUnary(node, parentPrecedence, "++");
-        else if (node.kind == NodeKind.PREFIX_DECREMENT) this.emitUnary(node, parentPrecedence, "--");
-        else if (node.kind == NodeKind.POSTFIX_INCREMENT) this.emitUnary(node, parentPrecedence, "++");
-        else if (node.kind == NodeKind.POSTFIX_DECREMENT) this.emitUnary(node, parentPrecedence, "--");
-
-        else if (node.kind == NodeKind.ADD) {
-            this.emitBinary(node, parentPrecedence, " + ", Precedence.ADD,
-                node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
-            );
-        }
-        else if (node.kind == NodeKind.ASSIGN) {
-            this.emitBinary(node, parentPrecedence, " = ", Precedence.ASSIGN, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.BITWISE_AND) {
-            this.emitBinary(node, parentPrecedence, " & ", Precedence.BITWISE_AND, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.BITWISE_OR) {
-            this.emitBinary(node, parentPrecedence, " | ", Precedence.BITWISE_OR, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.BITWISE_XOR) {
-            this.emitBinary(node, parentPrecedence, " ^ ", Precedence.BITWISE_XOR, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.DIVIDE) {
-            this.emitBinary(node, parentPrecedence, " / ", Precedence.MULTIPLY,
-                node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
-            );
-        }
-        else if (node.kind == NodeKind.EQUAL) {
-            this.emitBinary(node, parentPrecedence, " === ", Precedence.EQUAL, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.GREATER_THAN) {
-            this.emitBinary(node, parentPrecedence, " > ", Precedence.COMPARE, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.GREATER_THAN_EQUAL) {
-            this.emitBinary(node, parentPrecedence, " >= ", Precedence.COMPARE, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.LESS_THAN) {
-            this.emitBinary(node, parentPrecedence, " < ", Precedence.COMPARE, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.LESS_THAN_EQUAL) {
-            this.emitBinary(node, parentPrecedence, " <= ", Precedence.COMPARE, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.LOGICAL_AND) {
-            this.emitBinary(node, parentPrecedence, " && ", Precedence.LOGICAL_AND, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.LOGICAL_OR) {
-            this.emitBinary(node, parentPrecedence, " || ", Precedence.LOGICAL_OR, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.NOT_EQUAL) {
-            this.emitBinary(node, parentPrecedence, " !== ", Precedence.EQUAL, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.REMAINDER) {
-            this.emitBinary(node, parentPrecedence, " % ", Precedence.MULTIPLY,
-                node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
-            );
-        }
-        else if (node.kind == NodeKind.SHIFT_LEFT) {
-            this.emitBinary(node, parentPrecedence, " << ", Precedence.SHIFT, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.SHIFT_RIGHT) {
-            this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", Precedence.SHIFT, EmitBinary.NORMAL);
-        }
-        else if (node.kind == NodeKind.SUBTRACT) {
-            this.emitBinary(node, parentPrecedence, " - ", Precedence.ADD,
-                node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
-            );
-        }
-
-        else if (node.kind == NodeKind.MULTIPLY) {
-            let left = node.binaryLeft();
-            let right = node.binaryRight();
-            let isUnsigned = node.isUnsignedOperator();
-
-            if (isUnsigned && parentPrecedence > Precedence.SHIFT) {
-                this.code.append("(");
-            }
-
-            if(left.intValue && right.intValue){
-                this.code.append("__imul(");
-                this.emitExpression(left, Precedence.LOWEST);
+    emitConstructor(node: Node): void {
+        let constructorNode = node.constructorNode();
+        let callSymbol = constructorNode.symbol;
+        let child = node.firstChild.nextSibling;
+        this.code.append(`${callSymbol.parent().name}_new(`);
+        while (child != null) {
+            this.emitExpression(child, Precedence.MEMBER, true);
+            child = child.nextSibling;
+            if (child) {
                 this.code.append(", ");
-                this.emitExpression(right, Precedence.LOWEST);
-                this.code.append(")");
-
-                if (isUnsigned) {
-                    this.code.append(" >>> 0");
-
-                    if (parentPrecedence > Precedence.SHIFT) {
-                        this.code.append(")");
-                    }
-                }
-
-            }else{
-                this.emitExpression(left, Precedence.LOWEST);
-                this.code.append(" * ");
-                this.emitExpression(right, Precedence.LOWEST);
             }
-            this.foundMultiply = true;
-
         }
+        this.code.append(")|0");
+    }
 
-        else {
-            assert(false);
+    emitVirtuals() {
+
+        this.code.append("\n");
+        // this.code.append("//FIXME: Virtuals should emit next to base class virtual function\n");
+
+        virtualMap.forEach((virtual, virtualName) => {
+
+            this.code.append("\n");
+
+            this.code.append(`function ${virtual.name}(${virtual.signature}) {\n`, 1);
+
+            this.code.append(`switch (${namespace}HEAP32[ptr >> 2]) {\n`, 1);
+
+            for (let impl of virtual.functions) {
+                this.code.append(`case ${impl.parent}_CLSID:\n`, 1);
+                this.code.append(`return ${impl.parent}_${impl.name}_impl(${virtual.signature});\n`);
+                this.code.clearIndent(1);
+                this.code.indent -= 1;
+            }
+
+            this.code.append("default:\n", 1);
+            this.code.append(`throw ${namespace}_badType(ptr);\n`);
+            this.code.indent -= 2;
+            this.code.clearIndent(2);
+            this.code.append("}\n");
+            this.code.indent -= 1;
+            this.code.clearIndent(1);
+            this.code.append("}\n");
+            // for (let virtual of vtable) {
+            //     let signature = virtual.signature;
+            //     this.code.append(`${virtual.name} = function (ptr, ${signature}) {\n`);
+            //     this.code.append("        switch (${namespace}HEAP32[ptr >> 2]) {\n");
+            //     let kv = virtual.reverseCases.keysValues();
+            //     for (let [name,cases]=kv.next(); name; [name, cases] = kv.next()) {
+            //         for (let c of cases) {
+            //             this.code.append(`      case ${c}:`);
+            //         }
+            //         this.code.append(`      return ${name}(ptr ${signature});`);
+            //     }
+            //     this.code.append("      default:");
+            //     this.code.append("      " + (virtual.default_ ?
+            //             `return ${virtual.default_}(ptr ${signature})` :
+            //             "throw ${namespace}_badType(ptr)") + ";");
+            //     this.code.append("  }");
+            //     this.code.append("}");
+            // }
+
+        })
+    }
+
+    updateVirtualTable(node, chunkIndex, baseClassName, signature) {
+        let virtualName = baseClassName ? `${baseClassName}_${node.stringValue}` : `${node.parent.stringValue}_${node.stringValue}`;
+        let virtual = virtualMap.get(virtualName);
+        if (!virtual) {
+            virtual = {
+                name: virtualName,
+                signature: signature,
+                functions: [
+                    {
+                        chunkIndex: chunkIndex,
+                        parent: node.parent.stringValue,
+                        name: node.stringValue,
+                        base: baseClassName || null,
+                        signature: signature
+                    }
+                ]
+            };
+            virtualMap.set(virtualName, virtual);
+        } else {
+            virtual.functions.push({
+                chunkIndex: chunkIndex,
+                parent: node.parent.stringValue,
+                name: node.stringValue,
+                base: baseClassName || null,
+                signature: signature
+            });
         }
     }
 
-    emitNode(code: StringBuilder, node: Node, parentPrecedence?: Precedence): int32 {
-        assert(!isExpression(node) || node.resolvedType != null);
-        if (node.kind == NodeKind.BLOCK) {
+    getClassDef(node: Node) {
+        let def = classMap.get(node.symbol.name);
 
-            if (node.parent.kind == NodeKind.BLOCK) {
-                this.emitStatements(code, node.firstChild);
-            } else {
-                this.emitNewlineBefore(node);
-                this.emitBlock(code, node, true);
-                this.code.append("\n");
-                this.emitNewlineAfter(node);
-            }
-
+        if (def) {
+            return def;
         }
 
-        else if (node.kind == NodeKind.WHILE) {
-            this.emitNewlineBefore(node);
-            code.append("while (");
-            this.emitNode(code, node.whileValue());
-            code.append(") ");
-            this.emitBlock(code, node.whileBody(), true);
-            code.append("\n");
-            this.emitNewlineAfter(node);
+        def = {
+            name: node.symbol.name,
+            size: 4,
+            align: 4,
+            clsid: computeClassId(node.symbol.name),
+            members: {},
+            code: ""
+        };
+
+        if (node.firstChild && node.firstChild.kind == NodeKind.EXTENDS) {
+            def.base = node.firstChild.firstChild.stringValue;
         }
 
-        else if (node.kind == NodeKind.BREAK || node.kind == NodeKind.CONTINUE) {
-            this.emitNewlineBefore(node);
-            code.append("break;\n");
-            this.emitNewlineAfter(node);
-        }
+        let argument = node.firstChild;
+        while (argument != null) {
+            if (argument.kind == NodeKind.VARIABLE) {
+                let typeSize: number;
+                let memory: string;
+                let offset: number;
+                let shift: number;
+                let resolvedType = argument.symbol.resolvedType;
 
-        else if (node.kind == NodeKind.EMPTY) {
-            return 0;
-        }
-
-        else if (node.kind == NodeKind.EXPRESSION) {
-            this.emitNode(code, node.expressionValue());
-        }
-
-        else if (node.kind == NodeKind.RETURN) {
-            let value = node.returnValue();
-            if (value != null) {
-                code.append("return ");
-                if (value != null) {
-                    this.emitNode(code, value);
-
-                    if (value.kind == NodeKind.NEW) {
-                        this.emitConstructor(code, value);
-                    }
+                if (resolvedType.pointerTo) {
+                    typeSize = 4;
+                    memory = `HEAP32`;
+                    offset = 4 + (argument.offset * typeSize);
+                    shift = Math.log2(typeSize);
                 }
-                code.append(";\n");
-            } else {
-                code.append("return;\n");
+                else if (resolvedType.symbol.kind == SymbolKind.TYPE_CLASS) {
+                    typeSize = 4;
+                    memory = `HEAP32`;
+                    offset = 4 + (argument.offset * typeSize);
+                    shift = Math.log2(typeSize);
+                }
+                else {
+                    typeSize = resolvedType.symbol.byteSize;
+                    memory = `HEAP${getMemoryType(argument.firstChild.stringValue)}`;
+                    offset = 4 + (argument.offset * typeSize);
+                    shift = Math.log2(typeSize);
+                }
+                def.members[argument.symbol.name] = {
+                    memory: memory,
+                    size: typeSize,
+                    offset: offset,
+                    shift: shift,
+                    value: argument.variableValue()
+                };
+                def.size += typeSize;
             }
-            this.emitNewlineAfter(node);
+            argument = argument.nextSibling;
         }
 
-        else if (node.kind == NodeKind.VARIABLES) {
-            let count = 0;
+        classMap.set(node.symbol.name, def);
+
+        return def;
+    }
+
+    collectLocalVariables(node: Node, vars: Node[] = []): Node[] {
+        if (node.kind == NodeKind.VARIABLE) {
+            if (node.symbol.kind == SymbolKind.VARIABLE_LOCAL) {
+                vars.push(node);
+            }
+        }
+
+        let child = node.firstChild;
+        while (child != null) {
+            this.collectLocalVariables(child, vars);
+            child = child.nextSibling;
+        }
+        return vars;
+    }
+
+    prepareToEmit(node: Node): void {
+        if (node.kind == NodeKind.STRING) {
+            let text = node.stringValue;
+            let length = text.length;
+            let offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
+            //TODO: write to initial memory
+        }
+
+        else if (node.kind == NodeKind.IMPORTS) {
             let child = node.firstChild;
-            while (child != null) {
-                assert(child.kind == NodeKind.VARIABLE);
-                count = count + this.emitNode(code, child);
+            while (child) {
+                assert(child.kind == NodeKind.IMPORT);
                 child = child.nextSibling;
-            }
-            return count;
-        }
-
-        else if (node.kind == NodeKind.IF) {
-            this.emitNewlineBefore(node);
-            while (true) {
-                code.append("if (");
-                this.emitNode(code, node.ifValue());
-                code.append(") ");
-                this.emitBlock(code, node.ifTrue(), true);
-                let no = node.ifFalse();
-                if (no == null) {
-                    code.append("\n");
-                    break;
-                }
-                code.append("\n\n");
-                code.append("else ");
-                if (no.firstChild == null || no.firstChild != no.lastChild || no.firstChild.kind != NodeKind.IF) {
-                    this.emitBlock(code, no, true);
-                    code.append("\n");
-                    break;
-                }
-                node = no.firstChild;
-            }
-            this.emitNewlineAfter(node);
-        }
-
-        else if (node.kind == NodeKind.HOOK) {
-            if (parentPrecedence > Precedence.ASSIGN) {
-                code.append("(");
-            }
-
-            this.emitNode(code, node.hookValue(), Precedence.LOGICAL_OR);
-            code.append(" ? ");
-            this.emitNode(code, node.hookTrue(), Precedence.ASSIGN);
-            code.append(" : ");
-            this.emitNode(code, node.hookFalse(), Precedence.ASSIGN);
-
-            if (parentPrecedence > Precedence.ASSIGN) {
-                code.append(")");
             }
         }
 
         else if (node.kind == NodeKind.VARIABLE) {
-            let value = node.variableValue();
-
-            if (node.symbol.kind == SymbolKind.VARIABLE_LOCAL) {
-
-                let resolvedType = node.symbol.resolvedType;
-
-                if (value && value.kind != NodeKind.NAME && value.rawValue) {
-                    if (resolvedType.isFloat()) {
-                        code.append(`var ${node.symbol.name} = Math.fround(${value.rawValue});`);
-                    }
-
-                    else if (resolvedType.isDouble()) {
-                        code.append(`var ${node.symbol.name} = +${value.rawValue};`);
-                    }
-
-                    else if (resolvedType.isInteger()) {
-                        code.append(`var ${node.symbol.name} = ${value.rawValue}|0;`);
-                    }
-
-                }
-
-                else {
-
-                    if (value != null) {
-                        this.emitNode(code, value);
-                    }
-
-                    else {
-                        // Default value
-                        if (resolvedType.isFloat()) {
-                            code.append(`var ${node.symbol.name} = Math.fround(0);`);
-                        }
-
-                        else if (resolvedType.isDouble()) {
-                            code.append(`var ${node.symbol.name} = +0;`);
-                        }
-
-                        else if (resolvedType.isInteger()) {
-                            code.append(`var ${node.symbol.name} = 0|0;`);
-                        }
-                    }
-                }
-
-                // if (value.kind == NodeKind.NEW) {
-                //     this.emitConstructor(code, value);
-                // }
-            }
-
-            else {
-                assert(false);
-            }
-        }
-
-        else if (node.kind == NodeKind.NAME) {
-            let symbol = node.symbol;
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                code.append("global.");
-            }
-            this.emitSymbolName(code, symbol);
-        }
-
-        else if (node.kind == NodeKind.DEREFERENCE) {
-            this.emitLoadFromMemory(code, node.resolvedType.underlyingType(this.context), node.unaryValue(), 0);
-        }
-
-        else if (node.kind == NodeKind.NULL) {
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            log(code, 0, "i32 literal");
-            array.writeLEB128(0);
-        }
-
-        else if (node.kind == NodeKind.INT32 || node.kind == NodeKind.BOOLEAN) {
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            log(code, node.intValue, "i32 literal");
-            array.writeLEB128(node.intValue);
-        }
-
-        else if (node.kind == NodeKind.INT64) {
-            appendOpcode(code, AsmOpcode.I64_CONST);
-            log(code, node.longValue, "i64 literal");
-            array.writeLEB128(node.longValue);
-        }
-
-        else if (node.kind == NodeKind.FLOAT32) {
-            appendOpcode(code, AsmOpcode.F32_CONST);
-            log(code, node.floatValue, "f32 literal");
-            array.writeFloat(node.floatValue);
-        }
-
-        else if (node.kind == NodeKind.FLOAT64) {
-            appendOpcode(code, AsmOpcode.F64_CONST);
-            log(code, node.doubleValue, "f64 literal");
-            array.writeDouble(node.doubleValue);
-        }
-
-        else if (node.kind == NodeKind.STRING) {
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            let value = ASM_MEMORY_INITIALIZER_BASE + node.intValue;
-            log(code, value, "i32 literal");
-            array.writeLEB128(value);
-        }
-
-        else if (node.kind == NodeKind.CALL) {
-            let value = node.callValue();
-            let symbol = value.symbol;
-            assert(isFunction(symbol.kind));
-
-            // Write out the implicit "this" argument
-            if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
-                this.emitNode(code, value.dotTarget());
-            }
-
-            let child = value.nextSibling;
-            while (child != null) {
-                this.emitNode(code, child);
-                child = child.nextSibling;
-            }
-
-            appendOpcode(code, AsmOpcode.CALL);
-            log(code, symbol.`call func index (${symbol.offset})`);
-            array.writeUnsignedLEB128(symbol.offset);
-        }
-
-        else if (node.kind == NodeKind.NEW) {
-            let type = node.newType();
-            let size = type.resolvedType.allocationSizeOf(this.context);
-            assert(size > 0);
-            // Pass the object size as the first argument
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            log(code, size, "i32 literal");
-            array.writeLEB128(size);
-
-            appendOpcode(code, AsmOpcode.CALL);
-            log(code, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
-            array.writeUnsignedLEB128(this.mallocFunctionIndex);
-        }
-
-        else if (node.kind == NodeKind.DELETE) {
-            let value = node.deleteValue();
-
-            this.emitNode(code, value);
-
-            appendOpcode(code, AsmOpcode.CALL);
-            log(code, this.freeFunctionIndex, `call func index (${this.freeFunctionIndex})`);
-            array.writeUnsignedLEB128(this.freeFunctionIndex);
-        }
-
-        else if (node.kind == NodeKind.POSITIVE) {
-            this.emitNode(code, node.unaryValue());
-        }
-
-        else if (node.kind == NodeKind.NEGATIVE) {
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            log(code, 0, "i32 literal");
-            array.writeLEB128(0);
-            this.emitNode(code, node.unaryValue());
-            appendOpcode(code, AsmOpcode.I32_SUB);
-        }
-
-        else if (node.kind == NodeKind.COMPLEMENT) {
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            log(code, ~0, "i32 literal");
-            array.writeLEB128(~0);
-            this.emitNode(code, node.unaryValue());
-            appendOpcode(code, AsmOpcode.I32_XOR);
-        }
-
-        else if (node.kind == NodeKind.NOT) {
-            this.emitNode(code, node.unaryValue());
-            appendOpcode(code, AsmOpcode.I32_EQZ);
-        }
-
-        else if (node.kind == NodeKind.CAST) {
-            let value = node.castValue();
-            let context = this.context;
-            let from = value.resolvedType.underlyingType(context);
-            let type = node.resolvedType.underlyingType(context);
-            let fromSize = from.variableSizeOf(context);
-            let typeSize = type.variableSizeOf(context);
-
-            // The cast isn't needed if it's to a wider integer type
-            if (from == type || fromSize < typeSize) {
-                this.emitNode(code, value);
-            }
-
-            else {
-                // Sign-extend
-                if (type == context.sbyteType || type == context.shortType) {
-                    let shift = 32 - typeSize * 8;
-                    appendOpcode(code, AsmOpcode.I32_SHR_S);
-                    appendOpcode(code, AsmOpcode.I32_SHL);
-                    this.emitNode(code, value);
-                    appendOpcode(code, AsmOpcode.I32_CONST);
-                    log(code, shift, "i32 literal");
-                    array.writeLEB128(shift);
-                    appendOpcode(code, AsmOpcode.I32_CONST);
-                    log(code, shift, "i32 literal");
-                    array.writeLEB128(shift);
-                }
-
-                // Mask
-                else if (type == context.byteType || type == context.ushortType) {
-                    this.emitNode(code, value);
-                    appendOpcode(code, AsmOpcode.I32_CONST);
-                    let _value = type.integerBitMask(this.context);
-                    log(code, _value, "i32 literal");
-                    array.writeLEB128(_value);
-                    appendOpcode(code, AsmOpcode.I32_AND);
-                }
-
-                // i32 > f32
-                else if (from == context.int32Type && type == context.float32Type) {
-                    //TODO implement
-                    this.emitNode(code, value);
-                }
-
-                // f32 > i32
-                else if (from == context.float32Type && type == context.int32Type) {
-                    //TODO implement
-                    this.emitNode(code, value);
-                }
-
-                // No cast needed
-                else {
-                    this.emitNode(code, value);
-                }
-            }
-        }
-
-        else if (node.kind == NodeKind.DOT) {
             let symbol = node.symbol;
 
-            if (symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
-                this.emitLoadFromMemory(code, symbol.resolvedType, node.dotTarget(), symbol.offset);
-            }
+            if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
+                let sizeOf = symbol.resolvedType.variableSizeOf(this.context);
+                let value = symbol.node.variableValue();
 
-            else {
-                assert(false);
-            }
-        }
+                // Copy the initial value into the memory initializer
 
-        else if (node.kind == NodeKind.ASSIGN) {
-            let left = node.binaryLeft();
-            let right = node.binaryRight();
-            let symbol = left.symbol;
+                let offset = symbol.offset;
+                // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
+                // symbol.byteOffset = offset;
 
-            if (left.kind == NodeKind.DEREFERENCE) {
-                this.emitStoreToMemory(code, left.resolvedType.underlyingType(this.context), left.unaryValue(), 0, right);
-            }
-
-            else if (symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
-                this.emitStoreToMemory(code, symbol.resolvedType, left.dotTarget(), symbol.right);
-            }
-
-            else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                //Global variables are immutable in MVP so we need to store them in memory
-                // this.emitNode(code, right);
-                // appendOpcode(code, AsmOpcode.SET_GLOBAL);
-                // array.writeUnsignedLEB128(symbol.offset);
-                this.emitStoreToMemory(code, symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.right);
-            }
-
-            else if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT || symbol.kind == SymbolKind.VARIABLE_LOCAL) {
-                this.emitNode(code, right);
-                appendOpcode(code, AsmOpcode.SET_LOCAL);
-                log(code, symbol.
-                "local index"
-            )
-                ;
-                array.writeUnsignedLEB128(symbol.offset);
-            }
-
-            else {
-                assert(false);
-            }
-        }
-
-        else if (node.kind == NodeKind.LOGICAL_AND) {
-            this.emitNode(code, node.binaryLeft());
-            this.emitNode(code, node.binaryRight());
-            appendOpcode(code, AsmOpcode.I32_AND);
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            log(code, 1, "i32 literal");
-            array.writeLEB128(1);
-            appendOpcode(code, AsmOpcode.I32_EQ);
-        }
-
-        else if (node.kind == NodeKind.LOGICAL_OR) {
-            this.emitNode(code, node.binaryLeft());
-            this.emitNode(code, node.binaryRight());
-            appendOpcode(code, AsmOpcode.I32_OR);
-            appendOpcode(code, AsmOpcode.I32_CONST);
-            log(code, 1, "i32 literal");
-            array.writeLEB128(1);
-            appendOpcode(code, AsmOpcode.I32_EQ);
-        }
-
-        else if (isUnary(node.kind)) {
-
-            let kind = node.kind;
-
-            if (kind == NodeKind.POSTFIX_INCREMENT) {
-
-                let value = node.unaryValue();
-                let dataType: string = typeToAsmType(value.resolvedType);
-
-                this.emitNode(code, value);
-
-                assert(
-                    value.resolvedType.isInteger() || value.resolvedType.isLong() ||
-                    value.resolvedType.isFloat() || value.resolvedType.isDouble()
-                );
-                let size = value.resolvedType.pointerTo.allocationSizeOf(this.context);
-
-                if (size == 1 || size == 2) {
-                    if (value.kind == NodeKind.INT32) {
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, 1, "i32 literal");
-                        array.writeLEB128(1);
-                    }
-
-                    else {
-                        console.error("Wrong type");
+                if (sizeOf == 1) {
+                    if (symbol.resolvedType.isUnsigned()) {
+                    } else {
                     }
                 }
-
-                else if (size == 4) {
-                    if (value.kind == NodeKind.INT32) {
-                        appendOpcode(code, AsmOpcode.I32_CONST);
-                        log(code, 1, "i32 literal");
-                        array.writeLEB128(1);
-                    }
-
-                    else if (value.kind == NodeKind.FLOAT32) {
-                        appendOpcode(code, AsmOpcode.F32_CONST);
-                        log(code, 1, "f32 literal");
-                        array.writeFloat(1);
-                    }
-
-                    else {
-                        console.error("Wrong type");
+                else if (sizeOf == 2) {
+                    if (symbol.resolvedType.isUnsigned()) {
+                    } else {
                     }
                 }
-
-                else if (size == 8) {
-
-                    if (value.kind == NodeKind.INT64) {
-                        appendOpcode(code, AsmOpcode.I64_CONST);
-                        log(code, 1, "i64 literal");
-                        array.writeLEB128(1);
-                    }
-
-                    else if (value.kind == NodeKind.FLOAT64) {
-                        appendOpcode(code, AsmOpcode.F64_CONST);
-                        log(code, 1, "f64 literal");
-                        array.writeDouble(1);
-                    }
-
-                    else {
-                        console.error("Wrong type");
-                    }
-                }
-
-                // if (value.resolvedType.pointerTo == null) {
-                //     this.emitNode(code, value);
-                // }
-
-                appendOpcode(code, AsmOpcode[`${dataType}_ADD`]);
-            }
-        }
-        else {
-
-            if (node.kind == NodeKind.NOT) {
-                let value = node.unaryValue();
-
-                // Automatically invert operators for readability
-                value.expandCallIntoOperatorTree();
-                let invertedKind = invertedBinaryKind(value.kind);
-
-                if (invertedKind != value.kind) {
-                    value.kind = invertedKind;
-                    this.emitExpression(value, parentPrecedence);
-                }
-
-                else {
-                    this.emitUnary(node, parentPrecedence, "!");
-                }
-            }
-
-            else if (node.kind == NodeKind.COMPLEMENT) this.emitUnary(node, parentPrecedence, "~");
-            else if (node.kind == NodeKind.NEGATIVE) this.emitUnary(node, parentPrecedence, "-");
-            else if (node.kind == NodeKind.POSITIVE) this.emitUnary(node, parentPrecedence, "+");
-            else if (node.kind == NodeKind.PREFIX_INCREMENT) this.emitUnary(node, parentPrecedence, "++");
-            else if (node.kind == NodeKind.PREFIX_DECREMENT) this.emitUnary(node, parentPrecedence, "--");
-            else if (node.kind == NodeKind.POSTFIX_INCREMENT) this.emitUnary(node, parentPrecedence, "++");
-            else if (node.kind == NodeKind.POSTFIX_DECREMENT) this.emitUnary(node, parentPrecedence, "--");
-
-            else if (node.kind == NodeKind.ADD) {
-                this.emitBinary(node, parentPrecedence, " + ", Precedence.ADD,
-                    node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
-                );
-            }
-            else if (node.kind == NodeKind.ASSIGN) {
-                this.emitBinary(node, parentPrecedence, " = ", Precedence.ASSIGN, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.BITWISE_AND) {
-                this.emitBinary(node, parentPrecedence, " & ", Precedence.BITWISE_AND, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.BITWISE_OR) {
-                this.emitBinary(node, parentPrecedence, " | ", Precedence.BITWISE_OR, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.BITWISE_XOR) {
-                this.emitBinary(node, parentPrecedence, " ^ ", Precedence.BITWISE_XOR, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.DIVIDE) {
-                this.emitBinary(node, parentPrecedence, " / ", Precedence.MULTIPLY,
-                    node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
-                );
-            }
-            else if (node.kind == NodeKind.EQUAL) {
-                this.emitBinary(node, parentPrecedence, " === ", Precedence.EQUAL, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.GREATER_THAN) {
-                this.emitBinary(node, parentPrecedence, " > ", Precedence.COMPARE, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.GREATER_THAN_EQUAL) {
-                this.emitBinary(node, parentPrecedence, " >= ", Precedence.COMPARE, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.LESS_THAN) {
-                this.emitBinary(node, parentPrecedence, " < ", Precedence.COMPARE, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.LESS_THAN_EQUAL) {
-                this.emitBinary(node, parentPrecedence, " <= ", Precedence.COMPARE, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.LOGICAL_AND) {
-                this.emitBinary(node, parentPrecedence, " && ", Precedence.LOGICAL_AND, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.LOGICAL_OR) {
-                this.emitBinary(node, parentPrecedence, " || ", Precedence.LOGICAL_OR, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.NOT_EQUAL) {
-                this.emitBinary(node, parentPrecedence, " !== ", Precedence.EQUAL, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.REMAINDER) {
-                this.emitBinary(node, parentPrecedence, " % ", Precedence.MULTIPLY,
-                    node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
-                );
-            }
-            else if (node.kind == NodeKind.SHIFT_LEFT) {
-                this.emitBinary(node, parentPrecedence, " << ", Precedence.SHIFT, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.SHIFT_RIGHT) {
-                this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", Precedence.SHIFT, EmitBinary.NORMAL);
-            }
-            else if (node.kind == NodeKind.SUBTRACT) {
-                this.emitBinary(node, parentPrecedence, " - ", Precedence.ADD,
-                    node.parent.kind == NodeKind.INT32 ? EmitBinary.CAST_TO_INT : EmitBinary.NORMAL
-                );
-            }
-
-            else if (node.kind == NodeKind.MULTIPLY) {
-                let left = node.binaryLeft();
-                let right = node.binaryRight();
-                let isUnsigned = node.isUnsignedOperator();
-
-                if (isUnsigned && parentPrecedence > Precedence.SHIFT) {
-                    this.code.append("(");
-                }
-
-                if (left.intValue && right.intValue) {
-                    this.code.append("__imul(");
-                    this.emitExpression(left, Precedence.LOWEST);
-                    this.code.append(", ");
-                    this.emitExpression(right, Precedence.LOWEST);
-                    this.code.append(")");
-
-                    if (isUnsigned) {
-                        this.code.append(" >>> 0");
-
-                        if (parentPrecedence > Precedence.SHIFT) {
-                            this.code.append(")");
+                else if (sizeOf == 4) {
+                    if (symbol.resolvedType.isFloat()) {
+                    } else {
+                        if (symbol.resolvedType.isUnsigned()) {
+                        } else {
                         }
                     }
-
-                } else {
-                    this.emitExpression(left, Precedence.LOWEST);
-                    this.code.append(" * ");
-                    this.emitExpression(right, Precedence.LOWEST);
                 }
-                this.foundMultiply = true;
+                else if (sizeOf == 8) {
+                    if (symbol.resolvedType.isDouble()) {
+                    } else {
+                        //TODO Implement Int64 write
+                        if (symbol.resolvedType.isUnsigned()) {
+                        } else {
+                        }
+                    }
+                }
+                else assert(false);
 
-            }
+                // Make sure the heap offset is tracked
+                if (symbol.name == "currentHeapPointer") {
+                    assert(this.currentHeapPointer == -1);
+                    this.currentHeapPointer = symbol.offset;
+                }
 
-            else {
-                assert(false);
+                // Make sure the heap offset is tracked
+                else if (symbol.name == "originalHeapPointer") {
+                    assert(this.originalHeapPointer == -1);
+                    this.originalHeapPointer = symbol.offset;
+                }
             }
         }
 
-        return 1;
+        else if (node.kind == NodeKind.CLASS) {
+            // if (node.isImport()) {
+            //     console.log(node.symbol.name);
+            // }
+        }
+
+        else if (node.kind == NodeKind.FUNCTION) {
+
+            let returnType = node.functionReturnType();
+            let shared = new AsmSharedOffset();
+            let argumentTypesFirst: AsmWrappedType = null;
+            let argumentTypesLast: AsmWrappedType = null;
+
+            // Make sure to include the implicit "this" variable as a normal argument
+            let argument = node.functionFirstArgument();
+            while (argument != returnType) {
+                let type = asmWrapType(this.getAsmType(argument.variableType().resolvedType));
+
+                if (argumentTypesFirst == null) argumentTypesFirst = type;
+                else argumentTypesLast.next = type;
+                argumentTypesLast = type;
+
+                shared.nextLocalOffset = shared.nextLocalOffset + 1;
+                argument = argument.nextSibling;
+            }
+            let signatureIndex = this.allocateSignature(argumentTypesFirst, asmWrapType(this.getAsmType(returnType.resolvedType)));
+            let body = node.functionBody();
+            let symbol = node.symbol;
+
+            // console.log(symbol.name);
+
+            // Functions without bodies are imports
+            if (body == null) {
+                // if (node.parent.isImport()) {
+                //     let _import = importMap.get(node.parent.symbol.name);
+                //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
+                // }
+                if (node.isImport() || node.parent.isImport()) {
+                    let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                    symbol.offset = this.importCount;
+                    this.allocateImport(signatureIndex, moduleName, symbol.name);
+                }
+                node = node.nextSibling;
+                return;
+            }
+
+            symbol.offset = this.functionCount;
+            let fn = this.allocateFunction(symbol, signatureIndex);
+
+            // Make sure "malloc" is tracked
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
+                assert(this.mallocFunctionIndex == -1);
+                this.mallocFunctionIndex = symbol.offset;
+            }
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "free") {
+                assert(this.freeFunctionIndex == -1);
+                this.freeFunctionIndex = symbol.offset;
+            }
+
+            // Make "init_malloc" as start function
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "init_malloc") {
+                assert(this.startFunctionIndex == -1);
+                this.startFunctionIndex = symbol.offset;
+            }
+
+            if (node.isExport()) {
+                fn.isExported = true;
+            }
+
+            // Assign local variable offsets
+            asmAssignLocalVariableOffsets(fn, body, shared);
+            fn.localCount = shared.localCount;
+        }
+
+        let child = node.firstChild;
+        while (child != null) {
+            this.prepareToEmit(child);
+            child = child.nextSibling;
+        }
+    }
+
+    allocateImport(signatureIndex: int32, mod: string, name: string): AsmImport {
+        let result = new AsmImport();
+        result.signatureIndex = signatureIndex;
+        result.module = mod;
+        result.name = name;
+
+        if (this.firstImport == null) this.firstImport = result;
+        else this.lastImport.next = result;
+        this.lastImport = result;
+
+        this.importCount = this.importCount + 1;
+
+        importMap.set(mod + "." + name, result);
+
+        return result;
+    }
+
+    allocateFunction(symbol: Symbol, signatureIndex: int32): AsmFunction {
+        let fn = new AsmFunction();
+        fn.symbol = symbol;
+        fn.signatureIndex = signatureIndex;
+
+        if (this.firstFunction == null) this.firstFunction = fn;
+        else this.lastFunction.next = fn;
+        this.lastFunction = fn;
+
+        this.functionCount = this.functionCount + 1;
+
+        functionMap.set(symbol.name, fn);
+
+        return fn;
+    }
+
+    allocateSignature(argumentTypes: AsmWrappedType, returnType: AsmWrappedType): int32 {
+        assert(returnType != null);
+        assert(returnType.next == null);
+
+        let signature = new AsmSignature();
+        signature.argumentTypes = argumentTypes;
+        signature.returnType = returnType;
+
+        let check = this.firstSignature;
+        let i = 0;
+
+        while (check != null) {
+            if (asmAreSignaturesEqual(signature, check)) {
+                return i;
+            }
+
+            check = check.next;
+            i = i + 1;
+        }
+
+        if (this.firstSignature == null) this.firstSignature = signature;
+        else this.lastSignature.next = signature;
+        this.lastSignature = signature;
+
+        signatureMap.set(i, signature);
+
+        this.signatureCount = this.signatureCount + 1;
+        return i;
+    }
+
+    getAsmType(type: Type): AsmType {
+        let context = this.context;
+
+        if (type == context.booleanType || type.isInteger() || type.isReference()) {
+            return AsmType.INT;
+        }
+
+        else if (type.isLong() || type.isReference()) {
+            return AsmType.INT; // We don't have native I64 and we will not emulate it.
+        }
+
+        else if (type.isDouble()) {
+            return AsmType.DOUBLE;
+        }
+
+        else if (type.isFloat()) {
+            return AsmType.FLOAT;
+        }
+
+        if (type == context.voidType) {
+            return AsmType.VOID;
+        }
+
+        if (type == context.anyType) {
+            return AsmType.VOID;
+        }
+
+        assert(false);
+        return AsmType.VOID;
+    }
+
+    emitNullInitializer(node: Node) {
+        let identifier = getIdentifier(node);
+        if (identifier.float) {
+            this.code.append(identifier.left);
+        }
+        this.code.append(`0${identifier.double ? ".0" : ""}`);
+        if (identifier.float) {
+            this.code.append(identifier.right);
+        }
     }
 }
 
-function asmWrapType(id: AsmType): AsmWrappedType {
-    assert(id == AsmType.VOID || id == AsmType.INT || id == AsmType.FLOAT || id == AsmType.DOUBLE);
-    let type = new AsmWrappedType();
-    type.id = id;
-    return type;
-}
-function symbolToIdentifier(symbol: Symbol): string {
-    let type = symbol.resolvedType;
-    if (type.isFloat()) {
-        return `Math.fround(${symbol.name})`;
-    }
-    else if (type.isDouble()) {
-        return `+${symbol.name}`;
-    }
-    else if (type.isInteger() || type.pointerTo) {
-        return `${symbol.name}|0`;
-    }
-    else if (type.isLong() || type.pointerTo) {
-        return `${symbol.name}|0`;
-    } else {
-        return `${symbol.name}|0`;
-    }
-}
-function typeToAsmType(type: Type): AsmType {
-    if (type.isFloat()) {
-        return AsmType.FLOAT;
-    }
-    else if (type.isDouble()) {
-        return AsmType.DOUBLE;
-    }
-    else if (type.isInteger() || type.pointerTo) {
-        return AsmType.INT;
-    }
-    else if (type.isLong() || type.pointerTo) {
-        return AsmType.INT;
-    }
-}
+function asmAreSignaturesEqual(a: AsmSignature, b: AsmSignature): boolean {
+    assert(a.returnType != null);
+    assert(b.returnType != null);
+    assert(a.returnType.next == null);
+    assert(b.returnType.next == null);
 
-class AsmSharedOffset {
-    nextLocalOffset: int32 = 0;
-    localCount: int32 = 0;
+    let x = a.argumentTypes;
+    let y = b.argumentTypes;
+
+    while (x != null && y != null) {
+        if (x.id != y.id) {
+            return false;
+        }
+
+        x = x.next;
+        y = y.next;
+    }
+
+    if (x != null || y != null) {
+        return false;
+    }
+
+    if (a.returnType.id != b.returnType.id) {
+        return false;
+    }
+
+    return true;
 }
 
 function asmAssignLocalVariableOffsets(fn: AsmFunction, node: Node, shared: AsmSharedOffset): void {
@@ -2190,36 +1776,202 @@ function asmAssignLocalVariableOffsets(fn: AsmFunction, node: Node, shared: AsmS
         child = child.nextSibling;
     }
 }
-function append(code: StringBuilder, value = null, msg = null) {
-    if (value) {
-        code.append(value);
+
+function getIdentifier(node: Node, castToDouble: boolean = false) {
+    let resolvedType = node.resolvedType.pointerTo ? node.resolvedType.pointerTo : node.resolvedType;
+    let identifier_1 = "";
+    let identifier_2 = "";
+    let int: boolean = false;
+    let float: boolean = false;
+    let double: boolean = false;
+
+    if (castToDouble || resolvedType.isDouble()) {
+        identifier_1 = "+(";
+        identifier_2 = ")";
+        double = true;
+
+    } else if (resolvedType.isFloat()) {
+        identifier_1 = "fround(";
+        identifier_2 = ")";
+        float = true;
+    }
+    else if (resolvedType.isInteger()) {
+        identifier_1 = "(";
+        identifier_2 = "|0)";
+        int = true;
+    } else {
+        identifier_1 = "(";
+        identifier_2 = ")|0";
+        int = true;
+    }
+    return {
+        left: identifier_1,
+        right: identifier_2,
+        int: int,
+        float: float,
+        double: double
+    };
+}
+function asmTypeToIdentifier(type: AsmType) {
+    let identifier_1 = "";
+    let identifier_2 = "";
+    let int: boolean = false;
+    let float: boolean = false;
+    let double: boolean = false;
+
+    if (type == AsmType.FLOAT) {
+        identifier_1 = "fround(";
+        identifier_2 = ")";
+        float = true;
+    }
+    else if (type == AsmType.DOUBLE) {
+        identifier_1 = "(+";
+        identifier_2 = ")";
+        double = true;
+
+    } else if (type == AsmType.INT) {
+        identifier_1 = "(";
+        identifier_2 = "|0)";
+        int = true;
+    } else {
+        identifier_1 = "(";
+        identifier_2 = "|0)";
+        int = true;
+    }
+    return {
+        left: identifier_1,
+        right: identifier_2,
+        int: int,
+        float: float,
+        double: double
+    };
+}
+
+function computeClassId(name: string): number {
+    let n = name.length;
+    for (let i = 0; i < name.length; i++) {
+        let c = name.charAt(i);
+        let v = 0;
+        if (c >= 'A' && c <= 'Z')
+            v = c.charCodeAt(0) - 'A'.charCodeAt(0);
+        else if (c >= 'a' && c <= 'z')
+            v = c.charCodeAt(0) - 'a'.charCodeAt(0) + 26;
+        else if (c >= '0' && c <= '9')
+            v = c.charCodeAt(0) - '0'.charCodeAt(0) + 52;
+        else if (c == '_')
+            v = 62;
+        else if (c == '>')
+            v = 63;
+        else
+            throw "Bad character in class name: " + c;
+        n = (((n & 0x1FFFFFF) << 3) | (n >>> 25)) ^ v;
+    }
+    return n;
+}
+
+function getMemoryType(name: string): string {
+    if (name == "int32") {
+        return "32";
+    } else if (name == "int16") {
+        return "16";
+    } else if (name == "int8") {
+        return "8";
+    } else if (name == "uint32") {
+        return "U32";
+    } else if (name == "uint16") {
+        return "U16";
+    } else if (name == "uint8") {
+        return "U8";
+    } else if (name == "float32") {
+        return "F32";
+    } else if (name == "float64") {
+        return "F64";
+    }
+    //Pointer object
+    return "32";
+}
+
+function symbolToValueType(symbol: Symbol) {
+    let type = symbol.resolvedType;
+    if (type.isFloat()) {
+        return AsmType.FLOAT;
+    }
+    else if (type.isDouble()) {
+        return AsmType.DOUBLE;
+    }
+    else if (type.isInteger() || type.isLong() || type.pointerTo) {
+        return AsmType.INT;
+    } else {
+        return AsmType.INT;
     }
 }
-function appendOpcode(code: StringBuilder, opcode) {
-    code.append(opcode);
+
+function typeToAsmType(type: Type): AsmType {
+    if (type.isFloat()) {
+        return AsmType.FLOAT;
+    }
+    else if (type.isDouble()) {
+        return AsmType.DOUBLE;
+    }
+    else if (type.isInteger() || type.pointerTo) {
+        return AsmType.INT;
+    }
+    else if (type.isLong() || type.pointerTo) {
+        return AsmType.INT;
+    }
 }
-export function asmEmit(compiler: Compiler): void {
+
+function asmWrapType(id: AsmType): AsmWrappedType {
+    assert(id == AsmType.VOID || id == AsmType.INT || id == AsmType.FLOAT || id == AsmType.DOUBLE);
+    let type = new AsmWrappedType();
+    type.id = id;
+    return type;
+}
+
+export function asmJsEmit(compiler: Compiler): void {
     let code: StringBuilder = StringBuilder_new();
-    let module = new AsmModule();
+    let module = new AsmJsModule();
     module.context = compiler.context;
     module.code = code;
-    module.memoryInitializer = new ByteArray();
 
-    // Set these to invalid values since "0" is valid
-    module.startFunctionIndex = -1;
-    module.mallocFunctionIndex = -1;
-    module.freeFunctionIndex = -1;
-    module.currentHeapPointer = -1;
-    module.originalHeapPointer = -1;
-
-    // Emission requires two passes
     module.prepareToEmit(compiler.global);
 
-    // The standard library must be included
-    // assert(module.mallocFunctionIndex != -1);
-    // assert(module.freeFunctionIndex != -1);
-    // assert(module.currentHeapPointer != -1);
-    // assert(module.originalHeapPointer != -1);
+    code.append("function TurboModule(global, env, buffer) {\n");
+    code.append('"use asm";\n');
+    code.emitIndent(1);
+    code.append('//##################################\n');
+    code.append('//#            RUNTIME             #\n');
+    code.append('//##################################\n');
+    code.append(compiler.runtimeSource);
+    code.append('\n');
+    code.append('//##################################\n');
+    code.append('//#            IMPORTS             #\n');
+    code.append('//##################################\n');
+    module.emitImports();
+    code.append('\n');
+    code.append('//##################################\n');
+    code.append('//#             CODE               #\n');
+    code.append('//##################################\n');
+    module.emitStatements(compiler.global.firstChild);
+    module.emitVirtuals();
 
-    module.emitModule();
+    // if (module.foundMultiply) {
+    //     code.append("\n");
+    //     code.append("let __imul = Math.imul || function(a, b) {\n");
+    //     code.append("return (a * (b >>> 16) << 16) + a * (b & 65535) | 0;\n");
+    //     code.append("};\n");
+    // }
+
+    code.append("return {\n");
+    exportTable.forEach((name: string, index) => {
+        code.append(`   ${name}:${name}${index < exportTable.length - 1 ? "," : ""}\n`);
+    });
+    code.append("}\n");
+    code.indent -= 1;
+    code.clearIndent(1);
+    code.append("}\n");
+
+    code.append(compiler.wrapperSource);
+
+    compiler.outputJS = code.finish();
 }

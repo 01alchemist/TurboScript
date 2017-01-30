@@ -9,7 +9,7 @@ import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
 import {SymbolKind, Symbol} from "./symbol";
 import {Compiler} from "./compiler";
 
-let turboJsOptimiztion: uint8 = 0;
+let optimization: uint8 = 0;
 let classMap: Map<string, any> = new Map<string, any>();
 let virtualMap: Map<string, any> = new Map<string, any>();
 let currentClass: string;
@@ -851,7 +851,7 @@ export class TurboJsResult {
                 this.code.clearIndent(1);
                 this.code.append("};\n");
                 this.emitNewlineAfter(node);
-            } else if (turboJsOptimiztion == 0) {
+            } else if (optimization == 0) {
                 this.emitNewlineBefore(node);
                 // this.code.emitIndent();
                 this.code.append("let ");

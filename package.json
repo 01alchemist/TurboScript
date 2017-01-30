@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc -p ./src",
     "watch": "tsc -w -p ./src",
-    "build-lib": "tsc -w -p ./lib"
+    "watch-lib": "tsc -w lib/tc.ts"
   },
   "repository": {
     "type": "git",

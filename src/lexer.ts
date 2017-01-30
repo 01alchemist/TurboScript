@@ -65,14 +65,12 @@ export enum TokenKind {
     ENUM,
     EXPORT,
     EXTENDS,
-    EXTERN,
     FALSE,
     FUNCTION,
     ANYFUNC,
     IF,
     IMPLEMENTS,
     IMPORT,
-    INTERFACE,
     LET,
     NEW,
     DELETE,
@@ -194,7 +192,6 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.ENUM) return "'enum'";
     if (token == TokenKind.EXPORT) return "'export'";
     if (token == TokenKind.EXTENDS) return "'extends'";
-    if (token == TokenKind.EXTERN) return "'extern'";
     if (token == TokenKind.FALSE) return "'false'";
     if (token == TokenKind.FUNCTION) return "'function'";
     if (token == TokenKind.ANYFUNC) return "'anyfunc'";
@@ -202,7 +199,6 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.IMPLEMENTS) return "'implements'";
     // if (token == TokenKind.IMPORT) return "'import'"; //TODO: Standardize import
     if (token == TokenKind.IMPORT) return "'@import'";
-    if (token == TokenKind.INTERFACE) return "'interface'";
     if (token == TokenKind.LET) return "'let'";
     if (token == TokenKind.NEW) return "'new'";
     if (token == TokenKind.DELETE) return "'delete'";
@@ -335,7 +331,6 @@ export function tokenize(source: Source, log: Log): Token {
                 else if (length == 6) {
                     if (text == "export") kind = TokenKind.EXPORT;
                     else if (text == "module") kind = TokenKind.MODULE;
-                    else if (text == "extern") kind = TokenKind.EXTERN;
                     // else if (text == "import") kind = TokenKind.IMPORT;
                     else if (text == "public") kind = TokenKind.PUBLIC;
                     else if (text == "return") kind = TokenKind.RETURN;
@@ -361,7 +356,6 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "@virtual") kind = TokenKind.VIRTUAL;
                     else if (text == "function") kind = TokenKind.FUNCTION;
                     else if (text == "implements") kind = TokenKind.IMPLEMENTS;
-                    else if (text == "interface") kind = TokenKind.INTERFACE;
                     else if (text == "protected") kind = TokenKind.PROTECTED;
                 }
             }

@@ -2,7 +2,7 @@ var stdlib = {};
 global["stdlib"] = stdlib;
 stdlib["assert"] = function (truth) {
     if (!truth) {
-        console.error( new Error('Assertion failed') );
+        console.error(new Error('Assertion failed'));
         process.exit(1);
     }
 };
@@ -39,9 +39,16 @@ Math["log2"] = Math["log2"] || function (x) {
 
 
 var fs = require('fs');
+var path = require('path');
 var SystemJS = require('systemjs');
 SystemJS.defaultJSExtensions = true;
-require('../bin/turbo.js');
+
+if(!process.env.TURBO_PATH){
+    process.env.TURBO_PATH = path.resolve(__dirname, "../");
+}
+let turboCompilerPath = path.resolve(process.env.TURBO_PATH, "bin/turbo.js");
+require(turboCompilerPath);
+
 SystemJS.import("main").then(function (mod) {
     var Color = mod.Color;
     var turboMain = mod.main;

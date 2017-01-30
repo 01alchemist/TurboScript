@@ -126,9 +126,7 @@ export function main_entry(): int32 {
                 target = CompileTarget.JAVASCRIPT;
             } else if (text == "--turbo-js") {
                 target = CompileTarget.TURBO_JAVASCRIPT;
-            } else if (text == "--turbo-asm") {
-                target = CompileTarget.TURBO_ASMJS;
-            } else if (text == "--asm") {
+            } else if (text == "--asmjs") {
                 target = CompileTarget.ASMJS;
             } else if (text == "--wasm") {
                 target = CompileTarget.WEBASSEMBLY;
@@ -162,10 +160,11 @@ export function main_entry(): int32 {
     // Automatically set the target based on the file extension
     if (target == CompileTarget.NONE) {
         if (output.endsWith(".c")) target = CompileTarget.C;
+        else if (output.endsWith(".asm.js")) target = CompileTarget.ASMJS;
         else if (output.endsWith(".js")) target = CompileTarget.TURBO_JAVASCRIPT;
         else if (output.endsWith(".wasm")) target = CompileTarget.WEBASSEMBLY;
         else {
-            printError("Missing a target (use either --c, --js, or --wasm)");
+            printError("Missing a target (use either --c, --js, --asmjs or --wasm)");
             return 1;
         }
     }
@@ -204,7 +203,7 @@ export function main_entry(): int32 {
             stdlib.IO_writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
             target == CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.TURBO_JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.TURBO_ASMJS && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
+            target == CompileTarget.ASMJS && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
             stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {
             return 0;

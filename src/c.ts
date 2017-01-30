@@ -498,7 +498,7 @@ export class CResult {
 
         while (node != null) {
             if (node.kind == NodeKind.CLASS) {
-                if (this.shouldEmitClass(node) && (node.isDeclareOrExtern() ? mode == SourceMode.HEADER : mode == SourceMode.IMPLEMENTATION)) {
+                if (this.shouldEmitClass(node) && (node.isDeclareOrExport() ? mode == SourceMode.HEADER : mode == SourceMode.IMPLEMENTATION)) {
                     this.emitNewlineBefore(node);
                     code.append("struct ").append(node.symbol.name).append(";\n");
                 }
@@ -577,7 +577,7 @@ export class CResult {
         var code = this.code;
 
         while (node != null) {
-            if (node.kind == NodeKind.FUNCTION && (mode != SourceMode.HEADER || node.isDeclareOrExtern())) {
+            if (node.kind == NodeKind.FUNCTION && (mode != SourceMode.HEADER || node.isDeclareOrExport())) {
                 var symbol = node.symbol;
 
                 if (this.shouldEmitFunction(symbol)) {
@@ -585,7 +585,7 @@ export class CResult {
                     var child = node.functionFirstArgument();
 
                     this.emitNewlineBefore(node);
-                    if (!node.isDeclareOrExtern()) {
+                    if (!node.isDeclareOrExport()) {
                         code.append("static ");
                     }
                     this.emitType(returnType.resolvedType, TypeMode.DECLARATION);
@@ -625,7 +625,7 @@ export class CResult {
             if (node.kind == NodeKind.VARIABLE && (mode != SourceMode.HEADER || node.isExport())) {
                 var value = node.variableValue();
                 this.emitNewlineBefore(node);
-                if (!node.isDeclareOrExtern()) {
+                if (!node.isDeclareOrExport()) {
                     code.append("static ");
                 }
                 this.emitType(node.symbol.resolvedType, TypeMode.DECLARATION);
@@ -656,7 +656,7 @@ export class CResult {
                     var child = node.firstChild;
 
                     this.emitNewlineBefore(node);
-                    if (!node.isDeclareOrExtern()) {
+                    if (!node.isDeclareOrExport()) {
                         code.append("static ");
                     }
                     this.emitType(returnType.resolvedType, TypeMode.DECLARATION);

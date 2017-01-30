@@ -328,9 +328,11 @@ class WasmModule {
 
         let current = this.firstImport;
         while (current != null) {
-            array.writeUnsignedLEB128(current.signatureIndex);
+            log(section.data, array.position, null, `import ${current.module} ${current.name}`);
             array.writeWasmString(current.module);
             array.writeWasmString(current.name);
+            array.writeUnsignedLEB128(WasmType.anyfunc);
+            array.writeUnsignedLEB128(current.signatureIndex);
             current = current.next;
         }
 
