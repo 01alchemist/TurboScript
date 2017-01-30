@@ -140,15 +140,8 @@ export class TurboASMJsModule {
 
         let _import: AsmImport = this.firstImport;
         while (_import) {
-            // let signature: AsmSignature = signatureMap.get(_import.signatureIndex);
-            // let returnType = signature.returnType;
-            // let identifier = null;
-            // if (returnType.id != AsmType.VOID) {
-            //     identifier = asmTypeToIdentifier(returnType.id);
-            //     this.code.append(identifier.left);
-            // }
             let importName = _import.module + "_" + _import.name;
-            this.code.append(importName + " = global." + importName);
+            this.code.append(`var ${importName} = global.${_import.module}.${_import.name};\n`);
             _import = _import.next;
         }
     }
@@ -206,7 +199,7 @@ export class TurboASMJsModule {
         // }
     }
 
-    emitBinary(node: Node, parentPrecedence: Precedence, operator: string, operatorPrecedence: Precedence, mode: EmitBinary, forceCast: boolean = false): void {
+    emitBinary(node: Node, parentPrecedence: Precedence, operator: string, operatorPrecedence: Precedence, mode: EmitBinary, forceCast: boolean = false, castToDouble: boolean = false): void {
         let isRightAssociative = node.kind == NodeKind.ASSIGN;
         let isUnsigned = node.isUnsignedOperator();
 
@@ -214,7 +207,7 @@ export class TurboASMJsModule {
         let shouldCastToInt = mode == EmitBinary.CAST_TO_INT && (isUnsigned || !jsKindCastsOperandsToInt(node.parent.kind));
         let selfPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : parentPrecedence;
 
-        let identifier = getIdentifier(node);
+        let identifier = getIdentifier(node, castToDouble);
 
         if (parentPrecedence > selfPrecedence) {
             this.code.append("(");
@@ -228,14 +221,14 @@ export class TurboASMJsModule {
             this.code.append(identifier.left);
         }
 
-        this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) as Precedence : operatorPrecedence, forceCast && !isRightAssociative);
+        this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) as Precedence : operatorPrecedence, forceCast && !isRightAssociative, castToDouble);
         this.code.append(operator);
 
         if (isRightAssociative && forceCast) {
             this.code.append(identifier.left);
         }
 
-        this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1) as Precedence, forceCast);
+        this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1) as Precedence, forceCast, castToDouble);
 
         if (selfPrecedence > operatorPrecedence) {
             this.code.append(")");
@@ -250,13 +243,13 @@ export class TurboASMJsModule {
         }
     }
 
-    emitCommaSeparatedExpressions(start: Node, stop: Node, needComma: boolean = false): void {
+    emitCommaSeparatedExpressions(start: Node, stop: Node, needComma: boolean = false, castToDouble: boolean = false): void {
         while (start != stop) {
             if (needComma) {
                 this.code.append(" , ");
                 needComma = false;
             }
-            this.emitExpression(start, Precedence.LOWEST, true);
+            this.emitExpression(start, Precedence.LOWEST, true, castToDouble);
             start = start.nextSibling;
 
             if (start != stop) {
@@ -265,7 +258,7 @@ export class TurboASMJsModule {
         }
     }
 
-    emitExpression(node: Node, parentPrecedence: Precedence, forceCast: boolean = false): void {
+    emitExpression(node: Node, parentPrecedence: Precedence, forceCast: boolean = false, castToDouble: boolean = false): void {
 
         if (node.kind == NodeKind.NAME) {
             let symbol = node.symbol;
@@ -276,18 +269,20 @@ export class TurboASMJsModule {
                 this.emitLoadFromMemory(symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.offset);
             } else {
                 if (forceCast) {
-                    if (symbol.resolvedType.isFloat()) {
+
+                    if (castToDouble || symbol.resolvedType.isDouble()) {
+                        this.code.append("(+");
+                        this.emitSymbolName(symbol);
+                        this.code.append(")");
+                    }
+
+                    else if (symbol.resolvedType.isFloat()) {
                         this.code.append("fround(");
                         this.emitSymbolName(symbol);
                         this.code.append(")");
                     }
-                    else if (symbol.resolvedType.isDouble()) {
-                        this.code.append("+");
-                        this.code.append("(");
-                        this.emitSymbolName(symbol);
-                        this.code.append(")");
 
-                    } else {
+                    else {
                         this.code.append("(");
                         this.emitSymbolName(symbol);
                         this.code.append("|0)");
@@ -316,10 +311,13 @@ export class TurboASMJsModule {
             // if (parentPrecedence == Precedence.MEMBER) {
             //     this.code.append("(");
             // }
-
-            if (parentPrecedence != Precedence.ASSIGN) {
+            if (castToDouble) {
+                this.code.append(`(+${node.intValue})`);
+            }
+            else if (parentPrecedence != Precedence.ASSIGN) {
                 this.code.append(`(${node.intValue}|0)`);
-            } else {
+            }
+            else {
                 this.code.append(`${node.intValue}`);
             }
 
@@ -333,8 +331,16 @@ export class TurboASMJsModule {
                 this.code.append("(");
             }
 
-            this.code.append(`fround(${node.intValue})`);
-            // this.code.append(`${node.intValue}`);
+            if (castToDouble) {
+                if (node.floatValue - (node.floatValue | 0) == 0) {
+                    this.code.append(`${node.floatValue}.0`);
+                } else {
+                    this.code.append(`${node.floatValue}`);
+                }
+            }
+            else {
+                this.code.append(`fround(${node.floatValue})`);
+            }
 
             if (parentPrecedence == Precedence.MEMBER) {
                 this.code.append(")");
@@ -346,8 +352,11 @@ export class TurboASMJsModule {
                 this.code.append("(");
             }
 
-            // this.code.append(`+(${node.floatValue})`);
-            this.code.append(`${node.floatValue}.0`);
+            if (node.floatValue - (node.floatValue | 0) == 0) {
+                this.code.append(`${node.floatValue}.0`);
+            } else {
+                this.code.append(`${node.floatValue}`);
+            }
 
             if (parentPrecedence == Precedence.MEMBER) {
                 this.code.append(")");
@@ -513,18 +522,23 @@ export class TurboASMJsModule {
                 let value = node.callValue();
                 let fn = functionMap.get(value.symbol.name);
                 let signature;
-
+                let isImported = false;
+                let isMath = false;
+                let importedFnName = "";
                 if (!fn) {
                     if (value.symbol.node.isDeclare() && value.symbol.node.parent.isImport()) {
                         let moduleName = value.symbol.node.parent.symbol.name;
                         let fnName = value.symbol.name;
+                        isMath = moduleName == "Math";
+                        importedFnName = moduleName + "_" + fnName;
                         let asmImport: AsmImport = importMap.get(moduleName + "." + fnName);
                         signature = signatureMap.get(asmImport.signatureIndex);
+                        isImported = true;
                     }
-
                 } else {
                     signature = signatureMap.get(fn.signatureIndex);
                 }
+
                 let returnType = signature.returnType;
                 let identifier = null;
                 if (returnType.id != AsmType.VOID) {
@@ -532,7 +546,12 @@ export class TurboASMJsModule {
                     this.code.append(identifier.left);
                 }
 
-                this.emitExpression(value, Precedence.UNARY_POSTFIX);
+                if (isImported) {
+                    this.code.append(importedFnName);
+                } else {
+                    this.emitExpression(value, Precedence.UNARY_POSTFIX);
+                }
+
 
                 if (value.symbol == null || !value.symbol.isGetter()) {
                     this.code.append("(");
@@ -544,7 +563,7 @@ export class TurboASMJsModule {
                             needComma = true;
                         }
                     }
-                    this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
+                    this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma, isMath);
                     this.code.append(")");
                     if (identifier) {
                         this.code.append(identifier.right);
@@ -591,7 +610,7 @@ export class TurboASMJsModule {
         else if (node.kind == NodeKind.POSTFIX_DECREMENT) this.emitUnary(node, parentPrecedence, "--");
 
         else if (node.kind == NodeKind.ADD) {
-            this.emitBinary(node, parentPrecedence, " + ", Precedence.ADD, EmitBinary.NORMAL, forceCast);
+            this.emitBinary(node, parentPrecedence, " + ", Precedence.ADD, EmitBinary.NORMAL, forceCast, castToDouble);
         }
         else if (node.kind == NodeKind.ASSIGN) {
             let left = node.binaryLeft();
@@ -1574,9 +1593,11 @@ export class TurboASMJsModule {
                 //     let _import = importMap.get(node.parent.symbol.name);
                 //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
                 // }
-                let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
-                symbol.offset = this.importCount;
-                this.allocateImport(signatureIndex, moduleName, symbol.name);
+                if (node.isImport() || node.parent.isImport()) {
+                    let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                    symbol.offset = this.importCount;
+                    this.allocateImport(signatureIndex, moduleName, symbol.name);
+                }
                 node = node.nextSibling;
                 return;
             }
@@ -1772,7 +1793,7 @@ function asmAssignLocalVariableOffsets(fn: AsmFunction, node: Node, shared: AsmS
     }
 }
 
-function getIdentifier(node: Node) {
+function getIdentifier(node: Node, castToDouble:boolean=false) {
     let resolvedType = node.resolvedType.pointerTo ? node.resolvedType.pointerTo : node.resolvedType;
     let identifier_1 = "";
     let identifier_2 = "";
@@ -1780,17 +1801,17 @@ function getIdentifier(node: Node) {
     let float: boolean = false;
     let double: boolean = false;
 
-    if (resolvedType.isFloat()) {
+    if (castToDouble || resolvedType.isDouble()) {
+        identifier_1 = "+(";
+        identifier_2 = ")";
+        double = true;
+
+    } else if (resolvedType.isFloat()) {
         identifier_1 = "fround(";
         identifier_2 = ")";
         float = true;
     }
-    else if (resolvedType.isDouble()) {
-        identifier_1 = "(+";
-        identifier_2 = ")";
-        double = true;
-
-    } else if (resolvedType.isInteger()) {
+    else if (resolvedType.isInteger()) {
         identifier_1 = "(";
         identifier_2 = "|0)";
         int = true;
@@ -1936,11 +1957,11 @@ export function turboASMJsEmit(compiler: Compiler): void {
     code.emitIndent(1);
     code.append(compiler.runtimeSource);
     code.append('\n');
+    module.emitImports();
+    code.append('\n');
     module.emitStatements(compiler.global.firstChild);
-    //
-    // module.emitModule();
-
     module.emitVirtuals();
+
     if (module.foundMultiply) {
         code.append("\n");
         code.append("let __imul = Math.imul || function(a, b) {\n");

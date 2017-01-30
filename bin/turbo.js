@@ -9379,22 +9379,22 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
             child = child.nextSibling;
         }
     }
-    function getIdentifier(node) {
+    function getIdentifier(node, castToDouble = false) {
         let resolvedType = node.resolvedType.pointerTo ? node.resolvedType.pointerTo : node.resolvedType;
         let identifier_1 = "";
         let identifier_2 = "";
         let int = false;
         let float = false;
         let double = false;
-        if (resolvedType.isFloat()) {
+        if (castToDouble || resolvedType.isDouble()) {
+            identifier_1 = "+(";
+            identifier_2 = ")";
+            double = true;
+        }
+        else if (resolvedType.isFloat()) {
             identifier_1 = "fround(";
             identifier_2 = ")";
             float = true;
-        }
-        else if (resolvedType.isDouble()) {
-            identifier_1 = "(+";
-            identifier_2 = ")";
-            double = true;
         }
         else if (resolvedType.isInteger()) {
             identifier_1 = "(";
@@ -9543,9 +9543,9 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
         code.emitIndent(1);
         code.append(compiler.runtimeSource);
         code.append('\n');
+        module.emitImports();
+        code.append('\n');
         module.emitStatements(compiler.global.firstChild);
-        //
-        // module.emitModule();
         module.emitVirtuals();
         if (module.foundMultiply) {
             code.append("\n");
@@ -9668,15 +9668,8 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                     }
                     let _import = this.firstImport;
                     while (_import) {
-                        // let signature: AsmSignature = signatureMap.get(_import.signatureIndex);
-                        // let returnType = signature.returnType;
-                        // let identifier = null;
-                        // if (returnType.id != AsmType.VOID) {
-                        //     identifier = asmTypeToIdentifier(returnType.id);
-                        //     this.code.append(identifier.left);
-                        // }
                         let importName = _import.module + "_" + _import.name;
-                        this.code.append(importName + " = global." + importName);
+                        this.code.append(`var ${importName} = global.${_import.module}.${_import.name};\n`);
                         _import = _import.next;
                     }
                 }
@@ -9722,13 +9715,13 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                     //     this.code.append(")");
                     // }
                 }
-                emitBinary(node, parentPrecedence, operator, operatorPrecedence, mode, forceCast = false) {
+                emitBinary(node, parentPrecedence, operator, operatorPrecedence, mode, forceCast = false, castToDouble = false) {
                     let isRightAssociative = node.kind == node_7.NodeKind.ASSIGN;
                     let isUnsigned = node.isUnsignedOperator();
                     // Avoid casting when the parent operator already does a cast
                     let shouldCastToInt = mode == js_2.EmitBinary.CAST_TO_INT && (isUnsigned || !js_2.jsKindCastsOperandsToInt(node.parent.kind));
                     let selfPrecedence = shouldCastToInt ? isUnsigned ? parser_5.Precedence.SHIFT : parser_5.Precedence.BITWISE_OR : parentPrecedence;
-                    let identifier = getIdentifier(node);
+                    let identifier = getIdentifier(node, castToDouble);
                     if (parentPrecedence > selfPrecedence) {
                         this.code.append("(");
                     }
@@ -9738,12 +9731,12 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                     if (!isRightAssociative && forceCast) {
                         this.code.append(identifier.left);
                     }
-                    this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence, forceCast && !isRightAssociative);
+                    this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence, forceCast && !isRightAssociative, castToDouble);
                     this.code.append(operator);
                     if (isRightAssociative && forceCast) {
                         this.code.append(identifier.left);
                     }
-                    this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1), forceCast);
+                    this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1), forceCast, castToDouble);
                     if (selfPrecedence > operatorPrecedence) {
                         this.code.append(")");
                     }
@@ -9754,20 +9747,20 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         this.code.append(")");
                     }
                 }
-                emitCommaSeparatedExpressions(start, stop, needComma = false) {
+                emitCommaSeparatedExpressions(start, stop, needComma = false, castToDouble = false) {
                     while (start != stop) {
                         if (needComma) {
                             this.code.append(" , ");
                             needComma = false;
                         }
-                        this.emitExpression(start, parser_5.Precedence.LOWEST, true);
+                        this.emitExpression(start, parser_5.Precedence.LOWEST, true, castToDouble);
                         start = start.nextSibling;
                         if (start != stop) {
                             this.code.append(", ");
                         }
                     }
                 }
-                emitExpression(node, parentPrecedence, forceCast = false) {
+                emitExpression(node, parentPrecedence, forceCast = false, castToDouble = false) {
                     if (node.kind == node_7.NodeKind.NAME) {
                         let symbol = node.symbol;
                         if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
@@ -9778,14 +9771,13 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         }
                         else {
                             if (forceCast) {
-                                if (symbol.resolvedType.isFloat()) {
-                                    this.code.append("fround(");
+                                if (castToDouble || symbol.resolvedType.isDouble()) {
+                                    this.code.append("(+");
                                     this.emitSymbolName(symbol);
                                     this.code.append(")");
                                 }
-                                else if (symbol.resolvedType.isDouble()) {
-                                    this.code.append("+");
-                                    this.code.append("(");
+                                else if (symbol.resolvedType.isFloat()) {
+                                    this.code.append("fround(");
                                     this.emitSymbolName(symbol);
                                     this.code.append(")");
                                 }
@@ -9813,7 +9805,10 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         // if (parentPrecedence == Precedence.MEMBER) {
                         //     this.code.append("(");
                         // }
-                        if (parentPrecedence != parser_5.Precedence.ASSIGN) {
+                        if (castToDouble) {
+                            this.code.append(`(+${node.intValue})`);
+                        }
+                        else if (parentPrecedence != parser_5.Precedence.ASSIGN) {
                             this.code.append(`(${node.intValue}|0)`);
                         }
                         else {
@@ -9824,8 +9819,17 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         if (parentPrecedence == parser_5.Precedence.MEMBER) {
                             this.code.append("(");
                         }
-                        this.code.append(`fround(${node.intValue})`);
-                        // this.code.append(`${node.intValue}`);
+                        if (castToDouble) {
+                            if (node.floatValue - (node.floatValue | 0) == 0) {
+                                this.code.append(`${node.floatValue}.0`);
+                            }
+                            else {
+                                this.code.append(`${node.floatValue}`);
+                            }
+                        }
+                        else {
+                            this.code.append(`fround(${node.floatValue})`);
+                        }
                         if (parentPrecedence == parser_5.Precedence.MEMBER) {
                             this.code.append(")");
                         }
@@ -9834,8 +9838,12 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                         if (parentPrecedence == parser_5.Precedence.MEMBER) {
                             this.code.append("(");
                         }
-                        // this.code.append(`+(${node.floatValue})`);
-                        this.code.append(`${node.floatValue}.0`);
+                        if (node.floatValue - (node.floatValue | 0) == 0) {
+                            this.code.append(`${node.floatValue}.0`);
+                        }
+                        else {
+                            this.code.append(`${node.floatValue}`);
+                        }
                         if (parentPrecedence == parser_5.Precedence.MEMBER) {
                             this.code.append(")");
                         }
@@ -9963,12 +9971,18 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                             let value = node.callValue();
                             let fn = functionMap.get(value.symbol.name);
                             let signature;
+                            let isImported = false;
+                            let isMath = false;
+                            let importedFnName = "";
                             if (!fn) {
                                 if (value.symbol.node.isDeclare() && value.symbol.node.parent.isImport()) {
                                     let moduleName = value.symbol.node.parent.symbol.name;
                                     let fnName = value.symbol.name;
+                                    isMath = moduleName == "Math";
+                                    importedFnName = moduleName + "_" + fnName;
                                     let asmImport = importMap.get(moduleName + "." + fnName);
                                     signature = signatureMap.get(asmImport.signatureIndex);
+                                    isImported = true;
                                 }
                             }
                             else {
@@ -9980,7 +9994,12 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                                 identifier = asmTypeToIdentifier(returnType.id);
                                 this.code.append(identifier.left);
                             }
-                            this.emitExpression(value, parser_5.Precedence.UNARY_POSTFIX);
+                            if (isImported) {
+                                this.code.append(importedFnName);
+                            }
+                            else {
+                                this.emitExpression(value, parser_5.Precedence.UNARY_POSTFIX);
+                            }
                             if (value.symbol == null || !value.symbol.isGetter()) {
                                 this.code.append("(");
                                 let needComma = false;
@@ -9991,7 +10010,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                                         needComma = true;
                                     }
                                 }
-                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
+                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma, isMath);
                                 this.code.append(")");
                                 if (identifier) {
                                     this.code.append(identifier.right);
@@ -10038,7 +10057,7 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                     else if (node.kind == node_7.NodeKind.POSTFIX_DECREMENT)
                         this.emitUnary(node, parentPrecedence, "--");
                     else if (node.kind == node_7.NodeKind.ADD) {
-                        this.emitBinary(node, parentPrecedence, " + ", parser_5.Precedence.ADD, js_2.EmitBinary.NORMAL, forceCast);
+                        this.emitBinary(node, parentPrecedence, " + ", parser_5.Precedence.ADD, js_2.EmitBinary.NORMAL, forceCast, castToDouble);
                     }
                     else if (node.kind == node_7.NodeKind.ASSIGN) {
                         let left = node.binaryLeft();
@@ -10885,9 +10904,11 @@ System.register("turboasmjs", ["stringbuilder", "node", "parser", "js", "symbol"
                             //     let _import = importMap.get(node.parent.symbol.name);
                             //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
                             // }
-                            let moduleName = symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
-                            symbol.offset = this.importCount;
-                            this.allocateImport(signatureIndex, moduleName, symbol.name);
+                            if (node.isImport() || node.parent.isImport()) {
+                                let moduleName = symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                                symbol.offset = this.importCount;
+                                this.allocateImport(signatureIndex, moduleName, symbol.name);
+                            }
                             node = node.nextSibling;
                             return;
                         }
@@ -11789,6 +11810,13 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             return true;
         }
         else if (from.isInteger() && to.isFloat()) {
+            if (kind == type_2.ConversionKind.IMPLICIT) {
+                return false;
+            }
+            //TODO Allow only lossless conversions implicitly
+            return true;
+        }
+        else if (from.isInteger() && to.isDouble()) {
             if (kind == type_2.ConversionKind.IMPLICIT) {
                 return false;
             }

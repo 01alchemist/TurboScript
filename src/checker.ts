@@ -689,6 +689,15 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         //TODO Allow only lossless conversions implicitly
         return true;
     }
+
+    else if (from.isInteger() && to.isDouble()) {
+        if(kind == ConversionKind.IMPLICIT){
+            return false;
+        }
+        //TODO Allow only lossless conversions implicitly
+        return true;
+    }
+
     else if (from.isFloat() && to.isInteger()) {
         if(kind == ConversionKind.IMPLICIT){
             return false;
@@ -696,9 +705,11 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         //TODO Allow only lossless conversions implicitly
         return true;
     }
+
     else if (from.isFloat() && to.isDouble()) {
         return true;
     }
+
     else if (from.isDouble() && to.isFloat()) {
         if(kind == ConversionKind.IMPLICIT){
             return false;

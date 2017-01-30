@@ -2,6 +2,6 @@
 
 function test(): void {
     let a: float32 = 0.1;
-    // let b:float32 = 0.1;
-    let c = Math.sin(a);
+    let b:float32 = 0.1;
+    let c = Math.sin(b + a);
 }

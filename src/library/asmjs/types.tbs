@@ -58,5 +58,6 @@ declare class string {
 
 @import
 declare class Math {
-    static sin(value:float32):float32;
+    static sin(value:float64):float64;
+    static cos(value:float64):float64;
 }
