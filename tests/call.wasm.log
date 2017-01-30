@@ -1,0 +1,78 @@
+0000000: 0061 736d             ; WASM_BINARY_MAGIC
+0000004: 0d00 0000             ; WASM_BINARY_VERSION
+ - section: Type [0x01]
+0000008: 01                    ; section code
+0000009: 07                    ; section size
+0000009: 60                    ; func
+000000a: 02                    ; num params
+000000b: 7f                    ; I32
+000000c: 7d                    ; F32
+000000d: 01                    ; num results
+000000e: 7f                    ; I32
+ - section: Function [0x03]
+0000011: 03                    ; section code
+0000012: 03                    ; section size
+0000011: 02                    ; num functions
+0000012: 00                    ; func 0 signature index
+0000013: 00                    ; func 1 signature index
+ - section: Memory [0x05]
+0000016: 05                    ; section code
+0000017: 04                    ; section size
+0000016: 01                    ; num memories
+0000017: 00                    ; memory flags
+0000018: ff                    ; memory initial pages
+ - section: Export [0x07]
+000001c: 07                    ; section code
+000001d: 08                    ; section size
+000001c: 01                    ; num exports
+000001d: 04                    ; export name length
+0000021: test // export name
+0000022: 00                    ; export kind
+0000023: 01                    ; export func index
+ - section: Code [0x0a]
+0000026: 0a                    ; section code
+0000027: 33                    ; section size
+0000026: 02                    ; num functions
+0000028: 14                    ; func body size
+0000027: 00                    ; local count
+0000028: 20                    ; get_local
+0000029: 01                    ; local index
+000002a: 43                    ; f32.const
+000002b: .8                    ; f32 literal
+000002f: 5b                    ; f32.eq
+0000030: 04                    ; if
+000000a: 7f                    ; I32
+0000032: 41                    ; i32.const
+0000033: 64                    ; i32 literal
+0000035: 05                    ; else
+0000036: 20                    ; get_local
+0000037: 00                    ; local index
+0000038: 0b                    ; end
+0000039: 0f                    ; return
+000003a: 0b                    ; end
+000003d: 1c                    ; func body size
+000003c: 02                    ; local count
+000003d: 01                    ; local index
+000003e: 7f                    ; I32
+000003f: 01                    ; local index
+0000040: 7f                    ; I32
+0000041: 20                    ; get_local
+0000042: 00                    ; local index
+0000043: 41                    ; i32.const
+0000044: 01                    ; i32 literal
+0000045: 6a                    ; i32.add
+0000046: 21                    ; set_local
+0000048: 20                    ; get_local
+0000049: 02                    ; local index
+000004a: 20                    ; get_local
+000004b: 01                    ; local index
+000004c: 10                    ; call
+000004d: 00                    ; call func index
+000004e: 21                    ; set_local
+0000050: 20                    ; get_local
+0000051: 03                    ; local index
+0000052: 41                    ; i32.const
+0000053: e8                    ; i32 literal
+0000055: 6a                    ; i32.add
+0000056: 0f                    ; return
+0000057: 0b                    ; end

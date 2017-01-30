@@ -1,0 +1,495 @@
+0000000: 0061 736d             ; WASM_BINARY_MAGIC
+0000004: 0d00 0000             ; WASM_BINARY_VERSION
+ - section: Type [0x01]
+0000008: 01                    ; section code
+0000009: 16                    ; section size
+0000009: 60                    ; func
+000000a: 00                    ; num params
+000000c: 60                    ; func
+000000d: 01                    ; num params
+000000e: 7f                    ; I32
+000000f: 01                    ; num results
+0000010: 7f                    ; I32
+0000011: 60                    ; func
+0000012: 00                    ; num params
+0000013: 01                    ; num results
+0000014: 7f                    ; I32
+0000015: 60                    ; func
+0000016: 02                    ; num params
+0000017: 7f                    ; I32
+0000018: 7f                    ; I32
+000001a: 60                    ; func
+000001b: 01                    ; num params
+000001c: 7f                    ; I32
+ - section: Function [0x03]
+0000020: 03                    ; section code
+0000021: 0e                    ; section size
+0000020: 0d                    ; num functions
+0000021: 00                    ; func 0 signature index
+0000022: 01                    ; func 1 signature index
+0000023: 01                    ; func 2 signature index
+0000024: 02                    ; func 3 signature index
+0000025: 02                    ; func 4 signature index
+0000026: 02                    ; func 5 signature index
+0000027: 03                    ; func 6 signature index
+0000028: 03                    ; func 7 signature index
+0000029: 01                    ; func 8 signature index
+000002a: 01                    ; func 9 signature index
+000002b: 01                    ; func 10 signature index
+000002c: 04                    ; func 11 signature index
+000002d: 01                    ; func 12 signature index
+ - section: Memory [0x05]
+0000030: 05                    ; section code
+0000031: 03                    ; section size
+0000030: 01                    ; num memories
+0000031: 00                    ; memory flags
+0000032: 01                    ; memory initial pages
+ - section: Export [0x07]
+0000035: 07                    ; section code
+0000036: 88                    ; section size
+0000035: 0a                    ; num exports
+0000036: 06                    ; export name length
+000003a: memory // export name
+000003d: 00                    ; export kind
+000003e: 00                    ; export memory index
+000003f: 06                    ; export name length
+0000043: malloc // export name
+0000046: 00                    ; export kind
+0000047: 01                    ; export func index
+0000048: 04                    ; export name length
+000004c: free // export name
+000004d: 00                    ; export kind
+000004e: 02                    ; export func index
+000004f: 10                    ; export name length
+0000053: getNumFreeChunks // export name
+0000060: 00                    ; export kind
+0000061: 03                    ; export func index
+0000062: 0c                    ; export name length
+0000066: getFirstFree // export name
+000006f: 00                    ; export kind
+0000070: 04                    ; export func index
+0000071: 0b                    ; export name length
+0000075: getLastFree // export name
+000007d: 00                    ; export kind
+000007e: 05                    ; export func index
+000007f: 0c                    ; export name length
+0000083: getPrevInuse // export name
+000008c: 00                    ; export kind
+000008d: 08                    ; export func index
+000008e: 08                    ; export name length
+0000092: setInuse // export name
+0000097: 00                    ; export kind
+0000098: 09                    ; export func index
+0000099: 08                    ; export name length
+000009d: getInuse // export name
+00000a2: 00                    ; export kind
+00000a3: 0a                    ; export func index
+00000a4: 0a                    ; export name length
+00000a8: clearInuse // export name
+00000af: 00                    ; export kind
+00000b0: 0b                    ; export func index
+00000b1: 09                    ; export name length
+00000b5: chunksize // export name
+00000bb: 00                    ; export kind
+00000bc: 0c                    ; export func index
+ - section: Start [0x08]
+00000c0: 08                    ; section code
+00000c1: 01                    ; section size
+00000c0: 00                    ; start function index
+ - section: Code [0x0a]
+00000c3: 0a                    ; section code
+00000c4: 80                    ; section size
+00000c3: 0d                    ; num functions
+ - function body 0 (init_malloc)
+00000c5: 1a                    ; func body size
+00000c4: 00                    ; local count
+00000c5: 41                    ; i32.const
+00000c6: 00                    ; i32 literal
+00000c7: 28                    ; i32.load
+00000c8: 02                    ; alignment
+00000c9: 0a                    ; load offset
+00000ca: 41                    ; i32.const
+00000cb: 00                    ; i32 literal
+00000cc: 36                    ; i32.store
+00000cd: 02                    ; alignment
+00000ce: 00                    ; load offset
+00000cf: 41                    ; i32.const
+00000d0: 00                    ; i32 literal
+00000d1: 41                    ; i32.const
+00000d2: 00                    ; i32 literal
+00000d3: 36                    ; i32.store
+00000d4: 02                    ; alignment
+00000d5: 0b                    ; load offset
+00000d6: 41                    ; i32.const
+00000d7: 00                    ; i32 literal
+00000d8: 41                    ; i32.const
+00000d9: 00                    ; i32 literal
+00000da: 36                    ; i32.store
+00000db: 02                    ; alignment
+00000dc: 0c                    ; load offset
+00000dd: 0b                    ; end
+ - function body 1 (malloc)
+00000e1: 94                    ; func body size
+00000df: 05                    ; local count
+00000e0: 01                    ; local index
+00000e1: 7f                    ; I32
+00000e2: 01                    ; local index
+00000e3: 7f                    ; I32
+00000e4: 01                    ; local index
+00000e5: 7f                    ; I32
+00000e6: 01                    ; local index
+00000e7: 7f                    ; I32
+00000e8: 01                    ; local index
+00000e9: 7f                    ; I32
+00000ea: 41                    ; i32.const
+00000ec: 21                    ; set_local
+00000ee: 41                    ; i32.const
+00000ef: 00                    ; i32 literal
+00000f0: 28                    ; i32.load
+00000f1: 02                    ; alignment
+00000f2: 08                    ; load offset
+00000f3: 20                    ; get_local
+00000f4: 01                    ; local index
+00000f5: 41                    ; i32.const
+00000f6: 01                    ; i32 literal
+00000f7: 6b                    ; i32.sub
+00000f8: 6a                    ; i32.add
+00000f9: 41                    ; i32.const
+00000fa: -1                    ; i32 literal
+00000fb: 20                    ; get_local
+00000fc: 01                    ; local index
+00000fd: 41                    ; i32.const
+00000fe: 01                    ; i32 literal
+00000ff: 6b                    ; i32.sub
+0000100: 73                    ; i32.xor
+0000101: 71                    ; i32.and
+0000102: 21                    ; set_local
+0000104: 20                    ; get_local
+0000105: 00                    ; local index
+0000106: 20                    ; get_local
+0000107: 01                    ; local index
+0000108: 41                    ; i32.const
+0000109: 01                    ; i32 literal
+000010a: 6b                    ; i32.sub
+000010b: 6a                    ; i32.add
+000010c: 41                    ; i32.const
+000010d: -1                    ; i32 literal
+000010e: 20                    ; get_local
+000010f: 01                    ; local index
+0000110: 41                    ; i32.const
+0000111: 01                    ; i32 literal
+0000112: 6b                    ; i32.sub
+0000113: 73                    ; i32.xor
+0000114: 71                    ; i32.and
+0000115: 21                    ; set_local
+0000116: 00                    ; local index
+0000117: 20                    ; get_local
+0000118: 00                    ; local index
+0000119: 41                    ; i32.const
+000011a: 08                    ; i32 literal
+000011b: 6a                    ; i32.add
+000011c: 21                    ; set_local
+000011e: 20                    ; get_local
+000011f: 02                    ; local index
+0000120: 20                    ; get_local
+0000121: 03                    ; local index
+0000122: 6a                    ; i32.add
+0000123: 21                    ; set_local
+0000125: 20                    ; get_local
+0000126: 02                    ; local index
+0000127: 41                    ; i32.const
+0000128: 04                    ; i32 literal
+0000129: 6a                    ; i32.add
+000012a: 21                    ; set_local
+000012c: 20                    ; get_local
+000012d: 05                    ; local index
+000012e: 20                    ; get_local
+000012f: 03                    ; local index
+0000130: 10                    ; call
+0000131: 06                    ; call func index
+0000132: 20                    ; get_local
+0000133: 05                    ; local index
+0000134: 41                    ; i32.const
+0000135: 04                    ; i32 literal
+0000136: 6a                    ; i32.add
+0000137: 10                    ; call
+0000138: 09                    ; call func index
+0000139: 20                    ; get_local
+000013a: 05                    ; local index
+000013b: 20                    ; get_local
+000013c: 03                    ; local index
+000013d: 10                    ; call
+000013e: 07                    ; call func index
+000013f: 41                    ; i32.const
+0000140: 00                    ; i32 literal
+0000141: 20                    ; get_local
+0000142: 04                    ; local index
+0000143: 36                    ; i32.store
+0000144: 02                    ; alignment
+0000145: 08                    ; load offset
+0000146: 20                    ; get_local
+0000147: 02                    ; local index
+0000148: 41                    ; i32.const
+0000149: 08                    ; i32 literal
+000014a: 6a                    ; i32.add
+000014b: 21                    ; set_local
+000014c: 02                    ; local index
+000014d: 20                    ; get_local
+000014e: 02                    ; local index
+000014f: 21                    ; set_local
+0000150: 05                    ; local index
+0000151: 02                    ; block
+0000073: 40                    ; block_type
+0000153: 03                    ; loop
+0000075: 40                    ; block_type
+0000155: 20                    ; get_local
+0000156: 05                    ; local index
+0000157: 20                    ; get_local
+0000158: 04                    ; local index
+0000159: 48                    ; i32.lt_s
+000015a: 45                    ; i32.eqz
+000015b: 0d                    ; br_if
+000015d: 20                    ; get_local
+000015e: 05                    ; local index
+000015f: 41                    ; i32.const
+0000160: 00                    ; i32 literal
+0000161: 36                    ; i32.store
+0000162: 02                    ; alignment
+0000163: 00                    ; load offset
+0000164: 20                    ; get_local
+0000165: 05                    ; local index
+0000166: 41                    ; i32.const
+0000167: 04                    ; i32 literal
+0000168: 6a                    ; i32.add
+0000169: 21                    ; set_local
+000016a: 05                    ; local index
+000016b: 0c                    ; br
+000016d: 0b                    ; end
+000016e: 0b                    ; end
+000016f: 20                    ; get_local
+0000170: 02                    ; local index
+0000171: 0f                    ; return
+0000172: 0b                    ; end
+ - function body 2 (free)
+0000176: 0c                    ; func body size
+0000175: 00                    ; local count
+0000176: 20                    ; get_local
+0000177: 00                    ; local index
+0000178: 10                    ; call
+0000179: 0b                    ; call func index
+000017a: 41                    ; i32.const
+000017b: 00                    ; i32 literal
+000017c: 28                    ; i32.load
+000017d: 02                    ; alignment
+000017e: 08                    ; load offset
+000017f: 0f                    ; return
+0000180: 0b                    ; end
+ - function body 3 (getNumFreeChunks)
+0000183: 08                    ; func body size
+0000182: 00                    ; local count
+0000183: 41                    ; i32.const
+0000184: 00                    ; i32 literal
+0000185: 28                    ; i32.load
+0000186: 02                    ; alignment
+0000187: 0a                    ; load offset
+0000188: 0f                    ; return
+0000189: 0b                    ; end
+ - function body 4 (getFirstFree)
+000018c: 08                    ; func body size
+000018b: 00                    ; local count
+000018c: 41                    ; i32.const
+000018d: 00                    ; i32 literal
+000018e: 28                    ; i32.load
+000018f: 02                    ; alignment
+0000190: 0b                    ; load offset
+0000191: 0f                    ; return
+0000192: 0b                    ; end
+ - function body 5 (getLastFree)
+0000195: 08                    ; func body size
+0000194: 00                    ; local count
+0000195: 41                    ; i32.const
+0000196: 00                    ; i32 literal
+0000197: 28                    ; i32.load
+0000198: 02                    ; alignment
+0000199: 0b                    ; load offset
+000019a: 0f                    ; return
+000019b: 0b                    ; end
+ - function body 6 (setHeadSize)
+000019e: 12                    ; func body size
+000019d: 00                    ; local count
+000019e: 20                    ; get_local
+000019f: 00                    ; local index
+00001a0: 20                    ; get_local
+00001a1: 00                    ; local index
+00001a2: 28                    ; i32.load
+00001a3: 02                    ; alignment
+00001a4: 00                    ; load offset
+00001a5: 41                    ; i32.const
+00001a6: 07                    ; i32 literal
+00001a7: 71                    ; i32.and
+00001a8: 20                    ; get_local
+00001a9: 01                    ; local index
+00001aa: 72                    ; i32.or
+00001ab: 36                    ; i32.store
+00001ac: 02                    ; alignment
+00001ad: 00                    ; load offset
+00001ae: 0b                    ; end
+ - function body 7 (setFoot)
+00001b1: 1b                    ; func body size
+00001b0: 02                    ; local count
+00001b1: 01                    ; local index
+00001b2: 7f                    ; I32
+00001b3: 01                    ; local index
+00001b4: 7f                    ; I32
+00001b5: 20                    ; get_local
+00001b6: 00                    ; local index
+00001b7: 28                    ; i32.load
+00001b8: 02                    ; alignment
+00001b9: 00                    ; load offset
+00001ba: 21                    ; set_local
+00001bc: 20                    ; get_local
+00001bd: 00                    ; local index
+00001be: 20                    ; get_local
+00001bf: 02                    ; local index
+00001c0: 6a                    ; i32.add
+00001c1: 21                    ; set_local
+00001c3: 20                    ; get_local
+00001c4: 03                    ; local index
+00001c5: 20                    ; get_local
+00001c6: 01                    ; local index
+00001c7: 36                    ; i32.store
+00001c8: 02                    ; alignment
+00001c9: 00                    ; load offset
+00001ca: 0b                    ; end
+ - function body 8 (getPrevInuse)
+00001cd: 14                    ; func body size
+00001cc: 01                    ; local count
+00001cd: 01                    ; local index
+00001ce: 7f                    ; I32
+00001cf: 20                    ; get_local
+00001d0: 00                    ; local index
+00001d1: 41                    ; i32.const
+00001d2: 08                    ; i32 literal
+00001d3: 6b                    ; i32.sub
+00001d4: 21                    ; set_local
+00001d6: 20                    ; get_local
+00001d7: 01                    ; local index
+00001d8: 28                    ; i32.load
+00001d9: 02                    ; alignment
+00001da: 00                    ; load offset
+00001db: 41                    ; i32.const
+00001dc: 01                    ; i32 literal
+00001dd: 71                    ; i32.and
+00001de: 0f                    ; return
+00001df: 0b                    ; end
+ - function body 9 (setInuse)
+00001e2: 1e                    ; func body size
+00001e1: 01                    ; local count
+00001e2: 01                    ; local index
+00001e3: 7f                    ; I32
+00001e4: 20                    ; get_local
+00001e5: 00                    ; local index
+00001e6: 41                    ; i32.const
+00001e7: 04                    ; i32 literal
+00001e8: 6b                    ; i32.sub
+00001e9: 21                    ; set_local
+00001eb: 20                    ; get_local
+00001ec: 01                    ; local index
+00001ed: 20                    ; get_local
+00001ee: 01                    ; local index
+00001ef: 28                    ; i32.load
+00001f0: 02                    ; alignment
+00001f1: 00                    ; load offset
+00001f2: 41                    ; i32.const
+00001f3: 01                    ; i32 literal
+00001f4: 72                    ; i32.or
+00001f5: 36                    ; i32.store
+00001f6: 02                    ; alignment
+00001f7: 00                    ; load offset
+00001f8: 20                    ; get_local
+00001f9: 01                    ; local index
+00001fa: 28                    ; i32.load
+00001fb: 02                    ; alignment
+00001fc: 00                    ; load offset
+00001fd: 0f                    ; return
+00001fe: 0b                    ; end
+ - function body 10 (getInuse)
+0000201: 14                    ; func body size
+0000200: 01                    ; local count
+0000201: 01                    ; local index
+0000202: 7f                    ; I32
+0000203: 20                    ; get_local
+0000204: 00                    ; local index
+0000205: 41                    ; i32.const
+0000206: 04                    ; i32 literal
+0000207: 6b                    ; i32.sub
+0000208: 21                    ; set_local
+000020a: 20                    ; get_local
+000020b: 01                    ; local index
+000020c: 28                    ; i32.load
+000020d: 02                    ; alignment
+000020e: 00                    ; load offset
+000020f: 41                    ; i32.const
+0000210: 01                    ; i32 literal
+0000211: 71                    ; i32.and
+0000212: 0f                    ; return
+0000213: 0b                    ; end
+ - function body 11 (clearInuse)
+0000216: 18                    ; func body size
+0000215: 01                    ; local count
+0000216: 01                    ; local index
+0000217: 7f                    ; I32
+0000218: 20                    ; get_local
+0000219: 00                    ; local index
+000021a: 41                    ; i32.const
+000021b: 04                    ; i32 literal
+000021c: 6b                    ; i32.sub
+000021d: 21                    ; set_local
+000021f: 20                    ; get_local
+0000220: 01                    ; local index
+0000221: 20                    ; get_local
+0000222: 01                    ; local index
+0000223: 28                    ; i32.load
+0000224: 02                    ; alignment
+0000225: 00                    ; load offset
+0000226: 41                    ; i32.const
+0000227: -2                    ; i32 literal
+0000228: 71                    ; i32.and
+0000229: 36                    ; i32.store
+000022a: 02                    ; alignment
+000022b: 00                    ; load offset
+000022c: 0b                    ; end
+ - function body 12 (chunksize)
+000022f: 14                    ; func body size
+000022e: 01                    ; local count
+000022f: 01                    ; local index
+0000230: 7f                    ; I32
+0000231: 20                    ; get_local
+0000232: 00                    ; local index
+0000233: 41                    ; i32.const
+0000234: 04                    ; i32 literal
+0000235: 6b                    ; i32.sub
+0000236: 21                    ; set_local
+0000238: 20                    ; get_local
+0000239: 01                    ; local index
+000023a: 28                    ; i32.load
+000023b: 02                    ; alignment
+000023c: 00                    ; load offset
+000023d: 41                    ; i32.const
+000023e: -2                    ; i32 literal
+000023f: 71                    ; i32.and
+0000240: 0f                    ; return
+0000241: 0b                    ; end
+ - section: Data [0x0b]
+0000246: 0b                    ; section code
+0000247: 1e                    ; section size
+0000246: 01                    ; num data segments
+ - data segment header 0
+0000247: 00                    ; memory index
+0000248: 41                    ; i32.const
+0000249: 08                    ; i32 literal
+000024a: 0b                    ; end
+000024b: 18                    ; data segment size
+ - data segment data 0
+000024d: 20 00 00 00 20 00 00 00 00 00 00 00 00 00 00 00
+000025d: 00 00 00 00 00 00 00 00
