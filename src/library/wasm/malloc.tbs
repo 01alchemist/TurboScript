@@ -46,14 +46,14 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-@start
+// @start
 function init_malloc():void{
     numFreeChunks = 0;
     firstFree = 0;
     lastFree = 0;
 }
 
-export function malloc(nbytes: uint32): *byte {
+/*export*/function malloc(nbytes: uint32): *byte {
 
     var alignment:uint32 = 8;
     nbytes = (nbytes + (alignment - 1)) & ~(alignment - 1) as uint32;
@@ -86,7 +86,7 @@ export function malloc(nbytes: uint32): *byte {
 
     return offset;
 }
-export function free(ptr:*byte):void{
+/*export*/function free(ptr:*byte):void{
     clearInuse(ptr);
     if(firstFree == 0){
         firstFree = ptr as uint32;
@@ -107,7 +107,7 @@ export function free(ptr:*byte):void{
     lastFree = ptr as uint32;
     numFreeChunks = numFreeChunks + 1;
 }
-export function getFreeChunk(nbytes: uint32):*byte{
+/*export*/function getFreeChunk(nbytes: uint32):*byte{
     if(numFreeChunks > 0){
         var freeChunk = findChunk(nbytes);
         if(freeChunk as int32 > 0){
@@ -125,7 +125,7 @@ export function getFreeChunk(nbytes: uint32):*byte{
     }
     return null;
 }
-export function findChunk(nbytes: uint32):*byte{
+/*export*/function findChunk(nbytes: uint32):*byte{
     var chunk = firstFree as *byte;
     while(chunk != null){
         if(getChunkSize(chunk) == nbytes){
@@ -135,28 +135,28 @@ export function findChunk(nbytes: uint32):*byte{
     }
     return null;
 }
-export function getHeapPtr(): uint32 {
+/*export*/function getHeapPtr(): uint32 {
     return currentHeapPointer as uint32;
 }
-export function getFreeMemory(): uint32 {
+/*export*/function getFreeMemory(): uint32 {
     return freeMemory;
 }
-export function getOriginalHeapPtr(): uint32 {
+/*export*/function getOriginalHeapPtr(): uint32 {
     return originalHeapPointer as uint32;
 }
-export function getNumFreeChunks():uint32{
+/*export*/function getNumFreeChunks():uint32{
     return numFreeChunks as uint32;
 }
-export function getFirstFree():uint32{
+/*export*/function getFirstFree():uint32{
     return firstFree;
 }
-export function getLastFree():uint32{
+/*export*/function getLastFree():uint32{
     return lastFree;
 }
-export function prevFree(ptr:*byte):uint32{
+/*export*/function prevFree(ptr:*byte):uint32{
     return  *(ptr + 4) as uint32;
 }
-export function nextFree(ptr:*byte):uint32{
+/*export*/function nextFree(ptr:*byte):uint32{
     return *(ptr as *uint32) as uint32;
 }
 /* Set size at head, without disturbing its use bit */
@@ -176,23 +176,23 @@ function setFoot(ptr:*byte, s:uint32):void {
     *(chunkptr as *uint32) = s;
 }
 
-export function getPrevInuse(ptr:*byte):uint32 {
+/*export*/function getPrevInuse(ptr:*byte):uint32 {
     var chunkptr = (ptr as uint32) - 8;
     return *(chunkptr as *uint32) & (PREV_INUSE);
 }
-export function setInuse(ptr:*byte):void{
+/*export*/function setInuse(ptr:*byte):void{
     var chunkptr = (ptr as uint32) - 4;
     *(chunkptr as *uint32) =  *(chunkptr as *uint32) | PREV_INUSE;
 }
-export function getInuse(ptr:*byte):uint32{
+/*export*/function getInuse(ptr:*byte):uint32{
     var chunkptr = (ptr as uint32) - 4;
     return *(chunkptr as *uint32) & (PREV_INUSE);
 }
-export function clearInuse(ptr:*byte):void{
+/*export*/function clearInuse(ptr:*byte):void{
     var chunkptr = (ptr as uint32) - 4;
     *(chunkptr as *uint32) = *(chunkptr as *uint32) & ~(PREV_INUSE);
 }
-export function getChunkSize(ptr:*byte):uint32{
+/*export*/function getChunkSize(ptr:*byte):uint32{
     var chunkptr = (ptr as uint32) - 4;
     return *(chunkptr as *uint32) & ~(PREV_INUSE) as uint32;
 }

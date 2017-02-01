@@ -324,15 +324,15 @@ class WasmModule {
 
         let section = wasmStartSection(array, WasmSection.Import, "import_table");
         log(section.data, array.position, this.importCount, "num imports");
-        array.writeUnsignedLEB128(this.importCount);
+        section.data.writeUnsignedLEB128(this.importCount);
 
         let current = this.firstImport;
         while (current != null) {
             log(section.data, array.position, null, `import ${current.module} ${current.name}`);
-            array.writeWasmString(current.module);
-            array.writeWasmString(current.name);
-            array.writeUnsignedLEB128(WasmType.anyfunc);
-            array.writeUnsignedLEB128(current.signatureIndex);
+            section.data.writeWasmString(current.module);
+            section.data.writeWasmString(current.name);
+            section.data.writeUnsignedLEB128(WasmExternalKind.Function);
+            section.data.writeUnsignedLEB128(current.signatureIndex);
             current = current.next;
         }
 
@@ -351,7 +351,7 @@ class WasmModule {
         let fn = this.firstFunction;
         let count = 0;
         while (fn != null) {
-            log(section.data, array.position, fn.signatureIndex, `func ${count} signature index`);
+            log(section.data, array.position, fn.signatureIndex, `func ${count} sig ${fn.symbol.name}`);
             section.data.writeUnsignedLEB128(fn.signatureIndex);
             fn = fn.next;
             count++;
@@ -453,7 +453,7 @@ class WasmModule {
         log(section.data, array.position, 0, "export memory index");
         section.data.writeUnsignedLEB128(0);
 
-        let i = 0;
+        let i = this.importCount;
         fn = this.firstFunction;
         while (fn != null) {
             if (fn.isExported) {
@@ -527,7 +527,7 @@ class WasmModule {
 
             //Copy and finish body
             section.data.writeUnsignedLEB128(bodyData.length);
-            log(section.data, offset, null, ` - function body ${count++} (${fn.symbol.name})`);
+            log(section.data, offset, null, ` - func body ${count++} (${fn.symbol.name})`);
             log(section.data, offset, bodyData.length, "func body size");
             section.data.log += bodyData.log;
             section.data.copy(bodyData);
@@ -705,7 +705,7 @@ class WasmModule {
             let argumentTypesLast: WasmWrappedType = null;
 
             // Make sure to include the implicit "this" variable as a normal argument
-            let argument = node.functionFirstArgument();
+            let argument = node.isImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
             while (argument != returnType) {
                 let type = wasmWrapType(this.getWasmType(argument.variableType().resolvedType));
 
@@ -727,9 +727,11 @@ class WasmModule {
                 this.allocateImport(signatureIndex, moduleName, symbol.name);
                 node = node.nextSibling;
                 return;
+            } else {
+                symbol.offset = this.importCount + this.functionCount;
             }
 
-            symbol.offset = this.functionCount;
+
             let fn = this.allocateFunction(symbol, signatureIndex);
 
             // Make sure "malloc" is tracked
@@ -1050,7 +1052,22 @@ class WasmModule {
                         appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
                         log(array, byteOffset, value.floatValue, "f32 literal");
                         array.writeFloat(value.floatValue);
-                    } else {
+
+                    }
+
+                    else if (node.symbol.resolvedType.isDouble()) {
+                        appendOpcode(array, byteOffset, WasmOpcode.F64_CONST);
+                        log(array, byteOffset, value.doubleValue, "f64 literal");
+                        array.writeDouble(value.doubleValue);
+                    }
+
+                    else if (node.symbol.resolvedType.isLong()) {
+                        appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
+                        log(array, byteOffset, value.longValue, "i64 literal");
+                        array.writeUnsignedLEB128(value.longValue);
+                    }
+
+                    else {
                         appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
                         log(array, byteOffset, value.intValue, "i32 literal");
                         array.writeUnsignedLEB128(value.intValue);
@@ -1065,7 +1082,21 @@ class WasmModule {
                             appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
                             log(array, byteOffset, 0, "f32 literal");
                             array.writeFloat(0);
-                        } else {
+                        }
+
+                        else if (node.symbol.resolvedType.isDouble()) {
+                            appendOpcode(array, byteOffset, WasmOpcode.F64_CONST);
+                            log(array, byteOffset, 0, "f64 literal");
+                            array.writeDouble(0);
+                        }
+
+                        else if (node.symbol.resolvedType.isLong()) {
+                            appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
+                            log(array, byteOffset, 0, "i64 literal");
+                            array.writeUnsignedLEB128(0);
+                        }
+
+                        else {
                             appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
                             log(array, byteOffset, 0, "i32 literal");
                             array.writeUnsignedLEB128(0);
@@ -1121,25 +1152,25 @@ class WasmModule {
         else if (node.kind == NodeKind.INT32 || node.kind == NodeKind.BOOLEAN) {
             appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
             log(array, byteOffset, node.intValue, "i32 literal");
-            array.writeLEB128(node.intValue);
+            array.writeLEB128(node.intValue || 0);
         }
 
         else if (node.kind == NodeKind.INT64) {
             appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
             log(array, byteOffset, node.longValue, "i64 literal");
-            array.writeLEB128(node.longValue);
+            array.writeLEB128(node.longValue || 0);
         }
 
         else if (node.kind == NodeKind.FLOAT32) {
             appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
             log(array, byteOffset, node.floatValue, "f32 literal");
-            array.writeFloat(node.floatValue);
+            array.writeFloat(node.floatValue || 0);
         }
 
         else if (node.kind == NodeKind.FLOAT64) {
             appendOpcode(array, byteOffset, WasmOpcode.F64_CONST);
             log(array, byteOffset, node.doubleValue, "f64 literal");
-            array.writeDouble(node.doubleValue);
+            array.writeDouble(node.doubleValue || 0);
         }
 
         else if (node.kind == NodeKind.STRING) {
@@ -1155,7 +1186,7 @@ class WasmModule {
             assert(isFunction(symbol.kind));
 
             // Write out the implicit "this" argument
-            if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+            if (!symbol.node.isImport() && symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
                 this.emitNode(array, byteOffset, value.dotTarget());
             }
 
@@ -1424,14 +1455,14 @@ class WasmModule {
             let dataTypeLeft: string = typeToDataType(left.resolvedType, this.bitness);
             let dataTypeRight: string = typeToDataType(right.resolvedType, this.bitness);
             //FIXME: This should handle in checker
-            if (left.resolvedType.symbol && right.kind != NodeKind.NAME) {
-                if (left.resolvedType.symbol.name == "float64") {
-                    right.kind = NodeKind.FLOAT64;
-                }
-                else if (left.resolvedType.symbol.name == "int64") {
-                    right.kind = NodeKind.INT64;
-                }
-            }
+            // if (left.resolvedType.symbol && right.kind != NodeKind.NAME) {
+            //     if (left.resolvedType.symbol.name == "float64") {
+            //         right.kind = NodeKind.FLOAT64;
+            //     }
+            //     else if (left.resolvedType.symbol.name == "int64") {
+            //         right.kind = NodeKind.INT64;
+            //     }
+            // }
 
             if (node.kind == NodeKind.ADD) {
 
@@ -1544,8 +1575,10 @@ class WasmModule {
             }
 
             else if (node.kind == NodeKind.DIVIDE) {
-                this.emitBinaryExpression(array, byteOffset, node, isUnsigned ?
-                    WasmOpcode[`${dataTypeLeft}_DIV_U`] : WasmOpcode[`${dataTypeLeft}_DIV_S`]);
+                let opcode = (isFloat || isDouble) ?
+                    WasmOpcode[`${dataTypeLeft}_DIV`] :
+                    (isUnsigned ? WasmOpcode[`${dataTypeLeft}_DIV_U`] : WasmOpcode[`${dataTypeLeft}_DIV_S`]);
+                this.emitBinaryExpression(array, byteOffset, node, opcode);
             }
 
             else if (node.kind == NodeKind.GREATER_THAN) {

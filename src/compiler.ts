@@ -194,23 +194,25 @@ export class Compiler {
         stdlib.Profiler_end("shaking");
         stdlib.Profiler_begin("emitting");
 
-        if (this.target == CompileTarget.C) {
-            cEmit(this);
-        }
+        // if (this.target == CompileTarget.C) {
+        //     cEmit(this);
+        // }
 
-        else if (this.target == CompileTarget.JAVASCRIPT) {
-            jsEmit(this);
-        }
+        // else if (this.target == CompileTarget.JAVASCRIPT) {
+        //     jsEmit(this);
+        // }
+        //
+        // else if (this.target == CompileTarget.TURBO_JAVASCRIPT) {
+        //     turboJsEmit(this);
+        // }
 
-        else if (this.target == CompileTarget.TURBO_JAVASCRIPT) {
-            turboJsEmit(this);
-        }
-
-        else if (this.target == CompileTarget.ASMJS) {
+        if (this.target == CompileTarget.ASMJS) {
+            stdlib.Terminal_write(" -- asm.js --\n");
             asmJsEmit(this);
         }
 
         else if (this.target == CompileTarget.WEBASSEMBLY) {
+            stdlib.Terminal_write(" -- wasm --\n");
             wasmEmit(this);
         }
 

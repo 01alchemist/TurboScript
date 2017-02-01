@@ -16,17 +16,21 @@ class Vector3 {
         );
     }
 
-    lengthN(n: float64): float64 {
-        if (n == 2.0) {
-            return this.length();
-        }
-        let a = this.abs();
-        let length: float64 = Math.pow(Math.pow(a.x, n) + Math.pow(a.y, n) + Math.pow(a.z, n), 1.0 / n);
-        delete a;
-        return length;
-    }
+    // lengthN(n: float64): float64 {
+    //     if (n == 2.0) {
+    //         return this.length();
+    //     }
+    //     let a = this.abs();
+    //     let p1 = Math.pow(a.x, n);
+    //     let p2 = Math.pow(a.y, n);
+    //     let p3 = Math.pow(a.z, n);
+    //     let xyz = p1 + p2 + p3;
+    //     let length: float64 = Math.pow(xyz, 1.0 / n);
+    //     delete a;
+    //     return length;
+    // }
 
-    dot(b: Vector3): float64 {
+    /*dot(b: Vector3): float64 {
         return (this.x * b.x) + (this.y * b.y) + (this.z * b.z);
     }
 
@@ -41,13 +45,13 @@ class Vector3 {
 
     negate(): Vector3 {
         return new Vector3(-this.x, -this.y, -this.z);
-    }
+    }*/
 
     abs(): Vector3 {
         return new Vector3(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
     }
 
-    add(b: Vector3): Vector3 {
+    /*add(b: Vector3): Vector3 {
         return new Vector3(this.x + b.x, this.y + b.y, this.z + b.z);
     }
 
@@ -172,7 +176,7 @@ class Vector3 {
 
     clone(): Vector3 {
         return new Vector3(this.x, this.y, this.z);
-    }
+    }*/
 
     // setFromArray(d:float64[]) {
     // this.x = d[0];

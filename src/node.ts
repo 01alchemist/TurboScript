@@ -207,7 +207,7 @@ export class Node {
     scope: Scope;
     offset: int32;
 
-    constructorFunctionNode:Node;
+    constructorFunctionNode: Node;
 
     private _rawValue: any;
     private _hasValue: boolean;
@@ -218,16 +218,16 @@ export class Node {
     }
 
     get rawValue(): any {
-        if(this._hasStringValue){
+        if (this._hasStringValue) {
             return `"${this._rawValue}"`;
-        }else{
+        } else {
             return this._rawValue;
         }
     }
 
     get intValue(): int32 {
         let n = this._rawValue;
-        if(Number(n) === n && n % 1 === 0){
+        if (Number(n) === n && n % 1 === 0) {
             return this._rawValue;
         }
         return null;
@@ -286,48 +286,52 @@ export class Node {
         this._rawValue = newValue;
     }
 
-    becomeTypeOf(node: Node, context:CheckContext): void {
-        // this.resolvedType.symbol.byteSize = node.resolvedType.symbol.byteSize;
-        // this.resolvedType.symbol.flags = node.resolvedType.symbol.flags;
-        // this.resolvedType.symbol.kind = node.resolvedType.symbol.kind;
-        // this.resolvedType.symbol.maxAlignment = node.resolvedType.symbol.maxAlignment;
-        // this.resolvedType.symbol.name = node.resolvedType.symbol.name;
-        //
-        switch (node.resolvedType){
+    becomeTypeOf(node: Node, context: CheckContext): void {
+
+        switch (node.resolvedType) {
             case context.int64Type:
-                this.kind = NodeKind.INT64;
+                if(this.kind != NodeKind.NAME){
+                    this.kind = NodeKind.INT64;
+                }
                 this.resolvedType = context.int64Type;
                 break;
             case context.float64Type:
-                this.kind = NodeKind.FLOAT64;
+                if(this.kind != NodeKind.NAME){
+                    this.kind = NodeKind.FLOAT64;
+                }
                 this.resolvedType = context.float64Type;
                 break;
         }
 
-        if(node.flags){
+        if (node.flags) {
             this.flags = node.flags;
         }
     }
 
-    becomeValueTypeOf(symbol: Symbol, context:CheckContext): void {
+    becomeValueTypeOf(symbol: Symbol, context: CheckContext): void {
         // let resolvedSymbol = symbol.resolvedType.pointerTo ? symbol.resolvedType.pointerTo.symbol : symbol.resolvedType.symbol;
         let resolvedSymbol = symbol.resolvedType.symbol;
 
-        if(resolvedSymbol) {
-            // this.resolvedType.symbol.byteSize = resolvedSymbol.byteSize;
-            // this.resolvedType.symbol.flags = resolvedSymbol.flags;
-            // this.resolvedType.symbol.kind = resolvedSymbol.kind;
-            // this.resolvedType.symbol.maxAlignment = resolvedSymbol.maxAlignment;
-            // this.resolvedType.symbol.name = resolvedSymbol.name;
+        if (resolvedSymbol) {
 
             switch (symbol.resolvedType) {
                 case context.int64Type:
                     this.resolvedType = context.int64Type;
-                    this.kind = NodeKind.INT64;
+                    if (this.kind == NodeKind.NULL) {
+                        this.longValue = 0;
+                    }
+                    if(this.kind != NodeKind.NAME) {
+                        this.kind = NodeKind.INT64;
+                    }
                     break;
                 case context.float64Type:
                     this.resolvedType = context.float64Type;
-                    this.kind = NodeKind.FLOAT64;
+                    if (this.kind == NodeKind.NULL) {
+                        this.doubleValue = 0.0;
+                    }
+                    if(this.kind != NodeKind.NAME) {
+                        this.kind = NodeKind.FLOAT64;
+                    }
                     break;
             }
         }
@@ -1107,7 +1111,7 @@ export function createImports(): Node {
     return node;
 }
 
-export function createImport(name:string): Node {
+export function createImport(name: string): Node {
     let node = new Node();
     node.kind = NodeKind.IMPORT;
     node.stringValue = name;

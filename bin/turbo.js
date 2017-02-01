@@ -7113,14 +7113,14 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     }
                     let section = wasmStartSection(array, WasmSection.Import, "import_table");
                     log(section.data, array.position, this.importCount, "num imports");
-                    array.writeUnsignedLEB128(this.importCount);
+                    section.data.writeUnsignedLEB128(this.importCount);
                     let current = this.firstImport;
                     while (current != null) {
                         log(section.data, array.position, null, `import ${current.module} ${current.name}`);
-                        array.writeWasmString(current.module);
-                        array.writeWasmString(current.name);
-                        array.writeUnsignedLEB128(WasmType.anyfunc);
-                        array.writeUnsignedLEB128(current.signatureIndex);
+                        section.data.writeWasmString(current.module);
+                        section.data.writeWasmString(current.name);
+                        section.data.writeUnsignedLEB128(WasmExternalKind.Function);
+                        section.data.writeUnsignedLEB128(current.signatureIndex);
                         current = current.next;
                     }
                     wasmFinishSection(array, section);
@@ -7135,7 +7135,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     let fn = this.firstFunction;
                     let count = 0;
                     while (fn != null) {
-                        log(section.data, array.position, fn.signatureIndex, `func ${count} signature index`);
+                        log(section.data, array.position, fn.signatureIndex, `func ${count} sig ${fn.symbol.name}`);
                         section.data.writeUnsignedLEB128(fn.signatureIndex);
                         fn = fn.next;
                         count++;
@@ -7227,7 +7227,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     section.data.writeUnsignedLEB128(WasmExternalKind.Memory);
                     log(section.data, array.position, 0, "export memory index");
                     section.data.writeUnsignedLEB128(0);
-                    let i = 0;
+                    let i = this.importCount;
                     fn = this.firstFunction;
                     while (fn != null) {
                         if (fn.isExported) {
@@ -7294,7 +7294,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         appendOpcode(bodyData, sectionOffset, opcode_1.WasmOpcode.END); //end, 0x0b, indicating the end of the body
                         //Copy and finish body
                         section.data.writeUnsignedLEB128(bodyData.length);
-                        log(section.data, offset, null, ` - function body ${count++} (${fn.symbol.name})`);
+                        log(section.data, offset, null, ` - func body ${count++} (${fn.symbol.name})`);
                         log(section.data, offset, bodyData.length, "func body size");
                         section.data.log += bodyData.log;
                         section.data.copy(bodyData);
@@ -7448,7 +7448,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let argumentTypesFirst = null;
                         let argumentTypesLast = null;
                         // Make sure to include the implicit "this" variable as a normal argument
-                        let argument = node.functionFirstArgument();
+                        let argument = node.isImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
                         while (argument != returnType) {
                             let type = wasmWrapType(this.getWasmType(argument.variableType().resolvedType));
                             if (argumentTypesFirst == null)
@@ -7470,7 +7470,9 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             node = node.nextSibling;
                             return;
                         }
-                        symbol.offset = this.functionCount;
+                        else {
+                            symbol.offset = this.importCount + this.functionCount;
+                        }
                         let fn = this.allocateFunction(symbol, signatureIndex);
                         // Make sure "malloc" is tracked
                         if (symbol.kind == symbol_6.SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
@@ -7730,6 +7732,16 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                     log(array, byteOffset, value.floatValue, "f32 literal");
                                     array.writeFloat(value.floatValue);
                                 }
+                                else if (node.symbol.resolvedType.isDouble()) {
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
+                                    log(array, byteOffset, value.doubleValue, "f64 literal");
+                                    array.writeDouble(value.doubleValue);
+                                }
+                                else if (node.symbol.resolvedType.isLong()) {
+                                    appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
+                                    log(array, byteOffset, value.longValue, "i64 literal");
+                                    array.writeUnsignedLEB128(value.longValue);
+                                }
                                 else {
                                     appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                     log(array, byteOffset, value.intValue, "i32 literal");
@@ -7746,6 +7758,16 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
                                         log(array, byteOffset, 0, "f32 literal");
                                         array.writeFloat(0);
+                                    }
+                                    else if (node.symbol.resolvedType.isDouble()) {
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
+                                        log(array, byteOffset, 0, "f64 literal");
+                                        array.writeDouble(0);
+                                    }
+                                    else if (node.symbol.resolvedType.isLong()) {
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
+                                        log(array, byteOffset, 0, "i64 literal");
+                                        array.writeUnsignedLEB128(0);
                                     }
                                     else {
                                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
@@ -7793,22 +7815,22 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     else if (node.kind == node_6.NodeKind.INT32 || node.kind == node_6.NodeKind.BOOLEAN) {
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                         log(array, byteOffset, node.intValue, "i32 literal");
-                        array.writeLEB128(node.intValue);
+                        array.writeLEB128(node.intValue || 0);
                     }
                     else if (node.kind == node_6.NodeKind.INT64) {
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
                         log(array, byteOffset, node.longValue, "i64 literal");
-                        array.writeLEB128(node.longValue);
+                        array.writeLEB128(node.longValue || 0);
                     }
                     else if (node.kind == node_6.NodeKind.FLOAT32) {
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
                         log(array, byteOffset, node.floatValue, "f32 literal");
-                        array.writeFloat(node.floatValue);
+                        array.writeFloat(node.floatValue || 0);
                     }
                     else if (node.kind == node_6.NodeKind.FLOAT64) {
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
                         log(array, byteOffset, node.doubleValue, "f64 literal");
-                        array.writeDouble(node.doubleValue);
+                        array.writeDouble(node.doubleValue || 0);
                     }
                     else if (node.kind == node_6.NodeKind.STRING) {
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
@@ -7821,7 +7843,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let symbol = value.symbol;
                         assert(symbol_6.isFunction(symbol.kind));
                         // Write out the implicit "this" argument
-                        if (symbol.kind == symbol_6.SymbolKind.FUNCTION_INSTANCE) {
+                        if (!symbol.node.isImport() && symbol.kind == symbol_6.SymbolKind.FUNCTION_INSTANCE) {
                             this.emitNode(array, byteOffset, value.dotTarget());
                         }
                         let child = value.nextSibling;
@@ -8037,14 +8059,14 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let dataTypeLeft = typeToDataType(left.resolvedType, this.bitness);
                         let dataTypeRight = typeToDataType(right.resolvedType, this.bitness);
                         //FIXME: This should handle in checker
-                        if (left.resolvedType.symbol && right.kind != node_6.NodeKind.NAME) {
-                            if (left.resolvedType.symbol.name == "float64") {
-                                right.kind = node_6.NodeKind.FLOAT64;
-                            }
-                            else if (left.resolvedType.symbol.name == "int64") {
-                                right.kind = node_6.NodeKind.INT64;
-                            }
-                        }
+                        // if (left.resolvedType.symbol && right.kind != NodeKind.NAME) {
+                        //     if (left.resolvedType.symbol.name == "float64") {
+                        //         right.kind = NodeKind.FLOAT64;
+                        //     }
+                        //     else if (left.resolvedType.symbol.name == "int64") {
+                        //         right.kind = NodeKind.INT64;
+                        //     }
+                        // }
                         if (node.kind == node_6.NodeKind.ADD) {
                             this.emitNode(array, byteOffset, left);
                             if (left.resolvedType.pointerTo == null) {
@@ -8132,8 +8154,10 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             this.emitBinaryExpression(array, byteOffset, node, opcode_1.WasmOpcode[`${dataTypeLeft}_SUB`]);
                         }
                         else if (node.kind == node_6.NodeKind.DIVIDE) {
-                            this.emitBinaryExpression(array, byteOffset, node, isUnsigned ?
-                                opcode_1.WasmOpcode[`${dataTypeLeft}_DIV_U`] : opcode_1.WasmOpcode[`${dataTypeLeft}_DIV_S`]);
+                            let opcode = (isFloat || isDouble) ?
+                                opcode_1.WasmOpcode[`${dataTypeLeft}_DIV`] :
+                                (isUnsigned ? opcode_1.WasmOpcode[`${dataTypeLeft}_DIV_U`] : opcode_1.WasmOpcode[`${dataTypeLeft}_DIV_S`]);
+                            this.emitBinaryExpression(array, byteOffset, node, opcode);
                         }
                         else if (node.kind == node_6.NodeKind.GREATER_THAN) {
                             let opcode = (isFloat || isDouble) ?
@@ -8221,7 +8245,7 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                         case compiler_2.CompileTarget.WEBASSEMBLY:
                             lib = stdlib.IO_readTextFile("../src/library/wasm/types.tbs") + "\n";
                             lib += stdlib.IO_readTextFile("../src/library/wasm/malloc.tbs") + "\n";
-                            lib += stdlib.IO_readTextFile("../src/library/asmjs/math.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile("../src/library/wasm/math.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
                             lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
@@ -9947,7 +9971,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
         }
     };
 });
-System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "c", "js", "turbojs", "wasm", "library/library", "asmjs"], function (exports_17, context_17) {
+System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "wasm", "library/library", "asmjs"], function (exports_17, context_17) {
     "use strict";
     var __moduleName = context_17 && context_17.id;
     function replaceFileExtension(path, extension) {
@@ -9962,7 +9986,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
         return builder.append(path).append(extension).finish();
     }
     exports_17("replaceFileExtension", replaceFileExtension);
-    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_4, parser_6, shaking_1, stringbuilder_10, c_1, js_3, turbojs_1, wasm_1, library_1, asmjs_1, CompileTarget, Compiler;
+    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_4, parser_6, shaking_1, stringbuilder_10, wasm_1, library_1, asmjs_1, CompileTarget, Compiler;
     return {
         setters: [
             function (checker_1_1) {
@@ -9991,15 +10015,6 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             },
             function (stringbuilder_10_1) {
                 stringbuilder_10 = stringbuilder_10_1;
-            },
-            function (c_1_1) {
-                c_1 = c_1_1;
-            },
-            function (js_3_1) {
-                js_3 = js_3_1;
-            },
-            function (turbojs_1_1) {
-                turbojs_1 = turbojs_1_1;
             },
             function (wasm_1_1) {
                 wasm_1 = wasm_1_1;
@@ -10144,19 +10159,22 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     shaking_1.treeShaking(global);
                     stdlib.Profiler_end("shaking");
                     stdlib.Profiler_begin("emitting");
-                    if (this.target == CompileTarget.C) {
-                        c_1.cEmit(this);
-                    }
-                    else if (this.target == CompileTarget.JAVASCRIPT) {
-                        js_3.jsEmit(this);
-                    }
-                    else if (this.target == CompileTarget.TURBO_JAVASCRIPT) {
-                        turbojs_1.turboJsEmit(this);
-                    }
-                    else if (this.target == CompileTarget.ASMJS) {
+                    // if (this.target == CompileTarget.C) {
+                    //     cEmit(this);
+                    // }
+                    // else if (this.target == CompileTarget.JAVASCRIPT) {
+                    //     jsEmit(this);
+                    // }
+                    //
+                    // else if (this.target == CompileTarget.TURBO_JAVASCRIPT) {
+                    //     turboJsEmit(this);
+                    // }
+                    if (this.target == CompileTarget.ASMJS) {
+                        stdlib.Terminal_write(" -- asm.js --\n");
                         asmjs_1.asmJsEmit(this);
                     }
                     else if (this.target == CompileTarget.WEBASSEMBLY) {
+                        stdlib.Terminal_write(" -- wasm --\n");
                         wasm_1.wasmEmit(this);
                     }
                     stdlib.Profiler_end("emitting");
@@ -12705,19 +12723,17 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                     this._rawValue = newValue;
                 }
                 becomeTypeOf(node, context) {
-                    // this.resolvedType.symbol.byteSize = node.resolvedType.symbol.byteSize;
-                    // this.resolvedType.symbol.flags = node.resolvedType.symbol.flags;
-                    // this.resolvedType.symbol.kind = node.resolvedType.symbol.kind;
-                    // this.resolvedType.symbol.maxAlignment = node.resolvedType.symbol.maxAlignment;
-                    // this.resolvedType.symbol.name = node.resolvedType.symbol.name;
-                    //
                     switch (node.resolvedType) {
                         case context.int64Type:
-                            this.kind = NodeKind.INT64;
+                            if (this.kind != NodeKind.NAME) {
+                                this.kind = NodeKind.INT64;
+                            }
                             this.resolvedType = context.int64Type;
                             break;
                         case context.float64Type:
-                            this.kind = NodeKind.FLOAT64;
+                            if (this.kind != NodeKind.NAME) {
+                                this.kind = NodeKind.FLOAT64;
+                            }
                             this.resolvedType = context.float64Type;
                             break;
                     }
@@ -12729,19 +12745,24 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                     // let resolvedSymbol = symbol.resolvedType.pointerTo ? symbol.resolvedType.pointerTo.symbol : symbol.resolvedType.symbol;
                     let resolvedSymbol = symbol.resolvedType.symbol;
                     if (resolvedSymbol) {
-                        // this.resolvedType.symbol.byteSize = resolvedSymbol.byteSize;
-                        // this.resolvedType.symbol.flags = resolvedSymbol.flags;
-                        // this.resolvedType.symbol.kind = resolvedSymbol.kind;
-                        // this.resolvedType.symbol.maxAlignment = resolvedSymbol.maxAlignment;
-                        // this.resolvedType.symbol.name = resolvedSymbol.name;
                         switch (symbol.resolvedType) {
                             case context.int64Type:
                                 this.resolvedType = context.int64Type;
-                                this.kind = NodeKind.INT64;
+                                if (this.kind == NodeKind.NULL) {
+                                    this.longValue = 0;
+                                }
+                                if (this.kind != NodeKind.NAME) {
+                                    this.kind = NodeKind.INT64;
+                                }
                                 break;
                             case context.float64Type:
                                 this.resolvedType = context.float64Type;
-                                this.kind = NodeKind.FLOAT64;
+                                if (this.kind == NodeKind.NULL) {
+                                    this.doubleValue = 0.0;
+                                }
+                                if (this.kind != NodeKind.NAME) {
+                                    this.kind = NodeKind.FLOAT64;
+                                }
                                 break;
                         }
                     }

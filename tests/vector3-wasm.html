@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WASM Vector3</title>
+</head>
+<body>
+<script>
+
+    var mod;
+
+    async function init() {
+        let data = await fetch("vector3.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try{
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                mod = new WebAssembly.Instance(compiled);
+                console.log("WASM Compiled!");
+            })
+
+        }catch (e){
+            console.error(e);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
