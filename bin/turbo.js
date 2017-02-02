@@ -8652,7 +8652,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     }
                     this.previousNode = null;
                 }
-                emitUnary(node, parentPrecedence, operator, forceCast = false, forceCastToType = false) {
+                emitUnary(node, parentPrecedence, operator, forceCast = false, forceCastToType = null) {
                     let isPostfix = node_7.isUnaryPostfix(node.kind);
                     let shouldCastToInt = !node.resolvedType.isFloat() && node.kind == node_7.NodeKind.NEGATIVE && !js_2.jsKindCastsOperandsToInt(node.parent.kind);
                     let isUnsigned = node.isUnsignedOperator();
@@ -8701,7 +8701,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.code.append(")");
                     }
                 }
-                emitCommaSeparatedExpressions(start, stop, needComma = false, forceCastToType = false) {
+                emitCommaSeparatedExpressions(start, stop, needComma = false, forceCastToType = null) {
                     while (start != stop) {
                         if (needComma) {
                             this.code.append(" , ");
@@ -8714,7 +8714,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         }
                     }
                 }
-                emitExpression(node, parentPrecedence, forceCast = false, forceCastToType = false) {
+                emitExpression(node, parentPrecedence, forceCast = false, forceCastToType = null) {
                     if (node.kind == node_7.NodeKind.NAME) {
                         let symbol = node.symbol;
                         if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
@@ -8962,7 +8962,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                                         needComma = true;
                                     }
                                 }
-                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma, isMath);
+                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
                                 this.code.append(")");
                                 if (identifier) {
                                     this.code.append(identifier.right);

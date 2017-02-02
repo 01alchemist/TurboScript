@@ -169,7 +169,7 @@ export class AsmJsModule {
         this.previousNode = null;
     }
 
-    emitUnary(node: Node, parentPrecedence: Precedence, operator: string, forceCast: boolean = false, forceCastToType: boolean = false): void {
+    emitUnary(node: Node, parentPrecedence: Precedence, operator: string, forceCast: boolean = false, forceCastToType: AsmType = null): void {
         let isPostfix = isUnaryPostfix(node.kind);
         let shouldCastToInt = !node.resolvedType.isFloat() && node.kind == NodeKind.NEGATIVE && !jsKindCastsOperandsToInt(node.parent.kind);
         let isUnsigned = node.isUnsignedOperator();
@@ -241,7 +241,7 @@ export class AsmJsModule {
 
     }
 
-    emitCommaSeparatedExpressions(start: Node, stop: Node, needComma: boolean = false, forceCastToType: boolean = false): void {
+    emitCommaSeparatedExpressions(start: Node, stop: Node, needComma: boolean = false, forceCastToType: AsmType = null): void {
         while (start != stop) {
             if (needComma) {
                 this.code.append(" , ");
@@ -256,7 +256,7 @@ export class AsmJsModule {
         }
     }
 
-    emitExpression(node: Node, parentPrecedence: Precedence, forceCast: boolean = false, forceCastToType: boolean = false): void {
+    emitExpression(node: Node, parentPrecedence: Precedence, forceCast: boolean = false, forceCastToType: AsmType = null): void {
 
         if (node.kind == NodeKind.NAME) {
             let symbol = node.symbol;
@@ -559,7 +559,7 @@ export class AsmJsModule {
                             needComma = true;
                         }
                     }
-                    this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma, isMath);
+                    this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
                     this.code.append(")");
                     if (identifier) {
                         this.code.append(identifier.right);
