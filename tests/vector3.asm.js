@@ -61,29 +61,29 @@ function TurboModule(global, env, buffer) {
         var offset = 0;
         var top = 0;
         var ptr = 0;
-        nbytes = ((((nbytes|0) + (((alignment|0) - (1|0)|0))|0) & ~(((alignment|0) - (1|0)|0))|0)|0);
-        chunkSize = ((nbytes|0) + (8|0)|0);
+        nbytes = ((((((nbytes|0) + ((((alignment|0) - (1|0))|0))|0)|0)|0 & ~(alignment - (1|0)))|0)|0)|0;
+        chunkSize = ((nbytes|0) + (8|0))|0;
         freeChunk = (getFreeChunk((chunkSize|0))|0);
         
         if ((((freeChunk|0) | 0) > (0|0))|0) {
-            return (freeChunk|0);
+            return (freeChunk)|0;
         }
         
-        offset = ((((HEAP32[(12) >> 2]|0) + (((alignment|0) - (1|0)|0))|0) & ~(((alignment|0) - (1|0)|0))|0));
-        top = ((offset|0) + (chunkSize|0)|0);
-        ptr = ((offset|0) + (4|0)|0);
+        offset = (((((HEAP32[(12) >> 2]|0) + ((((alignment|0) - (1|0))|0))|0)|0)|0 & ~(alignment - (1|0)))|0);
+        top = ((offset|0) + (chunkSize|0))|0;
+        ptr = ((offset|0) + (4|0))|0;
         setHeadSize((ptr|0), (chunkSize|0));
-        setInuse(((ptr|0) + (4|0)|0));
+        setInuse(((ptr|0) + (4|0))|0);
         setFoot((ptr|0), (chunkSize|0));
-        HEAP32[(12) >> 2] = ((top|0) + (4|0)|0);
-        offset = (((offset|0) + (8|0)|0)|0);
-        ptr = ((offset|0)|0);
+        HEAP32[(12) >> 2] = ((top|0) + (4|0))|0;
+        offset = ((((offset|0) + (8|0))|0)|0)|0;
+        ptr = ((offset|0))|0;
         
         while (((ptr|0) < (top|0))|0) {
             HEAPU32[(ptr ) >> 2] = 0;
-            ptr = (((ptr|0) + (4|0)|0)|0);
+            ptr = ((((ptr|0) + (4|0))|0)|0)|0;
         }
-        return (offset|0);
+        return (offset)|0;
     }
     
     
@@ -96,8 +96,8 @@ function TurboModule(global, env, buffer) {
             HEAPU32[(24) >> 2] = (ptr|0);
         }
         
-        HEAPU32[(16) >> 2] = ((HEAPU32[(16) >> 2]|0) + (getChunkSize((ptr|0))|0)|0);
-        chunkptr = ((ptr|0) + (4|0)|0);
+        HEAPU32[(16) >> 2] = ((HEAPU32[(16) >> 2]|0) + (getChunkSize((ptr|0))|0))|0;
+        chunkptr = ((ptr|0) + (4|0))|0;
         
         if (((HEAPU32[(28) >> 2]|0) > (0|0))|0) {
             HEAPU32[(chunkptr ) >> 2] = (HEAPU32[(28) >> 2]|0);
@@ -110,7 +110,7 @@ function TurboModule(global, env, buffer) {
         
         HEAPU32[(ptr ) >> 2] = 0;
         HEAPU32[(28) >> 2] = (ptr|0);
-        HEAPU32[(20) >> 2] = ((HEAPU32[(20) >> 2]|0) + (1|0)|0);
+        HEAPU32[(20) >> 2] = ((HEAPU32[(20) >> 2]|0) + (1|0))|0;
     }
     
     
@@ -129,10 +129,10 @@ function TurboModule(global, env, buffer) {
                     HEAPU32[(28) >> 2] = 0;
                 }
                 
-                HEAPU32[(20) >> 2] = ((HEAPU32[(20) >> 2]|0) - (1|0)|0);
+                HEAPU32[(20) >> 2] = ((HEAPU32[(20) >> 2]|0) - (1|0))|0;
                 setInuse((freeChunk|0));
-                HEAPU32[(16) >> 2] = ((HEAPU32[(16) >> 2]|0) - (getChunkSize((freeChunk|0))|0)|0);
-                return (freeChunk|0);
+                HEAPU32[(16) >> 2] = ((HEAPU32[(16) >> 2]|0) - (getChunkSize((freeChunk|0))|0))|0;
+                return (freeChunk)|0;
             }
         }
         return 0;
@@ -146,61 +146,61 @@ function TurboModule(global, env, buffer) {
         
         while (((chunk|0) != 0)|0) {
             if ((((getChunkSize((chunk|0))|0) == (nbytes|0))|0)) {
-                return (chunk|0);
+                return (chunk)|0;
             }
             
-            chunk = ((HEAPU32[(chunk ) >> 2]|0)|0);
+            chunk = ((HEAPU32[(chunk ) >> 2]|0))|0;
         }
         return 0;
     }
     
     
     function getHeapPtr() {
-        return ((HEAP32[(12) >> 2]|0)|0);
+        return ((HEAP32[(12) >> 2]|0))|0;
     }
     
     
     function getFreeMemory() {
-        return ((HEAPU32[(16) >> 2]|0)|0);
+        return ((HEAPU32[(16) >> 2]|0))|0;
     }
     
     
     function getOriginalHeapPtr() {
-        return ((HEAP32[(8) >> 2]|0)|0);
+        return ((HEAP32[(8) >> 2]|0))|0;
     }
     
     
     function getNumFreeChunks() {
-        return ((HEAPU32[(20) >> 2]|0)|0);
+        return ((HEAPU32[(20) >> 2]|0))|0;
     }
     
     
     function getFirstFree() {
-        return ((HEAPU32[(24) >> 2]|0)|0);
+        return ((HEAPU32[(24) >> 2]|0))|0;
     }
     
     
     function getLastFree() {
-        return ((HEAPU32[(28) >> 2]|0)|0);
+        return ((HEAPU32[(28) >> 2]|0))|0;
     }
     
     
     function prevFree(ptr) {
         ptr = ptr|0;
-        return ((HEAP32[((ptr + (4|0)) ) >> 2]|0) | 0|0);
+        return ((HEAP32[((ptr + (4|0)) ) >> 2]|0) | 0)|0;
     }
     
     
     function nextFree(ptr) {
         ptr = ptr|0;
-        return ((HEAP32[(ptr ) >> 2]|0) | 0|0);
+        return ((HEAP32[(ptr ) >> 2]|0) | 0)|0;
     }
     
     
     function setHeadSize(ptr, s) {
         ptr = ptr|0;
         s = s|0;
-        HEAPU32[(ptr ) >> 2] = (((HEAPU32[(ptr ) >> 2]|0) & (7|0)|0) | (s|0)|0);
+        HEAPU32[(ptr ) >> 2] = ((((HEAPU32[(ptr ) >> 2]|0) & (7|0))|0)|0 | (s|0))|0;
     }
     
     
@@ -210,7 +210,7 @@ function TurboModule(global, env, buffer) {
         var size = 0;
         var chunkptr = 0;
         size = (HEAPU32[(ptr ) >> 2]|0);
-        chunkptr = ((ptr|0) + (size|0)|0);
+        chunkptr = ((ptr|0) + (size|0))|0;
         HEAPU32[(chunkptr ) >> 2] = (s|0);
     }
     
@@ -218,40 +218,40 @@ function TurboModule(global, env, buffer) {
     function getPrevInuse(ptr) {
         ptr = ptr|0;
         var chunkptr = 0;
-        chunkptr = ((ptr|0) - (8|0)|0);
-        return (((HEAPU32[(chunkptr ) >> 2]|0) & (1|0)|0)|0);
+        chunkptr = ((ptr|0) - (8|0))|0;
+        return ((HEAPU32[(chunkptr ) >> 2]|0) & (1|0))|0;
     }
     
     
     function setInuse(ptr) {
         ptr = ptr|0;
         var chunkptr = 0;
-        chunkptr = ((ptr|0) - (4|0)|0);
-        HEAPU32[(chunkptr ) >> 2] = ((HEAPU32[(chunkptr ) >> 2]|0) | (1|0)|0);
+        chunkptr = ((ptr|0) - (4|0))|0;
+        HEAPU32[(chunkptr ) >> 2] = ((HEAPU32[(chunkptr ) >> 2]|0) | (1|0))|0;
     }
     
     
     function getInuse(ptr) {
         ptr = ptr|0;
         var chunkptr = 0;
-        chunkptr = ((ptr|0) - (4|0)|0);
-        return (((HEAPU32[(chunkptr ) >> 2]|0) & (1|0)|0)|0);
+        chunkptr = ((ptr|0) - (4|0))|0;
+        return ((HEAPU32[(chunkptr ) >> 2]|0) & (1|0))|0;
     }
     
     
     function clearInuse(ptr) {
         ptr = ptr|0;
         var chunkptr = 0;
-        chunkptr = ((ptr|0) - (4|0)|0);
-        HEAPU32[(chunkptr ) >> 2] = ((HEAPU32[(chunkptr ) >> 2]|0) & (-2|0)|0);
+        chunkptr = ((ptr|0) - (4|0))|0;
+        HEAPU32[(chunkptr ) >> 2] = ((HEAPU32[(chunkptr ) >> 2]|0) & (-2|0))|0;
     }
     
     
     function getChunkSize(ptr) {
         ptr = ptr|0;
         var chunkptr = 0;
-        chunkptr = ((ptr|0) - (4|0)|0);
-        return (((HEAPU32[(chunkptr ) >> 2]|0) & (-2|0)|0)|0);
+        chunkptr = ((ptr|0) - (4|0))|0;
+        return ((HEAPU32[(chunkptr ) >> 2]|0) & (-2|0))|0;
     }
     
     
@@ -261,14 +261,6 @@ function TurboModule(global, env, buffer) {
         z = +z;
         var ptr = 0;
         ptr = malloc(24)|0;
-        return Vector3_set(ptr, x, y, z)|0;
-    }
-    
-    function Vector3_set(ptr, x, y, z) {
-        ptr = ptr|0;
-        x = +x;
-        y = +y;
-        z = +z;
         HEAPF64[(ptr ) >> 3] = (+x);
         HEAPF64[(ptr + (8|0)) >> 3] = (+y);
         HEAPF64[(ptr + (16|0)) >> 3] = (+z);
@@ -278,7 +270,7 @@ function TurboModule(global, env, buffer) {
     
     function Vector3_length(ptr) {
         ptr = ptr|0;
-        return (+Math_sqrt(+(+(HEAPF64[(ptr ) >> 3] * HEAPF64[(ptr ) >> 3] + HEAPF64[(ptr + (8|0) ) >> 3] * HEAPF64[(ptr + (8|0) ) >> 3]) + HEAPF64[(ptr + (16|0) ) >> 3] * HEAPF64[(ptr + (16|0) ) >> 3])));
+        return (+Math_sqrt(+(+(+(+(+HEAPF64[(ptr ) >> 3] * +HEAPF64[(ptr ) >> 3]) + +(+HEAPF64[(ptr + (8|0) ) >> 3] * +HEAPF64[(ptr + (8|0) ) >> 3]))) + +(+HEAPF64[(ptr + (16|0) ) >> 3] * +HEAPF64[(ptr + (16|0) ) >> 3]))));
     }
     
     
@@ -286,13 +278,21 @@ function TurboModule(global, env, buffer) {
         ptr = ptr|0;
         n = +n;
         var a = 0;
+        var p1 = 0.0;
+        var p2 = 0.0;
+        var p3 = 0.0;
+        var xyz = 0.0;
         var length = 0.0;
         if ((((+n) == 2.0)|0)) {
             return (+Vector3_length(ptr));
         }
         
         a = (Vector3_abs(ptr)|0);
-        length = (+Math_pow(+(+((+Math_pow(HEAPF64[(a ) >> 3], (+n))) + (+Math_pow(HEAPF64[(a + (8|0) ) >> 3], (+n)))) + (+Math_pow(HEAPF64[(a + (16|0) ) >> 3], (+n)))), +(1.0 / (+n))));
+        p1 = (+Math_pow(+HEAPF64[(a ) >> 3], (+n)));
+        p2 = (+Math_pow(+HEAPF64[(a + (8|0) ) >> 3], (+n)));
+        p3 = (+Math_pow(+HEAPF64[(a + (16|0) ) >> 3], (+n)));
+        xyz = +(+(+((+p1) + (+p2))) + (+p3));
+        length = (+Math_pow((+xyz), +((+fround(1)) / (+n))));
         free((a)|0);
         return +(length);
     }
@@ -301,14 +301,14 @@ function TurboModule(global, env, buffer) {
     function Vector3_dot(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return +(HEAPF64[(ptr ) >> 3] * HEAPF64[(b ) >> 3] + HEAPF64[(ptr + (8|0) ) >> 3] * HEAPF64[(b + (8|0) ) >> 3] + HEAPF64[(ptr + (16|0) ) >> 3] * HEAPF64[(b + (16|0) ) >> 3]);
+        return +(+(+(+HEAPF64[(ptr ) >> 3] * +HEAPF64[(b ) >> 3]) + +(+HEAPF64[(ptr + (8|0) ) >> 3] * +HEAPF64[(b + (8|0) ) >> 3])) + +(+HEAPF64[(ptr + (16|0) ) >> 3] * +HEAPF64[(b + (16|0) ) >> 3]));
     }
     
     
     function Vector3_cross(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_new((+(HEAPF64[(ptr + (8|0) ) >> 3] * HEAPF64[(b + (16|0) ) >> 3] - HEAPF64[(ptr + (16|0) ) >> 3] * HEAPF64[(b + (8|0) ) >> 3])), (+(HEAPF64[(ptr + (16|0) ) >> 3] * HEAPF64[(b ) >> 3] - HEAPF64[(ptr ) >> 3] * HEAPF64[(b + (16|0) ) >> 3])), (+(HEAPF64[(ptr ) >> 3] * HEAPF64[(b + (8|0) ) >> 3] - HEAPF64[(ptr + (8|0) ) >> 3] * HEAPF64[(b ) >> 3])))|0)|0;
+        return Vector3_new((+(+(+HEAPF64[(ptr + (8|0) ) >> 3] * +HEAPF64[(b + (16|0) ) >> 3]) - +(+HEAPF64[(ptr + (16|0) ) >> 3] * +HEAPF64[(b + (8|0) ) >> 3]))), (+(+(+HEAPF64[(ptr + (16|0) ) >> 3] * +HEAPF64[(b ) >> 3]) - +(+HEAPF64[(ptr ) >> 3] * +HEAPF64[(b + (16|0) ) >> 3]))), (+(+(+HEAPF64[(ptr ) >> 3] * +HEAPF64[(b + (8|0) ) >> 3]) - +(+HEAPF64[(ptr + (8|0) ) >> 3] * +HEAPF64[(b ) >> 3]))))|0;
     }
     
     
@@ -316,96 +316,96 @@ function TurboModule(global, env, buffer) {
         ptr = ptr|0;
         var d = 0.0;
         d = (+Vector3_length(ptr));
-        return (Vector3_new((+(HEAPF64[(ptr ) >> 3] / (+d))), (+(HEAPF64[(ptr + (8|0) ) >> 3] / (+d))), (+(HEAPF64[(ptr + (16|0) ) >> 3] / (+d))))|0)|0;
+        return Vector3_new((+(+HEAPF64[(ptr ) >> 3] / (+d))), (+(+HEAPF64[(ptr + (8|0) ) >> 3] / (+d))), (+(+HEAPF64[(ptr + (16|0) ) >> 3] / (+d))))|0;
     }
     
     
     function Vector3_negate(ptr) {
         ptr = ptr|0;
-        return (Vector3_new((-HEAPF64[(ptr ) >> 3]), (-HEAPF64[(ptr + (8|0) ) >> 3]), (-HEAPF64[(ptr + (16|0) ) >> 3]))|0)|0;
+        return Vector3_new((-+HEAPF64[(ptr ) >> 3]), (-+HEAPF64[(ptr + (8|0) ) >> 3]), (-+HEAPF64[(ptr + (16|0) ) >> 3]))|0;
     }
     
     
     function Vector3_abs(ptr) {
         ptr = ptr|0;
-        return (Vector3_new((+Math_abs(HEAPF64[(ptr ) >> 3])), (+Math_abs(HEAPF64[(ptr + (8|0) ) >> 3])), (+Math_abs(HEAPF64[(ptr + (16|0) ) >> 3])))|0)|0;
+        return Vector3_new((+Math_abs(+HEAPF64[(ptr ) >> 3])), (+Math_abs(+HEAPF64[(ptr + (8|0) ) >> 3])), (+Math_abs(+HEAPF64[(ptr + (16|0) ) >> 3])))|0;
     }
     
     
     function Vector3_add(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_new((+(HEAPF64[(ptr ) >> 3] + HEAPF64[(b ) >> 3])), (+(HEAPF64[(ptr + (8|0) ) >> 3] + HEAPF64[(b + (8|0) ) >> 3])), (+(HEAPF64[(ptr + (16|0) ) >> 3] + HEAPF64[(b + (16|0) ) >> 3])))|0)|0;
+        return Vector3_new((+(+HEAPF64[(ptr ) >> 3] + +HEAPF64[(b ) >> 3])), (+(+HEAPF64[(ptr + (8|0) ) >> 3] + +HEAPF64[(b + (8|0) ) >> 3])), (+(+HEAPF64[(ptr + (16|0) ) >> 3] + +HEAPF64[(b + (16|0) ) >> 3])))|0;
     }
     
     
     function Vector3_sub(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_new((+(HEAPF64[(ptr ) >> 3] - HEAPF64[(b ) >> 3])), (+(HEAPF64[(ptr + (8|0) ) >> 3] - HEAPF64[(b + (8|0) ) >> 3])), (+(HEAPF64[(ptr + (16|0) ) >> 3] - HEAPF64[(b + (16|0) ) >> 3])))|0)|0;
+        return Vector3_new((+(+HEAPF64[(ptr ) >> 3] - +HEAPF64[(b ) >> 3])), (+(+HEAPF64[(ptr + (8|0) ) >> 3] - +HEAPF64[(b + (8|0) ) >> 3])), (+(+HEAPF64[(ptr + (16|0) ) >> 3] - +HEAPF64[(b + (16|0) ) >> 3])))|0;
     }
     
     
     function Vector3_mul(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_new(HEAPF64[(ptr ) >> 3] * HEAPF64[(b ) >> 3], HEAPF64[(ptr + (8|0) ) >> 3] * HEAPF64[(b + (8|0) ) >> 3], HEAPF64[(ptr + (16|0) ) >> 3] * HEAPF64[(b + (16|0) ) >> 3])|0)|0;
+        return Vector3_new(+HEAPF64[(ptr ) >> 3] * +HEAPF64[(b ) >> 3], +HEAPF64[(ptr + (8|0) ) >> 3] * +HEAPF64[(b + (8|0) ) >> 3], +HEAPF64[(ptr + (16|0) ) >> 3] * +HEAPF64[(b + (16|0) ) >> 3])|0;
     }
     
     
     function Vector3_div(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_new((+(HEAPF64[(ptr ) >> 3] / HEAPF64[(b ) >> 3])), (+(HEAPF64[(ptr + (8|0) ) >> 3] / HEAPF64[(b + (8|0) ) >> 3])), (+(HEAPF64[(ptr + (16|0) ) >> 3] / HEAPF64[(b + (16|0) ) >> 3])))|0)|0;
+        return Vector3_new((+(+HEAPF64[(ptr ) >> 3] / +HEAPF64[(b ) >> 3])), (+(+HEAPF64[(ptr + (8|0) ) >> 3] / +HEAPF64[(b + (8|0) ) >> 3])), (+(+HEAPF64[(ptr + (16|0) ) >> 3] / +HEAPF64[(b + (16|0) ) >> 3])))|0;
     }
     
     
     function Vector3_mod(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_new((+(HEAPF64[(ptr ) >> 3] - HEAPF64[(b ) >> 3] * (+Math_floor(+(HEAPF64[(ptr ) >> 3] / HEAPF64[(b ) >> 3]))))), (+(HEAPF64[(ptr + (8|0) ) >> 3] - HEAPF64[(b + (8|0) ) >> 3] * (+Math_floor(+(HEAPF64[(ptr + (8|0) ) >> 3] / HEAPF64[(b + (8|0) ) >> 3]))))), (+(HEAPF64[(ptr + (16|0) ) >> 3] - HEAPF64[(b + (16|0) ) >> 3] * (+Math_floor(+(HEAPF64[(ptr + (16|0) ) >> 3] / HEAPF64[(b + (16|0) ) >> 3]))))))|0)|0;
+        return Vector3_new((+(+HEAPF64[(ptr ) >> 3] - +(+HEAPF64[(b ) >> 3] * (+Math_floor(+(+HEAPF64[(ptr ) >> 3] / +HEAPF64[(b ) >> 3])))))), (+(+HEAPF64[(ptr + (8|0) ) >> 3] - +(+HEAPF64[(b + (8|0) ) >> 3] * (+Math_floor(+(+HEAPF64[(ptr + (8|0) ) >> 3] / +HEAPF64[(b + (8|0) ) >> 3])))))), (+(+HEAPF64[(ptr + (16|0) ) >> 3] - +(+HEAPF64[(b + (16|0) ) >> 3] * (+Math_floor(+(+HEAPF64[(ptr + (16|0) ) >> 3] / +HEAPF64[(b + (16|0) ) >> 3])))))))|0;
     }
     
     
     function Vector3_addScalar(ptr, f) {
         ptr = ptr|0;
         f = +f;
-        return (Vector3_new((+(HEAPF64[(ptr ) >> 3] + (+f))), (+(HEAPF64[(ptr + (8|0) ) >> 3] + (+f))), (+(HEAPF64[(ptr + (16|0) ) >> 3] + (+f))))|0)|0;
+        return Vector3_new((+(+HEAPF64[(ptr ) >> 3] + (+f))), (+(+HEAPF64[(ptr + (8|0) ) >> 3] + (+f))), (+(+HEAPF64[(ptr + (16|0) ) >> 3] + (+f))))|0;
     }
     
     
     function Vector3_subScalar(ptr, f) {
         ptr = ptr|0;
         f = +f;
-        return (Vector3_new((+(HEAPF64[(ptr ) >> 3] - (+f))), (+(HEAPF64[(ptr + (8|0) ) >> 3] - (+f))), (+(HEAPF64[(ptr + (16|0) ) >> 3] - (+f))))|0)|0;
+        return Vector3_new((+(+HEAPF64[(ptr ) >> 3] - (+f))), (+(+HEAPF64[(ptr + (8|0) ) >> 3] - (+f))), (+(+HEAPF64[(ptr + (16|0) ) >> 3] - (+f))))|0;
     }
     
     
     function Vector3_mulScalar(ptr, f) {
         ptr = ptr|0;
         f = +f;
-        return (Vector3_new(HEAPF64[(ptr ) >> 3] * f, HEAPF64[(ptr + (8|0) ) >> 3] * f, HEAPF64[(ptr + (16|0) ) >> 3] * f)|0)|0;
+        return Vector3_new(+HEAPF64[(ptr ) >> 3] * f, +HEAPF64[(ptr + (8|0) ) >> 3] * f, +HEAPF64[(ptr + (16|0) ) >> 3] * f)|0;
     }
     
     
     function Vector3_divScalar(ptr, f) {
         ptr = ptr|0;
         f = +f;
-        return (Vector3_new((+(HEAPF64[(ptr ) >> 3] / (+f))), (+(HEAPF64[(ptr + (8|0) ) >> 3] / (+f))), (+(HEAPF64[(ptr + (16|0) ) >> 3] / (+f))))|0)|0;
+        return Vector3_new((+(+HEAPF64[(ptr ) >> 3] / (+f))), (+(+HEAPF64[(ptr + (8|0) ) >> 3] / (+f))), (+(+HEAPF64[(ptr + (16|0) ) >> 3] / (+f))))|0;
     }
     
     
     function Vector3_min(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_new((+Math_min(HEAPF64[(ptr ) >> 3], HEAPF64[(b ) >> 3])), (+Math_min(HEAPF64[(ptr + (8|0) ) >> 3], HEAPF64[(b + (8|0) ) >> 3])), (+Math_min(HEAPF64[(ptr + (16|0) ) >> 3], HEAPF64[(b + (16|0) ) >> 3])))|0)|0;
+        return Vector3_new((+Math_min(+HEAPF64[(ptr ) >> 3], +HEAPF64[(b ) >> 3])), (+Math_min(+HEAPF64[(ptr + (8|0) ) >> 3], +HEAPF64[(b + (8|0) ) >> 3])), (+Math_min(+HEAPF64[(ptr + (16|0) ) >> 3], +HEAPF64[(b + (16|0) ) >> 3])))|0;
     }
     
     
     function Vector3_max(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_new((+Math_max(HEAPF64[(ptr ) >> 3], HEAPF64[(b ) >> 3])), (+Math_max(HEAPF64[(ptr + (8|0) ) >> 3], HEAPF64[(b + (8|0) ) >> 3])), (+Math_max(HEAPF64[(ptr + (16|0) ) >> 3], HEAPF64[(b + (16|0) ) >> 3])))|0)|0;
+        return Vector3_new((+Math_max(+HEAPF64[(ptr ) >> 3], +HEAPF64[(b ) >> 3])), (+Math_max(+HEAPF64[(ptr + (8|0) ) >> 3], +HEAPF64[(b + (8|0) ) >> 3])), (+Math_max(+HEAPF64[(ptr + (16|0) ) >> 3], +HEAPF64[(b + (16|0) ) >> 3])))|0;
     }
     
     
@@ -415,39 +415,44 @@ function TurboModule(global, env, buffer) {
         var x = 0.0;
         var y = 0.0;
         var z = 0.0;
-        x = (+Math_abs(HEAPF64[(ptr ) >> 3]));
-        y = (+Math_abs(HEAPF64[(ptr + (8|0) ) >> 3]));
-        z = (+Math_abs(HEAPF64[(ptr + (16|0) ) >> 3]));
+        x = (+Math_abs(+HEAPF64[(ptr ) >> 3]));
+        y = (+Math_abs(+HEAPF64[(ptr + (8|0) ) >> 3]));
+        z = (+Math_abs(+HEAPF64[(ptr + (16|0) ) >> 3]));
         
-        if (((((+x) <= (+y))|0 && ((+x) <= (+z))|0)|0)) {
-            return (Vector3_new((fround(1)), (fround(0)), (fround(0)))|0)|0;
+        if ((((((+x) <= (+y))|0)|0 & (((+x) <= (+z))|0)|0)|0)) {
+            return Vector3_new((1.0), (0.0), (0.0))|0;
         }
         
-        else if (((((+y) <= (+x))|0 && ((+y) <= (+z))|0)|0)) {
-            return (Vector3_new((fround(0)), (fround(1)), (fround(0)))|0)|0;
+        else if ((((((+y) <= (+x))|0)|0 & (((+y) <= (+z))|0)|0)|0)) {
+            return Vector3_new((0.0), (1.0), (0.0))|0;
         }
-        return (Vector3_new((fround(0)), (fround(0)), (fround(1)))|0)|0;
+        return Vector3_new((0.0), (0.0), (1.0))|0;
     }
     
     
     function Vector3_minComponent(ptr, a) {
         ptr = ptr|0;
         a = a|0;
-        return (+Math_min((+Math_min(HEAPF64[(ptr ) >> 3], HEAPF64[(ptr + (8|0) ) >> 3])), HEAPF64[(ptr + (16|0) ) >> 3]));
+        return (+Math_min((+Math_min(+HEAPF64[(ptr ) >> 3], +HEAPF64[(ptr + (8|0) ) >> 3])), +HEAPF64[(ptr + (16|0) ) >> 3]));
     }
     
     
     function Vector3_maxComponent(ptr, a) {
         ptr = ptr|0;
         a = a|0;
-        return (+Math_max((+Math_max(HEAPF64[(ptr ) >> 3], HEAPF64[(ptr + (8|0) ) >> 3])), HEAPF64[(ptr + (16|0) ) >> 3]));
+        return (+Math_max((+Math_max(+HEAPF64[(ptr ) >> 3], +HEAPF64[(ptr + (8|0) ) >> 3])), +HEAPF64[(ptr + (16|0) ) >> 3]));
     }
     
     
     function Vector3_reflect(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return (Vector3_sub(b , (Vector3_mulScalar(ptr , fround(2) * (+Vector3_dot(ptr , (b|0))))|0))|0);
+        var tmp1 = 0;
+        var tmp2 = 0;
+        tmp1 = (Vector3_mulScalar(ptr , +(fround(2)) * (+Vector3_dot(ptr , (b|0))))|0);
+        tmp2 = (Vector3_sub(b , (tmp1|0))|0);
+        free((tmp1)|0);
+        return (tmp2)|0;
     }
     
     
@@ -460,16 +465,24 @@ function TurboModule(global, env, buffer) {
         var cosI = 0.0;
         var sinT2 = 0.0;
         var cosT = 0.0;
+        var tmp1 = 0;
+        var tmp2 = 0;
+        var tmp3 = 0;
         nr = +((+n1) / (+n2));
         cosI = -(+Vector3_dot(ptr , (b|0)));
-        sinT2 = nr * nr * (+(fround(1) - cosI * cosI));
+        sinT2 = +(nr * nr) * +((+(fround(1)) - +(cosI * cosI)));
         
         if (((+sinT2) > 1.0)|0) {
-            return (Vector3_new((fround(0)), (fround(0)), (fround(0)))|0)|0;
+            return Vector3_new((0.0), (0.0), (0.0))|0;
         }
         
-        cosT = (+Math_sqrt(+(1.0 - (+sinT2))));
-        return (Vector3_add((::unknown::) , (Vector3_mulScalar(ptr , nr * (+((+cosI) - (+cosT))))|0))|0);
+        cosT = (+Math_sqrt(+(+(1.0) - (+sinT2))));
+        tmp1 = (Vector3_mulScalar(b , (+nr))|0);
+        tmp2 = (Vector3_mulScalar(ptr , nr * +((cosI - cosT)))|0);
+        tmp3 = (Vector3_add(tmp1 , (tmp2|0))|0);
+        free((tmp1)|0);
+        free((tmp2)|0);
+        return (tmp3)|0;
     }
     
     
@@ -486,36 +499,38 @@ function TurboModule(global, env, buffer) {
         var rPar = 0.0;
         nr = +((+n1) / (+n2));
         cosI = -(+Vector3_dot(ptr , (b|0)));
-        sinT2 = nr * nr * (+(fround(1) - cosI * cosI));
+        sinT2 = +(nr * nr) * +((+(fround(1)) - +(cosI * cosI)));
         
         if (((+sinT2) > 1.0)|0) {
-            return fround(fround(1));
+            return +(fround(1));
         }
         
-        cosT = (+Math_sqrt(+(1.0 - (+sinT2))));
-        rOrth = +((+(n1 * cosI - n2 * cosT)) / (+(n1 * cosI + n2 * cosT)));
-        rPar = +((+(n2 * cosI - n1 * cosT)) / (+(n2 * cosI + n1 * cosT)));
-        return +(+((+(rOrth * rOrth + rPar * rPar)) / 2.0));
+        cosT = (+Math_sqrt(+(+(1.0) - (+sinT2))));
+        rOrth = +(+((+(+(n1 * cosI) - +(n2 * cosT)))) / +((+(+(n1 * cosI) + +(n2 * cosT)))));
+        rPar = +(+((+(+(n2 * cosI) - +(n1 * cosT)))) / +((+(+(n2 * cosI) + +(n1 * cosT)))));
+        return +(+(+((+(+(rOrth * rOrth) + +(rPar * rPar)))) / 2.0));
     }
     
     
     function Vector3_pow(ptr, f) {
         ptr = ptr|0;
         f = +f;
-        return (Vector3_new((+Math_pow(HEAPF64[(ptr ) >> 3], (+f))), (+Math_pow(HEAPF64[(ptr + (8|0) ) >> 3], (+f))), (+Math_pow(HEAPF64[(ptr + (16|0) ) >> 3], (+f))))|0)|0;
+        return Vector3_new((+Math_pow(+HEAPF64[(ptr ) >> 3], (+f))), (+Math_pow(+HEAPF64[(ptr + (8|0) ) >> 3], (+f))), (+Math_pow(+HEAPF64[(ptr + (16|0) ) >> 3], (+f))))|0;
     }
     
     
     function Vector3_isEqual(ptr, b) {
         ptr = ptr|0;
         b = b|0;
-        return ((((HEAPF64[(ptr ) >> 3] == HEAPF64[(b ) >> 3])|0 && (HEAPF64[(ptr + (8|0) ) >> 3] == HEAPF64[(b + (8|0) ) >> 3])|0)|0 && (HEAPF64[(ptr + (16|0) ) >> 3] == HEAPF64[(b + (16|0) ) >> 3])|0)|0)|0;
+        return ((((+HEAPF64[(ptr ) >> 3] == +HEAPF64[(b ) >> 3])|0)|0 & ((+HEAPF64[(ptr + (8|0) ) >> 3] == +HEAPF64[(b + (8|0) ) >> 3])|0)|0)|0 & ((+HEAPF64[(ptr + (16|0) ) >> 3] == +HEAPF64[(b + (16|0) ) >> 3])|0)|0)|0;
     }
     
     
     function Vector3_isZero(ptr) {
         ptr = ptr|0;
-        return ((((HEAPF64[(ptr ) >> 3] == 0.0)|0 && (HEAPF64[(ptr + (8|0) ) >> 3] == 0.0)|0)|0 && (HEAPF64[(ptr + (16|0) ) >> 3] == 0.0)|0)|0)|0;
+        var r = 0;
+        r = (((((+HEAPF64[(ptr ) >> 3] == 0.0)|0)|0 & ((+HEAPF64[(ptr + (8|0) ) >> 3] == 0.0)|0)|0)|0)|0 & ((+HEAPF64[(ptr + (16|0) ) >> 3] == 0.0)|0)|0)|0;
+        return (r)|0;
     }
     
     
@@ -534,9 +549,9 @@ function TurboModule(global, env, buffer) {
     function Vector3_setFromVector3(ptr, d) {
         ptr = ptr|0;
         d = d|0;
-        HEAPF64[(ptr ) >> 3] = HEAPF64[(d ) >> 3];
-        HEAPF64[(ptr + (8|0)) >> 3] = HEAPF64[(d + (8|0) ) >> 3];
-        HEAPF64[(ptr + (16|0)) >> 3] = HEAPF64[(d + (16|0) ) >> 3];
+        HEAPF64[(ptr ) >> 3] = +HEAPF64[(d ) >> 3];
+        HEAPF64[(ptr + (8|0)) >> 3] = +HEAPF64[(d + (8|0) ) >> 3];
+        HEAPF64[(ptr + (16|0)) >> 3] = +HEAPF64[(d + (16|0) ) >> 3];
         return (ptr)|0;
     }
     
@@ -544,14 +559,15 @@ function TurboModule(global, env, buffer) {
     function Vector3_copy(ptr, src) {
         ptr = ptr|0;
         src = src|0;
-        return (Vector3_set(ptr , HEAPF64[(src ) >> 3], HEAPF64[(src + (8|0) ) >> 3], HEAPF64[(src + (16|0) ) >> 3])|0);
+        return (Vector3_set(ptr , +HEAPF64[(src ) >> 3], +HEAPF64[(src + (8|0) ) >> 3], +HEAPF64[(src + (16|0) ) >> 3])|0);
     }
     
     
     function Vector3_clone(ptr) {
         ptr = ptr|0;
-        return (Vector3_new(HEAPF64[(ptr ) >> 3], HEAPF64[(ptr + (8|0) ) >> 3], HEAPF64[(ptr + (16|0) ) >> 3])|0)|0;
+        return Vector3_new(+HEAPF64[(ptr ) >> 3], +HEAPF64[(ptr + (8|0) ) >> 3], +HEAPF64[(ptr + (16|0) ) >> 3])|0;
     }
+    
     
     
     return {

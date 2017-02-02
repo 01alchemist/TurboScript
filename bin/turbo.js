@@ -8253,7 +8253,7 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                         case compiler_2.CompileTarget.ASMJS:
                             lib = stdlib.IO_readTextFile("../src/library/asmjs/types.tbs") + "\n";
                             lib += stdlib.IO_readTextFile("../src/library/asmjs/math.tbs") + "\n";
-                            // lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
                             return lib;
                     }
                 }
@@ -8327,7 +8327,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
             child = child.nextSibling;
         }
     }
-    function getIdentifier(node, forceCastToType = null) {
+    function getIdentifier(node, forceCastToType = null, outerBracket = false) {
         let resolvedType = node.resolvedType.pointerTo ? node.resolvedType.pointerTo : node.resolvedType;
         let identifier_1 = "";
         let identifier_2 = "";
@@ -8338,7 +8338,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
             return asmTypeToIdentifier(forceCastToType);
         }
         else if (resolvedType.isDouble()) {
-            identifier_1 = "+(";
+            identifier_1 = outerBracket ? "(+" : "+(";
             identifier_2 = ")";
             double = true;
         }
@@ -8349,12 +8349,12 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
         }
         else if (resolvedType.isInteger()) {
             identifier_1 = "(";
-            identifier_2 = "|0)";
+            identifier_2 = outerBracket ? "|0)" : ")|0";
             int = true;
         }
         else {
             identifier_1 = "(";
-            identifier_2 = ")|0";
+            identifier_2 = outerBracket ? "|0)" : ")|0";
             int = true;
         }
         return {
@@ -8365,7 +8365,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
             double: double
         };
     }
-    function asmTypeToIdentifier(type) {
+    function asmTypeToIdentifier(type, outerBracket = false) {
         let identifier_1 = "";
         let identifier_2 = "";
         let int = false;
@@ -8377,18 +8377,18 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
             float = true;
         }
         else if (type == AsmType.DOUBLE) {
-            identifier_1 = "(+";
+            identifier_1 = outerBracket ? "(+" : "+(";
             identifier_2 = ")";
             double = true;
         }
         else if (type == AsmType.INT) {
             identifier_1 = "(";
-            identifier_2 = "|0)";
+            identifier_2 = outerBracket ? "|0)" : ")|0";
             int = true;
         }
         else {
             identifier_1 = "(";
-            identifier_2 = "|0)";
+            identifier_2 = outerBracket ? "|0)" : ")|0";
             int = true;
         }
         return {
@@ -8679,21 +8679,51 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     }
                 }
                 emitBinary(node, parentPrecedence, operator, operatorPrecedence, forceCast = false, forceCastToType = null) {
+                    let leftNode = node.binaryLeft();
+                    let rightNode = node.binaryRight();
                     let isRightAssociative = node.kind == node_7.NodeKind.ASSIGN;
                     //TODO: Avoid casting when the parent operator already does a cast
+                    let childForceCastType = null;
+                    let forceCastLeft = false;
+                    let forceCastRight = false;
+                    if (leftNode.resolvedType != rightNode.resolvedType && (leftNode.resolvedType.isDouble() || rightNode.resolvedType.isDouble())) {
+                        childForceCastType = AsmType.DOUBLE;
+                        if (!leftNode.resolvedType.isDouble()) {
+                            forceCastLeft = true;
+                        }
+                        if (!rightNode.resolvedType.isDouble()) {
+                            forceCastRight = true;
+                        }
+                    }
                     let identifier = getIdentifier(node, forceCastToType);
+                    let idLeft = getIdentifier(leftNode, childForceCastType);
+                    let idRight = getIdentifier(rightNode, childForceCastType);
                     if (parentPrecedence > operatorPrecedence) {
                         this.code.append("(");
                     }
                     if (!isRightAssociative && forceCast) {
                         this.code.append(identifier.left);
                     }
-                    this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence, forceCast && !isRightAssociative, forceCastToType);
+                    if (node_7.isBinary(leftNode.kind) || forceCastLeft) {
+                        this.code.append(idLeft.left);
+                    }
+                    //emit left
+                    this.emitExpression(leftNode, isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence, forceCast && !isRightAssociative, forceCastToType);
+                    if (node_7.isBinary(leftNode.kind) || forceCastLeft) {
+                        this.code.append(idLeft.right);
+                    }
                     this.code.append(operator);
                     if (isRightAssociative && forceCast) {
                         this.code.append(identifier.left);
                     }
-                    this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1), forceCast, forceCastToType);
+                    if (node_7.isBinary(rightNode.kind) || forceCastRight) {
+                        this.code.append(idRight.left);
+                    }
+                    //emit right
+                    this.emitExpression(rightNode, isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1), forceCast, forceCastToType);
+                    if (node_7.isBinary(rightNode.kind) || forceCastRight) {
+                        this.code.append(idRight.right);
+                    }
                     if (forceCast) {
                         this.code.append(identifier.right);
                     }
@@ -8701,14 +8731,23 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.code.append(")");
                     }
                 }
-                emitCommaSeparatedExpressions(start, stop, needComma = false, forceCastToType = null) {
+                emitCommaSeparatedExpressions(start, stop, needComma = false, firstArgument = null) {
                     while (start != stop) {
                         if (needComma) {
                             this.code.append(" , ");
                             needComma = false;
                         }
-                        this.emitExpression(start, parser_5.Precedence.LOWEST, true, forceCastToType);
+                        let forceCastType = null;
+                        if (firstArgument) {
+                            if (firstArgument.symbol.resolvedType.isDouble()) {
+                                forceCastType = AsmType.DOUBLE;
+                            }
+                        }
+                        this.emitExpression(start, parser_5.Precedence.LOWEST, true, forceCastType);
                         start = start.nextSibling;
+                        if (firstArgument) {
+                            firstArgument = firstArgument.nextSibling;
+                        }
                         if (start != stop) {
                             this.code.append(", ");
                         }
@@ -8860,6 +8899,16 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                             // }
                             this.emitExpression(value, parser_5.Precedence.SHIFT, forceCast);
                         }
+                        else if (type == context.float32Type) {
+                            this.code.append("fround(");
+                            this.emitExpression(value, parser_5.Precedence.SHIFT, forceCast);
+                            this.code.append(")");
+                        }
+                        else if (type == context.float64Type) {
+                            this.code.append("(+");
+                            this.emitExpression(value, parser_5.Precedence.SHIFT, forceCast);
+                            this.code.append(")");
+                        }
                         else {
                             this.emitExpression(value, parentPrecedence, forceCast);
                         }
@@ -8943,7 +8992,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                             let returnType = signature.returnType;
                             let identifier = null;
                             if (returnType.id != AsmType.VOID) {
-                                identifier = asmTypeToIdentifier(returnType.id);
+                                identifier = asmTypeToIdentifier(returnType.id, true);
                                 this.code.append(identifier.left);
                             }
                             if (isImported) {
@@ -8962,7 +9011,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                                         needComma = true;
                                     }
                                 }
-                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma);
+                                this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma, value.symbol.node.functionFirstArgumentIgnoringThis());
                                 this.code.append(")");
                                 if (identifier) {
                                     this.code.append(identifier.right);
@@ -9029,19 +9078,19 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         }
                     }
                     else if (node.kind == node_7.NodeKind.BITWISE_AND) {
-                        this.emitBinary(node, parentPrecedence, " & ", parser_5.Precedence.BITWISE_AND, true, forceCastToType);
+                        this.emitBinary(node, parentPrecedence, " & ", parser_5.Precedence.BITWISE_AND, forceCast, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.BITWISE_OR) {
-                        this.emitBinary(node, parentPrecedence, " | ", parser_5.Precedence.BITWISE_OR, true, forceCastToType);
+                        this.emitBinary(node, parentPrecedence, " | ", parser_5.Precedence.BITWISE_OR, forceCast, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.BITWISE_XOR) {
-                        this.emitBinary(node, parentPrecedence, " ^ ", parser_5.Precedence.BITWISE_XOR, true, forceCastToType);
+                        this.emitBinary(node, parentPrecedence, " ^ ", parser_5.Precedence.BITWISE_XOR, forceCast, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.DIVIDE) {
                         this.emitBinary(node, parentPrecedence, " / ", parser_5.Precedence.MULTIPLY, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " == ", parser_5.Precedence.EQUAL, forceCast);
+                        this.emitBinary(node, parentPrecedence, " == ", parser_5.Precedence.EQUAL, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.GREATER_THAN) {
                         this.emitBinary(node, parentPrecedence, " > ", parser_5.Precedence.COMPARE, true, forceCastToType);
@@ -9056,10 +9105,12 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.emitBinary(node, parentPrecedence, " <= ", parser_5.Precedence.COMPARE, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.LOGICAL_AND) {
-                        this.emitBinary(node, parentPrecedence, " && ", parser_5.Precedence.LOGICAL_AND, true, forceCastToType);
+                        //Notice: asm.js does not support logical and
+                        this.emitBinary(node, parentPrecedence, " & ", parser_5.Precedence.LOGICAL_AND, forceCast, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.LOGICAL_OR) {
-                        this.emitBinary(node, parentPrecedence, " || ", parser_5.Precedence.LOGICAL_OR, true, forceCastToType);
+                        //Notice: asm.js does not support logical or
+                        this.emitBinary(node, parentPrecedence, " | ", parser_5.Precedence.LOGICAL_OR, forceCast, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.NOT_EQUAL) {
                         this.emitBinary(node, parentPrecedence, " != ", parser_5.Precedence.EQUAL, true, forceCastToType);
@@ -9074,7 +9125,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", parser_5.Precedence.SHIFT);
                     }
                     else if (node.kind == node_7.NodeKind.SUBTRACT) {
-                        this.emitBinary(node, parentPrecedence, " - ", parser_5.Precedence.ADD, true, forceCastToType);
+                        this.emitBinary(node, parentPrecedence, " - ", parser_5.Precedence.ADD, forceCast, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.MULTIPLY) {
                         let left = node.binaryLeft();
@@ -9083,19 +9134,33 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         if (isUnsigned && parentPrecedence > parser_5.Precedence.SHIFT) {
                             this.code.append("(");
                         }
+                        let leftIdentifier = { left: "", right: "" };
+                        let rightIdentifier = { left: "", right: "" };
+                        if (node_7.isBinary(left.kind) || (forceCastToType == AsmType.DOUBLE && left.resolvedType.isFloat())) {
+                            leftIdentifier = getIdentifier(left, forceCastToType);
+                        }
+                        if (node_7.isBinary(right.kind) || (forceCastToType == AsmType.DOUBLE && right.resolvedType.isFloat())) {
+                            rightIdentifier = getIdentifier(right, forceCastToType);
+                        }
                         if (left.resolvedType.isInteger() && right.resolvedType.isInteger()) {
-                            console.log("[left]isBinary:" + node_7.isBinary(left.kind));
-                            console.log("[right]isBinary:" + node_7.isBinary(right.kind));
-                            this.code.append("Math_imul((");
+                            this.code.append("(Math_imul(");
+                            this.code.append(leftIdentifier.left);
                             this.emitExpression(left, parser_5.Precedence.LOWEST);
-                            this.code.append(")|0, (");
+                            this.code.append(leftIdentifier.right);
+                            this.code.append(", ");
+                            this.code.append(rightIdentifier.left);
                             this.emitExpression(right, parser_5.Precedence.LOWEST);
+                            this.code.append(rightIdentifier.right);
                             this.code.append(")|0)");
                         }
                         else {
+                            this.code.append(leftIdentifier.left);
                             this.emitExpression(left, parser_5.Precedence.MULTIPLY);
+                            this.code.append(leftIdentifier.right);
                             this.code.append(" * ");
+                            this.code.append(rightIdentifier.left);
                             this.emitExpression(right, parser_5.Precedence.MULTIPLY);
+                            this.code.append(rightIdentifier.right);
                         }
                         this.foundMultiply = true;
                     }
@@ -9141,7 +9206,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     else if (sizeOf == 8) {
                         // idLeft = "(+";
                         // idRight = ")";
-                        idLeft = "";
+                        idLeft = "+";
                         idRight = "";
                         this.code.append(`${idLeft}HEAPF64[(`);
                         shift = 3;
@@ -9263,7 +9328,9 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                                 }
                                 needsSemicolon = false;
                             }
-                            exportTable.push(funcName);
+                            if (node.isExport()) {
+                                exportTable.push(funcName);
+                            }
                         }
                         else if (node.isExport()) {
                             this.code.append("function ");
@@ -9307,41 +9374,9 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         let parent = symbol.parent();
                         let parentName = parent ? parent.name : "";
                         let classDef = classMap.get(parentName);
-                        if (isConstructor) {
-                            let size = parent.resolvedType.allocationSizeOf(this.context);
-                            this.code.append("{\n", 1);
-                            child = node.functionFirstArgumentIgnoringThis();
-                            while (child != returnType) {
-                                assert(child.kind == node_7.NodeKind.VARIABLE);
-                                if (needComma) {
-                                    this.code.append(", ");
-                                    signature += ",";
-                                    needComma = false;
-                                }
-                                this.emitSymbolName(child.symbol);
-                                this.code.append(` = `);
-                                this.emitStatement(child);
-                                this.code.append(`;\n`);
-                                // signature += child.symbol.name;
-                                child = child.nextSibling;
-                            }
-                            this.code.append(`var ptr = 0;\n`);
-                            this.code.append(`ptr = ${namespace}malloc(${size})|0;\n`);
-                            this.code.append(`return ${parentName}_set(ptr, `);
-                            this.code.append(`${signature})|0;\n`, -1);
-                            this.code.append("}\n\n");
-                            this.code.append(`function ${classDef.name}_set(ptr, `);
-                            this.code.append(`${signature}) `);
-                        }
-                        if (node.isVirtual()) {
-                            let chunkIndex = this.code.breakChunk();
-                            this.updateVirtualTable(node, chunkIndex, classDef.base, signature);
-                        }
+                        this.code.append("{\n", 1);
                         child = node.functionFirstArgumentIgnoringThis();
-                        this.code.append("{\n");
-                        this.code.emitIndent();
-                        this.code.indent++;
-                        if (symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE) {
+                        if (!isConstructor && symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE) {
                             this.code.append(`ptr = ptr|0;\n`);
                         }
                         while (child != returnType) {
@@ -9355,6 +9390,15 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                             this.emitStatement(child);
                             this.code.append(`;\n`);
                             child = child.nextSibling;
+                        }
+                        if (isConstructor) {
+                            let size = parent.resolvedType.allocationSizeOf(this.context);
+                            this.code.append(`var ptr = 0;\n`);
+                            this.code.append(`ptr = ${namespace}malloc(${size})|0;\n`);
+                        }
+                        if (node.isVirtual()) {
+                            let chunkIndex = this.code.breakChunk();
+                            this.updateVirtualTable(node, chunkIndex, classDef.base, signature);
                         }
                         //collect all variables to declare
                         let fnBody = node.functionBody();
@@ -9377,7 +9421,9 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                                 this.code.append(";\n");
                             }
                         });
+                        this.currentReturnType = returnType;
                         this.emitBlock(fnBody, false);
+                        this.currentReturnType = null;
                         this.code.indent--;
                         this.code.clearIndent(1);
                         this.code.append("}\n");
@@ -9457,16 +9503,18 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                                 this.code.append("return 0;\n");
                             }
                             else {
-                                // if (value.kind == NodeKind.NEW) {
-                                //     this.emitConstructor(value);
-                                // }
                                 this.code.append("return ");
-                                let identifier = getIdentifier(node.lastChild);
-                                if (value.kind != node_7.NodeKind.CALL) {
+                                let forceCastType = null;
+                                if (this.currentReturnType.resolvedType != value.resolvedType) {
+                                    forceCastType = typeToAsmType(this.currentReturnType.resolvedType);
+                                }
+                                let identifier = getIdentifier(node.lastChild, forceCastType);
+                                //Result of a call should always coerced to appropriate type
+                                if (value.kind != node_7.NodeKind.NEW && value.kind != node_7.NodeKind.CALL) {
                                     this.code.append(identifier.left);
                                 }
                                 this.emitExpression(value, parser_5.Precedence.LOWEST);
-                                if (value.kind != node_7.NodeKind.CALL) {
+                                if (value.kind != node_7.NodeKind.NEW && value.kind != node_7.NodeKind.CALL) {
                                     this.code.append(identifier.right);
                                 }
                                 this.code.append(";\n");
@@ -9596,12 +9644,18 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                 }
                 emitConstructor(node) {
                     let constructorNode = node.constructorNode();
+                    let args = constructorNode.functionFirstArgumentIgnoringThis();
                     let callSymbol = constructorNode.symbol;
                     let child = node.firstChild.nextSibling;
                     this.code.append(`${callSymbol.parent().name}_new(`);
                     while (child != null) {
-                        this.emitExpression(child, parser_5.Precedence.MEMBER, true);
+                        let forceCastType = null;
+                        if (args.symbol.resolvedType.isDouble()) {
+                            forceCastType = AsmType.DOUBLE;
+                        }
+                        this.emitExpression(child, parser_5.Precedence.MEMBER, true, forceCastType);
                         child = child.nextSibling;
+                        args = args.nextSibling;
                         if (child) {
                             this.code.append(", ");
                         }

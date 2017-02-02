@@ -15,7 +15,7 @@ export class Library {
             case CompileTarget.ASMJS:
                 lib = stdlib.IO_readTextFile("../src/library/asmjs/types.tbs") + "\n";
                 lib += stdlib.IO_readTextFile("../src/library/asmjs/math.tbs") + "\n";
-                // lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
+                lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
                 return lib;
         }
     }

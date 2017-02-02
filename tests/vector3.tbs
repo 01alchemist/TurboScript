@@ -1,4 +1,4 @@
-class Vector3 {
+export class Vector3 {
     x: float64;
     y: float64;
     z: float64;
@@ -16,21 +16,21 @@ class Vector3 {
         );
     }
 
-    // lengthN(n: float64): float64 {
-    //     if (n == 2.0) {
-    //         return this.length();
-    //     }
-    //     let a = this.abs();
-    //     let p1 = Math.pow(a.x, n);
-    //     let p2 = Math.pow(a.y, n);
-    //     let p3 = Math.pow(a.z, n);
-    //     let xyz = p1 + p2 + p3;
-    //     let length: float64 = Math.pow(xyz, 1.0 / n);
-    //     delete a;
-    //     return length;
-    // }
+    lengthN(n: float64): float64 {
+        if (n == 2.0) {
+            return this.length();
+        }
+        let a = this.abs();
+        let p1 = Math.pow(a.x, n);
+        let p2 = Math.pow(a.y, n);
+        let p3 = Math.pow(a.z, n);
+        let xyz = p1 + p2 + p3;
+        let length: float64 = Math.pow(xyz, (1.0 as float64) / n);
+        delete a;
+        return length;
+    }
 
-    /*dot(b: Vector3): float64 {
+    dot(b: Vector3): float64 {
         return (this.x * b.x) + (this.y * b.y) + (this.z * b.z);
     }
 
@@ -45,13 +45,13 @@ class Vector3 {
 
     negate(): Vector3 {
         return new Vector3(-this.x, -this.y, -this.z);
-    }*/
+    }
 
     abs(): Vector3 {
         return new Vector3(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
     }
 
-    /*add(b: Vector3): Vector3 {
+    add(b: Vector3): Vector3 {
         return new Vector3(this.x + b.x, this.y + b.y, this.z + b.z);
     }
 
@@ -116,7 +116,10 @@ class Vector3 {
     }
 
     reflect(b: Vector3): Vector3 {
-        return b.sub(this.mulScalar(2.0 * this.dot(b)));
+        let tmp1 = this.mulScalar(2.0 * this.dot(b));
+        let tmp2 =  b.sub(tmp1);
+        delete tmp1;
+        return tmp2;
         //return Vector3.Sub(b, Vector3.MulScalar(a, 2 * Vector3.Dot(a,b)));
     }
 
@@ -128,7 +131,14 @@ class Vector3 {
             return new Vector3(0.0, 0.0, 0.0);
         }
         let cosT: float64 = Math.sqrt(1.0 - sinT2);
-        return b.mulScalar(nr).add(this.mulScalar(nr * (cosI - cosT)));
+        let tmp1 = b.mulScalar(nr);
+        let tmp2 = this.mulScalar(nr * (cosI - cosT));
+        let tmp3 = tmp1.add(tmp2);
+
+        delete tmp1;
+        delete tmp2;
+
+        return tmp3;
 // return Vector3.Add(Vector3.MulScalar(b, nr), Vector3.MulScalar(a, nr * cosI - cosT));
     }
 
@@ -153,7 +163,8 @@ class Vector3 {
     }
 
     isZero(): boolean {
-        return this.x == 0.0 && this.y == 0.0 && this.z == 0.0;
+        let r = this.x == 0.0 && this.y == 0.0 && this.z == 0.0;
+        return r;
     }
 
     set(x: float64, y: float64, z: float64): Vector3 {
@@ -176,7 +187,7 @@ class Vector3 {
 
     clone(): Vector3 {
         return new Vector3(this.x, this.y, this.z);
-    }*/
+    }
 
     // setFromArray(d:float64[]) {
     // this.x = d[0];
@@ -185,6 +196,7 @@ class Vector3 {
     // return this;
     // }
 }
+
 // function RandomUnitVector3(): Vector3 {
 //     let x = Math.random() * 2.0 - 1.0;
 //     let y = Math.random() * 2.0 - 1.0;
@@ -199,6 +211,7 @@ class Vector3 {
 //     delete vec;
 //     return vecN;
 // }
-// var ZERO: Vector3 = new Vector3(0.0, 0.0, 0.0);
-// var ONE: Vector3 = new Vector3(1.0, 1.0, 1.0);
-// var NegativeONE: Vector3 = new Vector3(-1.0, -1.0, -1.0);
+
+var ZERO: Vector3 = new Vector3(0.0, 0.0, 0.0);
+var ONE: Vector3 = new Vector3(1.0, 1.0, 1.0);
+var NegativeONE: Vector3 = new Vector3(-1.0, -1.0, -1.0);
