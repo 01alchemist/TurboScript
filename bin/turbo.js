@@ -8245,7 +8245,7 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                         case compiler_2.CompileTarget.WEBASSEMBLY:
                             lib = stdlib.IO_readTextFile("../src/library/wasm/types.tbs") + "\n";
                             lib += stdlib.IO_readTextFile("../src/library/wasm/malloc.tbs") + "\n";
-                            lib += stdlib.IO_readTextFile("../src/library/wasm/math.tbs") + "\n";
+                            // lib += stdlib.IO_readTextFile("../src/library/wasm/math.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
                             lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
@@ -8253,7 +8253,7 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                         case compiler_2.CompileTarget.ASMJS:
                             lib = stdlib.IO_readTextFile("../src/library/asmjs/types.tbs") + "\n";
                             lib += stdlib.IO_readTextFile("../src/library/asmjs/math.tbs") + "\n";
-                            lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
+                            // lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
                             return lib;
                     }
                 }
@@ -8327,14 +8327,17 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
             child = child.nextSibling;
         }
     }
-    function getIdentifier(node, castToDouble = false) {
+    function getIdentifier(node, forceCastToType = null) {
         let resolvedType = node.resolvedType.pointerTo ? node.resolvedType.pointerTo : node.resolvedType;
         let identifier_1 = "";
         let identifier_2 = "";
         let int = false;
         let float = false;
         let double = false;
-        if (castToDouble || resolvedType.isDouble()) {
+        if (forceCastToType) {
+            return asmTypeToIdentifier(forceCastToType);
+        }
+        else if (resolvedType.isDouble()) {
             identifier_1 = "+(";
             identifier_2 = ")";
             double = true;
@@ -8649,12 +8652,12 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     }
                     this.previousNode = null;
                 }
-                emitUnary(node, parentPrecedence, operator, forceCast = false, castToDouble = false) {
+                emitUnary(node, parentPrecedence, operator, forceCast = false, forceCastToType = false) {
                     let isPostfix = node_7.isUnaryPostfix(node.kind);
                     let shouldCastToInt = !node.resolvedType.isFloat() && node.kind == node_7.NodeKind.NEGATIVE && !js_2.jsKindCastsOperandsToInt(node.parent.kind);
                     let isUnsigned = node.isUnsignedOperator();
                     let operatorPrecedence = shouldCastToInt ? isUnsigned ? parser_5.Precedence.SHIFT : parser_5.Precedence.BITWISE_OR : isPostfix ? parser_5.Precedence.UNARY_POSTFIX : parser_5.Precedence.UNARY_PREFIX;
-                    let identifier = getIdentifier(node, castToDouble);
+                    let identifier = getIdentifier(node, forceCastToType);
                     if (parentPrecedence > operatorPrecedence) {
                         this.code.append("(");
                     }
@@ -8664,7 +8667,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     if (!isPostfix) {
                         this.code.append(operator);
                     }
-                    this.emitExpression(node.unaryValue(), operatorPrecedence, forceCast, castToDouble);
+                    this.emitExpression(node.unaryValue(), operatorPrecedence, forceCast, forceCastToType);
                     if (isPostfix) {
                         this.code.append(operator);
                     }
@@ -8675,22 +8678,22 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.code.append(")");
                     }
                 }
-                emitBinary(node, parentPrecedence, operator, operatorPrecedence, forceCast = false, castToDouble = false) {
+                emitBinary(node, parentPrecedence, operator, operatorPrecedence, forceCast = false, forceCastToType = null) {
                     let isRightAssociative = node.kind == node_7.NodeKind.ASSIGN;
                     //TODO: Avoid casting when the parent operator already does a cast
-                    let identifier = getIdentifier(node, castToDouble);
+                    let identifier = getIdentifier(node, forceCastToType);
                     if (parentPrecedence > operatorPrecedence) {
                         this.code.append("(");
                     }
                     if (!isRightAssociative && forceCast) {
                         this.code.append(identifier.left);
                     }
-                    this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence, forceCast && !isRightAssociative, castToDouble);
+                    this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) : operatorPrecedence, forceCast && !isRightAssociative, forceCastToType);
                     this.code.append(operator);
                     if (isRightAssociative && forceCast) {
                         this.code.append(identifier.left);
                     }
-                    this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1), forceCast, castToDouble);
+                    this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1), forceCast, forceCastToType);
                     if (forceCast) {
                         this.code.append(identifier.right);
                     }
@@ -8698,20 +8701,20 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.code.append(")");
                     }
                 }
-                emitCommaSeparatedExpressions(start, stop, needComma = false, castToDouble = false) {
+                emitCommaSeparatedExpressions(start, stop, needComma = false, forceCastToType = false) {
                     while (start != stop) {
                         if (needComma) {
                             this.code.append(" , ");
                             needComma = false;
                         }
-                        this.emitExpression(start, parser_5.Precedence.LOWEST, true, castToDouble);
+                        this.emitExpression(start, parser_5.Precedence.LOWEST, true, forceCastToType);
                         start = start.nextSibling;
                         if (start != stop) {
                             this.code.append(", ");
                         }
                     }
                 }
-                emitExpression(node, parentPrecedence, forceCast = false, castToDouble = false) {
+                emitExpression(node, parentPrecedence, forceCast = false, forceCastToType = false) {
                     if (node.kind == node_7.NodeKind.NAME) {
                         let symbol = node.symbol;
                         if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
@@ -8722,7 +8725,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         }
                         else {
                             if (forceCast) {
-                                if (castToDouble || symbol.resolvedType.isDouble()) {
+                                if (forceCastToType || symbol.resolvedType.isDouble()) {
                                     this.code.append("(+");
                                     this.emitSymbolName(symbol);
                                     this.code.append(")");
@@ -8756,7 +8759,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         // if (parentPrecedence == Precedence.MEMBER) {
                         //     this.code.append("(");
                         // }
-                        if (castToDouble) {
+                        if (forceCastToType) {
                             this.code.append(`(+${node.intValue})`);
                         }
                         else if (parentPrecedence != parser_5.Precedence.ASSIGN) {
@@ -8770,7 +8773,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         if (parentPrecedence == parser_5.Precedence.MEMBER) {
                             this.code.append("(");
                         }
-                        if (castToDouble) {
+                        if (forceCastToType) {
                             if (node.floatValue - (node.floatValue | 0) == 0) {
                                 this.code.append(`${node.floatValue}.0`);
                             }
@@ -9006,7 +9009,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     else if (node.kind == node_7.NodeKind.POSTFIX_DECREMENT)
                         this.emitUnary(node, parentPrecedence, "--");
                     else if (node.kind == node_7.NodeKind.ADD) {
-                        this.emitBinary(node, parentPrecedence, " + ", parser_5.Precedence.ADD, forceCast, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " + ", parser_5.Precedence.ADD, forceCast, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.ASSIGN) {
                         let left = node.binaryLeft();
@@ -9022,47 +9025,47 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                             this.emitStoreToMemory(symbol.resolvedType, left.dotTarget(), symbol.offset, right);
                         }
                         else {
-                            this.emitBinary(node, parentPrecedence, " = ", parser_5.Precedence.ASSIGN, true, castToDouble);
+                            this.emitBinary(node, parentPrecedence, " = ", parser_5.Precedence.ASSIGN, true, forceCastToType);
                         }
                     }
                     else if (node.kind == node_7.NodeKind.BITWISE_AND) {
-                        this.emitBinary(node, parentPrecedence, " & ", parser_5.Precedence.BITWISE_AND, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " & ", parser_5.Precedence.BITWISE_AND, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.BITWISE_OR) {
-                        this.emitBinary(node, parentPrecedence, " | ", parser_5.Precedence.BITWISE_OR, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " | ", parser_5.Precedence.BITWISE_OR, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.BITWISE_XOR) {
-                        this.emitBinary(node, parentPrecedence, " ^ ", parser_5.Precedence.BITWISE_XOR, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " ^ ", parser_5.Precedence.BITWISE_XOR, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.DIVIDE) {
-                        this.emitBinary(node, parentPrecedence, " / ", parser_5.Precedence.MULTIPLY, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " / ", parser_5.Precedence.MULTIPLY, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.EQUAL) {
                         this.emitBinary(node, parentPrecedence, " == ", parser_5.Precedence.EQUAL, forceCast);
                     }
                     else if (node.kind == node_7.NodeKind.GREATER_THAN) {
-                        this.emitBinary(node, parentPrecedence, " > ", parser_5.Precedence.COMPARE, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " > ", parser_5.Precedence.COMPARE, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.GREATER_THAN_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " >= ", parser_5.Precedence.COMPARE, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " >= ", parser_5.Precedence.COMPARE, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.LESS_THAN) {
-                        this.emitBinary(node, parentPrecedence, " < ", parser_5.Precedence.COMPARE, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " < ", parser_5.Precedence.COMPARE, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.LESS_THAN_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " <= ", parser_5.Precedence.COMPARE, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " <= ", parser_5.Precedence.COMPARE, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.LOGICAL_AND) {
-                        this.emitBinary(node, parentPrecedence, " && ", parser_5.Precedence.LOGICAL_AND, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " && ", parser_5.Precedence.LOGICAL_AND, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.LOGICAL_OR) {
-                        this.emitBinary(node, parentPrecedence, " || ", parser_5.Precedence.LOGICAL_OR, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " || ", parser_5.Precedence.LOGICAL_OR, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.NOT_EQUAL) {
-                        this.emitBinary(node, parentPrecedence, " != ", parser_5.Precedence.EQUAL, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " != ", parser_5.Precedence.EQUAL, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.REMAINDER) {
-                        this.emitBinary(node, parentPrecedence, " % ", parser_5.Precedence.MULTIPLY, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " % ", parser_5.Precedence.MULTIPLY, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.SHIFT_LEFT) {
                         this.emitBinary(node, parentPrecedence, " << ", parser_5.Precedence.SHIFT);
@@ -9071,7 +9074,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", parser_5.Precedence.SHIFT);
                     }
                     else if (node.kind == node_7.NodeKind.SUBTRACT) {
-                        this.emitBinary(node, parentPrecedence, " - ", parser_5.Precedence.ADD, true, castToDouble);
+                        this.emitBinary(node, parentPrecedence, " - ", parser_5.Precedence.ADD, true, forceCastToType);
                     }
                     else if (node.kind == node_7.NodeKind.MULTIPLY) {
                         let left = node.binaryLeft();
@@ -9080,18 +9083,14 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         if (isUnsigned && parentPrecedence > parser_5.Precedence.SHIFT) {
                             this.code.append("(");
                         }
-                        if (left.intValue && right.intValue) {
-                            this.code.append("Math_imul(");
+                        if (left.resolvedType.isInteger() && right.resolvedType.isInteger()) {
+                            console.log("[left]isBinary:" + node_7.isBinary(left.kind));
+                            console.log("[right]isBinary:" + node_7.isBinary(right.kind));
+                            this.code.append("Math_imul((");
                             this.emitExpression(left, parser_5.Precedence.LOWEST);
-                            this.code.append(", ");
+                            this.code.append(")|0, (");
                             this.emitExpression(right, parser_5.Precedence.LOWEST);
-                            this.code.append(")");
-                            if (isUnsigned) {
-                                this.code.append(" >>> 0");
-                                if (parentPrecedence > parser_5.Precedence.SHIFT) {
-                                    this.code.append(")");
-                                }
-                            }
+                            this.code.append(")|0)");
                         }
                         else {
                             this.emitExpression(left, parser_5.Precedence.MULTIPLY);

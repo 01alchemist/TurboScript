@@ -1,0 +1,13 @@
+//import * as Math from "Math"; TODO: Standardize import
+
+export function testI32(a:int32,b:int32,c:int32,d:int32): int32 {
+    return (a + b) * c + d;
+}
+
+export function testF32(a:float32,b:float32,c:float32,d:float32): float32 {
+    return (a + b) * (c + d);
+}
+
+export function testF64(a:float64,b:float64,c:float64,d:float64): float64 {
+    return (a + b) * (c + d);
+}

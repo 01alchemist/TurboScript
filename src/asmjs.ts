@@ -2,7 +2,7 @@ import {CheckContext} from "./checker";
 import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "./stringbuilder";
 import {
     Node, isCompactNodeKind, isUnaryPostfix, NodeKind, invertedBinaryKind, NODE_FLAG_DECLARE,
-    NODE_FLAG_UNSAFE_TURBO
+    NODE_FLAG_UNSAFE_TURBO, isBinary
 } from "./node";
 import {Precedence} from "./parser";
 import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
@@ -169,13 +169,13 @@ export class AsmJsModule {
         this.previousNode = null;
     }
 
-    emitUnary(node: Node, parentPrecedence: Precedence, operator: string, forceCast: boolean = false, castToDouble: boolean = false): void {
+    emitUnary(node: Node, parentPrecedence: Precedence, operator: string, forceCast: boolean = false, forceCastToType: boolean = false): void {
         let isPostfix = isUnaryPostfix(node.kind);
         let shouldCastToInt = !node.resolvedType.isFloat() && node.kind == NodeKind.NEGATIVE && !jsKindCastsOperandsToInt(node.parent.kind);
         let isUnsigned = node.isUnsignedOperator();
         let operatorPrecedence = shouldCastToInt ? isUnsigned ? Precedence.SHIFT : Precedence.BITWISE_OR : isPostfix ? Precedence.UNARY_POSTFIX : Precedence.UNARY_PREFIX;
 
-        let identifier = getIdentifier(node, castToDouble);
+        let identifier = getIdentifier(node, forceCastToType);
 
         if (parentPrecedence > operatorPrecedence) {
             this.code.append("(");
@@ -189,7 +189,7 @@ export class AsmJsModule {
             this.code.append(operator);
         }
 
-        this.emitExpression(node.unaryValue(), operatorPrecedence, forceCast, castToDouble);
+        this.emitExpression(node.unaryValue(), operatorPrecedence, forceCast, forceCastToType);
 
         if (isPostfix) {
             this.code.append(operator);
@@ -204,12 +204,14 @@ export class AsmJsModule {
         }
     }
 
-    emitBinary(node: Node, parentPrecedence: Precedence, operator: string, operatorPrecedence: Precedence, forceCast: boolean = false, castToDouble: boolean = false): void {
+    emitBinary(node: Node, parentPrecedence: Precedence, operator: string, operatorPrecedence: Precedence,
+               forceCast: boolean = false, forceCastToType: AsmType = null): void
+    {
         let isRightAssociative = node.kind == NodeKind.ASSIGN;
 
         //TODO: Avoid casting when the parent operator already does a cast
 
-        let identifier = getIdentifier(node, castToDouble);
+        let identifier = getIdentifier(node, forceCastToType);
 
         if (parentPrecedence > operatorPrecedence) {
             this.code.append("(");
@@ -219,7 +221,7 @@ export class AsmJsModule {
             this.code.append(identifier.left);
         }
 
-        this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) as Precedence : operatorPrecedence, forceCast && !isRightAssociative, castToDouble);
+        this.emitExpression(node.binaryLeft(), isRightAssociative ? (operatorPrecedence + 1) as Precedence : operatorPrecedence, forceCast && !isRightAssociative, forceCastToType);
 
         this.code.append(operator);
 
@@ -227,7 +229,7 @@ export class AsmJsModule {
             this.code.append(identifier.left);
         }
 
-        this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1) as Precedence, forceCast, castToDouble);
+        this.emitExpression(node.binaryRight(), isRightAssociative ? operatorPrecedence : (operatorPrecedence + 1) as Precedence, forceCast, forceCastToType);
 
         if (forceCast) {
             this.code.append(identifier.right);
@@ -239,13 +241,13 @@ export class AsmJsModule {
 
     }
 
-    emitCommaSeparatedExpressions(start: Node, stop: Node, needComma: boolean = false, castToDouble: boolean = false): void {
+    emitCommaSeparatedExpressions(start: Node, stop: Node, needComma: boolean = false, forceCastToType: boolean = false): void {
         while (start != stop) {
             if (needComma) {
                 this.code.append(" , ");
                 needComma = false;
             }
-            this.emitExpression(start, Precedence.LOWEST, true, castToDouble);
+            this.emitExpression(start, Precedence.LOWEST, true, forceCastToType);
             start = start.nextSibling;
 
             if (start != stop) {
@@ -254,7 +256,7 @@ export class AsmJsModule {
         }
     }
 
-    emitExpression(node: Node, parentPrecedence: Precedence, forceCast: boolean = false, castToDouble: boolean = false): void {
+    emitExpression(node: Node, parentPrecedence: Precedence, forceCast: boolean = false, forceCastToType: boolean = false): void {
 
         if (node.kind == NodeKind.NAME) {
             let symbol = node.symbol;
@@ -266,7 +268,7 @@ export class AsmJsModule {
             } else {
                 if (forceCast) {
 
-                    if (castToDouble || symbol.resolvedType.isDouble()) {
+                    if (forceCastToType || symbol.resolvedType.isDouble()) {
                         this.code.append("(+");
                         this.emitSymbolName(symbol);
                         this.code.append(")");
@@ -307,7 +309,7 @@ export class AsmJsModule {
             // if (parentPrecedence == Precedence.MEMBER) {
             //     this.code.append("(");
             // }
-            if (castToDouble) {
+            if (forceCastToType) {
                 this.code.append(`(+${node.intValue})`);
             }
             else if (parentPrecedence != Precedence.ASSIGN) {
@@ -327,7 +329,7 @@ export class AsmJsModule {
                 this.code.append("(");
             }
 
-            if (castToDouble) {
+            if (forceCastToType) {
                 if (node.floatValue - (node.floatValue | 0) == 0) {
                     this.code.append(`${node.floatValue}.0`);
                 } else {
@@ -604,7 +606,7 @@ export class AsmJsModule {
         else if (node.kind == NodeKind.POSTFIX_DECREMENT) this.emitUnary(node, parentPrecedence, "--");
 
         else if (node.kind == NodeKind.ADD) {
-            this.emitBinary(node, parentPrecedence, " + ", Precedence.ADD, forceCast, castToDouble);
+            this.emitBinary(node, parentPrecedence, " + ", Precedence.ADD, forceCast, forceCastToType);
         }
         else if (node.kind == NodeKind.ASSIGN) {
             let left = node.binaryLeft();
@@ -621,47 +623,47 @@ export class AsmJsModule {
                 this.emitStoreToMemory(symbol.resolvedType, left.dotTarget(), symbol.offset, right);
             }
             else {
-                this.emitBinary(node, parentPrecedence, " = ", Precedence.ASSIGN, true, castToDouble);
+                this.emitBinary(node, parentPrecedence, " = ", Precedence.ASSIGN, true, forceCastToType);
             }
         }
         else if (node.kind == NodeKind.BITWISE_AND) {
-            this.emitBinary(node, parentPrecedence, " & ", Precedence.BITWISE_AND, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " & ", Precedence.BITWISE_AND, true, forceCastToType);
         }
         else if (node.kind == NodeKind.BITWISE_OR) {
-            this.emitBinary(node, parentPrecedence, " | ", Precedence.BITWISE_OR, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " | ", Precedence.BITWISE_OR, true, forceCastToType);
         }
         else if (node.kind == NodeKind.BITWISE_XOR) {
-            this.emitBinary(node, parentPrecedence, " ^ ", Precedence.BITWISE_XOR, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " ^ ", Precedence.BITWISE_XOR, true, forceCastToType);
         }
         else if (node.kind == NodeKind.DIVIDE) {
-            this.emitBinary(node, parentPrecedence, " / ", Precedence.MULTIPLY, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " / ", Precedence.MULTIPLY, true, forceCastToType);
         }
         else if (node.kind == NodeKind.EQUAL) {
             this.emitBinary(node, parentPrecedence, " == ", Precedence.EQUAL, forceCast);
         }
         else if (node.kind == NodeKind.GREATER_THAN) {
-            this.emitBinary(node, parentPrecedence, " > ", Precedence.COMPARE, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " > ", Precedence.COMPARE, true, forceCastToType);
         }
         else if (node.kind == NodeKind.GREATER_THAN_EQUAL) {
-            this.emitBinary(node, parentPrecedence, " >= ", Precedence.COMPARE, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " >= ", Precedence.COMPARE, true, forceCastToType);
         }
         else if (node.kind == NodeKind.LESS_THAN) {
-            this.emitBinary(node, parentPrecedence, " < ", Precedence.COMPARE, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " < ", Precedence.COMPARE, true, forceCastToType);
         }
         else if (node.kind == NodeKind.LESS_THAN_EQUAL) {
-            this.emitBinary(node, parentPrecedence, " <= ", Precedence.COMPARE, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " <= ", Precedence.COMPARE, true, forceCastToType);
         }
         else if (node.kind == NodeKind.LOGICAL_AND) {
-            this.emitBinary(node, parentPrecedence, " && ", Precedence.LOGICAL_AND, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " && ", Precedence.LOGICAL_AND, true, forceCastToType);
         }
         else if (node.kind == NodeKind.LOGICAL_OR) {
-            this.emitBinary(node, parentPrecedence, " || ", Precedence.LOGICAL_OR, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " || ", Precedence.LOGICAL_OR, true, forceCastToType);
         }
         else if (node.kind == NodeKind.NOT_EQUAL) {
-            this.emitBinary(node, parentPrecedence, " != ", Precedence.EQUAL, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " != ", Precedence.EQUAL, true, forceCastToType);
         }
         else if (node.kind == NodeKind.REMAINDER) {
-            this.emitBinary(node, parentPrecedence, " % ", Precedence.MULTIPLY, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " % ", Precedence.MULTIPLY, true, forceCastToType);
         }
         else if (node.kind == NodeKind.SHIFT_LEFT) {
             this.emitBinary(node, parentPrecedence, " << ", Precedence.SHIFT);
@@ -670,7 +672,7 @@ export class AsmJsModule {
             this.emitBinary(node, parentPrecedence, node.isUnsignedOperator() ? " >>> " : " >> ", Precedence.SHIFT);
         }
         else if (node.kind == NodeKind.SUBTRACT) {
-            this.emitBinary(node, parentPrecedence, " - ", Precedence.ADD, true, castToDouble);
+            this.emitBinary(node, parentPrecedence, " - ", Precedence.ADD, true, forceCastToType);
         }
 
         else if (node.kind == NodeKind.MULTIPLY) {
@@ -681,21 +683,23 @@ export class AsmJsModule {
             if (isUnsigned && parentPrecedence > Precedence.SHIFT) {
                 this.code.append("(");
             }
+            if (left.resolvedType.isInteger() && right.resolvedType.isInteger()) {
 
-            if (left.intValue && right.intValue) {
-                this.code.append("Math_imul(");
+                console.log("[left]isBinary:"+isBinary(left.kind));
+                console.log("[right]isBinary:"+isBinary(right.kind));
+
+                this.code.append("Math_imul((");
                 this.emitExpression(left, Precedence.LOWEST);
-                this.code.append(", ");
+                this.code.append(")|0, (");
                 this.emitExpression(right, Precedence.LOWEST);
-                this.code.append(")");
+                this.code.append(")|0)");
 
-                if (isUnsigned) {
-                    this.code.append(" >>> 0");
-
-                    if (parentPrecedence > Precedence.SHIFT) {
-                        this.code.append(")");
-                    }
-                }
+                // if (isUnsigned) {
+                //     this.code.append(" >>> 0");
+                //     if (parentPrecedence > Precedence.SHIFT) {
+                //         this.code.append(")");
+                //     }
+                // }
 
             } else {
                 this.emitExpression(left, Precedence.MULTIPLY);
@@ -1777,7 +1781,7 @@ function asmAssignLocalVariableOffsets(fn: AsmFunction, node: Node, shared: AsmS
     }
 }
 
-function getIdentifier(node: Node, castToDouble: boolean = false) {
+function getIdentifier(node: Node, forceCastToType: AsmType = null) {
     let resolvedType = node.resolvedType.pointerTo ? node.resolvedType.pointerTo : node.resolvedType;
     let identifier_1 = "";
     let identifier_2 = "";
@@ -1785,7 +1789,11 @@ function getIdentifier(node: Node, castToDouble: boolean = false) {
     let float: boolean = false;
     let double: boolean = false;
 
-    if (castToDouble || resolvedType.isDouble()) {
+    if(forceCastToType){
+        return asmTypeToIdentifier(forceCastToType);
+    }
+
+    else if (resolvedType.isDouble()) {
         identifier_1 = "+(";
         identifier_2 = ")";
         double = true;
