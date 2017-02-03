@@ -630,7 +630,12 @@ export class AsmJsModule {
         else if (node.kind == NodeKind.NEW) {
             let resolvedNode = node.resolvedType.symbol.node;
             let type = node.newType();
-            let size = type.resolvedType.allocationSizeOf(this.context);
+            let size;
+            if(type.resolvedType.isArray()){
+                size = type.resolvedType.allocationSizeOf(this.context);
+            }else {
+                size = type.resolvedType.allocationSizeOf(this.context);
+            }
             assert(size > 0);
             // Pass the object size as the first argument
             //this.code.append(`malloc(${size}|0)`);//TODO: access functions from function table using function index
@@ -896,6 +901,8 @@ export class AsmJsModule {
         else {
             assert(false);
         }
+
+        assert(offset);
 
         // Relative address
         if (relativeBase != null) {
@@ -1775,6 +1782,10 @@ export class AsmJsModule {
 
         else if (type.isFloat()) {
             return AsmType.FLOAT;
+        }
+
+        else if (type.isArray()) {
+            return AsmType.INT;
         }
 
         if (type == context.voidType) {

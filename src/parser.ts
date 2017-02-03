@@ -8,8 +8,9 @@ import {
     NodeFlag, createEnum, allFlags, createVariable, createParameters, createParameter, createClass, createExtends,
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
-    NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
-    createDelete, createImports, NODE_FLAG_IMPORT, createImport, NODE_FLAG_ANYFUNC, createType, createAny
+    NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
+    NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
+    createDelete, createImports, NODE_FLAG_IMPORT, createImport, NODE_FLAG_ANYFUNC, createType, createAny, createArray
 } from "./node";
 
 export enum Precedence {
@@ -206,6 +207,11 @@ class ParserContext {
             return createName(token.range.toString()).withRange(token.range);
         }
 
+        // if (this.peek(TokenKind.ARRAY)) {
+        //     this.advance();
+        //     return createArray(token.range.toString()).withRange(token.range);
+        // }
+
         if (this.peek(TokenKind.EXPONENT)) {
             splitToken(this.current, TokenKind.MULTIPLY, TokenKind.MULTIPLY);
         }
@@ -279,6 +285,14 @@ class ParserContext {
                 if (type == null) {
                     return null;
                 }
+
+                if (this.peek(TokenKind.LESS_THAN)) {
+                    this.advance();
+                    let arrayType = this.parseType();
+                    this.expect(TokenKind.GREATER_THAN);
+                    type.appendChild(arrayType);
+                }
+
                 return this.parseArgumentList(token.range, createNew(type));
             }
 
@@ -414,6 +428,13 @@ class ParserContext {
                 return createHook(node, middle, right).withRange(spanRanges(node.range, right.range));
             }
         }
+
+        // if(mode == ParseKind.TYPE && node.rawValue && node.rawValue == "Array"){
+        //     this.expect(TokenKind.LESS_THAN);
+        //     let type = this.parseType();
+        //     this.expect(TokenKind.GREATER_THAN);
+        //     node.appendChild(type);
+        // }
 
         return node;
     }
@@ -1294,6 +1315,14 @@ class ParserContext {
             let type: Node = null;
             if (this.eat(TokenKind.COLON)) {
                 type = this.parseType();
+
+                if (this.peek(TokenKind.LESS_THAN)) {
+                    this.advance();
+                    let arrayType = this.parseType();
+                    this.expect(TokenKind.GREATER_THAN);
+                    node.appendChild(arrayType);
+                }
+
                 if (type == null) {
                     return null;
                 }
@@ -1516,7 +1545,7 @@ class ParserContext {
             let digit: number = (
                 c >= 'A' && c <= 'F' ? c.charCodeAt(0) + (10 - 'A'.charCodeAt(0)) :
                     c >= 'a' && c <= 'f' ? c.charCodeAt(0) + (10 - 'a'.charCodeAt(0)) :
-                    c.charCodeAt(0) - '0'.charCodeAt(0)
+                        c.charCodeAt(0) - '0'.charCodeAt(0)
             );
             let baseValue = Math.imul(value, base) >>> 0;
 

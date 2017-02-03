@@ -7,7 +7,8 @@ Super charged JavaScript for parallel programming and WebAssembly
 * ~~WebAssembly Emitter~~
 * ~~Basic malloc and free~~
 * ~~ASM.JS Emitter~~
-* Import external functions with namespace
+* ~~Import external functions with namespace~~
+* Array Data Type
 * Parallel WebAssembly (post-MVP)
 
 #Useful links

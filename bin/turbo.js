@@ -1377,6 +1377,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
             return "float64 literal";
         if (token == TokenKind.STRING)
             return "string literal";
+        if (token == TokenKind.ARRAY)
+            return "array literal";
         // Punctuation
         if (token == TokenKind.ASSIGN)
             return "'='";
@@ -2038,93 +2040,94 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                 TokenKind[TokenKind["FLOAT32"] = 5] = "FLOAT32";
                 TokenKind[TokenKind["FLOAT64"] = 6] = "FLOAT64";
                 TokenKind[TokenKind["STRING"] = 7] = "STRING";
+                TokenKind[TokenKind["ARRAY"] = 8] = "ARRAY";
                 // Punctuation
-                TokenKind[TokenKind["ASSIGN"] = 8] = "ASSIGN";
-                TokenKind[TokenKind["BITWISE_AND"] = 9] = "BITWISE_AND";
-                TokenKind[TokenKind["BITWISE_OR"] = 10] = "BITWISE_OR";
-                TokenKind[TokenKind["BITWISE_XOR"] = 11] = "BITWISE_XOR";
-                TokenKind[TokenKind["COLON"] = 12] = "COLON";
-                TokenKind[TokenKind["COMMA"] = 13] = "COMMA";
-                TokenKind[TokenKind["COMPLEMENT"] = 14] = "COMPLEMENT";
-                TokenKind[TokenKind["DIVIDE"] = 15] = "DIVIDE";
-                TokenKind[TokenKind["DOT"] = 16] = "DOT";
-                TokenKind[TokenKind["EQUAL"] = 17] = "EQUAL";
-                TokenKind[TokenKind["EXPONENT"] = 18] = "EXPONENT";
-                TokenKind[TokenKind["GREATER_THAN"] = 19] = "GREATER_THAN";
-                TokenKind[TokenKind["GREATER_THAN_EQUAL"] = 20] = "GREATER_THAN_EQUAL";
-                TokenKind[TokenKind["LEFT_BRACE"] = 21] = "LEFT_BRACE";
-                TokenKind[TokenKind["LEFT_BRACKET"] = 22] = "LEFT_BRACKET";
-                TokenKind[TokenKind["LEFT_PARENTHESIS"] = 23] = "LEFT_PARENTHESIS";
-                TokenKind[TokenKind["LESS_THAN"] = 24] = "LESS_THAN";
-                TokenKind[TokenKind["LESS_THAN_EQUAL"] = 25] = "LESS_THAN_EQUAL";
-                TokenKind[TokenKind["LOGICAL_AND"] = 26] = "LOGICAL_AND";
-                TokenKind[TokenKind["LOGICAL_OR"] = 27] = "LOGICAL_OR";
-                TokenKind[TokenKind["MINUS"] = 28] = "MINUS";
-                TokenKind[TokenKind["MINUS_MINUS"] = 29] = "MINUS_MINUS";
-                TokenKind[TokenKind["MULTIPLY"] = 30] = "MULTIPLY";
-                TokenKind[TokenKind["NOT"] = 31] = "NOT";
-                TokenKind[TokenKind["NOT_EQUAL"] = 32] = "NOT_EQUAL";
-                TokenKind[TokenKind["PLUS"] = 33] = "PLUS";
-                TokenKind[TokenKind["PLUS_PLUS"] = 34] = "PLUS_PLUS";
-                TokenKind[TokenKind["QUESTION_MARK"] = 35] = "QUESTION_MARK";
-                TokenKind[TokenKind["REMAINDER"] = 36] = "REMAINDER";
-                TokenKind[TokenKind["RIGHT_BRACE"] = 37] = "RIGHT_BRACE";
-                TokenKind[TokenKind["RIGHT_BRACKET"] = 38] = "RIGHT_BRACKET";
-                TokenKind[TokenKind["RIGHT_PARENTHESIS"] = 39] = "RIGHT_PARENTHESIS";
-                TokenKind[TokenKind["SEMICOLON"] = 40] = "SEMICOLON";
-                TokenKind[TokenKind["FROM"] = 41] = "FROM";
-                TokenKind[TokenKind["SHIFT_LEFT"] = 42] = "SHIFT_LEFT";
-                TokenKind[TokenKind["SHIFT_RIGHT"] = 43] = "SHIFT_RIGHT";
+                TokenKind[TokenKind["ASSIGN"] = 9] = "ASSIGN";
+                TokenKind[TokenKind["BITWISE_AND"] = 10] = "BITWISE_AND";
+                TokenKind[TokenKind["BITWISE_OR"] = 11] = "BITWISE_OR";
+                TokenKind[TokenKind["BITWISE_XOR"] = 12] = "BITWISE_XOR";
+                TokenKind[TokenKind["COLON"] = 13] = "COLON";
+                TokenKind[TokenKind["COMMA"] = 14] = "COMMA";
+                TokenKind[TokenKind["COMPLEMENT"] = 15] = "COMPLEMENT";
+                TokenKind[TokenKind["DIVIDE"] = 16] = "DIVIDE";
+                TokenKind[TokenKind["DOT"] = 17] = "DOT";
+                TokenKind[TokenKind["EQUAL"] = 18] = "EQUAL";
+                TokenKind[TokenKind["EXPONENT"] = 19] = "EXPONENT";
+                TokenKind[TokenKind["GREATER_THAN"] = 20] = "GREATER_THAN";
+                TokenKind[TokenKind["GREATER_THAN_EQUAL"] = 21] = "GREATER_THAN_EQUAL";
+                TokenKind[TokenKind["LEFT_BRACE"] = 22] = "LEFT_BRACE";
+                TokenKind[TokenKind["LEFT_BRACKET"] = 23] = "LEFT_BRACKET";
+                TokenKind[TokenKind["LEFT_PARENTHESIS"] = 24] = "LEFT_PARENTHESIS";
+                TokenKind[TokenKind["LESS_THAN"] = 25] = "LESS_THAN";
+                TokenKind[TokenKind["LESS_THAN_EQUAL"] = 26] = "LESS_THAN_EQUAL";
+                TokenKind[TokenKind["LOGICAL_AND"] = 27] = "LOGICAL_AND";
+                TokenKind[TokenKind["LOGICAL_OR"] = 28] = "LOGICAL_OR";
+                TokenKind[TokenKind["MINUS"] = 29] = "MINUS";
+                TokenKind[TokenKind["MINUS_MINUS"] = 30] = "MINUS_MINUS";
+                TokenKind[TokenKind["MULTIPLY"] = 31] = "MULTIPLY";
+                TokenKind[TokenKind["NOT"] = 32] = "NOT";
+                TokenKind[TokenKind["NOT_EQUAL"] = 33] = "NOT_EQUAL";
+                TokenKind[TokenKind["PLUS"] = 34] = "PLUS";
+                TokenKind[TokenKind["PLUS_PLUS"] = 35] = "PLUS_PLUS";
+                TokenKind[TokenKind["QUESTION_MARK"] = 36] = "QUESTION_MARK";
+                TokenKind[TokenKind["REMAINDER"] = 37] = "REMAINDER";
+                TokenKind[TokenKind["RIGHT_BRACE"] = 38] = "RIGHT_BRACE";
+                TokenKind[TokenKind["RIGHT_BRACKET"] = 39] = "RIGHT_BRACKET";
+                TokenKind[TokenKind["RIGHT_PARENTHESIS"] = 40] = "RIGHT_PARENTHESIS";
+                TokenKind[TokenKind["SEMICOLON"] = 41] = "SEMICOLON";
+                TokenKind[TokenKind["FROM"] = 42] = "FROM";
+                TokenKind[TokenKind["SHIFT_LEFT"] = 43] = "SHIFT_LEFT";
+                TokenKind[TokenKind["SHIFT_RIGHT"] = 44] = "SHIFT_RIGHT";
                 // Keywords
-                TokenKind[TokenKind["ALIGNOF"] = 44] = "ALIGNOF";
-                TokenKind[TokenKind["AS"] = 45] = "AS";
-                TokenKind[TokenKind["BREAK"] = 46] = "BREAK";
-                TokenKind[TokenKind["MODULE"] = 47] = "MODULE";
-                TokenKind[TokenKind["CLASS"] = 48] = "CLASS";
-                TokenKind[TokenKind["CONST"] = 49] = "CONST";
-                TokenKind[TokenKind["CONTINUE"] = 50] = "CONTINUE";
-                TokenKind[TokenKind["DECLARE"] = 51] = "DECLARE";
-                TokenKind[TokenKind["ELSE"] = 52] = "ELSE";
-                TokenKind[TokenKind["ENUM"] = 53] = "ENUM";
-                TokenKind[TokenKind["EXPORT"] = 54] = "EXPORT";
-                TokenKind[TokenKind["EXTENDS"] = 55] = "EXTENDS";
-                TokenKind[TokenKind["FALSE"] = 56] = "FALSE";
-                TokenKind[TokenKind["FUNCTION"] = 57] = "FUNCTION";
-                TokenKind[TokenKind["ANYFUNC"] = 58] = "ANYFUNC";
-                TokenKind[TokenKind["IF"] = 59] = "IF";
-                TokenKind[TokenKind["IMPLEMENTS"] = 60] = "IMPLEMENTS";
-                TokenKind[TokenKind["IMPORT"] = 61] = "IMPORT";
-                TokenKind[TokenKind["LET"] = 62] = "LET";
-                TokenKind[TokenKind["NEW"] = 63] = "NEW";
-                TokenKind[TokenKind["DELETE"] = 64] = "DELETE";
-                TokenKind[TokenKind["NULL"] = 65] = "NULL";
-                TokenKind[TokenKind["UNDEFINED"] = 66] = "UNDEFINED";
-                TokenKind[TokenKind["OPERATOR"] = 67] = "OPERATOR";
-                TokenKind[TokenKind["PRIVATE"] = 68] = "PRIVATE";
-                TokenKind[TokenKind["PROTECTED"] = 69] = "PROTECTED";
-                TokenKind[TokenKind["PUBLIC"] = 70] = "PUBLIC";
-                TokenKind[TokenKind["RETURN"] = 71] = "RETURN";
-                TokenKind[TokenKind["SIZEOF"] = 72] = "SIZEOF";
-                TokenKind[TokenKind["STATIC"] = 73] = "STATIC";
-                TokenKind[TokenKind["THIS"] = 74] = "THIS";
-                TokenKind[TokenKind["TRUE"] = 75] = "TRUE";
-                TokenKind[TokenKind["UNSAFE"] = 76] = "UNSAFE";
-                TokenKind[TokenKind["UNSAFE_TURBO"] = 77] = "UNSAFE_TURBO";
-                TokenKind[TokenKind["START"] = 78] = "START";
-                TokenKind[TokenKind["VIRTUAL"] = 79] = "VIRTUAL";
-                TokenKind[TokenKind["VAR"] = 80] = "VAR";
-                TokenKind[TokenKind["WHILE"] = 81] = "WHILE";
+                TokenKind[TokenKind["ALIGNOF"] = 45] = "ALIGNOF";
+                TokenKind[TokenKind["AS"] = 46] = "AS";
+                TokenKind[TokenKind["BREAK"] = 47] = "BREAK";
+                TokenKind[TokenKind["MODULE"] = 48] = "MODULE";
+                TokenKind[TokenKind["CLASS"] = 49] = "CLASS";
+                TokenKind[TokenKind["CONST"] = 50] = "CONST";
+                TokenKind[TokenKind["CONTINUE"] = 51] = "CONTINUE";
+                TokenKind[TokenKind["DECLARE"] = 52] = "DECLARE";
+                TokenKind[TokenKind["ELSE"] = 53] = "ELSE";
+                TokenKind[TokenKind["ENUM"] = 54] = "ENUM";
+                TokenKind[TokenKind["EXPORT"] = 55] = "EXPORT";
+                TokenKind[TokenKind["EXTENDS"] = 56] = "EXTENDS";
+                TokenKind[TokenKind["FALSE"] = 57] = "FALSE";
+                TokenKind[TokenKind["FUNCTION"] = 58] = "FUNCTION";
+                TokenKind[TokenKind["ANYFUNC"] = 59] = "ANYFUNC";
+                TokenKind[TokenKind["IF"] = 60] = "IF";
+                TokenKind[TokenKind["IMPLEMENTS"] = 61] = "IMPLEMENTS";
+                TokenKind[TokenKind["IMPORT"] = 62] = "IMPORT";
+                TokenKind[TokenKind["LET"] = 63] = "LET";
+                TokenKind[TokenKind["NEW"] = 64] = "NEW";
+                TokenKind[TokenKind["DELETE"] = 65] = "DELETE";
+                TokenKind[TokenKind["NULL"] = 66] = "NULL";
+                TokenKind[TokenKind["UNDEFINED"] = 67] = "UNDEFINED";
+                TokenKind[TokenKind["OPERATOR"] = 68] = "OPERATOR";
+                TokenKind[TokenKind["PRIVATE"] = 69] = "PRIVATE";
+                TokenKind[TokenKind["PROTECTED"] = 70] = "PROTECTED";
+                TokenKind[TokenKind["PUBLIC"] = 71] = "PUBLIC";
+                TokenKind[TokenKind["RETURN"] = 72] = "RETURN";
+                TokenKind[TokenKind["SIZEOF"] = 73] = "SIZEOF";
+                TokenKind[TokenKind["STATIC"] = 74] = "STATIC";
+                TokenKind[TokenKind["THIS"] = 75] = "THIS";
+                TokenKind[TokenKind["TRUE"] = 76] = "TRUE";
+                TokenKind[TokenKind["UNSAFE"] = 77] = "UNSAFE";
+                TokenKind[TokenKind["UNSAFE_TURBO"] = 78] = "UNSAFE_TURBO";
+                TokenKind[TokenKind["START"] = 79] = "START";
+                TokenKind[TokenKind["VIRTUAL"] = 80] = "VIRTUAL";
+                TokenKind[TokenKind["VAR"] = 81] = "VAR";
+                TokenKind[TokenKind["WHILE"] = 82] = "WHILE";
                 // Preprocessor
-                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 82] = "PREPROCESSOR_DEFINE";
-                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 83] = "PREPROCESSOR_ELIF";
-                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 84] = "PREPROCESSOR_ELSE";
-                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 85] = "PREPROCESSOR_ENDIF";
-                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 86] = "PREPROCESSOR_ERROR";
-                TokenKind[TokenKind["PREPROCESSOR_IF"] = 87] = "PREPROCESSOR_IF";
-                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 88] = "PREPROCESSOR_NEEDED";
-                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 89] = "PREPROCESSOR_NEWLINE";
-                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 90] = "PREPROCESSOR_UNDEF";
-                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 91] = "PREPROCESSOR_WARNING";
+                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 83] = "PREPROCESSOR_DEFINE";
+                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 84] = "PREPROCESSOR_ELIF";
+                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 85] = "PREPROCESSOR_ELSE";
+                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 86] = "PREPROCESSOR_ENDIF";
+                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 87] = "PREPROCESSOR_ERROR";
+                TokenKind[TokenKind["PREPROCESSOR_IF"] = 88] = "PREPROCESSOR_IF";
+                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 89] = "PREPROCESSOR_NEEDED";
+                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 90] = "PREPROCESSOR_NEWLINE";
+                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 91] = "PREPROCESSOR_UNDEF";
+                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 92] = "PREPROCESSOR_WARNING";
             })(TokenKind || (TokenKind = {}));
             exports_3("TokenKind", TokenKind);
             Token = class Token {
@@ -2324,6 +2327,10 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         this.advance();
                         return node_1.createName(token.range.toString()).withRange(token.range);
                     }
+                    // if (this.peek(TokenKind.ARRAY)) {
+                    //     this.advance();
+                    //     return createArray(token.range.toString()).withRange(token.range);
+                    // }
                     if (this.peek(lexer_1.TokenKind.EXPONENT)) {
                         lexer_1.splitToken(this.current, lexer_1.TokenKind.MULTIPLY, lexer_1.TokenKind.MULTIPLY);
                     }
@@ -2386,6 +2393,12 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             let type = this.parseType();
                             if (type == null) {
                                 return null;
+                            }
+                            if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
+                                this.advance();
+                                let arrayType = this.parseType();
+                                this.expect(lexer_1.TokenKind.GREATER_THAN);
+                                type.appendChild(arrayType);
                             }
                             return this.parseArgumentList(token.range, node_1.createNew(type));
                         }
@@ -2529,6 +2542,12 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return node_1.createHook(node, middle, right).withRange(log_2.spanRanges(node.range, right.range));
                         }
                     }
+                    // if(mode == ParseKind.TYPE && node.rawValue && node.rawValue == "Array"){
+                    //     this.expect(TokenKind.LESS_THAN);
+                    //     let type = this.parseType();
+                    //     this.expect(TokenKind.GREATER_THAN);
+                    //     node.appendChild(type);
+                    // }
                     return node;
                 }
                 parseDelete() {
@@ -3242,6 +3261,12 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         let type = null;
                         if (this.eat(lexer_1.TokenKind.COLON)) {
                             type = this.parseType();
+                            if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
+                                this.advance();
+                                let arrayType = this.parseType();
+                                this.expect(lexer_1.TokenKind.GREATER_THAN);
+                                node.appendChild(arrayType);
+                            }
                             if (type == null) {
                                 return null;
                             }
@@ -8243,26 +8268,26 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                     let lib;
                     switch (target) {
                         case compiler_2.CompileTarget.WEBASSEMBLY:
-                            lib = stdlib.IO_readTextFile("../src/library/wasm/types.tbs") + "\n";
-                            lib += stdlib.IO_readTextFile("../src/library/wasm/malloc.tbs") + "\n";
-                            // lib += stdlib.IO_readTextFile("../src/library/wasm/math.tbs") + "\n";
+                            lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/types.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/malloc.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/math.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
-                            lib = stdlib.IO_readTextFile("../src/library/turbo/types.tbs") + "\n";
+                            lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/types.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.ASMJS:
-                            lib = stdlib.IO_readTextFile("../src/library/asmjs/types.tbs") + "\n";
-                            lib += stdlib.IO_readTextFile("../src/library/asmjs/math.tbs") + "\n";
-                            lib += stdlib.IO_readTextFile("../src/library/turbo/malloc.tbs") + "\n";
+                            lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/types.tbs") + "\n";
+                            // lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/math.tbs") + "\n";
+                            // lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/malloc.tbs") + "\n";
                             return lib;
                     }
                 }
                 static getRuntime(target) {
                     switch (target) {
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
-                            return stdlib.IO_readTextFile("../src/library/turbo/runtime.js") + "\n";
+                            return stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/runtime.js") + "\n";
                         case compiler_2.CompileTarget.ASMJS:
-                            return stdlib.IO_readTextFile("../src/library/asmjs/runtime.js") + "\n";
+                            return stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/runtime.js") + "\n";
                         default:
                             return "";
                     }
@@ -8270,9 +8295,9 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                 static getWrapper(target) {
                     switch (target) {
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
-                            return stdlib.IO_readTextFile("../src/library/turbo/wrapper.js") + "\n";
+                            return stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/wrapper.js") + "\n";
                         case compiler_2.CompileTarget.ASMJS:
-                            return stdlib.IO_readTextFile("../src/library/asmjs/wrapper.js") + "\n";
+                            return stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/wrapper.js") + "\n";
                         default:
                             return "";
                     }
@@ -9022,7 +9047,13 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     else if (node.kind == node_7.NodeKind.NEW) {
                         let resolvedNode = node.resolvedType.symbol.node;
                         let type = node.newType();
-                        let size = type.resolvedType.allocationSizeOf(this.context);
+                        let size;
+                        if (type.resolvedType.isArray()) {
+                            size = type.resolvedType.allocationSizeOf(this.context);
+                        }
+                        else {
+                            size = type.resolvedType.allocationSizeOf(this.context);
+                        }
                         assert(size > 0);
                         // Pass the object size as the first argument
                         //this.code.append(`malloc(${size}|0)`);//TODO: access functions from function table using function index
@@ -9255,6 +9286,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     else {
                         assert(false);
                     }
+                    assert(offset);
                     // Relative address
                     if (relativeBase != null) {
                         this.emitExpression(relativeBase, parser_5.Precedence.ASSIGN);
@@ -10000,6 +10032,9 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     else if (type.isFloat()) {
                         return AsmType.FLOAT;
                     }
+                    else if (type.isArray()) {
+                        return AsmType.INT;
+                    }
                     if (type == context.voidType) {
                         return AsmType.VOID;
                     }
@@ -10409,6 +10444,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             context.sbyteType = parentScope.findLocal("sbyte", scope_2.ScopeHint.NORMAL).resolvedType;
             context.shortType = parentScope.findLocal("short", scope_2.ScopeHint.NORMAL).resolvedType;
             context.stringType = parentScope.findLocal("string", scope_2.ScopeHint.NORMAL).resolvedType;
+            context.arrayType = parentScope.findLocal("Array", scope_2.ScopeHint.NORMAL).resolvedType;
             context.uint32Type = parentScope.findLocal("uint32", scope_2.ScopeHint.NORMAL).resolvedType;
             context.uint64Type = parentScope.findLocal("uint64", scope_2.ScopeHint.NORMAL).resolvedType;
             context.ushortType = parentScope.findLocal("ushort", scope_2.ScopeHint.NORMAL).resolvedType;
@@ -10424,6 +10460,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             prepareNativeType(context.uint32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
             prepareNativeType(context.uint64Type, 8, symbol_8.SYMBOL_FLAG_NATIVE_LONG | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
             prepareNativeType(context.stringType, 4, symbol_8.SYMBOL_FLAG_IS_REFERENCE);
+            prepareNativeType(context.arrayType, 4, symbol_8.SYMBOL_FLAG_IS_ARRAY);
             prepareNativeType(context.float32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_FLOAT);
             prepareNativeType(context.float64Type, 8, symbol_8.SYMBOL_FLAG_NATIVE_DOUBLE);
         }
@@ -11392,7 +11429,6 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         else if (kind == node_9.NodeKind.EMPTY) {
         }
         else if (kind == node_9.NodeKind.PARAMETERS) {
-            context.log.error(node.range, "Generics are not implemented yet");
         }
         else if (kind == node_9.NodeKind.EXTENDS) {
             resolveAsType(context, node.extendsType(), parentScope);
@@ -11500,16 +11536,25 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             resolveAsType(context, type, parentScope);
             if (type.resolvedType != context.errorType) {
                 if (!type.resolvedType.isClass()) {
-                    context.log.error(type.range, stringbuilder_11.StringBuilder_new()
-                        .append("Cannot construct type '")
-                        .append(type.resolvedType.toString())
-                        .appendChar('\'')
-                        .finish());
+                    if (type.resolvedType.isArray()) {
+                        resolveAsType(context, type.firstChild, parentScope);
+                        node.resolvedType = type.resolvedType;
+                    }
+                    else {
+                        context.log.error(type.range, stringbuilder_11.StringBuilder_new()
+                            .append("Cannot construct type '")
+                            .append(type.resolvedType.toString())
+                            .appendChar('\'')
+                            .finish());
+                    }
                 }
                 else {
                     node.resolvedType = type.resolvedType;
                 }
             }
+            // if(type.resolvedType.isArray()){
+            //     node.resolvedType = node.firstChild.resolvedType;
+            // }
             //Constructors arguments
             let child = type.nextSibling;
             let constructorNode = node.constructorNode();
@@ -11941,7 +11986,7 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
         return kind >= SymbolKind.VARIABLE_ARGUMENT && kind <= SymbolKind.VARIABLE_LOCAL;
     }
     exports_20("isVariable", isVariable);
-    var node_10, imports_3, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, Symbol;
+    var node_10, imports_3, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, SYMBOL_FLAG_IS_ARRAY, Symbol;
     return {
         setters: [
             function (node_10_1) {
@@ -11984,6 +12029,7 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
             exports_20("SYMBOL_FLAG_NATIVE_FLOAT", SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7);
             exports_20("SYMBOL_FLAG_NATIVE_DOUBLE", SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8);
             exports_20("SYMBOL_FLAG_USED", SYMBOL_FLAG_USED = 1 << 9);
+            exports_20("SYMBOL_FLAG_IS_ARRAY", SYMBOL_FLAG_IS_ARRAY = 1 << 10);
             Symbol = class Symbol {
                 constructor() {
                     this.state = SymbolState.UNINITIALIZED;
@@ -12101,6 +12147,9 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_21, conte
                 }
                 isDouble() {
                     return this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_NATIVE_DOUBLE) != 0;
+                }
+                isArray() {
+                    return this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_IS_ARRAY) != 0;
                 }
                 isReference() {
                     return this.pointerTo != null || this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_IS_REFERENCE) != 0;
@@ -12361,6 +12410,13 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         return node;
     }
     exports_22("createString", createString);
+    function createArray(type) {
+        let node = new Node();
+        node.kind = NodeKind.ARRAY;
+        node.resolvedType = type;
+        return node;
+    }
+    exports_22("createArray", createArray);
     function createName(value) {
         let node = new Node();
         node.kind = NodeKind.NAME;
@@ -12649,49 +12705,51 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                 NodeKind[NodeKind["INT64"] = 35] = "INT64";
                 NodeKind[NodeKind["FLOAT32"] = 36] = "FLOAT32";
                 NodeKind[NodeKind["FLOAT64"] = 37] = "FLOAT64";
-                NodeKind[NodeKind["NAME"] = 38] = "NAME";
-                NodeKind[NodeKind["NEW"] = 39] = "NEW";
-                NodeKind[NodeKind["DELETE"] = 40] = "DELETE";
-                NodeKind[NodeKind["NULL"] = 41] = "NULL";
-                NodeKind[NodeKind["UNDEFINED"] = 42] = "UNDEFINED";
-                NodeKind[NodeKind["PARSE_ERROR"] = 43] = "PARSE_ERROR";
-                NodeKind[NodeKind["SIZE_OF"] = 44] = "SIZE_OF";
-                NodeKind[NodeKind["STRING"] = 45] = "STRING";
-                NodeKind[NodeKind["THIS"] = 46] = "THIS";
-                NodeKind[NodeKind["TYPE"] = 47] = "TYPE";
+                NodeKind[NodeKind["ARRAY"] = 38] = "ARRAY";
+                NodeKind[NodeKind["GENERIC"] = 39] = "GENERIC";
+                NodeKind[NodeKind["NAME"] = 40] = "NAME";
+                NodeKind[NodeKind["NEW"] = 41] = "NEW";
+                NodeKind[NodeKind["DELETE"] = 42] = "DELETE";
+                NodeKind[NodeKind["NULL"] = 43] = "NULL";
+                NodeKind[NodeKind["UNDEFINED"] = 44] = "UNDEFINED";
+                NodeKind[NodeKind["PARSE_ERROR"] = 45] = "PARSE_ERROR";
+                NodeKind[NodeKind["SIZE_OF"] = 46] = "SIZE_OF";
+                NodeKind[NodeKind["STRING"] = 47] = "STRING";
+                NodeKind[NodeKind["THIS"] = 48] = "THIS";
+                NodeKind[NodeKind["TYPE"] = 49] = "TYPE";
                 // Unary expressions
-                NodeKind[NodeKind["ADDRESS_OF"] = 48] = "ADDRESS_OF";
-                NodeKind[NodeKind["COMPLEMENT"] = 49] = "COMPLEMENT";
-                NodeKind[NodeKind["DEREFERENCE"] = 50] = "DEREFERENCE";
-                NodeKind[NodeKind["NEGATIVE"] = 51] = "NEGATIVE";
-                NodeKind[NodeKind["NOT"] = 52] = "NOT";
-                NodeKind[NodeKind["POINTER_TYPE"] = 53] = "POINTER_TYPE";
-                NodeKind[NodeKind["POSITIVE"] = 54] = "POSITIVE";
-                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 55] = "POSTFIX_DECREMENT";
-                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 56] = "POSTFIX_INCREMENT";
-                NodeKind[NodeKind["PREFIX_DECREMENT"] = 57] = "PREFIX_DECREMENT";
-                NodeKind[NodeKind["PREFIX_INCREMENT"] = 58] = "PREFIX_INCREMENT";
+                NodeKind[NodeKind["ADDRESS_OF"] = 50] = "ADDRESS_OF";
+                NodeKind[NodeKind["COMPLEMENT"] = 51] = "COMPLEMENT";
+                NodeKind[NodeKind["DEREFERENCE"] = 52] = "DEREFERENCE";
+                NodeKind[NodeKind["NEGATIVE"] = 53] = "NEGATIVE";
+                NodeKind[NodeKind["NOT"] = 54] = "NOT";
+                NodeKind[NodeKind["POINTER_TYPE"] = 55] = "POINTER_TYPE";
+                NodeKind[NodeKind["POSITIVE"] = 56] = "POSITIVE";
+                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 57] = "POSTFIX_DECREMENT";
+                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 58] = "POSTFIX_INCREMENT";
+                NodeKind[NodeKind["PREFIX_DECREMENT"] = 59] = "PREFIX_DECREMENT";
+                NodeKind[NodeKind["PREFIX_INCREMENT"] = 60] = "PREFIX_INCREMENT";
                 // Binary expressions
-                NodeKind[NodeKind["ADD"] = 59] = "ADD";
-                NodeKind[NodeKind["ASSIGN"] = 60] = "ASSIGN";
-                NodeKind[NodeKind["BITWISE_AND"] = 61] = "BITWISE_AND";
-                NodeKind[NodeKind["BITWISE_OR"] = 62] = "BITWISE_OR";
-                NodeKind[NodeKind["BITWISE_XOR"] = 63] = "BITWISE_XOR";
-                NodeKind[NodeKind["DIVIDE"] = 64] = "DIVIDE";
-                NodeKind[NodeKind["EQUAL"] = 65] = "EQUAL";
-                NodeKind[NodeKind["EXPONENT"] = 66] = "EXPONENT";
-                NodeKind[NodeKind["GREATER_THAN"] = 67] = "GREATER_THAN";
-                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 68] = "GREATER_THAN_EQUAL";
-                NodeKind[NodeKind["LESS_THAN"] = 69] = "LESS_THAN";
-                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 70] = "LESS_THAN_EQUAL";
-                NodeKind[NodeKind["LOGICAL_AND"] = 71] = "LOGICAL_AND";
-                NodeKind[NodeKind["LOGICAL_OR"] = 72] = "LOGICAL_OR";
-                NodeKind[NodeKind["MULTIPLY"] = 73] = "MULTIPLY";
-                NodeKind[NodeKind["NOT_EQUAL"] = 74] = "NOT_EQUAL";
-                NodeKind[NodeKind["REMAINDER"] = 75] = "REMAINDER";
-                NodeKind[NodeKind["SHIFT_LEFT"] = 76] = "SHIFT_LEFT";
-                NodeKind[NodeKind["SHIFT_RIGHT"] = 77] = "SHIFT_RIGHT";
-                NodeKind[NodeKind["SUBTRACT"] = 78] = "SUBTRACT";
+                NodeKind[NodeKind["ADD"] = 61] = "ADD";
+                NodeKind[NodeKind["ASSIGN"] = 62] = "ASSIGN";
+                NodeKind[NodeKind["BITWISE_AND"] = 63] = "BITWISE_AND";
+                NodeKind[NodeKind["BITWISE_OR"] = 64] = "BITWISE_OR";
+                NodeKind[NodeKind["BITWISE_XOR"] = 65] = "BITWISE_XOR";
+                NodeKind[NodeKind["DIVIDE"] = 66] = "DIVIDE";
+                NodeKind[NodeKind["EQUAL"] = 67] = "EQUAL";
+                NodeKind[NodeKind["EXPONENT"] = 68] = "EXPONENT";
+                NodeKind[NodeKind["GREATER_THAN"] = 69] = "GREATER_THAN";
+                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 70] = "GREATER_THAN_EQUAL";
+                NodeKind[NodeKind["LESS_THAN"] = 71] = "LESS_THAN";
+                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 72] = "LESS_THAN_EQUAL";
+                NodeKind[NodeKind["LOGICAL_AND"] = 73] = "LOGICAL_AND";
+                NodeKind[NodeKind["LOGICAL_OR"] = 74] = "LOGICAL_OR";
+                NodeKind[NodeKind["MULTIPLY"] = 75] = "MULTIPLY";
+                NodeKind[NodeKind["NOT_EQUAL"] = 76] = "NOT_EQUAL";
+                NodeKind[NodeKind["REMAINDER"] = 77] = "REMAINDER";
+                NodeKind[NodeKind["SHIFT_LEFT"] = 78] = "SHIFT_LEFT";
+                NodeKind[NodeKind["SHIFT_RIGHT"] = 79] = "SHIFT_RIGHT";
+                NodeKind[NodeKind["SUBTRACT"] = 80] = "SUBTRACT";
             })(NodeKind || (NodeKind = {}));
             exports_22("NodeKind", NodeKind);
             exports_22("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
@@ -13146,6 +13204,11 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                     assert(this.kind == NodeKind.EXTENDS);
                     assert(this.childCount() == 1);
                     assert(isExpression(this.firstChild));
+                    return this.firstChild;
+                }
+                genericType() {
+                    assert(this.kind == NodeKind.PARAMETERS);
+                    assert(this.childCount() > 0);
                     return this.firstChild;
                 }
                 variableType() {

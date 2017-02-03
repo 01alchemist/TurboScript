@@ -14,8 +14,8 @@ IF %2 EQU --asmjs (
     )
 )
 
-rem ts-node tc.ts %1 %2 %3 %4.wasm
-node %TURBO_PATH%\lib\tc.js %1 %2 %3 %4.%ext%
+ts-node %TURBO_PATH%\lib\tc.ts %1 %2 %3 %4.%ext%
+rem node %TURBO_PATH%\lib\tc.js %1 %2 %3 %4.%ext%
 IF %ERRORLEVEL% EQU 0 (
     IF %ext% EQU wasm (
         wasm2wast %4.wasm -o %4.wast -v

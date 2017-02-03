@@ -1,6 +1,7 @@
 import {
     Symbol, SymbolKind, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED,
-    SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_DOUBLE
+    SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_DOUBLE,
+    SYMBOL_FLAG_IS_ARRAY
 } from "./symbol";
 import {CheckContext} from "./checker";
 import {StringBuilder_new} from "./stringbuilder";
@@ -44,6 +45,10 @@ export class Type {
 
     isDouble(): boolean {
         return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_NATIVE_DOUBLE) != 0;
+    }
+
+    isArray(): boolean {
+        return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_ARRAY) != 0;
     }
 
     isReference(): boolean {

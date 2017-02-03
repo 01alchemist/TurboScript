@@ -54,6 +54,7 @@ export const SYMBOL_FLAG_NATIVE_LONG = 1 << 6;
 export const SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7;
 export const SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8;
 export const SYMBOL_FLAG_USED = 1 << 9;
+export const SYMBOL_FLAG_IS_ARRAY = 1 << 10;
 
 export class Symbol {
     kind: SymbolKind;

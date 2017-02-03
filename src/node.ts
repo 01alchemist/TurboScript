@@ -52,6 +52,8 @@ export enum NodeKind {
     INT64,
     FLOAT32,
     FLOAT64,
+    ARRAY,
+    GENERIC,
     NAME,
     NEW,
     DELETE,
@@ -728,6 +730,12 @@ export class Node {
         return this.firstChild;
     }
 
+    genericType(): Node {
+        assert(this.kind == NodeKind.PARAMETERS);
+        assert(this.childCount() > 0);
+        return this.firstChild;
+    }
+
     variableType(): Node {
         assert(this.kind == NodeKind.VARIABLE);
         assert(this.childCount() <= 2);
@@ -1006,6 +1014,13 @@ export function createString(value: string): Node {
     let node = new Node();
     node.kind = NodeKind.STRING;
     node.stringValue = value;
+    return node;
+}
+
+export function createArray(type: Type): Node {
+    let node = new Node();
+    node.kind = NodeKind.ARRAY;
+    node.resolvedType = type;
     return node;
 }
 

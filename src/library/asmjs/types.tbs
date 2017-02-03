@@ -78,3 +78,15 @@ declare class string {
     // startsWith(text: string): boolean { return this.slice(0, text.length) == text; }
     // endsWith(text: string): boolean { return this.slice(-text.length, this.length) == text; }
 }
+
+export class Array<T> {
+    pointer:int32;
+    bytesLength:int32;
+    elementSize:int32;
+    // operator [] (index: int32): T;
+    constructor(length:int32):Array {
+        this.bytesLength = length;
+        // this.pointer = malloc(length);
+        return this;
+    }
+}

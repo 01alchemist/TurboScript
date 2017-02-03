@@ -2,7 +2,7 @@ import {
     Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
     SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
     SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE,
-    SYMBOL_FLAG_NATIVE_LONG
+    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY
 } from "./symbol";
 import {Type, ConversionKind} from "./type";
 import {
@@ -51,6 +51,7 @@ export class CheckContext {
     uint64Type: Type;
     ushortType: Type;
     voidType: Type;
+    arrayType: Type;
 
     allocateGlobalVariableOffset(sizeOf: int32, alignmentOf: int32): int32 {
         let offset = alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
@@ -221,6 +222,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         context.sbyteType = parentScope.findLocal("sbyte", ScopeHint.NORMAL).resolvedType;
         context.shortType = parentScope.findLocal("short", ScopeHint.NORMAL).resolvedType;
         context.stringType = parentScope.findLocal("string", ScopeHint.NORMAL).resolvedType;
+        context.arrayType = parentScope.findLocal("Array", ScopeHint.NORMAL).resolvedType;
         context.uint32Type = parentScope.findLocal("uint32", ScopeHint.NORMAL).resolvedType;
         context.uint64Type = parentScope.findLocal("uint64", ScopeHint.NORMAL).resolvedType;
         context.ushortType = parentScope.findLocal("ushort", ScopeHint.NORMAL).resolvedType;
@@ -239,6 +241,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         prepareNativeType(context.uint64Type, 8, SYMBOL_FLAG_NATIVE_LONG | SYMBOL_FLAG_IS_UNSIGNED);
 
         prepareNativeType(context.stringType, 4, SYMBOL_FLAG_IS_REFERENCE);
+        prepareNativeType(context.arrayType, 4, SYMBOL_FLAG_IS_ARRAY);
 
         prepareNativeType(context.float32Type, 4, SYMBOL_FLAG_NATIVE_FLOAT);
         prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_DOUBLE);
@@ -1390,7 +1393,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.PARAMETERS) {
-        context.log.error(node.range, "Generics are not implemented yet");
+        // resolveAsType(context, node.genericType(), parentScope);
+        //resolveAsExpression(context, node.expressionValue(), parentScope);
+        // context.log.error(node.range, "Generics are not implemented yet");
     }
 
     else if (kind == NodeKind.EXTENDS) {
@@ -1517,17 +1522,26 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
         if (type.resolvedType != context.errorType) {
             if (!type.resolvedType.isClass()) {
-                context.log.error(type.range, StringBuilder_new()
-                    .append("Cannot construct type '")
-                    .append(type.resolvedType.toString())
-                    .appendChar('\'')
-                    .finish());
+                if(type.resolvedType.isArray()){
+                    resolveAsType(context, type.firstChild, parentScope);
+                    node.resolvedType = type.resolvedType;
+                }else {
+                    context.log.error(type.range, StringBuilder_new()
+                        .append("Cannot construct type '")
+                        .append(type.resolvedType.toString())
+                        .appendChar('\'')
+                        .finish());
+                }
             }
 
             else {
                 node.resolvedType = type.resolvedType;
             }
         }
+
+        // if(type.resolvedType.isArray()){
+        //     node.resolvedType = node.firstChild.resolvedType;
+        // }
 
         //Constructors arguments
         let child = type.nextSibling;

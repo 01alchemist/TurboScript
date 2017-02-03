@@ -46,8 +46,11 @@ SystemJS.defaultJSExtensions = true;
 if(!process.env.TURBO_PATH){
     process.env.TURBO_PATH = path.resolve(__dirname, "../");
 }
-let turboCompilerPath = path.resolve(process.env.TURBO_PATH, "bin/turbo.js");
-require(turboCompilerPath);
+
+global["TURBO_PATH"] = process.env.TURBO_PATH;
+
+//Import compiler
+require(path.resolve(process.env.TURBO_PATH, "bin/turbo.js"));
 
 SystemJS.import("main").then(function (mod) {
     var Color = mod.Color;

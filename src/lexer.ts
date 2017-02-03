@@ -13,6 +13,7 @@ export enum TokenKind {
     FLOAT32,
     FLOAT64,
     STRING,
+    ARRAY,
 
         // Punctuation
     ASSIGN,
@@ -140,6 +141,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.FLOAT32) return "float32 literal";
     if (token == TokenKind.FLOAT64) return "float64 literal";
     if (token == TokenKind.STRING) return "string literal";
+    if (token == TokenKind.ARRAY) return "array literal";
 
     // Punctuation
     if (token == TokenKind.ASSIGN) return "'='";
