@@ -477,6 +477,28 @@ export class Node {
         return count;
     }
 
+    parameterCount(): int32 {
+        let count = 0;
+        let child = this.firstChild;
+        if(child.kind == NodeKind.PARAMETERS) {
+            child = child.firstChild;
+            while (child != null) {
+                count = count + 1;
+                child = child.nextSibling;
+            }
+        }
+        return count;
+    }
+
+    hasParameters(): boolean {
+        let count = 0;
+        let child = this.firstChild;
+        if(child.kind == NodeKind.PARAMETERS) {
+            return child.childCount() > 0;
+        }
+        return false;
+    }
+
     appendChild(child: Node): void {
         child.parent = this;
 
@@ -730,10 +752,11 @@ export class Node {
         return this.firstChild;
     }
 
-    genericType(): Node {
-        assert(this.kind == NodeKind.PARAMETERS);
-        assert(this.childCount() > 0);
-        return this.firstChild;
+    firstGenericType(): Node {
+        assert(this.kind == NodeKind.CLASS);
+        assert(this.firstChild.kind == NodeKind.PARAMETERS);
+        assert(this.firstChild.childCount() > 0);
+        return this.firstChild.firstChild;
     }
 
     variableType(): Node {

@@ -154,7 +154,7 @@ export class Compiler {
             var file = source.file;
 
             if (file != null) {
-                if (source == this.librarySource) {
+                if (source.isLibrary) {
                     initialize(context, file, global.scope, CheckMode.INITIALIZE);
                     resolve(context, file, global.scope);
                 } else {
@@ -169,7 +169,7 @@ export class Compiler {
             }
 
             // Stop if the library code has errors because it's highly likely that everything is broken
-            if (source == this.librarySource && this.log.hasErrors()) {
+            if (source.isLibrary && this.log.hasErrors()) {
                 fullResolve = false;
                 break;
             }

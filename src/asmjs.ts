@@ -628,19 +628,6 @@ export class AsmJsModule {
         }
 
         else if (node.kind == NodeKind.NEW) {
-            let resolvedNode = node.resolvedType.symbol.node;
-            let type = node.newType();
-            let size;
-            if(type.resolvedType.isArray()){
-                size = type.resolvedType.allocationSizeOf(this.context);
-            }else {
-                size = type.resolvedType.allocationSizeOf(this.context);
-            }
-            assert(size > 0);
-            // Pass the object size as the first argument
-            //this.code.append(`malloc(${size}|0)`);//TODO: access functions from function table using function index
-            // this.code.append(`${node.resolvedType.symbol.name}_new(`);
-            // this.code.append(`);`);
             this.emitConstructor(node);
         }
 
@@ -902,8 +889,7 @@ export class AsmJsModule {
             assert(false);
         }
 
-        assert(offset);
-
+        assert(!isNaN(offset));
         // Relative address
         if (relativeBase != null) {
             this.emitExpression(relativeBase, Precedence.ASSIGN);
@@ -993,7 +979,7 @@ export class AsmJsModule {
                     needsSemicolon = false;
                 }
 
-                if (node.isExport()){
+                if (node.isExport()) {
                     exportTable.push(funcName);
                 }
             }
@@ -1371,21 +1357,43 @@ export class AsmJsModule {
     }
 
     emitConstructor(node: Node): void {
-        let constructorNode = node.constructorNode();
-        let args = constructorNode.functionFirstArgumentIgnoringThis();
-        let callSymbol = constructorNode.symbol;
-        let child = node.firstChild.nextSibling;
-        this.code.append(`${callSymbol.parent().name}_new(`);
-        while (child != null) {
-            let forceCastType: AsmType = null;
-            if (args.symbol.resolvedType.isDouble()) {
-                forceCastType = AsmType.DOUBLE;
-            }
-            this.emitExpression(child, Precedence.MEMBER, true, forceCastType);
-            child = child.nextSibling;
-            args = args.nextSibling;
-            if (child) {
-                this.code.append(", ");
+
+        let type = node.newType();
+        let size;
+
+        if (type.resolvedType.isArray()) {
+            size = type.firstChild.resolvedType.allocationSizeOf(this.context);
+            console.log("Array size:" + size);
+
+            let constructorNode = node.constructorNode();
+            let args = constructorNode.functionFirstArgumentIgnoringThis();
+            let callSymbol = constructorNode.symbol;
+            let child = node.firstChild.nextSibling;
+            this.code.append(`${callSymbol.parent().name}_new(`);
+            assert(child.resolvedType.isInteger());
+            this.code.append(`${size * child.intValue}|0, ${size}|0`);
+        }
+
+        else {
+            size = type.resolvedType.allocationSizeOf(this.context);
+            assert(size > 0);
+
+            let constructorNode = node.constructorNode();
+            let args = constructorNode.functionFirstArgumentIgnoringThis();
+            let callSymbol = constructorNode.symbol;
+            let child = node.firstChild.nextSibling;
+            this.code.append(`${callSymbol.parent().name}_new(`);
+            while (child != null) {
+                let forceCastType: AsmType = null;
+                if (args.symbol.resolvedType.isDouble()) {
+                    forceCastType = AsmType.DOUBLE;
+                }
+                this.emitExpression(child, Precedence.MEMBER, true, forceCastType);
+                child = child.nextSibling;
+                args = args.nextSibling;
+                if (child) {
+                    this.code.append(", ");
+                }
             }
         }
         this.code.append(")|0");

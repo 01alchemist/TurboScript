@@ -2,7 +2,7 @@ import {
     Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
     SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
     SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE,
-    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY
+    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC
 } from "./symbol";
 import {Type, ConversionKind} from "./type";
 import {
@@ -121,6 +121,21 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         linkSymbolToNode(symbol, node);
         parentScope.define(context.log, symbol, ScopeHint.NORMAL);
         parentScope = symbol.scope;
+
+        if (node.parameterCount() > 0) {
+            //Class has generic parameters
+            let genericType = node.firstGenericType();
+            let symbol = new Symbol();
+            symbol.kind = SymbolKind.TYPE_GENERIC;
+            symbol.name = genericType.stringValue;
+            symbol.resolvedType = new Type();
+            symbol.resolvedType.symbol = symbol;
+            symbol.flags = SYMBOL_FLAG_IS_GENERIC;
+            addScopeToSymbol(symbol, parentScope);
+            linkSymbolToNode(symbol, genericType);
+            parentScope.define(context.log, symbol, ScopeHint.NORMAL);
+        }
+
     }
 
     // Function
@@ -222,7 +237,6 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         context.sbyteType = parentScope.findLocal("sbyte", ScopeHint.NORMAL).resolvedType;
         context.shortType = parentScope.findLocal("short", ScopeHint.NORMAL).resolvedType;
         context.stringType = parentScope.findLocal("string", ScopeHint.NORMAL).resolvedType;
-        context.arrayType = parentScope.findLocal("Array", ScopeHint.NORMAL).resolvedType;
         context.uint32Type = parentScope.findLocal("uint32", ScopeHint.NORMAL).resolvedType;
         context.uint64Type = parentScope.findLocal("uint64", ScopeHint.NORMAL).resolvedType;
         context.ushortType = parentScope.findLocal("ushort", ScopeHint.NORMAL).resolvedType;
@@ -241,16 +255,27 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         prepareNativeType(context.uint64Type, 8, SYMBOL_FLAG_NATIVE_LONG | SYMBOL_FLAG_IS_UNSIGNED);
 
         prepareNativeType(context.stringType, 4, SYMBOL_FLAG_IS_REFERENCE);
-        prepareNativeType(context.arrayType, 4, SYMBOL_FLAG_IS_ARRAY);
 
         prepareNativeType(context.float32Type, 4, SYMBOL_FLAG_NATIVE_FLOAT);
         prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_DOUBLE);
+
+        //Prepare builtin types
+        context.arrayType = parentScope.findLocal("Array", ScopeHint.NORMAL).resolvedType;
+        prepareBuiltinType(context.arrayType, 0, SYMBOL_FLAG_IS_ARRAY); //byteSize will calculate later
     }
 }
 
 function prepareNativeType(type: Type, byteSizeAndMaxAlignment: int32, flags: int32): void {
     let symbol = type.symbol;
     symbol.kind = SymbolKind.TYPE_NATIVE;
+    symbol.byteSize = byteSizeAndMaxAlignment;
+    symbol.maxAlignment = byteSizeAndMaxAlignment;
+    symbol.flags = flags;
+}
+
+function prepareBuiltinType(type: Type, byteSizeAndMaxAlignment: int32, flags: int32): void {
+    let symbol = type.symbol;
+    symbol.kind = SymbolKind.TYPE_CLASS;
     symbol.byteSize = byteSizeAndMaxAlignment;
     symbol.maxAlignment = byteSizeAndMaxAlignment;
     symbol.flags = flags;
@@ -298,7 +323,8 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
     }
 
     // Class
-    else if (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE) {
+    else if (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE ||
+        symbol.kind == SymbolKind.TYPE_GENERIC) {
         forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a class");
         forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a class");
         forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a class");
@@ -429,7 +455,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             if (parent.node.isDeclare()) {
                 if (body == null) {
                     node.flags = node.flags | NODE_FLAG_DECLARE;
-                    if(parent.node.isImport()){
+                    if (parent.node.isImport()) {
                         node.flags = node.flags | NODE_FLAG_IMPORT;
                     }
                 } else {
@@ -641,6 +667,11 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     assert(from != null);
     assert(to != null);
 
+    //Generic always accept any types
+    if (from.isGeneric() || to.isGeneric()) {
+        return true;
+    }
+
     // Early-out if the types are identical or errors
     if (from == to || from == context.errorType || to == context.errorType) {
         return true;
@@ -682,14 +713,14 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     }
 
     else if (from.isInteger() && to.isLong()) {
-        if(kind == ConversionKind.IMPLICIT){
+        if (kind == ConversionKind.IMPLICIT) {
             return false;
         }
         return true;
     }
 
     else if (from.isInteger() && to.isFloat()) {
-        if(kind == ConversionKind.IMPLICIT){
+        if (kind == ConversionKind.IMPLICIT) {
             return false;
         }
         //TODO Allow only lossless conversions implicitly
@@ -697,7 +728,7 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     }
 
     else if (from.isInteger() && to.isDouble()) {
-        if(kind == ConversionKind.IMPLICIT){
+        if (kind == ConversionKind.IMPLICIT) {
             return false;
         }
         //TODO Allow only lossless conversions implicitly
@@ -705,7 +736,7 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     }
 
     else if (from.isFloat() && to.isInteger()) {
-        if(kind == ConversionKind.IMPLICIT){
+        if (kind == ConversionKind.IMPLICIT) {
             return false;
         }
         //TODO Allow only lossless conversions implicitly
@@ -717,7 +748,7 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     }
 
     else if (from.isDouble() && to.isFloat()) {
-        if(kind == ConversionKind.IMPLICIT){
+        if (kind == ConversionKind.IMPLICIT) {
             return false;
         }
         //TODO Allow only lossless conversions implicitly
@@ -938,7 +969,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.IMPORT) {
-         let symbol = node.symbol;
+        let symbol = node.symbol;
     }
 
     else if (kind == NodeKind.CLASS) {
@@ -974,6 +1005,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             context.currentReturnType = oldReturnType;
             context.isUnsafeAllowed = oldUnsafeAllowed;
         }
+    }
+
+    else if (kind == NodeKind.PARAMETER) {
+        let symbol = node.symbol;
+
     }
 
     else if (kind == NodeKind.VARIABLE) {
@@ -1520,28 +1556,24 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let type = node.newType();
         resolveAsType(context, type, parentScope);
 
+        if (type.resolvedType.isArray()) {
+            resolveAsType(context, type.firstChild, parentScope);
+            // node.resolvedType = type.resolvedType;
+        }
+
         if (type.resolvedType != context.errorType) {
             if (!type.resolvedType.isClass()) {
-                if(type.resolvedType.isArray()){
-                    resolveAsType(context, type.firstChild, parentScope);
-                    node.resolvedType = type.resolvedType;
-                }else {
-                    context.log.error(type.range, StringBuilder_new()
-                        .append("Cannot construct type '")
-                        .append(type.resolvedType.toString())
-                        .appendChar('\'')
-                        .finish());
-                }
+                context.log.error(type.range, StringBuilder_new()
+                    .append("Cannot construct type '")
+                    .append(type.resolvedType.toString())
+                    .appendChar('\'')
+                    .finish());
             }
 
             else {
                 node.resolvedType = type.resolvedType;
             }
         }
-
-        // if(type.resolvedType.isArray()){
-        //     node.resolvedType = node.firstChild.resolvedType;
-        // }
 
         //Constructors arguments
         let child = type.nextSibling;

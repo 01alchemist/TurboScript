@@ -67,26 +67,19 @@ declare class float64 {
 
 declare class string {
     charAt(index: int32): string;
+
     charCodeAt(index: int32): ushort;
+
     get length(): int32;
+
     indexOf(text: string): int32;
+
     lastIndexOf(text: string): int32;
-    operator == (other: string): boolean;
-    // operator [] (index: int32): ushort { return this.charCodeAt(index); }
+
+    operator == (other: string):boolean;
+    operator [] (index: int32): ushort { return this.charCodeAt(index); }
     slice(start: int32, end: int32): string;
 
     // startsWith(text: string): boolean { return this.slice(0, text.length) == text; }
     // endsWith(text: string): boolean { return this.slice(-text.length, this.length) == text; }
-}
-
-export class Array<T> {
-    pointer:int32;
-    bytesLength:int32;
-    elementSize:int32;
-    // operator [] (index: int32): T;
-    constructor(length:int32):Array {
-        this.bytesLength = length;
-        // this.pointer = malloc(length);
-        return this;
-    }
 }

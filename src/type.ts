@@ -23,6 +23,11 @@ export class Type {
         return this.symbol != null && this.symbol.kind == SymbolKind.TYPE_CLASS;
     }
 
+    isGeneric() {
+        let symbol = this.symbol || this.pointerTo.symbol;
+        return symbol != null && symbol.kind == SymbolKind.TYPE_GENERIC;
+    }
+
     isEnum(): boolean {
         return this.symbol != null && this.symbol.kind == SymbolKind.TYPE_ENUM;
     }

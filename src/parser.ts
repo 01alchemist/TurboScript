@@ -1198,6 +1198,14 @@ class ParserContext {
                 if (this.expect(TokenKind.COLON)) {
                     type = this.parseType();
 
+                    if (this.peek(TokenKind.LESS_THAN)) {
+                        let parameters = this.parseParameters();
+                        if (parameters == null) {
+                            return null;
+                        }
+                        type.appendChild(parameters);
+                    }
+
                     if (type != null) {
                         range = spanRanges(range, type.range);
                     }
@@ -1244,6 +1252,14 @@ class ParserContext {
 
             if (this.expect(TokenKind.COLON)) {
                 returnType = this.parseType();
+
+                if (this.peek(TokenKind.LESS_THAN)) {
+                    let parameters = this.parseParameters();
+                    if (parameters == null) {
+                        return null;
+                    }
+                    returnType.appendChild(parameters);
+                }
 
                 if (returnType == null) {
                     // Recover from a missing return type
@@ -1545,7 +1561,7 @@ class ParserContext {
             let digit: number = (
                 c >= 'A' && c <= 'F' ? c.charCodeAt(0) + (10 - 'A'.charCodeAt(0)) :
                     c >= 'a' && c <= 'f' ? c.charCodeAt(0) + (10 - 'a'.charCodeAt(0)) :
-                        c.charCodeAt(0) - '0'.charCodeAt(0)
+                    c.charCodeAt(0) - '0'.charCodeAt(0)
             );
             let baseValue = Math.imul(value, base) >>> 0;
 

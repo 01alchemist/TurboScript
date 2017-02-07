@@ -3172,6 +3172,13 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             let range = argument.range;
                             if (this.expect(lexer_1.TokenKind.COLON)) {
                                 type = this.parseType();
+                                if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
+                                    let parameters = this.parseParameters();
+                                    if (parameters == null) {
+                                        return null;
+                                    }
+                                    type.appendChild(parameters);
+                                }
                                 if (type != null) {
                                     range = log_2.spanRanges(range, type.range);
                                 }
@@ -3207,6 +3214,13 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     else {
                         if (this.expect(lexer_1.TokenKind.COLON)) {
                             returnType = this.parseType();
+                            if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
+                                let parameters = this.parseParameters();
+                                if (parameters == null) {
+                                    return null;
+                                }
+                                returnType.appendChild(parameters);
+                            }
                             if (returnType == null) {
                                 // Recover from a missing return type
                                 if (this.peek(lexer_1.TokenKind.SEMICOLON) || this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
@@ -3906,7 +3920,8 @@ System.register("scope", ["symbol", "stringbuilder", "type"], function (exports_
                 findNested(name, hint, mode) {
                     var scope = this;
                     while (scope != null) {
-                        if (scope.symbol == null || scope.symbol.kind != symbol_1.SymbolKind.TYPE_CLASS || mode == FindNested.ALLOW_INSTANCE_ERRORS) {
+                        if (scope.symbol == null || scope.symbol.kind != symbol_1.SymbolKind.TYPE_CLASS ||
+                            mode == FindNested.ALLOW_INSTANCE_ERRORS || scope.symbol.node.hasParameters()) {
                             var local = scope.findLocal(name, hint);
                             if (local != null) {
                                 return local;
@@ -8278,7 +8293,8 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                         case compiler_2.CompileTarget.ASMJS:
                             lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/types.tbs") + "\n";
                             // lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/math.tbs") + "\n";
-                            // lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/malloc.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/malloc.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/array.tbs") + "\n";
                             return lib;
                     }
                 }
@@ -9045,20 +9061,6 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         }
                     }
                     else if (node.kind == node_7.NodeKind.NEW) {
-                        let resolvedNode = node.resolvedType.symbol.node;
-                        let type = node.newType();
-                        let size;
-                        if (type.resolvedType.isArray()) {
-                            size = type.resolvedType.allocationSizeOf(this.context);
-                        }
-                        else {
-                            size = type.resolvedType.allocationSizeOf(this.context);
-                        }
-                        assert(size > 0);
-                        // Pass the object size as the first argument
-                        //this.code.append(`malloc(${size}|0)`);//TODO: access functions from function table using function index
-                        // this.code.append(`${node.resolvedType.symbol.name}_new(`);
-                        // this.code.append(`);`);
                         this.emitConstructor(node);
                     }
                     else if (node.kind == node_7.NodeKind.NOT) {
@@ -9286,7 +9288,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     else {
                         assert(false);
                     }
-                    assert(offset);
+                    assert(!isNaN(offset));
                     // Relative address
                     if (relativeBase != null) {
                         this.emitExpression(relativeBase, parser_5.Precedence.ASSIGN);
@@ -9675,21 +9677,38 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     }
                 }
                 emitConstructor(node) {
-                    let constructorNode = node.constructorNode();
-                    let args = constructorNode.functionFirstArgumentIgnoringThis();
-                    let callSymbol = constructorNode.symbol;
-                    let child = node.firstChild.nextSibling;
-                    this.code.append(`${callSymbol.parent().name}_new(`);
-                    while (child != null) {
-                        let forceCastType = null;
-                        if (args.symbol.resolvedType.isDouble()) {
-                            forceCastType = AsmType.DOUBLE;
-                        }
-                        this.emitExpression(child, parser_5.Precedence.MEMBER, true, forceCastType);
-                        child = child.nextSibling;
-                        args = args.nextSibling;
-                        if (child) {
-                            this.code.append(", ");
+                    let type = node.newType();
+                    let size;
+                    if (type.resolvedType.isArray()) {
+                        size = type.firstChild.resolvedType.allocationSizeOf(this.context);
+                        console.log("Array size:" + size);
+                        let constructorNode = node.constructorNode();
+                        let args = constructorNode.functionFirstArgumentIgnoringThis();
+                        let callSymbol = constructorNode.symbol;
+                        let child = node.firstChild.nextSibling;
+                        this.code.append(`${callSymbol.parent().name}_new(`);
+                        assert(child.resolvedType.isInteger());
+                        this.code.append(`${size * child.intValue}|0, ${size}|0`);
+                    }
+                    else {
+                        size = type.resolvedType.allocationSizeOf(this.context);
+                        assert(size > 0);
+                        let constructorNode = node.constructorNode();
+                        let args = constructorNode.functionFirstArgumentIgnoringThis();
+                        let callSymbol = constructorNode.symbol;
+                        let child = node.firstChild.nextSibling;
+                        this.code.append(`${callSymbol.parent().name}_new(`);
+                        while (child != null) {
+                            let forceCastType = null;
+                            if (args.symbol.resolvedType.isDouble()) {
+                                forceCastType = AsmType.DOUBLE;
+                            }
+                            this.emitExpression(child, parser_5.Precedence.MEMBER, true, forceCastType);
+                            child = child.nextSibling;
+                            args = args.nextSibling;
+                            if (child) {
+                                this.code.append(", ");
+                            }
                         }
                     }
                     this.code.append(")|0");
@@ -10216,7 +10235,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     while (source != null) {
                         var file = source.file;
                         if (file != null) {
-                            if (source == this.librarySource) {
+                            if (source.isLibrary) {
                                 checker_1.initialize(context, file, global.scope, checker_1.CheckMode.INITIALIZE);
                                 checker_1.resolve(context, file, global.scope);
                             }
@@ -10230,7 +10249,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                             }
                         }
                         // Stop if the library code has errors because it's highly likely that everything is broken
-                        if (source == this.librarySource && this.log.hasErrors()) {
+                        if (source.isLibrary && this.log.hasErrors()) {
                             fullResolve = false;
                             break;
                         }
@@ -10350,6 +10369,19 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             linkSymbolToNode(symbol, node);
             parentScope.define(context.log, symbol, scope_2.ScopeHint.NORMAL);
             parentScope = symbol.scope;
+            if (node.parameterCount() > 0) {
+                //Class has generic parameters
+                let genericType = node.firstGenericType();
+                let symbol = new symbol_8.Symbol();
+                symbol.kind = symbol_8.SymbolKind.TYPE_GENERIC;
+                symbol.name = genericType.stringValue;
+                symbol.resolvedType = new type_2.Type();
+                symbol.resolvedType.symbol = symbol;
+                symbol.flags = symbol_8.SYMBOL_FLAG_IS_GENERIC;
+                addScopeToSymbol(symbol, parentScope);
+                linkSymbolToNode(symbol, genericType);
+                parentScope.define(context.log, symbol, scope_2.ScopeHint.NORMAL);
+            }
         }
         else if (kind == node_9.NodeKind.FUNCTION) {
             assert(node.symbol == null);
@@ -10444,7 +10476,6 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             context.sbyteType = parentScope.findLocal("sbyte", scope_2.ScopeHint.NORMAL).resolvedType;
             context.shortType = parentScope.findLocal("short", scope_2.ScopeHint.NORMAL).resolvedType;
             context.stringType = parentScope.findLocal("string", scope_2.ScopeHint.NORMAL).resolvedType;
-            context.arrayType = parentScope.findLocal("Array", scope_2.ScopeHint.NORMAL).resolvedType;
             context.uint32Type = parentScope.findLocal("uint32", scope_2.ScopeHint.NORMAL).resolvedType;
             context.uint64Type = parentScope.findLocal("uint64", scope_2.ScopeHint.NORMAL).resolvedType;
             context.ushortType = parentScope.findLocal("ushort", scope_2.ScopeHint.NORMAL).resolvedType;
@@ -10460,15 +10491,24 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             prepareNativeType(context.uint32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
             prepareNativeType(context.uint64Type, 8, symbol_8.SYMBOL_FLAG_NATIVE_LONG | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
             prepareNativeType(context.stringType, 4, symbol_8.SYMBOL_FLAG_IS_REFERENCE);
-            prepareNativeType(context.arrayType, 4, symbol_8.SYMBOL_FLAG_IS_ARRAY);
             prepareNativeType(context.float32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_FLOAT);
             prepareNativeType(context.float64Type, 8, symbol_8.SYMBOL_FLAG_NATIVE_DOUBLE);
+            //Prepare builtin types
+            context.arrayType = parentScope.findLocal("Array", scope_2.ScopeHint.NORMAL).resolvedType;
+            prepareBuiltinType(context.arrayType, 0, symbol_8.SYMBOL_FLAG_IS_ARRAY); //byteSize will calculate later
         }
     }
     exports_19("initialize", initialize);
     function prepareNativeType(type, byteSizeAndMaxAlignment, flags) {
         let symbol = type.symbol;
         symbol.kind = symbol_8.SymbolKind.TYPE_NATIVE;
+        symbol.byteSize = byteSizeAndMaxAlignment;
+        symbol.maxAlignment = byteSizeAndMaxAlignment;
+        symbol.flags = flags;
+    }
+    function prepareBuiltinType(type, byteSizeAndMaxAlignment, flags) {
+        let symbol = type.symbol;
+        symbol.kind = symbol_8.SymbolKind.TYPE_CLASS;
         symbol.byteSize = byteSizeAndMaxAlignment;
         symbol.maxAlignment = byteSizeAndMaxAlignment;
         symbol.flags = flags;
@@ -10509,7 +10549,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' on a module");
             forbidFlag(context, node, node_9.NODE_FLAG_PRIVATE, "Cannot use 'private' on a module");
         }
-        else if (symbol.kind == symbol_8.SymbolKind.TYPE_CLASS || symbol.kind == symbol_8.SymbolKind.TYPE_NATIVE) {
+        else if (symbol.kind == symbol_8.SymbolKind.TYPE_CLASS || symbol.kind == symbol_8.SymbolKind.TYPE_NATIVE ||
+            symbol.kind == symbol_8.SymbolKind.TYPE_GENERIC) {
             forbidFlag(context, node, node_9.NODE_FLAG_GET, "Cannot use 'get' on a class");
             forbidFlag(context, node, node_9.NODE_FLAG_SET, "Cannot use 'set' on a class");
             forbidFlag(context, node, node_9.NODE_FLAG_PUBLIC, "Cannot use 'public' on a class");
@@ -10798,6 +10839,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         assert(node_9.isExpression(node));
         assert(from != null);
         assert(to != null);
+        //Generic always accept any types
+        if (from.isGeneric() || to.isGeneric()) {
+            return true;
+        }
         // Early-out if the types are identical or errors
         if (from == to || from == context.errorType || to == context.errorType) {
             return true;
@@ -11084,6 +11129,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 context.currentReturnType = oldReturnType;
                 context.isUnsafeAllowed = oldUnsafeAllowed;
             }
+        }
+        else if (kind == node_9.NodeKind.PARAMETER) {
+            let symbol = node.symbol;
         }
         else if (kind == node_9.NodeKind.VARIABLE) {
             let symbol = node.symbol;
@@ -11534,27 +11582,21 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         else if (kind == node_9.NodeKind.NEW) {
             let type = node.newType();
             resolveAsType(context, type, parentScope);
+            if (type.resolvedType.isArray()) {
+                resolveAsType(context, type.firstChild, parentScope);
+            }
             if (type.resolvedType != context.errorType) {
                 if (!type.resolvedType.isClass()) {
-                    if (type.resolvedType.isArray()) {
-                        resolveAsType(context, type.firstChild, parentScope);
-                        node.resolvedType = type.resolvedType;
-                    }
-                    else {
-                        context.log.error(type.range, stringbuilder_11.StringBuilder_new()
-                            .append("Cannot construct type '")
-                            .append(type.resolvedType.toString())
-                            .appendChar('\'')
-                            .finish());
-                    }
+                    context.log.error(type.range, stringbuilder_11.StringBuilder_new()
+                        .append("Cannot construct type '")
+                        .append(type.resolvedType.toString())
+                        .appendChar('\'')
+                        .finish());
                 }
                 else {
                     node.resolvedType = type.resolvedType;
                 }
             }
-            // if(type.resolvedType.isArray()){
-            //     node.resolvedType = node.firstChild.resolvedType;
-            // }
             //Constructors arguments
             let child = type.nextSibling;
             let constructorNode = node.constructorNode();
@@ -11986,7 +12028,7 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
         return kind >= SymbolKind.VARIABLE_ARGUMENT && kind <= SymbolKind.VARIABLE_LOCAL;
     }
     exports_20("isVariable", isVariable);
-    var node_10, imports_3, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, SYMBOL_FLAG_IS_ARRAY, Symbol;
+    var node_10, imports_3, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, Symbol;
     return {
         setters: [
             function (node_10_1) {
@@ -12001,16 +12043,17 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
                 SymbolKind[SymbolKind["TYPE_MODULE"] = 0] = "TYPE_MODULE";
                 SymbolKind[SymbolKind["TYPE_INTERFACE"] = 1] = "TYPE_INTERFACE";
                 SymbolKind[SymbolKind["TYPE_CLASS"] = 2] = "TYPE_CLASS";
-                SymbolKind[SymbolKind["TYPE_ENUM"] = 3] = "TYPE_ENUM";
-                SymbolKind[SymbolKind["TYPE_GLOBAL"] = 4] = "TYPE_GLOBAL";
-                SymbolKind[SymbolKind["TYPE_NATIVE"] = 5] = "TYPE_NATIVE";
-                SymbolKind[SymbolKind["FUNCTION_INSTANCE"] = 6] = "FUNCTION_INSTANCE";
-                SymbolKind[SymbolKind["FUNCTION_GLOBAL"] = 7] = "FUNCTION_GLOBAL";
-                SymbolKind[SymbolKind["VARIABLE_ARGUMENT"] = 8] = "VARIABLE_ARGUMENT";
-                SymbolKind[SymbolKind["VARIABLE_CONSTANT"] = 9] = "VARIABLE_CONSTANT";
-                SymbolKind[SymbolKind["VARIABLE_GLOBAL"] = 10] = "VARIABLE_GLOBAL";
-                SymbolKind[SymbolKind["VARIABLE_INSTANCE"] = 11] = "VARIABLE_INSTANCE";
-                SymbolKind[SymbolKind["VARIABLE_LOCAL"] = 12] = "VARIABLE_LOCAL";
+                SymbolKind[SymbolKind["TYPE_GENERIC"] = 3] = "TYPE_GENERIC";
+                SymbolKind[SymbolKind["TYPE_ENUM"] = 4] = "TYPE_ENUM";
+                SymbolKind[SymbolKind["TYPE_GLOBAL"] = 5] = "TYPE_GLOBAL";
+                SymbolKind[SymbolKind["TYPE_NATIVE"] = 6] = "TYPE_NATIVE";
+                SymbolKind[SymbolKind["FUNCTION_INSTANCE"] = 7] = "FUNCTION_INSTANCE";
+                SymbolKind[SymbolKind["FUNCTION_GLOBAL"] = 8] = "FUNCTION_GLOBAL";
+                SymbolKind[SymbolKind["VARIABLE_ARGUMENT"] = 9] = "VARIABLE_ARGUMENT";
+                SymbolKind[SymbolKind["VARIABLE_CONSTANT"] = 10] = "VARIABLE_CONSTANT";
+                SymbolKind[SymbolKind["VARIABLE_GLOBAL"] = 11] = "VARIABLE_GLOBAL";
+                SymbolKind[SymbolKind["VARIABLE_INSTANCE"] = 12] = "VARIABLE_INSTANCE";
+                SymbolKind[SymbolKind["VARIABLE_LOCAL"] = 13] = "VARIABLE_LOCAL";
             })(SymbolKind || (SymbolKind = {}));
             exports_20("SymbolKind", SymbolKind);
             (function (SymbolState) {
@@ -12030,6 +12073,7 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
             exports_20("SYMBOL_FLAG_NATIVE_DOUBLE", SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8);
             exports_20("SYMBOL_FLAG_USED", SYMBOL_FLAG_USED = 1 << 9);
             exports_20("SYMBOL_FLAG_IS_ARRAY", SYMBOL_FLAG_IS_ARRAY = 1 << 10);
+            exports_20("SYMBOL_FLAG_IS_GENERIC", SYMBOL_FLAG_IS_GENERIC = 1 << 11);
             Symbol = class Symbol {
                 constructor() {
                     this.state = SymbolState.UNINITIALIZED;
@@ -12129,6 +12173,10 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_21, conte
             Type = class Type {
                 isClass() {
                     return this.symbol != null && this.symbol.kind == symbol_9.SymbolKind.TYPE_CLASS;
+                }
+                isGeneric() {
+                    let symbol = this.symbol || this.pointerTo.symbol;
+                    return symbol != null && symbol.kind == symbol_9.SymbolKind.TYPE_GENERIC;
                 }
                 isEnum() {
                     return this.symbol != null && this.symbol.kind == symbol_9.SymbolKind.TYPE_ENUM;
@@ -12989,6 +13037,26 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                     }
                     return count;
                 }
+                parameterCount() {
+                    let count = 0;
+                    let child = this.firstChild;
+                    if (child.kind == NodeKind.PARAMETERS) {
+                        child = child.firstChild;
+                        while (child != null) {
+                            count = count + 1;
+                            child = child.nextSibling;
+                        }
+                    }
+                    return count;
+                }
+                hasParameters() {
+                    let count = 0;
+                    let child = this.firstChild;
+                    if (child.kind == NodeKind.PARAMETERS) {
+                        return child.childCount() > 0;
+                    }
+                    return false;
+                }
                 appendChild(child) {
                     child.parent = this;
                     if (this.firstChild == null) {
@@ -13206,10 +13274,11 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                     assert(isExpression(this.firstChild));
                     return this.firstChild;
                 }
-                genericType() {
-                    assert(this.kind == NodeKind.PARAMETERS);
-                    assert(this.childCount() > 0);
-                    return this.firstChild;
+                firstGenericType() {
+                    assert(this.kind == NodeKind.CLASS);
+                    assert(this.firstChild.kind == NodeKind.PARAMETERS);
+                    assert(this.firstChild.childCount() > 0);
+                    return this.firstChild.firstChild;
                 }
                 variableType() {
                     assert(this.kind == NodeKind.VARIABLE);

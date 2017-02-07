@@ -49,7 +49,8 @@ export class Scope {
   findNested(name: string, hint: ScopeHint, mode: FindNested): Symbol {
     var scope:Scope = this;
     while (scope != null) {
-      if (scope.symbol == null || scope.symbol.kind != SymbolKind.TYPE_CLASS || mode == FindNested.ALLOW_INSTANCE_ERRORS) {
+      if (scope.symbol == null || scope.symbol.kind != SymbolKind.TYPE_CLASS ||
+          mode == FindNested.ALLOW_INSTANCE_ERRORS || scope.symbol.node.hasParameters()) {
         var local = scope.findLocal(name, hint);
         if (local != null) {
           return local;

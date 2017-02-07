@@ -1,16 +1,34 @@
-class Data{
+class Data {
 
-    id:int32;
+    id: int32;
 
-    v1:float32;
-    v2:float32;
-    v3:float32;
+    v1: float32;
+    v2: float32;
+    v3: float32;
 
-    constructor(id:int32):Data{
+    constructor(id: int32): Data {
         this.id = id;
         return this;
     }
+    set(v1:float32, v2:float32, v3:float32):void{
+        this.v1 = v1;
+        this.v2 = v2;
+        this.v3 = v3;
+    }
 }
-function test():void {
-    let a:Array<Data> = new Array<Data>(10);
+
+var a: Array<Data> = new Array<Data>(10);
+
+export function test(): Array<Data> {
+    let i:int32 = 0;
+
+    while (i < 10) {
+        a[i] = new Data(0);
+        i = i + 1;
+    }
+
+    return a;
+}
+export function push(d:Data):int32 {
+    a.push(d);
 }
