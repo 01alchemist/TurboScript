@@ -6,18 +6,18 @@ export class Array<T> {
     // operator [] (index: int32): T;
     operator [] (index: int32): *T {
         if (index < (this.bytesLength/this.elementSize)) {
-            return *((this as *int32 + 2 + index * 2) as *int32) as *T;
+            return *((this as *int32 + 8 + index * 4) as *int32) as *T;
         }
         return null;
     }
     operator []= (index: int32, value:*T):void {
-        *((this as *int32 + 2 + index * 2) as *int32) = value;
+        *((this as *int32 + 8 + index * 4) as *int32) = value;
     }
 
-    constructor(bytesLength: int32, elementSize: int32): *byte {
+    constructor(bytesLength: int32, elementSize: int32): Array<T> {
         this.bytesLength = bytesLength;
         this.elementSize = elementSize;
-        return malloc(bytesLength);
+        return this;
     }
 
     get length(): int32 {

@@ -639,8 +639,6 @@ class WasmModule {
                 this.growMemoryInitializer();
 
                 let offset = symbol.offset;
-                // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
-                // symbol.byteOffset = offset;
 
                 if (sizeOf == 1) {
                     if (symbol.resolvedType.isUnsigned()) {

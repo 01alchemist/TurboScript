@@ -46,15 +46,15 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-/*export*/function init_malloc():void{
-    numFreeChunks = 0;
-    firstFree = 0;
-    lastFree = 0;
-    originalHeapPointer = 40 as *byte;
-    currentHeapPointer  = 40 as *byte;
-}
+// function init_malloc():void{
+//     numFreeChunks = 0;
+//     firstFree = 0;
+//     lastFree = 0;
+//     originalHeapPointer = 40 as *byte;//this will override by compiler
+//     currentHeapPointer  = 40 as *byte;//this will override by compiler
+// }
 
-/*export*/function malloc(nbytes: int32): *byte {
+export function malloc(nbytes: int32): *byte {
 
     //All loc variable should declare here before assigning named value
     var alignment:int32 = 8;
@@ -92,7 +92,7 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
     return offset as *byte;
 }
-/*export*/function free(ptr:*byte):void{
+export function free(ptr:*byte):void{
 
     var chunkptr:*byte = null;
     var tmp1:int32 = 0;
@@ -164,16 +164,16 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     }
     return null;
 }
-/*export*/function getHeapPtr(): int32 {
+export function getHeapPtr(): int32 {
     return currentHeapPointer as int32;
 }
-/*export*/function getFreeMemory(): int32 {
+export function getFreeMemory(): int32 {
     return freeMemory;
 }
-/*export*/function getOriginalHeapPtr(): int32 {
+export function getOriginalHeapPtr(): int32 {
     return originalHeapPointer as int32;
 }
-/*export*/function getNumFreeChunks():int32{
+export function getNumFreeChunks():int32{
     return numFreeChunks as int32;
 }
 /*export*/function getFirstFree():int32{

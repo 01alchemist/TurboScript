@@ -1,8 +1,7 @@
 import {CheckContext} from "./checker";
 import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "./stringbuilder";
 import {
-    Node, isCompactNodeKind, isUnaryPostfix, NodeKind, invertedBinaryKind, NODE_FLAG_DECLARE,
-    NODE_FLAG_UNSAFE_TURBO
+    Node, isCompactNodeKind, isUnaryPostfix, NodeKind, invertedBinaryKind, NODE_FLAG_DECLARE
 } from "./node";
 import {Precedence} from "./parser";
 import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
@@ -14,7 +13,7 @@ let classMap: Map<string, any> = new Map<string, any>();
 let virtualMap: Map<string, any> = new Map<string, any>();
 let currentClass: string;
 let turboTargetPointer: string; //to store temporary pointer for variable access rewrite
-let namespace:string = "";
+let namespace: string = "";
 let exportedFunctions = [];
 export class TurboJsResult {
     context: CheckContext;
@@ -284,7 +283,14 @@ export class TurboJsResult {
                 resolvedNode = node.resolvedType.symbol.node;
             }
 
-            if (resolvedTargetNode.isDeclareOrTurbo()) {
+            if (resolvedTargetNode.isJavaScript()) {
+
+                this.emitExpression(node.dotTarget(), Precedence.MEMBER);
+                this.code.append(".");
+                this.emitSymbolName(node.symbol);
+
+            }
+            else {
 
                 let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
 
@@ -316,11 +322,6 @@ export class TurboJsResult {
                     this.code.append(".");
                     this.emitSymbolName(node.symbol);
                 }
-
-            } else {
-                this.emitExpression(node.dotTarget(), Precedence.MEMBER);
-                this.code.append(".");
-                this.emitSymbolName(node.symbol);
             }
         }
 
@@ -362,7 +363,7 @@ export class TurboJsResult {
                     let needComma = false;
                     if (node.firstChild) {
                         let firstNode = node.firstChild.resolvedType.symbol.node;
-                        if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo() && turboTargetPointer) {
+                        if (!firstNode.isDeclare() && turboTargetPointer) {
                             this.code.append(`${turboTargetPointer}`);
                             needComma = true;
                         }
@@ -376,12 +377,12 @@ export class TurboJsResult {
         else if (node.kind == NodeKind.NEW) {
             let resolvedNode = node.resolvedType.symbol.node;
             let type = node.newType();
-            if (resolvedNode.isDeclareOrTurbo()) {
-                this.emitExpression(type, Precedence.UNARY_POSTFIX);
-                this.code.append("_new");
-            } else {
+            if (resolvedNode.isJavaScript()) {
                 this.code.append("new ");
                 this.emitExpression(type, Precedence.UNARY_POSTFIX);
+            } else {
+                this.emitExpression(type, Precedence.UNARY_POSTFIX);
+                this.code.append("_new");
             }
 
             this.code.append("(");
@@ -497,7 +498,7 @@ export class TurboJsResult {
                 this.code.append("(");
             }
 
-            if(left.intValue && right.intValue){
+            if (left.intValue && right.intValue) {
                 this.code.append("__imul(");
                 this.emitExpression(left, Precedence.LOWEST);
                 this.code.append(", ");
@@ -512,7 +513,7 @@ export class TurboJsResult {
                     }
                 }
 
-            }else{
+            } else {
                 this.emitExpression(left, Precedence.LOWEST);
                 this.code.append(" * ");
                 this.emitExpression(right, Precedence.LOWEST);
@@ -547,7 +548,7 @@ export class TurboJsResult {
 
             currentClass = node.symbol.name;
             let classDef = this.getClassDef(node);
-            let isTurbo = node.isTurbo();
+            let isTurbo = !node.isJavaScript();
             // Emit constructor
             if (!node.isDeclare()) {
                 this.emitNewlineBefore(node);
@@ -604,7 +605,7 @@ export class TurboJsResult {
             this.emitNewlineBefore(node);
 
             let isConstructor: boolean = symbol.name == "constructor";
-            let isTurbo: boolean = node.parent.isTurbo();
+            let isTurbo: boolean = !node.parent.isJavaScript();
 
             if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
 
@@ -682,7 +683,7 @@ export class TurboJsResult {
             this.code.append(") ");
 
             let parent = symbol.parent();
-            let parentName: string = parent? parent.name : "";
+            let parentName: string = parent ? parent.name : "";
             let classDef = classMap.get(parentName);
 
             if (isConstructor && isTurbo) {
@@ -718,7 +719,7 @@ export class TurboJsResult {
 
             // this.code.append(needsSemicolon ? ";\n" : "\n");
 
-            if(node.isExport()){
+            if (node.isExport()) {
                 exportedFunctions.push(this.emitSymbolName(symbol));
                 this.code.append(" = ");
                 this.emitSymbolName(symbol);
@@ -1115,9 +1116,9 @@ export function turboJsEmit(compiler: Compiler): void {
     }
 
     code.append("return {\n");
-    code.append(`   getMemoryUsage:getMemoryUsage${exportedFunctions.length > 0?",":""}\n`);
-    exportedFunctions.forEach((name:string,index) => {
-        code.append(`   ${name}:${name}${index < exportedFunctions.length-1?",":""}\n`);
+    code.append(`   getMemoryUsage:getMemoryUsage${exportedFunctions.length > 0 ? "," : ""}\n`);
+    exportedFunctions.forEach((name: string, index) => {
+        code.append(`   ${name}:${name}${index < exportedFunctions.length - 1 ? "," : ""}\n`);
     });
     code.append("}\n");
     code.indent -= 1;

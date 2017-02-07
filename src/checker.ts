@@ -678,7 +678,7 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
     }
 
     // Allow conversions from null
-    else if (from == context.nullType && to.isReference()) {
+    else if (from == context.nullType/* && to.isReference()*/) {
         return true;
     }
 

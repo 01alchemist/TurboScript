@@ -9,8 +9,9 @@ import {
     createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
-    createDelete, createImports, NODE_FLAG_IMPORT, createImport, NODE_FLAG_ANYFUNC, createType, createAny, createArray
+    NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
+    createDelete, createImports, NODE_FLAG_IMPORT, createImport, NODE_FLAG_ANYFUNC, createType, createAny, createArray,
+    NODE_FLAG_JAVASCRIPT
 } from "./node";
 
 export enum Precedence {
@@ -339,6 +340,12 @@ class ParserContext {
             if (this.peek(TokenKind.PLUS_PLUS)) return this.parseUnaryPrefix(NodeKind.PREFIX_INCREMENT, ParseKind.EXPRESSION);
         }
 
+
+        if(this.peek(TokenKind.LEFT_BRACE)){
+            console.log("Check if its JS");
+
+        }
+
         this.unexpectedToken();
         return null;
     }
@@ -624,6 +631,10 @@ class ParserContext {
         }
 
         return block.withRange(spanRanges(open.range, close.range));
+    }
+
+    parseObject():Node {
+
     }
 
     parseReturn(): Node {
@@ -1403,7 +1414,7 @@ class ParserContext {
             else if (this.eat(TokenKind.STATIC)) flag = NODE_FLAG_STATIC;
             else if (this.eat(TokenKind.ANYFUNC)) flag = NODE_FLAG_ANYFUNC;
             else if (this.eat(TokenKind.UNSAFE)) flag = NODE_FLAG_UNSAFE;
-            else if (this.eat(TokenKind.UNSAFE_TURBO)) flag = NODE_FLAG_UNSAFE_TURBO;
+            else if (this.eat(TokenKind.JAVASCRIPT)) flag = NODE_FLAG_JAVASCRIPT;
             else if (this.eat(TokenKind.START)) flag = NODE_FLAG_START;
             else if (this.eat(TokenKind.VIRTUAL)) flag = NODE_FLAG_VIRTUAL;
             else return firstFlag;
@@ -1444,7 +1455,7 @@ class ParserContext {
         return node.withRange(spanRanges(token.range, node.range));
     }
 
-    parseUnsafeTurbo(): Node {
+    parseJavaScript(): Node {
         let token = this.current;
         this.advance();
 
@@ -1453,7 +1464,7 @@ class ParserContext {
             return null;
         }
 
-        node.flags = node.flags | NODE_FLAG_UNSAFE_TURBO;
+        node.flags = node.flags | NODE_FLAG_JAVASCRIPT;
         return node.withRange(spanRanges(token.range, node.range));
     }
 
@@ -1487,8 +1498,8 @@ class ParserContext {
         let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
 
         // if (this.peek(TokenKind.IMPORT) && firstFlag == null) return this.parseImport(); //disabled or now
-        // if (this.peek(TokenKind.UNSAFE_TURBO) && firstFlag == null) return this.parseUnsafeTurbo(); // disabled for now
         // if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe(); //disabled for now
+        if (this.peek(TokenKind.JAVASCRIPT) && firstFlag == null) return this.parseJavaScript();
         if (this.peek(TokenKind.START) && firstFlag == null) return this.parseStart();
         if (this.peek(TokenKind.CONST) || this.peek(TokenKind.LET) || this.peek(TokenKind.VAR)) return this.parseVariables(firstFlag, null);
         if (this.peek(TokenKind.FUNCTION)) return this.parseFunction(firstFlag, null);

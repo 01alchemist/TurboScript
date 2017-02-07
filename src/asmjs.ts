@@ -1,14 +1,16 @@
 import {CheckContext} from "./checker";
+import {ByteArray, ByteArray_append32, ByteArray_set32, ByteArray_setString, ByteArray_set16} from "./bytearray";
 import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "./stringbuilder";
 import {
     Node, isCompactNodeKind, isUnaryPostfix, NodeKind, invertedBinaryKind, NODE_FLAG_DECLARE,
-    NODE_FLAG_UNSAFE_TURBO, isBinary
+    isBinary
 } from "./node";
 import {Precedence} from "./parser";
 import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
 import {SymbolKind, Symbol} from "./symbol";
 import {Compiler} from "./compiler";
 import {Type} from "./type";
+import {alignToNextMultipleOf} from "./imports";
 
 const ASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
 
@@ -16,6 +18,7 @@ let optimization: uint8 = 0;
 let importMap: Map<string, any> = new Map<string, any>();
 let classMap: Map<string, any> = new Map<string, any>();
 let functionMap: Map<string, any> = new Map<string, any>();
+let jsFunctionMap: Map<string, any> = new Map<string, any>();
 let signatureMap: Map<number, any> = new Map<number, any>();
 let virtualMap: Map<string, any> = new Map<string, any>();
 let currentClass: string;
@@ -108,6 +111,17 @@ export class AsmJsModule {
     mallocFunctionIndex: int32 = -1;
     freeFunctionIndex: int32 = -1;
     startFunctionIndex: int32 = -1;
+
+    growMemoryInitializer(): void {
+        let array = this.memoryInitializer;
+        let current = array.length;
+        let length = this.context.nextGlobalVariableOffset;
+
+        while (current < length) {
+            array.append(0);
+            current = current + 1;
+        }
+    }
 
     emitNewlineBefore(node: Node): void {
         if (this.previousNode != null && (!isCompactNodeKind(this.previousNode.kind) || !isCompactNodeKind(node.kind))) {
@@ -509,30 +523,12 @@ export class AsmJsModule {
         else if (node.kind == NodeKind.DOT) {
             let dotTarget = node.dotTarget();
             let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
-            let targetSymbolName: string;
-
-            if (dotTarget.symbol) {
-                targetSymbolName = dotTarget.symbol.name;
-            } else {
-                targetSymbolName = "(::unknown::)";
-            }
-
-            let resolvedNode = null;
-
-            if (node.resolvedType.pointerTo) {
-                resolvedNode = node.resolvedType.pointerTo.symbol.node;
-            } else {
-                resolvedNode = node.resolvedType.symbol.node;
-            }
-
-            let ref: string = targetSymbolName == "this" ? "ptr" : targetSymbolName;
 
             if (node.symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
                 this.emitLoadFromMemory(node.symbol.resolvedType, node.dotTarget(), node.symbol.offset);
             }
 
             else if (node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
-                turboTargetPointer = ref;
                 this.code.append(resolvedTargetNode.stringValue);
                 this.code.append("_");
                 this.emitSymbolName(node.symbol);
@@ -613,9 +609,18 @@ export class AsmJsModule {
                     let needComma = false;
                     if (node.firstChild) {
                         let firstNode = node.firstChild.resolvedType.symbol.node;
-                        if (!firstNode.isDeclare() && node.firstChild.firstChild && turboTargetPointer) {
-                            this.code.append(`${turboTargetPointer}`);
-                            needComma = true;
+                        if (!firstNode.isDeclare() && node.parent.firstChild.firstChild && node.parent.firstChild.firstChild.kind == NodeKind.DOT) {
+                            let dotTarget = node.firstChild.firstChild;
+                            if (dotTarget.symbol) {
+                                if (dotTarget.symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
+                                    this.emitExpression(dotTarget, Precedence.ASSIGN, true);
+                                } else {
+                                    let ref = dotTarget.symbol.name == "this" ? "ptr" : dotTarget.symbol.name;
+                                    this.code.append(`${ref}`);
+                                }
+
+                                needComma = true;
+                            }
                         }
                     }
                     this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma, value.symbol.node.functionFirstArgumentIgnoringThis());
@@ -812,7 +817,7 @@ export class AsmJsModule {
             shift = 1;
         }
 
-        else if (sizeOf == 4) {
+        else if (sizeOf == 4 || type.isClass()) {
 
             if (type.isFloat()) {
                 idLeft = "fround(";
@@ -868,7 +873,7 @@ export class AsmJsModule {
             shift = 1;
         }
 
-        else if (sizeOf == 4) {
+        else if (sizeOf == 4 || type.isClass()) {
 
             if (type.isFloat()) {
                 this.code.append(`HEAPF32[(`);
@@ -1058,8 +1063,10 @@ export class AsmJsModule {
             }
 
             if (isConstructor) {
-                let size = parent.resolvedType.allocationSizeOf(this.context);
-
+                let size = parent.resolvedType.allocationSizeOf(this.context).toString();
+                if (parent.resolvedType.isArray()) {
+                    size = `(${size} + bytesLength)|0`;
+                }
                 this.code.append(`var ptr = 0;\n`);
                 this.code.append(`ptr = ${namespace}malloc(${size})|0;\n`);
 
@@ -1362,8 +1369,9 @@ export class AsmJsModule {
         let size;
 
         if (type.resolvedType.isArray()) {
-            size = type.firstChild.resolvedType.allocationSizeOf(this.context);
-            console.log("Array size:" + size);
+            let elementType = type.firstChild.resolvedType;
+            //ignore 64 bit pointer
+            size = elementType.isClass() ? 4 : elementType.allocationSizeOf(this.context);
 
             let constructorNode = node.constructorNode();
             let args = constructorNode.functionFirstArgumentIgnoringThis();
@@ -1557,6 +1565,39 @@ export class AsmJsModule {
         return vars;
     }
 
+    emitDataSegments(): void {
+        this.growMemoryInitializer();
+        let memoryInitializer = this.memoryInitializer;
+        let initializerLength = memoryInitializer.length;
+        let initialHeapPointer = alignToNextMultipleOf(ASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
+
+        // Pass the initial heap pointer to the "malloc" function
+        memoryInitializer.writeUnsignedInt(initialHeapPointer, ASM_MEMORY_INITIALIZER_BASE + this.originalHeapPointer);
+        memoryInitializer.writeUnsignedInt(initialHeapPointer, ASM_MEMORY_INITIALIZER_BASE + this.currentHeapPointer);
+
+        // Copy the entire memory initializer (also includes zero-initialized data for now)
+        this.code.append("function initMemory() {\n", 1);
+        let i = 0;
+        let value;
+        let col = 4;
+        while (i < initializerLength) {
+            for (let j = 0; j < col; j++) {
+                let index = i + j;
+                if (index < initializerLength) {
+                    value = memoryInitializer.get(index);
+                    this.code.append(`HEAPU8[${index}] = ${value}; `);
+                }
+            }
+            this.code.append("\n");
+            i = i + col;
+        }
+
+        this.code.clearIndent(1);
+        this.code.indent -= 1;
+        this.code.append("}\n");
+        exportTable.push("initMemory");
+    }
+
     prepareToEmit(node: Node): void {
         if (node.kind == NodeKind.STRING) {
             let text = node.stringValue;
@@ -1579,41 +1620,56 @@ export class AsmJsModule {
             if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
                 let sizeOf = symbol.resolvedType.variableSizeOf(this.context);
                 let value = symbol.node.variableValue();
-
+                let memoryInitializer = this.memoryInitializer;
                 // Copy the initial value into the memory initializer
+                this.growMemoryInitializer();
 
                 let offset = symbol.offset;
-                // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
-                // symbol.byteOffset = offset;
 
                 if (sizeOf == 1) {
                     if (symbol.resolvedType.isUnsigned()) {
+                        memoryInitializer.writeUnsignedByte(value.intValue, offset);
                     } else {
+                        memoryInitializer.writeByte(value.intValue, offset);
                     }
                 }
                 else if (sizeOf == 2) {
                     if (symbol.resolvedType.isUnsigned()) {
+                        memoryInitializer.writeUnsignedShort(value.intValue, offset);
                     } else {
+                        memoryInitializer.writeShort(value.intValue, offset);
                     }
                 }
                 else if (sizeOf == 4) {
                     if (symbol.resolvedType.isFloat()) {
+                        memoryInitializer.writeFloat(value.floatValue, offset);
                     } else {
                         if (symbol.resolvedType.isUnsigned()) {
+                            memoryInitializer.writeUnsignedInt(value.intValue, offset);
                         } else {
+                            memoryInitializer.writeInt(value.intValue, offset);
                         }
                     }
                 }
                 else if (sizeOf == 8) {
                     if (symbol.resolvedType.isDouble()) {
+                        memoryInitializer.writeDouble(value.rawValue, offset);
                     } else {
                         //TODO Implement Int64 write
                         if (symbol.resolvedType.isUnsigned()) {
+                            //memoryInitializer.writeUnsignedInt64(value.rawValue, offset);
                         } else {
+                            //memoryInitializer.writeInt64(value.rawValue, offset);
                         }
                     }
                 }
-                else assert(false);
+                else if (node.symbol.resolvedType.isClass()) {
+                    //NULL pointer
+                    memoryInitializer.writeInt(0, offset);
+                }
+                else {
+                    assert(false);
+                }
 
                 // Make sure the heap offset is tracked
                 if (symbol.name == "currentHeapPointer") {
@@ -2029,13 +2085,14 @@ export function asmJsEmit(compiler: Compiler): void {
     let code: StringBuilder = StringBuilder_new();
     let module = new AsmJsModule();
     module.context = compiler.context;
+    module.memoryInitializer = new ByteArray();
     module.code = code;
 
     module.prepareToEmit(compiler.global);
 
     code.append("function TurboModule(global, env, buffer) {\n");
-    code.append('"use asm";\n');
     code.emitIndent(1);
+    code.append('"use asm";\n');
     code.append('//##################################\n');
     code.append('//#            RUNTIME             #\n');
     code.append('//##################################\n');
@@ -2045,6 +2102,13 @@ export function asmJsEmit(compiler: Compiler): void {
     code.append('//#            IMPORTS             #\n');
     code.append('//##################################\n');
     module.emitImports();
+    code.append('\n');
+    code.append('//##################################\n');
+    code.append('//#       MEMORY INITIALIZER       #\n');
+    code.append('//##################################\n');
+
+    module.emitDataSegments();
+
     code.append('\n');
     code.append('//##################################\n');
     code.append('//#             CODE               #\n');

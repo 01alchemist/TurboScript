@@ -87,7 +87,7 @@ export enum TokenKind {
     THIS,
     TRUE,
     UNSAFE,
-    UNSAFE_TURBO,
+    JAVASCRIPT,
     START,
     VIRTUAL,
     VAR,
@@ -216,7 +216,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.THIS) return "'this'";
     if (token == TokenKind.TRUE) return "'true'";
     if (token == TokenKind.UNSAFE) return "'unsafe'";
-    if (token == TokenKind.UNSAFE_TURBO) return "'@unsafe'";
+    if (token == TokenKind.JAVASCRIPT) return "'@JS'";
     if (token == TokenKind.START) return "'@start'";
     if (token == TokenKind.VIRTUAL) return "'@virtual'";
     if (token == TokenKind.VAR) return "'var'";
@@ -311,6 +311,7 @@ export function tokenize(source: Source, log: Log): Token {
                     if (text == "let") kind = TokenKind.LET;
                     else if (text == "new") kind = TokenKind.NEW;
                     else if (text == "var") kind = TokenKind.VAR;
+                    else if (text == "@JS") kind = TokenKind.JAVASCRIPT;
                 }
 
                 else if (length == 4) {
@@ -348,7 +349,6 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "declare") kind = TokenKind.DECLARE;
                     else if (text == "extends") kind = TokenKind.EXTENDS;
                     else if (text == "private") kind = TokenKind.PRIVATE;
-                    else if (text == "@unsafe") kind = TokenKind.UNSAFE_TURBO;
                     else if (text == "@import") kind = TokenKind.IMPORT;
                     else if (text == "anyfunc") kind = TokenKind.ANYFUNC;
                 }

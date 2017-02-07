@@ -8,6 +8,13 @@
 <script src="array.asm.js"></script>
 <script>
     var turbo = initTurbo(0x10000);
+    function data_to_json(ptr){
+        return {
+            v1:turbo.HEAPF32[(ptr + 4) >> 2],
+            v2:turbo.HEAPF32[(ptr + 8) >> 2],
+            v3:turbo.HEAPF32[(ptr + 12) >> 2]
+        }
+    }
 </script>
 </body>
 </html>

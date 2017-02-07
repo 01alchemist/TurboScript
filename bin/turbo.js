@@ -1520,8 +1520,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
             return "'true'";
         if (token == TokenKind.UNSAFE)
             return "'unsafe'";
-        if (token == TokenKind.UNSAFE_TURBO)
-            return "'@unsafe'";
+        if (token == TokenKind.JAVASCRIPT)
+            return "'@JS'";
         if (token == TokenKind.START)
             return "'@start'";
         if (token == TokenKind.VIRTUAL)
@@ -1622,6 +1622,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.NEW;
                         else if (text == "var")
                             kind = TokenKind.VAR;
+                        else if (text == "@JS")
+                            kind = TokenKind.JAVASCRIPT;
                     }
                     else if (length == 4) {
                         if (text == "else")
@@ -1678,8 +1680,6 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.EXTENDS;
                         else if (text == "private")
                             kind = TokenKind.PRIVATE;
-                        else if (text == "@unsafe")
-                            kind = TokenKind.UNSAFE_TURBO;
                         else if (text == "@import")
                             kind = TokenKind.IMPORT;
                         else if (text == "anyfunc")
@@ -2112,7 +2112,7 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                 TokenKind[TokenKind["THIS"] = 75] = "THIS";
                 TokenKind[TokenKind["TRUE"] = 76] = "TRUE";
                 TokenKind[TokenKind["UNSAFE"] = 77] = "UNSAFE";
-                TokenKind[TokenKind["UNSAFE_TURBO"] = 78] = "UNSAFE_TURBO";
+                TokenKind[TokenKind["JAVASCRIPT"] = 78] = "JAVASCRIPT";
                 TokenKind[TokenKind["START"] = 79] = "START";
                 TokenKind[TokenKind["VIRTUAL"] = 80] = "VIRTUAL";
                 TokenKind[TokenKind["VAR"] = 81] = "VAR";
@@ -2448,6 +2448,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         if (this.peek(lexer_1.TokenKind.PLUS_PLUS))
                             return this.parseUnaryPrefix(node_1.NodeKind.PREFIX_INCREMENT, ParseKind.EXPRESSION);
                     }
+                    if (this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
+                        console.log("Check if its JS");
+                    }
                     this.unexpectedToken();
                     return null;
                 }
@@ -2700,6 +2703,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         return null;
                     }
                     return block.withRange(log_2.spanRanges(open.range, close.range));
+                }
+                parseObject() {
                 }
                 parseReturn() {
                     let token = this.current;
@@ -3342,8 +3347,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             flag = node_1.NODE_FLAG_ANYFUNC;
                         else if (this.eat(lexer_1.TokenKind.UNSAFE))
                             flag = node_1.NODE_FLAG_UNSAFE;
-                        else if (this.eat(lexer_1.TokenKind.UNSAFE_TURBO))
-                            flag = node_1.NODE_FLAG_UNSAFE_TURBO;
+                        else if (this.eat(lexer_1.TokenKind.JAVASCRIPT))
+                            flag = node_1.NODE_FLAG_JAVASCRIPT;
                         else if (this.eat(lexer_1.TokenKind.START))
                             flag = node_1.NODE_FLAG_START;
                         else if (this.eat(lexer_1.TokenKind.VIRTUAL))
@@ -3380,14 +3385,14 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     node.flags = node.flags | node_1.NODE_FLAG_IMPORT;
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
-                parseUnsafeTurbo() {
+                parseJavaScript() {
                     let token = this.current;
                     this.advance();
                     let node = this.parseBlock();
                     if (node == null) {
                         return null;
                     }
-                    node.flags = node.flags | node_1.NODE_FLAG_UNSAFE_TURBO;
+                    node.flags = node.flags | node_1.NODE_FLAG_JAVASCRIPT;
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
                 parseStart() {
@@ -3413,8 +3418,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                 parseStatement(mode) {
                     let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
                     // if (this.peek(TokenKind.IMPORT) && firstFlag == null) return this.parseImport(); //disabled or now
-                    // if (this.peek(TokenKind.UNSAFE_TURBO) && firstFlag == null) return this.parseUnsafeTurbo(); // disabled for now
                     // if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe(); //disabled for now
+                    if (this.peek(lexer_1.TokenKind.JAVASCRIPT) && firstFlag == null)
+                        return this.parseJavaScript();
                     if (this.peek(lexer_1.TokenKind.START) && firstFlag == null)
                         return this.parseStart();
                     if (this.peek(lexer_1.TokenKind.CONST) || this.peek(lexer_1.TokenKind.LET) || this.peek(lexer_1.TokenKind.VAR))
@@ -5619,7 +5625,12 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                         else {
                             resolvedNode = node.resolvedType.symbol.node;
                         }
-                        if (resolvedTargetNode.isDeclareOrTurbo()) {
+                        if (resolvedTargetNode.isJavaScript()) {
+                            this.emitExpression(node.dotTarget(), parser_4.Precedence.MEMBER);
+                            this.code.append(".");
+                            this.emitSymbolName(node.symbol);
+                        }
+                        else {
                             let ref = targetSymbolName == "this" ? "ptr" : targetSymbolName;
                             if (node.symbol.kind == symbol_5.SymbolKind.VARIABLE_INSTANCE) {
                                 let memory = classMap.get(currentClass).members[node.symbol.name].memory;
@@ -5647,11 +5658,6 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                                 this.code.append(".");
                                 this.emitSymbolName(node.symbol);
                             }
-                        }
-                        else {
-                            this.emitExpression(node.dotTarget(), parser_4.Precedence.MEMBER);
-                            this.code.append(".");
-                            this.emitSymbolName(node.symbol);
                         }
                     }
                     else if (node.kind == node_5.NodeKind.HOOK) {
@@ -5686,7 +5692,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                                 let needComma = false;
                                 if (node.firstChild) {
                                     let firstNode = node.firstChild.resolvedType.symbol.node;
-                                    if (!firstNode.isDeclare() && node.firstChild.firstChild.resolvedType.symbol.node.isTurbo() && turboTargetPointer) {
+                                    if (!firstNode.isDeclare() && turboTargetPointer) {
                                         this.code.append(`${turboTargetPointer}`);
                                         needComma = true;
                                     }
@@ -5699,13 +5705,13 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                     else if (node.kind == node_5.NodeKind.NEW) {
                         let resolvedNode = node.resolvedType.symbol.node;
                         let type = node.newType();
-                        if (resolvedNode.isDeclareOrTurbo()) {
-                            this.emitExpression(type, parser_4.Precedence.UNARY_POSTFIX);
-                            this.code.append("_new");
-                        }
-                        else {
+                        if (resolvedNode.isJavaScript()) {
                             this.code.append("new ");
                             this.emitExpression(type, parser_4.Precedence.UNARY_POSTFIX);
+                        }
+                        else {
+                            this.emitExpression(type, parser_4.Precedence.UNARY_POSTFIX);
+                            this.code.append("_new");
                         }
                         this.code.append("(");
                         let valueNode = type.nextSibling;
@@ -5848,7 +5854,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                     else if (node.kind == node_5.NodeKind.CLASS) {
                         currentClass = node.symbol.name;
                         let classDef = this.getClassDef(node);
-                        let isTurbo = node.isTurbo();
+                        let isTurbo = !node.isJavaScript();
                         // Emit constructor
                         if (!node.isDeclare()) {
                             this.emitNewlineBefore(node);
@@ -5897,7 +5903,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                         let needsSemicolon = false;
                         this.emitNewlineBefore(node);
                         let isConstructor = symbol.name == "constructor";
-                        let isTurbo = node.parent.isTurbo();
+                        let isTurbo = !node.parent.isJavaScript();
                         if (symbol.kind == symbol_5.SymbolKind.FUNCTION_INSTANCE) {
                             if (isConstructor && isTurbo) {
                                 this.code.append("function ");
@@ -7425,8 +7431,6 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             // Copy the initial value into the memory initializer
                             this.growMemoryInitializer();
                             let offset = symbol.offset;
-                            // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
-                            // symbol.byteOffset = offset;
                             if (sizeOf == 1) {
                                 if (symbol.resolvedType.isUnsigned()) {
                                     memoryInitializer.writeUnsignedByte(value.intValue, offset);
@@ -8293,7 +8297,7 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                         case compiler_2.CompileTarget.ASMJS:
                             lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/types.tbs") + "\n";
                             // lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/math.tbs") + "\n";
-                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/malloc.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/malloc.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/array.tbs") + "\n";
                             return lib;
                     }
@@ -8323,7 +8327,7 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
         }
     };
 });
-System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], function (exports_16, context_16) {
+System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", "symbol", "imports"], function (exports_16, context_16) {
     "use strict";
     var __moduleName = context_16 && context_16.id;
     function asmAreSignaturesEqual(a, b) {
@@ -8528,11 +8532,12 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
         let code = stringbuilder_9.StringBuilder_new();
         let module = new AsmJsModule();
         module.context = compiler.context;
+        module.memoryInitializer = new bytearray_2.ByteArray();
         module.code = code;
         module.prepareToEmit(compiler.global);
         code.append("function TurboModule(global, env, buffer) {\n");
-        code.append('"use asm";\n');
         code.emitIndent(1);
+        code.append('"use asm";\n');
         code.append('//##################################\n');
         code.append('//#            RUNTIME             #\n');
         code.append('//##################################\n');
@@ -8542,6 +8547,11 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
         code.append('//#            IMPORTS             #\n');
         code.append('//##################################\n');
         module.emitImports();
+        code.append('\n');
+        code.append('//##################################\n');
+        code.append('//#       MEMORY INITIALIZER       #\n');
+        code.append('//##################################\n');
+        module.emitDataSegments();
         code.append('\n');
         code.append('//##################################\n');
         code.append('//#             CODE               #\n');
@@ -8566,9 +8576,12 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
         compiler.outputJS = code.finish();
     }
     exports_16("asmJsEmit", asmJsEmit);
-    var stringbuilder_9, node_7, parser_5, js_2, symbol_7, ASM_MEMORY_INITIALIZER_BASE, optimization, importMap, classMap, functionMap, signatureMap, virtualMap, currentClass, turboTargetPointer, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, AsmJsModule;
+    var bytearray_2, stringbuilder_9, node_7, parser_5, js_2, symbol_7, imports_2, ASM_MEMORY_INITIALIZER_BASE, optimization, importMap, classMap, functionMap, jsFunctionMap, signatureMap, virtualMap, currentClass, turboTargetPointer, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, AsmJsModule;
     return {
         setters: [
+            function (bytearray_2_1) {
+                bytearray_2 = bytearray_2_1;
+            },
             function (stringbuilder_9_1) {
                 stringbuilder_9 = stringbuilder_9_1;
             },
@@ -8583,6 +8596,9 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
             },
             function (symbol_7_1) {
                 symbol_7 = symbol_7_1;
+            },
+            function (imports_2_1) {
+                imports_2 = imports_2_1;
             }
         ],
         execute: function () {
@@ -8591,6 +8607,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
             importMap = new Map();
             classMap = new Map();
             functionMap = new Map();
+            jsFunctionMap = new Map();
             signatureMap = new Map();
             virtualMap = new Map();
             namespace = "";
@@ -8640,6 +8657,15 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     this.mallocFunctionIndex = -1;
                     this.freeFunctionIndex = -1;
                     this.startFunctionIndex = -1;
+                }
+                growMemoryInitializer() {
+                    let array = this.memoryInitializer;
+                    let current = array.length;
+                    let length = this.context.nextGlobalVariableOffset;
+                    while (current < length) {
+                        array.append(0);
+                        current = current + 1;
+                    }
                 }
                 emitNewlineBefore(node) {
                     if (this.previousNode != null && (!node_7.isCompactNodeKind(this.previousNode.kind) || !node_7.isCompactNodeKind(node.kind))) {
@@ -8957,26 +8983,10 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     else if (node.kind == node_7.NodeKind.DOT) {
                         let dotTarget = node.dotTarget();
                         let resolvedTargetNode = dotTarget.resolvedType.symbol.node;
-                        let targetSymbolName;
-                        if (dotTarget.symbol) {
-                            targetSymbolName = dotTarget.symbol.name;
-                        }
-                        else {
-                            targetSymbolName = "(::unknown::)";
-                        }
-                        let resolvedNode = null;
-                        if (node.resolvedType.pointerTo) {
-                            resolvedNode = node.resolvedType.pointerTo.symbol.node;
-                        }
-                        else {
-                            resolvedNode = node.resolvedType.symbol.node;
-                        }
-                        let ref = targetSymbolName == "this" ? "ptr" : targetSymbolName;
                         if (node.symbol.kind == symbol_7.SymbolKind.VARIABLE_INSTANCE) {
                             this.emitLoadFromMemory(node.symbol.resolvedType, node.dotTarget(), node.symbol.offset);
                         }
                         else if (node.symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE) {
-                            turboTargetPointer = ref;
                             this.code.append(resolvedTargetNode.stringValue);
                             this.code.append("_");
                             this.emitSymbolName(node.symbol);
@@ -9047,9 +9057,18 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                                 let needComma = false;
                                 if (node.firstChild) {
                                     let firstNode = node.firstChild.resolvedType.symbol.node;
-                                    if (!firstNode.isDeclare() && node.firstChild.firstChild && turboTargetPointer) {
-                                        this.code.append(`${turboTargetPointer}`);
-                                        needComma = true;
+                                    if (!firstNode.isDeclare() && node.parent.firstChild.firstChild && node.parent.firstChild.firstChild.kind == node_7.NodeKind.DOT) {
+                                        let dotTarget = node.firstChild.firstChild;
+                                        if (dotTarget.symbol) {
+                                            if (dotTarget.symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
+                                                this.emitExpression(dotTarget, parser_5.Precedence.ASSIGN, true);
+                                            }
+                                            else {
+                                                let ref = dotTarget.symbol.name == "this" ? "ptr" : dotTarget.symbol.name;
+                                                this.code.append(`${ref}`);
+                                            }
+                                            needComma = true;
+                                        }
                                     }
                                 }
                                 this.emitCommaSeparatedExpressions(value.nextSibling, null, needComma, value.symbol.node.functionFirstArgumentIgnoringThis());
@@ -9222,7 +9241,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.code.append(`(HEAP${heapType}[(`);
                         shift = 1;
                     }
-                    else if (sizeOf == 4) {
+                    else if (sizeOf == 4 || type.isClass()) {
                         if (type.isFloat()) {
                             idLeft = "fround(";
                             idRight = ")";
@@ -9271,7 +9290,7 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         this.code.append(`HEAP${heapType}[(`);
                         shift = 1;
                     }
-                    else if (sizeOf == 4) {
+                    else if (sizeOf == 4 || type.isClass()) {
                         if (type.isFloat()) {
                             this.code.append(`HEAPF32[(`);
                         }
@@ -9426,7 +9445,10 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                             child = child.nextSibling;
                         }
                         if (isConstructor) {
-                            let size = parent.resolvedType.allocationSizeOf(this.context);
+                            let size = parent.resolvedType.allocationSizeOf(this.context).toString();
+                            if (parent.resolvedType.isArray()) {
+                                size = `(${size} + bytesLength)|0`;
+                            }
                             this.code.append(`var ptr = 0;\n`);
                             this.code.append(`ptr = ${namespace}malloc(${size})|0;\n`);
                         }
@@ -9680,8 +9702,9 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     let type = node.newType();
                     let size;
                     if (type.resolvedType.isArray()) {
-                        size = type.firstChild.resolvedType.allocationSizeOf(this.context);
-                        console.log("Array size:" + size);
+                        let elementType = type.firstChild.resolvedType;
+                        //ignore 64 bit pointer
+                        size = elementType.isClass() ? 4 : elementType.allocationSizeOf(this.context);
                         let constructorNode = node.constructorNode();
                         let args = constructorNode.functionFirstArgumentIgnoringThis();
                         let callSymbol = constructorNode.symbol;
@@ -9852,6 +9875,35 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                     }
                     return vars;
                 }
+                emitDataSegments() {
+                    this.growMemoryInitializer();
+                    let memoryInitializer = this.memoryInitializer;
+                    let initializerLength = memoryInitializer.length;
+                    let initialHeapPointer = imports_2.alignToNextMultipleOf(ASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
+                    // Pass the initial heap pointer to the "malloc" function
+                    memoryInitializer.writeUnsignedInt(initialHeapPointer, ASM_MEMORY_INITIALIZER_BASE + this.originalHeapPointer);
+                    memoryInitializer.writeUnsignedInt(initialHeapPointer, ASM_MEMORY_INITIALIZER_BASE + this.currentHeapPointer);
+                    // Copy the entire memory initializer (also includes zero-initialized data for now)
+                    this.code.append("function initMemory() {\n", 1);
+                    let i = 0;
+                    let value;
+                    let col = 4;
+                    while (i < initializerLength) {
+                        for (let j = 0; j < col; j++) {
+                            let index = i + j;
+                            if (index < initializerLength) {
+                                value = memoryInitializer.get(index);
+                                this.code.append(`HEAPU8[${index}] = ${value}; `);
+                            }
+                        }
+                        this.code.append("\n");
+                        i = i + col;
+                    }
+                    this.code.clearIndent(1);
+                    this.code.indent -= 1;
+                    this.code.append("}\n");
+                    exportTable.push("initMemory");
+                }
                 prepareToEmit(node) {
                     if (node.kind == node_7.NodeKind.STRING) {
                         let text = node.stringValue;
@@ -9870,34 +9922,42 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                         if (symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
                             let sizeOf = symbol.resolvedType.variableSizeOf(this.context);
                             let value = symbol.node.variableValue();
+                            let memoryInitializer = this.memoryInitializer;
                             // Copy the initial value into the memory initializer
+                            this.growMemoryInitializer();
                             let offset = symbol.offset;
-                            // let offset = this.context.allocateGlobalVariableOffset(sizeOf, symbol.resolvedType.allocationAlignmentOf(this.context));
-                            // symbol.byteOffset = offset;
                             if (sizeOf == 1) {
                                 if (symbol.resolvedType.isUnsigned()) {
+                                    memoryInitializer.writeUnsignedByte(value.intValue, offset);
                                 }
                                 else {
+                                    memoryInitializer.writeByte(value.intValue, offset);
                                 }
                             }
                             else if (sizeOf == 2) {
                                 if (symbol.resolvedType.isUnsigned()) {
+                                    memoryInitializer.writeUnsignedShort(value.intValue, offset);
                                 }
                                 else {
+                                    memoryInitializer.writeShort(value.intValue, offset);
                                 }
                             }
                             else if (sizeOf == 4) {
                                 if (symbol.resolvedType.isFloat()) {
+                                    memoryInitializer.writeFloat(value.floatValue, offset);
                                 }
                                 else {
                                     if (symbol.resolvedType.isUnsigned()) {
+                                        memoryInitializer.writeUnsignedInt(value.intValue, offset);
                                     }
                                     else {
+                                        memoryInitializer.writeInt(value.intValue, offset);
                                     }
                                 }
                             }
                             else if (sizeOf == 8) {
                                 if (symbol.resolvedType.isDouble()) {
+                                    memoryInitializer.writeDouble(value.rawValue, offset);
                                 }
                                 else {
                                     //TODO Implement Int64 write
@@ -9907,8 +9967,13 @@ System.register("asmjs", ["stringbuilder", "node", "parser", "js", "symbol"], fu
                                     }
                                 }
                             }
-                            else
+                            else if (node.symbol.resolvedType.isClass()) {
+                                //NULL pointer
+                                memoryInitializer.writeInt(0, offset);
+                            }
+                            else {
                                 assert(false);
+                            }
                             // Make sure the heap offset is tracked
                             if (symbol.name == "currentHeapPointer") {
                                 assert(this.currentHeapPointer == -1);
@@ -10847,7 +10912,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         if (from == to || from == context.errorType || to == context.errorType) {
             return true;
         }
-        else if (from == context.nullType && to.isReference()) {
+        else if (from == context.nullType /* && to.isReference()*/) {
             return true;
         }
         else if ((from.isReference() || to.isReference())) {
@@ -10977,7 +11042,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         // Convert multiplication or division by a power of 2 into a shift
         if ((node.kind == node_9.NodeKind.MULTIPLY || (node.kind == node_9.NodeKind.DIVIDE || node.kind == node_9.NodeKind.REMAINDER) && node.resolvedType.isUnsigned()) &&
-            right.kind == node_9.NodeKind.INT32 && imports_2.isPositivePowerOf2(right.intValue)) {
+            right.kind == node_9.NodeKind.INT32 && imports_3.isPositivePowerOf2(right.intValue)) {
             // Extract the shift from the value
             let shift = -1;
             let value = right.intValue;
@@ -11958,7 +12023,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
     }
     exports_19("resolve", resolve);
-    var symbol_8, type_2, node_9, compiler_3, log_5, scope_2, stringbuilder_11, imports_2, const_1, CheckContext, CheckMode;
+    var symbol_8, type_2, node_9, compiler_3, log_5, scope_2, stringbuilder_11, imports_3, const_1, CheckContext, CheckMode;
     return {
         setters: [
             function (symbol_8_1) {
@@ -11982,8 +12047,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             function (stringbuilder_11_1) {
                 stringbuilder_11 = stringbuilder_11_1;
             },
-            function (imports_2_1) {
-                imports_2 = imports_2_1;
+            function (imports_3_1) {
+                imports_3 = imports_3_1;
             },
             function (const_1_1) {
                 const_1 = const_1_1;
@@ -11995,7 +12060,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
              */
             CheckContext = class CheckContext {
                 allocateGlobalVariableOffset(sizeOf, alignmentOf) {
-                    let offset = imports_2.alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
+                    let offset = imports_3.alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
                     this.nextGlobalVariableOffset = offset + sizeOf;
                     return offset;
                 }
@@ -12028,14 +12093,14 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
         return kind >= SymbolKind.VARIABLE_ARGUMENT && kind <= SymbolKind.VARIABLE_LOCAL;
     }
     exports_20("isVariable", isVariable);
-    var node_10, imports_3, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, Symbol;
+    var node_10, imports_4, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, Symbol;
     return {
         setters: [
             function (node_10_1) {
                 node_10 = node_10_1;
             },
-            function (imports_3_1) {
-                imports_3 = imports_3_1;
+            function (imports_4_1) {
+                imports_4 = imports_4_1;
             }
         ],
         execute: function () {
@@ -12127,7 +12192,7 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
                             if (type != context.errorType) {
                                 var alignmentOf = type.variableAlignmentOf(context);
                                 // Align the member to the next available slot
-                                offset = imports_3.alignToNextMultipleOf(offset, alignmentOf);
+                                offset = imports_4.alignToNextMultipleOf(offset, alignmentOf);
                                 if (alignmentOf > maxAlignment)
                                     maxAlignment = alignmentOf;
                                 // Allocate the member by extending the object
@@ -12142,7 +12207,7 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
                         offset = 1;
                     }
                     // The object size must be a multiple of the maximum alignment for arrays to work correctly
-                    offset = imports_3.alignToNextMultipleOf(offset, maxAlignment);
+                    offset = imports_4.alignToNextMultipleOf(offset, maxAlignment);
                     this.byteSize = offset;
                     this.maxAlignment = maxAlignment;
                 }
@@ -12700,7 +12765,32 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         return node;
     }
     exports_22("createParseError", createParseError);
-    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_IMPORT, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_UNSAFE_TURBO, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NODE_FLAG_ANYFUNC, NodeFlag, Node;
+    //JavaScript
+    function createJSNumber() {
+        let node = new Node();
+        node.kind = NodeKind.JS_NUMBER;
+        return node;
+    }
+    exports_22("createJSNumber", createJSNumber);
+    function createJSObject() {
+        let node = new Node();
+        node.kind = NodeKind.JS_OBJECT;
+        return node;
+    }
+    exports_22("createJSObject", createJSObject);
+    function createJSString() {
+        let node = new Node();
+        node.kind = NodeKind.JS_STRING;
+        return node;
+    }
+    exports_22("createJSString", createJSString);
+    function createJSArray() {
+        let node = new Node();
+        node.kind = NodeKind.JS_ARRAY;
+        return node;
+    }
+    exports_22("createJSArray", createJSArray);
+    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_IMPORT, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_JAVASCRIPT, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NODE_FLAG_ANYFUNC, NodeFlag, Node;
     return {
         setters: [
             function (symbol_10_1) {
@@ -12736,7 +12826,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                 NodeKind[NodeKind["IF"] = 19] = "IF";
                 NodeKind[NodeKind["RETURN"] = 20] = "RETURN";
                 NodeKind[NodeKind["UNSAFE"] = 21] = "UNSAFE";
-                NodeKind[NodeKind["UNSAFE_TURBO"] = 22] = "UNSAFE_TURBO";
+                NodeKind[NodeKind["JAVASCRIPT"] = 22] = "JAVASCRIPT";
                 NodeKind[NodeKind["START"] = 23] = "START";
                 NodeKind[NodeKind["VARIABLES"] = 24] = "VARIABLES";
                 NodeKind[NodeKind["WHILE"] = 25] = "WHILE";
@@ -12798,6 +12888,11 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                 NodeKind[NodeKind["SHIFT_LEFT"] = 78] = "SHIFT_LEFT";
                 NodeKind[NodeKind["SHIFT_RIGHT"] = 79] = "SHIFT_RIGHT";
                 NodeKind[NodeKind["SUBTRACT"] = 80] = "SUBTRACT";
+                //JavaScript
+                NodeKind[NodeKind["JS_NUMBER"] = 81] = "JS_NUMBER";
+                NodeKind[NodeKind["JS_OBJECT"] = 82] = "JS_OBJECT";
+                NodeKind[NodeKind["JS_STRING"] = 83] = "JS_STRING";
+                NodeKind[NodeKind["JS_ARRAY"] = 84] = "JS_ARRAY";
             })(NodeKind || (NodeKind = {}));
             exports_22("NodeKind", NodeKind);
             exports_22("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
@@ -12812,7 +12907,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
             exports_22("NODE_FLAG_SET", NODE_FLAG_SET = 1 << 9);
             exports_22("NODE_FLAG_STATIC", NODE_FLAG_STATIC = 1 << 10);
             exports_22("NODE_FLAG_UNSAFE", NODE_FLAG_UNSAFE = 1 << 11);
-            exports_22("NODE_FLAG_UNSAFE_TURBO", NODE_FLAG_UNSAFE_TURBO = 1 << 12);
+            exports_22("NODE_FLAG_JAVASCRIPT", NODE_FLAG_JAVASCRIPT = 1 << 12);
             exports_22("NODE_FLAG_UNSIGNED_OPERATOR", NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13);
             exports_22("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 14);
             exports_22("NODE_FLAG_START", NODE_FLAG_START = 1 << 15);
@@ -12992,8 +13087,8 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                 isStart() {
                     return (this.flags & NODE_FLAG_START) != 0;
                 }
-                isTurbo() {
-                    return (this.flags & NODE_FLAG_UNSAFE_TURBO) != 0;
+                isJavaScript() {
+                    return (this.flags & NODE_FLAG_JAVASCRIPT) != 0;
                 }
                 isStatic() {
                     return (this.flags & NODE_FLAG_STATIC) != 0;
@@ -13001,8 +13096,8 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                 isAnyfunc() {
                     return (this.flags & NODE_FLAG_ANYFUNC) != 0;
                 }
-                isDeclareOrTurbo() {
-                    return (this.flags & (NODE_FLAG_DECLARE | NODE_FLAG_UNSAFE_TURBO)) != 0;
+                isDeclareOrJavaScript() {
+                    return (this.flags & (NODE_FLAG_DECLARE | NODE_FLAG_JAVASCRIPT)) != 0;
                 }
                 isDeclareOrExport() {
                     return (this.flags & (NODE_FLAG_DECLARE | NODE_FLAG_EXPORT)) != 0;

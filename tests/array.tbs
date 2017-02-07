@@ -1,4 +1,4 @@
-class Data {
+export class Data {
 
     id: int32;
 
@@ -17,18 +17,35 @@ class Data {
     }
 }
 
-var a: Array<Data> = new Array<Data>(10);
+var a: Array<Data> = null;
 
 export function test(): Array<Data> {
+    a = new Array<Data>(10);
     let i:int32 = 0;
-
     while (i < 10) {
-        a[i] = new Data(0);
+        a[i] = new Data(i);
         i = i + 1;
     }
 
     return a;
 }
-export function push(d:Data):int32 {
-    a.push(d);
+
+export function getArrayByteLength(value:Array<Data>):int32 {
+    return value.bytesLength;
 }
+export function getArrayElementSize(value:Array<Data>):int32 {
+    return value.elementSize;
+}
+
+export function getData(index:int32):Data {
+    return a[index];
+}
+
+// @JS
+// anyfunc function data_to_json(data:Data) {
+//     return {
+//         v1:data.v1,
+//         v2:data.v2,
+//         v3:data.v3
+//     };
+// }

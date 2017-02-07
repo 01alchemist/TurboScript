@@ -34,7 +34,7 @@ export enum NodeKind {
     IF,
     RETURN,
     UNSAFE,
-    UNSAFE_TURBO,
+    JAVASCRIPT,
     START,
     VARIABLES,
     WHILE,
@@ -99,6 +99,12 @@ export enum NodeKind {
     SHIFT_LEFT,
     SHIFT_RIGHT,
     SUBTRACT,
+
+    //JavaScript
+    JS_NUMBER,
+    JS_OBJECT,
+    JS_STRING,
+    JS_ARRAY
 }
 
 export function isUnary(kind: NodeKind): boolean {
@@ -143,7 +149,7 @@ export const NODE_FLAG_PUBLIC = 1 << 8;
 export const NODE_FLAG_SET = 1 << 9;
 export const NODE_FLAG_STATIC = 1 << 10;
 export const NODE_FLAG_UNSAFE = 1 << 11;
-export const NODE_FLAG_UNSAFE_TURBO = 1 << 12;
+export const NODE_FLAG_JAVASCRIPT = 1 << 12;
 export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13;
 export const NODE_FLAG_VIRTUAL = 1 << 14;
 export const NODE_FLAG_START = 1 << 15;
@@ -419,8 +425,8 @@ export class Node {
         return (this.flags & NODE_FLAG_START) != 0;
     }
 
-    isTurbo(): boolean {
-        return (this.flags & NODE_FLAG_UNSAFE_TURBO) != 0;
+    isJavaScript(): boolean {
+        return (this.flags & NODE_FLAG_JAVASCRIPT) != 0;
     }
 
     isStatic(): boolean {
@@ -431,8 +437,8 @@ export class Node {
         return (this.flags & NODE_FLAG_ANYFUNC) != 0;
     }
 
-    isDeclareOrTurbo(): boolean {
-        return (this.flags & (NODE_FLAG_DECLARE | NODE_FLAG_UNSAFE_TURBO)) != 0;
+    isDeclareOrJavaScript(): boolean {
+        return (this.flags & (NODE_FLAG_DECLARE | NODE_FLAG_JAVASCRIPT)) != 0;
     }
 
     isDeclareOrExport(): boolean {
@@ -1282,5 +1288,30 @@ export function createMemberReference(value: Node, symbol: Symbol): Node {
 export function createParseError(): Node {
     let node = new Node();
     node.kind = NodeKind.PARSE_ERROR;
+    return node;
+}
+
+//JavaScript
+export function createJSNumber(): Node {
+    let node = new Node();
+    node.kind = NodeKind.JS_NUMBER;
+    return node;
+}
+
+export function createJSObject(): Node {
+    let node = new Node();
+    node.kind = NodeKind.JS_OBJECT;
+    return node;
+}
+
+export function createJSString(): Node {
+    let node = new Node();
+    node.kind = NodeKind.JS_STRING;
+    return node;
+}
+
+export function createJSArray(): Node {
+    let node = new Node();
+    node.kind = NodeKind.JS_ARRAY;
     return node;
 }
