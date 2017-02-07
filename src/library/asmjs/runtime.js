@@ -8,6 +8,4 @@ var HEAPF32 = new global.Float32Array(buffer);
 var HEAPF64 = new global.Float64Array(buffer);
 
 var NULL = 0;
-var STACKTOP=env.STACKTOP|0;
-var STACK_MAX=env.STACK_MAX|0;
 var fround = global.Math.fround;

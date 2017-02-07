@@ -8243,7 +8243,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                 }
                 getWasmType(type) {
                     let context = this.context;
-                    if (type == context.booleanType || type.isInteger() || (this.bitness == Bitness.x32 && type.isReference())) {
+                    if (type == context.booleanType || type.isClass() || type.isInteger() || (this.bitness == Bitness.x32 && type.isReference())) {
                         return WasmType.I32;
                     }
                     else if (type.isLong() || (this.bitness == Bitness.x64 && type.isReference())) {
@@ -8290,6 +8290,7 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                             lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/types.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/malloc.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/math.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/array.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
                             lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/types.tbs") + "\n";
@@ -10342,11 +10343,9 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     //     turboJsEmit(this);
                     // }
                     if (this.target == CompileTarget.ASMJS) {
-                        stdlib.Terminal_write(" -- asm.js --\n");
                         asmjs_1.asmJsEmit(this);
                     }
                     else if (this.target == CompileTarget.WEBASSEMBLY) {
-                        stdlib.Terminal_write(" -- wasm --\n");
                         wasm_1.wasmEmit(this);
                     }
                     stdlib.Profiler_end("emitting");
@@ -13768,9 +13767,9 @@ Usage: thinc [FLAGS] [INPUTS]
 
 Examples:
 
-  thinc main.thin --out main.js
-  thinc src/*.thin --out main.wasm
-  thinc native.thin --out main.c --define ENABLE_TESTS
+  thinc main.tbs --out main.js
+  thinc src/*.tbs --out main.wasm
+  thinc native.tbs --out main.c --define ENABLE_TESTS
 
 `);
     }

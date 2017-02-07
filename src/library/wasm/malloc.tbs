@@ -197,9 +197,9 @@ function setFoot(ptr:*byte, s:uint32):void {
     return *(chunkptr as *uint32) & ~(PREV_INUSE) as uint32;
 }
 
-function sizeof(ptr:int32):uint32{
-    return getChunkSize(ptr as *byte);
-}
+// function sizeof(ptr:int32):uint32{
+//     return getChunkSize(ptr as *byte);
+// }
 
 /* malloc */
 // var SIZE_SZ:uint32 = 4;

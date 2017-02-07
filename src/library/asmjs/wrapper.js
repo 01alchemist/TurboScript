@@ -23,7 +23,7 @@ function TurboWrapper(exports, buffer) {
     }
 }
 function initTurbo(bytes) {
-    var buffer = new ArrayBuffer(bytes);
+    var buffer = new SharedArrayBuffer(bytes);
 
     if (buffer.byteLength < 16) {
         throw new Error("The memory is too small even for metadata");
@@ -31,10 +31,7 @@ function initTurbo(bytes) {
 
     return TurboWrapper(TurboModule(
         typeof global !== 'undefined' ? global : window,
-        typeof env !== 'undefined' ? env : {
-            STACKTOP: 8,
-            STACK_MAX: 8
-        },
+        typeof env !== 'undefined' ? env : {},
         buffer
     ), buffer);
 }

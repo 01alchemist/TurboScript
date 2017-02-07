@@ -207,12 +207,10 @@ export class Compiler {
         // }
 
         if (this.target == CompileTarget.ASMJS) {
-            stdlib.Terminal_write(" -- asm.js --\n");
             asmJsEmit(this);
         }
 
         else if (this.target == CompileTarget.WEBASSEMBLY) {
-            stdlib.Terminal_write(" -- wasm --\n");
             wasmEmit(this);
         }
 

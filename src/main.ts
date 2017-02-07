@@ -94,9 +94,9 @@ Usage: thinc [FLAGS] [INPUTS]
 
 Examples:
 
-  thinc main.thin --out main.js
-  thinc src/*.thin --out main.wasm
-  thinc native.thin --out main.c --define ENABLE_TESTS
+  thinc main.tbs --out main.js
+  thinc src/*.tbs --out main.wasm
+  thinc native.tbs --out main.c --define ENABLE_TESTS
 
 `);
 }

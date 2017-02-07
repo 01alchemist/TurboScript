@@ -1628,7 +1628,7 @@ class WasmModule {
     getWasmType(type: Type): WasmType {
         let context = this.context;
 
-        if (type == context.booleanType || type.isInteger() || (this.bitness == Bitness.x32 && type.isReference())) {
+        if (type == context.booleanType || type.isClass() || type.isInteger() || (this.bitness == Bitness.x32 && type.isReference())) {
             return WasmType.I32;
         }
 

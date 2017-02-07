@@ -137,8 +137,10 @@ section {
 
 label[title]:hover:after {
     content: attr(title);
+    position: absolute;
     border: 1px solid red;
     padding: 2px 5px 2px 5px;
+    background: #232323;
 }
 
 select {
@@ -169,8 +171,6 @@ select {
     content: attr(title);
     border: 1px solid orange;
     padding: 2px 5px 2px 5px;
-    position: absolute;
-    background: #232323;
 }
 
 .spacer {
