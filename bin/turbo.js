@@ -2704,8 +2704,9 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     }
                     return block.withRange(log_2.spanRanges(open.range, close.range));
                 }
-                parseObject() {
-                }
+                // parseObject():Node {
+                //
+                // }
                 parseReturn() {
                     let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.RETURN);
@@ -8529,7 +8530,19 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
         type.id = id;
         return type;
     }
+    function reset() {
+        importMap = new Map();
+        classMap = new Map();
+        functionMap = new Map();
+        jsFunctionMap = new Map();
+        signatureMap = new Map();
+        virtualMap = new Map();
+        currentClass = "";
+        namespace = "";
+        exportTable = [];
+    }
     function asmJsEmit(compiler) {
+        reset();
         let code = stringbuilder_9.StringBuilder_new();
         let module = new AsmJsModule();
         module.context = compiler.context;
@@ -8577,7 +8590,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
         compiler.outputJS = code.finish();
     }
     exports_16("asmJsEmit", asmJsEmit);
-    var bytearray_2, stringbuilder_9, node_7, parser_5, js_2, symbol_7, imports_2, ASM_MEMORY_INITIALIZER_BASE, optimization, importMap, classMap, functionMap, jsFunctionMap, signatureMap, virtualMap, currentClass, turboTargetPointer, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, AsmJsModule;
+    var bytearray_2, stringbuilder_9, node_7, parser_5, js_2, symbol_7, imports_2, ASM_MEMORY_INITIALIZER_BASE, optimization, importMap, classMap, functionMap, jsFunctionMap, signatureMap, virtualMap, currentClass, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, AsmJsModule;
     return {
         setters: [
             function (bytearray_2_1) {

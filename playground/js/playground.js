@@ -223,14 +223,14 @@ TURBO_PATH = "../";
                     terminalName = 'main.asm.js';
 
                     var asmJsCode = joinLines([
-                        'window.turbo = (function(){',
+                        `window.turbo = (function(){`,
                         compiled.output,
                         '   return initTurbo(0x10000);',
                         '})()',
                     ]);
 
-                    runJavaScript(asmJsCode);
                     terminalContents = samples[selectedSample].usage;
+                    runJavaScript(asmJsCode);
                     break;
                 }
 
@@ -311,28 +311,15 @@ TURBO_PATH = "../";
         compileTime.textContent = compiled.totalTime + 'ms';
     }
 
-    var prevScript = null;
-
     function runJavaScript(code) {
-        window.turbo = null;
-        if(prevScript){
-            document.body.removeChild(prevScript);
+        eval(code);
+
+        if (window.turbo) {
+            window.exports = window.turbo.exports;
+            window.data = new DataView(window.turbo.RAW_MEMORY);
+            window.array = new Uint8Array(window.turbo.RAW_MEMORY);
+            window.f32 = new Float32Array(window.turbo.RAW_MEMORY);
         }
-        var codeUrl = URL.createObjectURL(new Blob([code], {type: 'text/plain'}));
-        var script = document.createElement("script");
-        script.setAttribute("src", codeUrl);
-        document.body.appendChild(script);
-
-        prevScript = script;
-
-        setTimeout(function () {
-            if (window.turbo) {
-                window.exports = window.turbo.exports;
-                window.data = new DataView(window.turbo.RAW_MEMORY);
-                window.array = new Uint8Array(window.turbo.RAW_MEMORY);
-                window.f32 = new Float32Array(window.turbo.RAW_MEMORY);
-            }
-        }, 1000);
     }
 
     function triggerDownload(name, contents) {

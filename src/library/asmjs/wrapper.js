@@ -23,7 +23,7 @@ function TurboWrapper(exports, buffer) {
     }
 }
 function initTurbo(bytes) {
-    var buffer = new SharedArrayBuffer(bytes);
+    var buffer = new ArrayBuffer(bytes);
 
     if (buffer.byteLength < 16) {
         throw new Error("The memory is too small even for metadata");

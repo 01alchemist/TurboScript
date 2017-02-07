@@ -22,7 +22,6 @@ let jsFunctionMap: Map<string, any> = new Map<string, any>();
 let signatureMap: Map<number, any> = new Map<number, any>();
 let virtualMap: Map<string, any> = new Map<string, any>();
 let currentClass: string;
-let turboTargetPointer: string; //to store temporary pointer for variable access rewrite
 let namespace: string = "";
 let exportTable: string[] = [];
 
@@ -2081,7 +2080,22 @@ function asmWrapType(id: AsmType): AsmWrappedType {
     return type;
 }
 
+function reset() {
+    importMap = new Map<string, any>();
+    classMap = new Map<string, any>();
+    functionMap = new Map<string, any>();
+    jsFunctionMap = new Map<string, any>();
+    signatureMap = new Map<number, any>();
+    virtualMap = new Map<string, any>();
+    currentClass = "";
+    namespace = "";
+    exportTable = [];
+}
+
 export function asmJsEmit(compiler: Compiler): void {
+
+    reset();
+
     let code: StringBuilder = StringBuilder_new();
     let module = new AsmJsModule();
     module.context = compiler.context;

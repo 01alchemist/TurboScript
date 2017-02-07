@@ -633,9 +633,9 @@ class ParserContext {
         return block.withRange(spanRanges(open.range, close.range));
     }
 
-    parseObject():Node {
-
-    }
+    // parseObject():Node {
+    //
+    // }
 
     parseReturn(): Node {
         let token = this.current;
