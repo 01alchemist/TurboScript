@@ -1,0 +1,84 @@
+@turbo class Plane {
+	Point:Vector
+	Normal:Vector
+	Material:Material
+    Box:Box
+    HasBox:uint8
+
+	@method init(SELF, point, normal, material){
+        SELF.Point = point;
+        SELF.Normal = normal;
+        SELF.Material = material;
+        SELF.Box = 0;
+        SELF.HasBox = 0;
+        return SELF;
+    }
+
+    static NewPlane(point:number, normal:number, material:Material):number {
+        Vector.Normalize_mem(normal, normal);
+        let ptr:number = @new Plane;
+        return Plane.init(ptr, point, normal, material);
+    }
+
+    @virtual Type(SELF:number){
+        throw ShapeType.PLANE;
+    }
+
+    @virtual ToJSON(SELF){
+        return {
+            point:Vector.ToJSON(SELF.Point),
+            normal:Vector.ToJSON(SELF.Normal),
+            material:Material.ToJSON(SELF.Material),
+            box:Box.ToJSON(SELF.Box),
+        }
+    }
+
+    @virtual Compile(SELF) {
+    }
+
+    @virtual BoundingBox(SELF):number {
+        if(SELF.HasBox){
+            return SELF.Box;
+        }
+        let ptr:number = @new Box;
+        SELF.Box = Box.init(ptr, Vector.NewVector({
+            x:Number.NEGATIVE_INFINITY,
+            y:Number.NEGATIVE_INFINITY,
+            z:Number.NEGATIVE_INFINITY
+        }),
+            Vector.NewVector({
+                x:Number.POSITIVE_INFINITY,
+                y:Number.POSITIVE_INFINITY,
+                z:Number.POSITIVE_INFINITY
+            })
+        );
+        SELF.HasBox = 1;
+        return ptr;
+    }
+
+    @virtual Intersect(SELF, ray:number):Hit {
+        let d = Vector.Dot_mem(SELF.Normal, Ray.Direction(ray));
+        if (Math.abs(d) < EPS) {
+            return Hit.NoHit
+        }
+        let a:number = Vector.Sub_mem(SELF.Point, Ray.Origin(ray));
+        let t:number = Vector.Dot_mem(a, SELF.Normal) / d;
+        if (t < EPS) {
+            return Hit.NoHit
+        }
+        return new Hit(SELF, t, null);
+    }
+
+    @virtual UV(SELF, a:Vector3):Vector3 {
+        return new Vector3();
+    }
+
+    @virtual MaterialAt(SELF, a:Vector3):number {
+        return SELF.Material;
+    }
+
+    @virtual NormalAt(SELF, a:Vector3):number {
+        return SELF.Normal;
+    }
+
+} @end

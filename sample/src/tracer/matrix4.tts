@@ -1,0 +1,302 @@
+export class Matrix4{
+
+    x00:float64
+    x01:float64
+    x02:float64
+    x03:float64
+
+    x10:float64
+    x11:float64
+    x12:float64
+    x13:float64
+
+    x20:float64
+    x21:float64
+    x22:float64
+    x23:float64
+
+    x30:float64
+    x31:float64
+    x32:float64
+    x33:float64
+
+    constructor(x00:number=0, x01:number=0, x02:number=0, x03:number=0,
+                x10:number=0, x11:number=0, x12:number=0, x13:number=0,
+                x20:number=0, x21:number=0, x22:number=0, x23:number=0,
+                x30:number=0, x31:number=0, x32:number=0, x33:number=0) {
+        this.x00 = x00;
+        this.x01 = x01;
+        this.x02 = x02;
+        this.x03 = x03;
+        this.x10 = x10;
+        this.x11 = x11;
+        this.x12 = x12;
+        this.x13 = x13;
+        this.x20 = x20;
+        this.x21 = x21;
+        this.x22 = x22;
+        this.x23 = x23;
+        this.x30 = x30;
+        this.x31 = x31;
+        this.x32 = x32;
+        this.x33 = x33;
+    }
+
+    static fromTHREEJS(e:number[]):Matrix4 {
+        return new Matrix4(
+            e[0], e[4], e[8], e[12],
+            e[1], e[5], e[9], e[13],
+            e[2], e[6], e[10], e[14],
+            e[3], e[7], e[11], e[15]
+        );
+    }
+
+    get DATA():number[] {
+        return [
+            this.x00, this.x01, this.x02, this.x03,
+            this.x10, this.x11, this.x12, this.x13,
+            this.x20, this.x21, this.x22, this.x23,
+            this.x30, this.x31, this.x32, this.x33
+        ]
+    }
+
+    static Identity():Matrix4 {
+        return new Matrix4(
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        )
+    }
+
+    static IsEqual(a:number, b:number):boolean {
+        return a.x00 == b.x00 && a.x01 == b.x01 && a.x02 == b.x02 && a.x03 == b.x03 &&
+            a.x10 == b.x10 && a.x11 == b.x11 && a.x12 == b.x12 && a.x13 == b.x13 &&
+            a.x20 == b.x20 && a.x21 == b.x21 && a.x22 == b.x22 && a.x23 == b.x23 &&
+            a.x30 == b.x30 && a.x31 == b.x31 && a.x32 == b.x32 && a.x33 == b.x33;
+    }
+
+    isIdentity():boolean {
+        return this.x00 == 1 && this.x01 == 0 && this.x02 == 0 && this.x03 == 0 &&
+            this.x10 == 0 && this.x11 == 1 && this.x12 == 0 && this.x13 == 0 &&
+            this.x20 == 0 && this.x21 == 0 && this.x22 == 1 && this.x23 == 0 &&
+            this.x30 == 0 && this.x31 == 0 && this.x32 == 0 && this.x33 == 1;
+    }
+
+    static TranslateUnitMatrix4(v:Vector3):Matrix4{
+        return new Matrix4(
+            1, 0, 0, v.x,
+            0, 1, 0, v.y,
+            0, 0, 1, v.z,
+            0, 0, 0, 1
+        )
+    }
+
+    static ScaleUnitMatrix4(v:Vector3):Matrix4{
+        return new Matrix4(
+            v.x, 0, 0, 0,
+            0, v.y, 0, 0,
+            0, 0, v.z, 0,
+            0, 0, 0, 1
+        )
+    }
+
+    static RotateUnitMatrix4(v:Vector3, a:number, _c?:number):Matrix4{
+
+        v = v.normalize();
+        let s:number = Math.sin(a);
+        let c:number = Math.cos(a);
+        let m:number = 1 - c;
+
+        return new Matrix4(
+            m*v.x * v.x + c, m * v.x * v.y + v.z * s, m * v.z * v.x - v.y * s, 0,
+            m*v.x * v.y - v.z * s, m*v.y * v.y + c, m*v.y * v.z + v.x * s, 0,
+            m*v.z * v.x + v.y * s, m*v.y * v.z - v.x * s, m*v.z * v.z + c, 0,
+            0, 0, 0, 1
+        )
+    }
+
+    static FrustumUnitMatrix4(l:number, r:number, b:number, t:number, n:number, f:number, c?:number):Matrix4{
+
+        let t1:number = 2 * n;
+        let t2:number = r - l;
+        let t3:number = t - b;
+        let t4:number = f - n;
+
+        return new Matrix4(
+            t1 / t2, 0, (r + l) / t2, 0,
+            0, t1 / t3, (t + b) / t3, 0,
+            0, 0, (-f - n) / t4, (-t1 * f) / t4,
+            0, 0, -1, 0
+        )
+    }
+
+    static OrthographicUnitMatrix4(l:number, r:number, b:number, t:number, n:number, f:number, c?:number):Matrix4{
+
+        return new Matrix4(
+            2 / (r - l), 0, 0, -(r + l) / (r - l),
+            0, 2 / (t - b), 0, -(t + b) / (t - b),
+            0, 0, -2 / (f - n), -(f + n) / (f - n),
+            0, 0, 0, 1
+        )
+    }
+
+    static PerspectiveUnitMatrix4(fovy:number, aspect:number, near:number, far:number, c?:number):Matrix4 {
+        let ymax:number = near * Math.tan(fovy * Math.PI/360);
+        let xmax:number = ymax * aspect;
+        return Matrix4.Frustum(-xmax, xmax, -ymax, ymax, near, far, c);
+    }
+
+    static LookAtMatrix4(eye:number, center:number, up:number, c?:number):Matrix4{
+        up = up.normalize();
+        let f:Vector3 = center.sub(eye).normalize();
+        let s:Vector3 = f.cross(up).normalize();
+        let u:Vector3 = s.cross(f);
+
+        return new Matrix4(
+            Vector.x(s), Vector.x(u), Vector.x(f), 0,
+            Vector.y(s), Vector.y(u), Vector.y(f), 0,
+            Vector.z(s), Vector.z(u), Vector.z(f), 0,
+            0, 0, 0, 1
+        ).Transpose().inverse().Translate(eye);
+    }
+    
+    static Translate(m:number, v:Vector3, c?:number):Matrix4 {
+        return Matrix4.Mul(m, Matrix4.TranslateUnitMatrix4(v), c);
+    }
+
+    static Scale(m:number, v:Vector3, c?:number):Matrix4{
+        return Matrix4.Mul(m, Matrix4.ScaleUnitMatrix4(v), c);
+    }
+
+    static Rotate(m:number, v:Vector3, a:number, c?:number):Matrix4 {
+        return Matrix4.Mul(m, Matrix4.RotateUnitMatrix4(v, a), c);
+    }
+
+    static Frustum(m:number, l:number, r:number, b:number, t:number, n:number, f:number, c?:number):Matrix4 {
+        return Matrix4.Mul(m, Matrix4.FrustumUnitMatrix4(l, r, b, t, n, f, c), c);
+    }
+
+    static Orthographic(m:number, l:number, r:number, b:number, t:number, n:number, f:number, c?:number):Matrix4 {
+        return Matrix4.Mul(m, Matrix4.OrthographicUnitMatrix4(l, r, b, t, n, f, c), c);
+    }
+
+    static Perspective(m:number, fovy:number, aspect:number, near:number, far:number, c?:number):Matrix4 {
+        return Matrix4.Mul(m, Matrix4.PerspectiveUnitMatrix4(fovy, aspect, near, far, c), c);
+    }
+
+    mul(b:Matrix4):Matrix4{
+        m = new Matrix4();
+        m.x00 = this.x00 * b.x00 + this.x01 * b.x10 + this.x02 * b.x20 + this.x03 * b.x30;
+        m.x10 = this.x10 * b.x00 + this.x11 * b.x10 + this.x12 * b.x20 + this.x13 * b.x30;
+        m.x20 = this.x20 * b.x00 + this.x21 * b.x10 + this.x22 * b.x20 + this.x23 * b.x30;
+        m.x30 = this.x30 * b.x00 + this.x31 * b.x10 + this.x32 * b.x20 + this.x33 * b.x30;
+        m.x01 = this.x00 * b.x01 + this.x01 * b.x11 + this.x02 * b.x21 + this.x03 * b.x31;
+        m.x11 = this.x10 * b.x01 + this.x11 * b.x11 + this.x12 * b.x21 + this.x13 * b.x31;
+        m.x21 = this.x20 * b.x01 + this.x21 * b.x11 + this.x22 * b.x21 + this.x23 * b.x31;
+        m.x31 = this.x30 * b.x01 + this.x31 * b.x11 + this.x32 * b.x21 + this.x33 * b.x31;
+        m.x02 = this.x00 * b.x02 + this.x01 * b.x12 + this.x02 * b.x22 + this.x03 * b.x32;
+        m.x12 = this.x10 * b.x02 + this.x11 * b.x12 + this.x12 * b.x22 + this.x13 * b.x32;
+        m.x22 = this.x20 * b.x02 + this.x21 * b.x12 + this.x22 * b.x22 + this.x23 * b.x32;
+        m.x32 = this.x30 * b.x02 + this.x31 * b.x12 + this.x32 * b.x22 + this.x33 * b.x32;
+        m.x03 = this.x00 * b.x03 + this.x01 * b.x13 + this.x02 * b.x23 + this.x03 * b.x33;
+        m.x13 = this.x10 * b.x03 + this.x11 * b.x13 + this.x12 * b.x23 + this.x13 * b.x33;
+        m.x23 = this.x20 * b.x03 + this.x21 * b.x13 + this.x22 * b.x23 + this.x23 * b.x33;
+        m.x33 = this.x30 * b.x03 + this.x31 * b.x13 + this.x32 * b.x23 + this.x33 * b.x33;
+        return m;
+    }
+
+    mulPosition(b:Vector3):Matrix4 {
+        let x:number = this.x00 * b.x + this.x01 * b.y + this.x02 * b.z + this.x03;
+        let y:number = this.x10 * b.x + this.x11 * b.y + this.x12 * b.z + this.x13;
+        let z:number = this.x20 * b.x + this.x21 * b.y + this.x22 * b.z + this.x23;
+        return new Vector3(x, y, z);
+    }
+
+    mulDirection(b:Vector):Vector3 {
+        let x:number = this.x00 * b.x + this.x01 * b.y + this.x02 * b.z;
+        let y:number = this.x10 * b.x + this.x11 * b.y + this.x12 * b.z;
+        let z:number = this.x20 * b.x + this.x21 * b.y + this.x22 * b.z;
+        return new Vector3(x, y, z);
+    }
+
+    static MulRay(a:number, ray:Ray):Ray {
+        throw "Not implemented";
+        let origin:Vector3 = Matrix4.MulPosition_vec3(a, ray.origin);
+        let direction:Vector3 = Matrix4.MulDirection_vec3(a, ray.direction);
+        return new Ray(origin, direction);
+    }
+
+    static  MulBox(a:number, box:number, c?:number):Matrix4 {
+        throw "Not implemented";
+        let min:number = Box.Min(box);
+        let max:number = Box.Max(box);
+        // http://dev.theomader.com/transform-bounding-boxes/
+        let r:Vector3 = new Vector3(this.x00, this.x10, this.x20);
+        let u:Vector3 = new Vector3(this.x01, this.x11, this.x21);
+        let b:Vector3 = new Vector3(this.x02, this.x12, this.x22);
+        let t:Vector3 = new Vector3(this.x03, this.x13, this.x23);
+        let xa:Vector3 = r.mulScalar(Vector.x(min));
+        let xb:Vector3 = r.mulScalar(Vector.x(max));
+        let ya:Vector3 = u.mulScalar(Vector.y(min));
+        let yb:Vector3 = u.mulScalar(Vector.y(max));
+        let za:Vector3 = b.mulScalar(Vector.z(min));
+        let zb:Vector3 = b.mulScalar(Vector.z(max));
+        xa = xa.min(xb);
+        xb = xa.max(xb);
+        ya = ya.min(yb);
+        yb = ya.max(yb);
+        za = za.min(zb);
+        zb = za.max(zb);
+        min = xa.add(ya).add(za).add(t);
+        max = xb.add(yb).add(zb).add(t);
+        let ptr = c?c:@new Box;
+        return Box.Init_mem(ptr, min, max);
+    }
+
+    transpose():Matrix4 {
+        return new Matrix4(
+            this.x00, this.x10, this.x20, this.x30,
+            this.x01, this.x11, this.x21, this.x31,
+            this.x02, this.x12, this.x22, this.x32,
+            this.x03, this.x13, this.x23, this.x33
+        );
+    }
+
+    determinant():number {
+        return (this.x00*this.x11*this.x22*this.x33 - this.x00*this.x11*this.x23*this.x32 +
+        this.x00*this.x12*this.x23*this.x31 - this.x00*this.x12*this.x21*this.x33 +
+        this.x00*this.x13*this.x21*this.x32 - this.x00*this.x13*this.x22*this.x31 -
+        this.x01*this.x12*this.x23*this.x30 + this.x01*this.x12*this.x20*this.x33 -
+        this.x01*this.x13*this.x20*this.x32 + this.x01*this.x13*this.x22*this.x30 -
+        this.x01*this.x10*this.x22*this.x33 + this.x01*this.x10*this.x23*this.x32 +
+        this.x02*this.x13*this.x20*this.x31 - this.x02*this.x13*this.x21*this.x30 +
+        this.x02*this.x10*this.x21*this.x33 - this.x02*this.x10*this.x23*this.x31 +
+        this.x02*this.x11*this.x23*this.x30 - this.x02*this.x11*this.x20*this.x33 -
+        this.x03*this.x10*this.x21*this.x32 + this.x03*this.x10*this.x22*this.x31 -
+        this.x03*this.x11*this.x22*this.x30 + this.x03*this.x11*this.x20*this.x32 -
+        this.x03*this.x12*this.x20*this.x31 + this.x03*this.x12*this.x21*this.x30)
+    }
+
+    inverse():Matrix4 {
+        let m:number = new Matrix4();
+        let d:number = this.determinant();
+        m.x00 = (this.x12*this.x23*this.x31 - this.x13*this.x22*this.x31 + this.x13*this.x21*this.x32 - this.x11*this.x23*this.x32 - this.x12*this.x21*this.x33 + this.x11*this.x22*this.x33) / d
+        m.x01 = (this.x03*this.x22*this.x31 - this.x02*this.x23*this.x31 - this.x03*this.x21*this.x32 + this.x01*this.x23*this.x32 + this.x02*this.x21*this.x33 - this.x01*this.x22*this.x33) / d
+        m.x02 = (this.x02*this.x13*this.x31 - this.x03*this.x12*this.x31 + this.x03*this.x11*this.x32 - this.x01*this.x13*this.x32 - this.x02*this.x11*this.x33 + this.x01*this.x12*this.x33) / d
+        m.x03 = (this.x03*this.x12*this.x21 - this.x02*this.x13*this.x21 - this.x03*this.x11*this.x22 + this.x01*this.x13*this.x22 + this.x02*this.x11*this.x23 - this.x01*this.x12*this.x23) / d
+        m.x10 = (this.x13*this.x22*this.x30 - this.x12*this.x23*this.x30 - this.x13*this.x20*this.x32 + this.x10*this.x23*this.x32 + this.x12*this.x20*this.x33 - this.x10*this.x22*this.x33) / d
+        m.x11 = (this.x02*this.x23*this.x30 - this.x03*this.x22*this.x30 + this.x03*this.x20*this.x32 - this.x00*this.x23*this.x32 - this.x02*this.x20*this.x33 + this.x00*this.x22*this.x33) / d
+        m.x12 = (this.x03*this.x12*this.x30 - this.x02*this.x13*this.x30 - this.x03*this.x10*this.x32 + this.x00*this.x13*this.x32 + this.x02*this.x10*this.x33 - this.x00*this.x12*this.x33) / d
+        m.x13 = (this.x02*this.x13*this.x20 - this.x03*this.x12*this.x20 + this.x03*this.x10*this.x22 - this.x00*this.x13*this.x22 - this.x02*this.x10*this.x23 + this.x00*this.x12*this.x23) / d
+        m.x20 = (this.x11*this.x23*this.x30 - this.x13*this.x21*this.x30 + this.x13*this.x20*this.x31 - this.x10*this.x23*this.x31 - this.x11*this.x20*this.x33 + this.x10*this.x21*this.x33) / d
+        m.x21 = (this.x03*this.x21*this.x30 - this.x01*this.x23*this.x30 - this.x03*this.x20*this.x31 + this.x00*this.x23*this.x31 + this.x01*this.x20*this.x33 - this.x00*this.x21*this.x33) / d
+        m.x22 = (this.x01*this.x13*this.x30 - this.x03*this.x11*this.x30 + this.x03*this.x10*this.x31 - this.x00*this.x13*this.x31 - this.x01*this.x10*this.x33 + this.x00*this.x11*this.x33) / d
+        m.x23 = (this.x03*this.x11*this.x20 - this.x01*this.x13*this.x20 - this.x03*this.x10*this.x21 + this.x00*this.x13*this.x21 + this.x01*this.x10*this.x23 - this.x00*this.x11*this.x23) / d
+        m.x30 = (this.x12*this.x21*this.x30 - this.x11*this.x22*this.x30 - this.x12*this.x20*this.x31 + this.x10*this.x22*this.x31 + this.x11*this.x20*this.x32 - this.x10*this.x21*this.x32) / d
+        m.x31 = (this.x01*this.x22*this.x30 - this.x02*this.x21*this.x30 + this.x02*this.x20*this.x31 - this.x00*this.x22*this.x31 - this.x01*this.x20*this.x32 + this.x00*this.x21*this.x32) / d
+        m.x32 = (this.x02*this.x11*this.x30 - this.x01*this.x12*this.x30 - this.x02*this.x10*this.x31 + this.x00*this.x12*this.x31 + this.x01*this.x10*this.x32 - this.x00*this.x11*this.x32) / d
+        m.x33 = (this.x01*this.x12*this.x20 - this.x02*this.x11*this.x20 + this.x02*this.x10*this.x21 - this.x00*this.x12*this.x21 - this.x01*this.x10*this.x22 + this.x00*this.x11*this.x22) / d
+        return m;
+    }
+}

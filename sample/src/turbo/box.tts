@@ -1,0 +1,166 @@
+export class Box{
+
+	min:Vector3;
+	max:Vector3;
+
+	constructor(min:Vector3=null, max:Vector3=null):Box {
+        this.min = Vector.NewVector(min);
+        this.max = Vector.NewVector(max);
+        return this;
+	}
+
+    set(min:Vector3, max:Vector3):Box {
+        this.min = min;
+        this.max = max;
+        return this;
+	}
+
+    // static ToJSON(this){
+     //    return {
+     //        min:Vector.ToJSON(this.min),
+     //        max:Vector.ToJSON(this.max)
+     //    };
+	// }
+
+	static boxForShapes(shapes:Array<Shape>):Box{
+		let box = new Box();
+		if(shapes.length == 0) {
+			return box;
+		}
+        let i:number = 0;
+		while(i < shapes.length){
+			let shape:number = shapes[i];
+			box.extend(shape.boundingBox);
+			i = i + 1;
+		}
+		return box;
+	}
+
+	extend(b:Box):Box {
+		this.min.min(b.min, this.min.min);
+		this.max.max(b.max, this.min.min);
+		return this;
+	}
+
+	size():Vector3 {
+		return this.max.sub(this.min);
+	}
+
+	anchor(point:Vector3, c:Vector3 = null):Vector3 {
+        let size = this.size();
+        c = size.mul(point, c);
+        delete size;
+		return this.min.add(c, c);
+    }
+
+	center(c:Vector3 = null):Vector3 {
+        let point = new Vector3(0.5, 0.5, 0.5);
+		let center = this.anchor(point, c);
+		delete point;
+		return center;
+	}
+
+	outerRadius():float64 {
+        let center = this.center();
+        center = this.min.sub(center, center);
+        let radius = center.length();
+        delete center;
+        return radius;
+	}
+
+	innerRadius():float64 {
+        let center = this.center();
+        center  = center.sub(this.min, center);
+        let radius = center.maxComponent();
+        delete center;
+        return radius;
+    }
+
+	contains(b:Box):boolean{
+
+        let a_min = this.min;
+        let a_max = this.max;
+
+        return this.min.x <= b.x && this.max.x >= b.x &&
+                this.min.y <= b.y && this.max.y >= b.y &&
+                this.min.z <= b.z && this.max.z >= b.z;
+	}
+
+	intersects(b:Box):boolean {
+        let this.min = Box.min(a);
+        let this.max = Box.max(a);
+        let b.min = Box.min(b);
+        let b.max = Box.max(b);
+
+		return !(this.min.x > b.max.x || this.max.x < b.min.x || this.min.y > b.max.y ||
+		            this.max.y < b.min.y || this.min.z > b.max.z || this.max.z < b.min.z);
+	}
+
+	static intersect(r:Ray):Intersection {
+
+        let min = this.min;
+        let max = this.max;
+
+        // x1 := (b.min.x - r.Origin.x) / r.Direction.x
+        // y1 := (b.min.y - r.Origin.y) / r.Direction.y
+        // z1 := (b.min.z - r.Origin.z) / r.Direction.z
+        // x2 := (b.max.x - r.Origin.x) / r.Direction.x
+        // y2 := (b.max.y - r.Origin.y) / r.Direction.y
+        // z2 := (b.max.z - r.Origin.z) / r.Direction.z
+
+		let x1 = (this.min.x - r.origin.x) / r.direction.x;
+        let y1 = (this.min.y - r.origin.y) / r.direction.y;
+        let z1 = (this.min.z - r.origin.z) / r.direction.z;
+        let x2 = (this.max.x - r.origin.x) / r.direction.x;
+        let y2 = (this.max.y - r.origin.y) / r.direction.y;
+        let z2 = (this.max.z - r.origin.z) / r.direction.z;
+        let tmp;
+
+		if (x1 > x2) {
+            tmp = x1;
+			x1 = x2;
+            x2 = tmp;
+		}
+		if (y1 > y2) {
+			tmp = y1;
+			y1 = y2;
+            y2 = tmp
+		}
+		if (z1 > z2) {
+            tmp = z1;
+            z1 = z2;
+            z2 = tmp
+		}
+		return new Intersection(
+            Math.max(Math.max(x1, y1), z1),
+		    Math.min(Math.min(x2, y2), z2)
+        );
+	}
+
+	static Partition(axis:Axis, point:number): {left:boolean, right:boolean} {
+        let min = this.min;
+        let max = this.max;
+        let left;
+        let right;
+		switch (axis) {
+			case Axis.AxisX:
+				left = this.min.x <= point;
+				right = this.max.x >= point;
+                break;
+			case Axis.AxisY:
+				left = this.min.y <= point;
+				right = this.max.y >= point;
+                break;
+            case Axis.AxisZ:
+				left = this.min.z <= point;
+				right = this.max.z >= point;// EPIC Bug :D it was min and got weird triangle intersection
+                break;
+		}
+		return {
+            left :left,
+            right:right
+        };
+	}
+
+} @end
+

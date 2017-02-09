@@ -49,6 +49,8 @@ if(!process.env.TURBO_PATH){
 
 global["TURBO_PATH"] = process.env.TURBO_PATH;
 
+console.log("TURBO_PATH:"+global["TURBO_PATH"])
+
 //Import compiler
 require(path.resolve(process.env.TURBO_PATH, "bin/turbo.js"));
 

@@ -1,0 +1,51 @@
+export class Renderer{
+
+	constructor(
+		public Scene?:number,
+		public Camera?:number,
+		public Sampler?:Sampler,
+		public Buffer?:Buffer,
+		public SamplesPerPixel?:number,
+		public StratifiedSampling?:boolean,
+		public AdaptiveSamples?:number,
+		public FireflySamples?:number,
+		public FireflyThreshold?:number,
+		public NumCPU?:number,
+		public Verbose?:boolean){
+
+	}
+
+	static NewRenderer(scene:number, camera:number, sampler:Sampler, w:number, h:number):Renderer {
+		let r:Renderer = new Renderer();
+		r.Scene = scene;
+		r.Camera = camera;
+		r.Sampler = sampler;
+		r.Buffer = NewBuffer(w, h);
+		r.SamplesPerPixel = 1;
+		r.StratifiedSampling = false;
+		r.AdaptiveSamples = 0;
+		r.FireflySamples = 0;
+		r.FireflyThreshold = 1;
+		r.NumCPU = runtime.NumCPU();
+		r.Verbose = true;
+		return r;
+	}
+
+	init() {
+		let scene = this.Scene;
+		let camera = this.Camera;
+		let sampler = this.Sampler;
+		let buf = this.Buffer;
+		let w = buf.W;
+		let h = buf.H;
+		let spp = this.SamplesPerPixel;
+		let sppRoot = int(Math.sqrt(this.SamplesPerPixel));
+		let ncpu = this.NumCPU;
+
+		scene.Compile();
+		scene.rays = 0
+
+        
+
+	}
+}

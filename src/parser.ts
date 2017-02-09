@@ -341,7 +341,7 @@ class ParserContext {
         }
 
 
-        if(this.peek(TokenKind.LEFT_BRACE)){
+        if (this.peek(TokenKind.LEFT_BRACE)) {
             console.log("Check if its JS");
 
         }
@@ -1198,6 +1198,7 @@ class ParserContext {
                 let firstArgumentFlag = this.parseFlags();
 
                 let argument = this.current;
+                ;
                 if (!this.expect(TokenKind.IDENTIFIER)) {
                     return null;
                 }
@@ -1236,11 +1237,43 @@ class ParserContext {
                     type = createParseError();
                 }
 
+                let firstType = type;
+
+                //Type alias
+                while (this.eat(TokenKind.BITWISE_OR)) {
+                    let aliasType = this.parseType();
+
+                    if (this.peek(TokenKind.LESS_THAN)) {
+                        let parameters = this.parseParameters();
+                        if (parameters == null) {
+                            return null;
+                        }
+                        aliasType.appendChild(parameters);
+                    }
+
+                    if (aliasType != null) {
+                        range = spanRanges(range, aliasType.range);
+                    }
+
+                    // Recover from a missing type
+                    else if (this.peek(TokenKind.COMMA) || this.peek(TokenKind.RIGHT_PARENTHESIS)) {
+                        aliasType = createParseError();
+                    }
+
+                    else {
+                        return null;
+                    }
+
+                    type.appendChild(aliasType);
+                    type = aliasType;
+
+                }
+
                 if (this.eat(TokenKind.ASSIGN)) {
                     value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                 }
 
-                let variable = createVariable(argument.range.toString(), type, value);
+                let variable = createVariable(argument.range.toString(), firstType, value);
                 variable.firstFlag = firstArgumentFlag;
                 variable.flags = allFlags(firstArgumentFlag);
                 node.appendChild(variable.withRange(range).withInternalRange(argument.range));
@@ -1282,6 +1315,37 @@ class ParserContext {
                         return null;
                     }
                 }
+
+                let firstType = returnType;
+
+                //Type alias
+                while (this.eat(TokenKind.BITWISE_OR)) {
+                    let aliasType = this.parseType();
+
+                    if (this.peek(TokenKind.LESS_THAN)) {
+                        let parameters = this.parseParameters();
+                        if (parameters == null) {
+                            return null;
+                        }
+                        aliasType.appendChild(parameters);
+                    }
+
+                    if (aliasType == null) {
+                        // Recover from a missing return type
+                        if (this.peek(TokenKind.SEMICOLON) || this.peek(TokenKind.LEFT_BRACE)) {
+                            aliasType = createParseError();
+                        }
+
+                        else {
+                            return null;
+                        }
+                    }
+
+                    firstType.appendChild(aliasType);
+                    firstType = aliasType;
+
+                }
+
             }
 
             // Recover from a missing colon

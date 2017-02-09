@@ -1,0 +1,239 @@
+
+export class OBJLoader {
+
+    static parentMaterial:number;
+    static lastMesh:number;
+    static materials:Map<string, number>;
+    static hasMaterials:boolean = false;
+    static materialsLoaded:boolean = false;
+    static materialsLoading:boolean = false;
+    static pendingCallback:Function = null;
+
+    static Load(url:string, onLoad:Function) {
+        console.log("Loading OBJ:" + url);
+        let basePath = url.substring(0, url.lastIndexOf("/"));
+        let xhr:XMLHttpRequest = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onload = function () {
+            console.time("Parsing OBJ file");
+            OBJLoader.lastMesh = OBJLoader.parseOBJ(xhr.response, basePath);
+            console.timeEnd("Parsing OBJ file");
+            console.log("Parsing completed, Mesh Ref:"+OBJLoader.lastMesh);
+            if (onLoad) {
+                if (OBJLoader.hasMaterials && OBJLoader.materialsLoaded) {
+                    onLoad(OBJLoader.lastMesh);
+                } else if (!OBJLoader.hasMaterials) {
+                    onLoad(OBJLoader.lastMesh);
+                } else {
+                    OBJLoader.pendingCallback = onLoad;
+                }
+            }
+        };
+        xhr.send(null);
+        return null;
+    }
+
+    static parseIndex(value:string, length:number):number {
+        var n = parseInt(value);
+        if (n < 0) {
+            n += length;
+        }
+        return n;
+    }
+
+    static parseLine(line:string):{keyword:string, value:string[]} {
+        try {
+            var result = line.match(/^(\S+)\s(.*)/)
+            if (result) {
+                var _str = result.slice(1);
+            } else {
+                return null;
+            }
+        } catch (e) {
+            console.log("Error in line:", line, e);
+            return null;
+        }
+        if (!_str) {
+            return null;
+        } else {
+            return {
+                keyword: _str[0],
+                value: _str[1].split(/ {1,}/)
+            };
+        }
+    }
+
+    static parseFloats(fs:string[]):number[] {
+        var floats:number[] = [];
+        fs.forEach(function (f:string) {
+            floats.push(parseFloat(f));
+        });
+        return floats;
+    }
+
+    static parseOBJ(data:string, basePath:string):number {
+
+        this.hasMaterials = false;
+        this.materialsLoaded = false;
+        this.materialsLoading = false;
+
+        var vs:XYZ[] = [null]; //1024 // 1-based indexing
+        var vts:XYZ[] = [null]; // 1-based indexing
+        var vns:XYZ[] = [null]; // 1-based indexing
+        var triangles:number[];
+        this.materials = new Map<string, number>();//make(map[string]*Material)
+        var material:number = this.parentMaterial;
+        var lines = data.split("\n");
+
+        console.log("OBJ File Details");
+        console.log(`    lines: ${lines.length}`);
+
+        for (var i = 0; i < lines.length; i++) {
+            let line:string = lines[i].trim();
+            if (line.length == 0) {
+                continue;
+            }
+            let item = OBJLoader.parseLine(line);
+            if (item) {
+                let f:number[];
+                let v:XYZ;
+
+                switch (item.keyword) {
+                    case "mtllib":
+                        this.hasMaterials = true;
+                        this.materialsLoaded = false;
+                        //OBJLoader.LoadMTL(item.value[0], basePath);
+                        break;
+
+                    case "usemtl":
+                        //material = OBJLoader.GetMaterial(item.value[0]);
+                        break;
+
+                    case "v":
+                        f = OBJLoader.parseFloats(item.value);
+                        v = xyz(f[0], f[1], f[2]);
+                        vs = Utils.append(vs, v);
+                        break;
+
+                    case "vt":
+                        f = OBJLoader.parseFloats(item.value);
+                        v = xyz(f[0], f[1], 0);
+                        vts = Utils.append(vts, v);
+                        break;
+
+                    case "vn":
+                        f = OBJLoader.parseFloats(item.value);
+                        v = xyz(f[0], f[1], f[2]);
+                        vns = Utils.append(vns, v);
+                        break;
+
+                    case "f":
+                        var fvs:number[] = [];
+                        var fvts:number[] = [];
+                        var fvns:number[] = [];
+
+                        item.value.forEach(function (str:string, i) {
+                            let vertex:string[] = str.split(/\/\/{1,}/);
+                            fvs[i] = OBJLoader.parseIndex(vertex[0], vs.length);
+                            fvts[i] = OBJLoader.parseIndex(vertex[1], vts.length);
+                            fvns[i] = OBJLoader.parseIndex(vertex[2], vns.length);
+                        });
+
+                        for (let i:number = 1; i < fvs.length - 1; i++) {
+                            let i1 = 0;
+                            let i2 = i;
+                            let i3 = i + 1;
+                            let t = @new Triangle;
+                            Triangle.Material(t) = material;
+                            Triangle.V1(t) = vs[fvs[i1]];
+                            Triangle.V2(t) = vs[fvs[i2]];
+                            Triangle.V3(t) = vs[fvs[i3]];
+                            Triangle.T1(t) = vts[fvts[i1]];
+                            Triangle.T2(t) = vts[fvts[i2]];
+                            Triangle.T3(t) = vts[fvts[i3]];
+                            Triangle.N1(t) = vns[fvns[i1]];
+                            Triangle.N2(t) = vns[fvns[i2]];
+                            Triangle.N3(t) = vns[fvns[i3]];
+                            // Triangle.UpdateBox(t);
+                            //Triangle.FixNormals(t);
+                            triangles = Utils.append(triangles, t);
+                        }
+                        break;
+                }
+            }
+        }
+        console.log(`Num triangles: ${triangles.length}`);
+        return Mesh.NewMesh(Triangle.Pack(triangles), triangles.length);
+    }
+
+    static GetMaterial(index:string):number {
+        if (this.materials[index] == undefined) {
+            // var material:number = Material.Clone(this.parentMaterial);
+            var material:number = this.parentMaterial;
+            this.materials[index] = material;
+            return material;
+        } else {
+            return this.materials[index];
+        }
+    }
+
+    static LoadMTL(url:string, basePath:string) {
+        if (this.materialsLoaded || this.materialsLoading) {
+            return;
+        }
+        this.materialsLoading = true;
+        url = basePath == "" ? url : basePath + "/" + url;
+        console.log("Loading MTL:" + url);
+        var self = this;
+        var xhr:XMLHttpRequest = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onload = function () {
+            var lines = xhr.response.split("\n");
+
+            for (var i = 0; i < lines.length; i++) {
+                let line:string = lines[i].trim();
+                if (line.length == 0) {
+                    continue;
+                }
+                let item = OBJLoader.parseLine(line);
+                if (item) {
+                    var material:number;
+                    switch (item.keyword) {
+                        case "newmtl":
+                            material = self.materials[item.value[0]];
+                            // material = material ? material : Material.Clone(self.parentMaterial);
+                            material = 0;
+                            self.materials[item.value[0]] = material;
+                            break;
+                        case "Ke":
+                            var c:number[] = OBJLoader.parseFloats(item.value);
+                            let max = Math.max(Math.max(c[0], c[1]), c[2]);
+                            if (max > 0) {
+                                Material.Color(material) = Color.NewColor(c[0] / max, c[1] / max, c[2] / max);
+                                Material.Emittance(material) = max;
+                            }
+                            break;
+                        case "Kd":
+                            var c:number[] = OBJLoader.parseFloats(item.value);
+                            Material.Color(material) = Color.NewColor(c[0], c[1], c[2]);
+                            break;
+                        case "map_Kd":
+                            //material.texture = Texture.getTexture(item.value[0]);
+                            break;
+                        case "map_bump":
+                            //material.texture = Texture.getTexture(item.value[0]);
+                            break;
+                    }
+                }
+            }
+            self.materialsLoaded = true;
+            if (self.pendingCallback) {
+                self.pendingCallback(self.lastMesh);
+                self.pendingCallback = null;
+            }
+        };
+        xhr.send(null);
+
+        return null;
+    }
+}

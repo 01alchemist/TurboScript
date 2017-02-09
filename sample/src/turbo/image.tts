@@ -1,0 +1,47 @@
+@turbo class Image {
+
+    width:int32
+    height:int32
+    depth:uint8
+    data:int32
+
+    @method init(SELF, width:number, height:number, depth:number = 8) {
+
+        SELF.width = width;
+        SELF.height = height;
+        SELF.depth = depth;
+        let len = width * height * 4;
+        let pixels = @new uint8.Array(len);
+        SELF.data = pixels;
+        return SELF;
+    }
+
+    static At(SELF, x, y){
+        let i = (y * (SELF.width * 4)) + (x * 4);
+        uint8.Array.at(SELF.data, i);
+
+    }
+
+    static setRaw(SELF, data){
+
+        for(let i=0;i < data.length;i++){
+            uint8.Array.setAt(SELF.data, i, data[i]);
+        }
+
+    }
+
+
+    static setRGBA(SELF, x, y, c){
+        let i = (y * (SELF.width * 4)) + (x * 4);
+        uint8.Array.setAt(SELF.data, i, c.r * 255);
+        uint8.Array.setAt(SELF.data, i + 1, c.g * 255);
+        uint8.Array.setAt(SELF.data, i + 2, c.b * 255);
+        uint8.Array.setAt(SELF.data, i + 3, c.a * 255);
+    }
+
+    static NewRGBA(width:number, height:number) {
+        let ptr = @new Image;
+        Image.init(ptr, width, height, 8);
+        return ptr;
+    }
+} @end

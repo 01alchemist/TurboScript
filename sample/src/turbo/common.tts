@@ -1,0 +1,73 @@
+///<reference path="./src/declaration.d.ts" />
+type float32 = number;
+type float64 = number;
+
+const height:number = 600;
+const width:number = 800;
+
+const shadows:boolean = true;		// Compute object shadows
+const reflection:boolean = true;	// Compute object reflections
+const reflection_depth:number = 2;
+const antialias:boolean = false; // true;		// Antialias the image (expensive but pretty)
+
+const debug:boolean = false;		// Progress printout, may confuse the consumer
+
+const INF:number = 1e9;
+const EPS:number = 1e-9;
+const SENTINEL:number = 1e32;
+
+function xy(x:number, y:number) {
+    return {x: x, y: y};
+}
+function xyz(x:number, y:number, z:number) {
+    return {x: x, y: y, z: z};
+}
+function xyzw(x:number, y:number, z:number, w:number) {
+    return {x: x, y: y, z: z, W: w};
+}
+function F3(a:number, b:number, c:number) {
+    return {A: a, b: b, C: c};
+}
+function rgb(r:number, g:number, b:number) {
+    return {r: r, g: g, b: b};
+}
+function ray(origin:number, direction:number) {
+    return {Origin: origin, Direction: direction};
+}
+function free(ptr){
+    unsafe.free(ptr);
+}
+// const black = DL3(0,0,0);
+
+// function add(a, b) { return DL3(a.x+b.x, a.y+b.y, a.z+b.z); }
+// function addi(a, c) { return DL3(a.x+c, a.y+c, a.z+c); }
+// function sub(a, b) { return DL3(a.x-b.x, a.y-b.y, a.z-b.z); }
+// function subi(a, c) { return DL3(a.x-c, a.y-c, a.z-c); }
+// function muli(a, c) { return DL3(a.x*c, a.y*c, a.z*c); }
+// function divi(a, c) { return DL3(a.x/c, a.y/c, a.z/c); }
+// function neg(a) { return DL3(-a.x, -a.y, -a.z); }
+// function length(a) { return Math.sqrt(a.x*a.x + a.y*a.y + a.z*a.z); }
+// function normalize(a) { var d = length(a); return DL3(a.x/d, a.y/d, a.z/d); }
+// function cross(a, b) { return DL3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x); }
+// function dot(a, b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
+
+/*
+function fract(f) {
+    return f - Math.floor(f);
+}
+function fract_add1(f) {
+    let f1 = f - Math.floor(f);
+    return f1 - Math.floor(f1 + 1);
+}
+function clampInt(x, lo, hi) {
+    if (x < lo) {
+        return lo;
+    }
+    if (x > hi) {
+        return hi;
+    }
+    return x;
+}
+function len(ptr, T) {
+
+}*/

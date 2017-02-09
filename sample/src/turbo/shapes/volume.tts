@@ -1,0 +1,185 @@
+
+@turbo class VolumeWindow{
+    Lo:float64
+    Hi:float64
+    Material:int32
+
+    @method init(SELF, lo:number, hi:number, material:number){
+        SELF.Lo = lo;
+        SELF.Hi = hi;
+        SELF.Material = material;
+    }
+} @end
+
+
+@turbo class Volume{
+	W:int32 
+	H:int32
+	D:int32
+	ZScale:float64
+	Data:int32
+	NumData:int32
+	Windows:int32
+    NumWindows:int32
+	Box:int32
+
+	@method init(SELF, w:number, h:number, d:number, zd:number, data:number, numData:number, windows:number, numWindows:number, box:number){
+        SELF.W = w;
+        SELF.H = h;
+        SELF.D = d;
+        SELF.ZScale = zd;
+        SELF.Data = data;
+        SELF.NumData = numData;
+        SELF.Windows = windows;
+        SELF.NumWindows = numWindows;
+        SELF.Box = box;
+        return SELF;
+    }
+
+    static NewVolume(box:number/*Box*/, images:number, numImages:number, sliceSpacing:number, windows:number, numWindows:number):number {
+        let bounds = Image.Bounds(images[0]);
+        let size = Box.Size_mem(bounds);
+        let w = Vector.x(size);
+        let h = Vector.y(size);
+        let d = numImages;
+        // TODO: w/h aspect ratio
+        let zs:number = (sliceSpacing * d) / w;
+        let numData:number = w*h*d;
+        let data = @new float64.Array(numData);
+        for (let i:number = 0; i < numImages; i++){
+            let img = Image.Array.at(images, i);
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    let r = Image.At(img, x, y).RGBA().r;
+                    let f = r / 65535;
+                    float64.Array.setAt(data, x+y*w+i*w*h, f);
+                }
+            }
+        }
+        let ptr:number = @new Volume;
+        return Volume.init(ptr, w, h, d, zs, data, numData,  windows, numWindows, box);
+    }
+
+    static Get(SELF, x:number, y:number, z:number):number {
+        if (x < 0 || y < 0 || z < 0 || x >= SELF.W || y >= SELF.H || z >= SELF.D) {
+            return 0
+        }
+        return float64.Array.at(SELF.Data, x+y*SELF.W+z*SELF.W*SELF.H);
+    }
+
+    static Sample(SELF, x:number, y:number, z:number):number {
+        z /= SELF.ZScale;
+        x = ((x + 1) / 2) * SELF.W;
+        y = ((y + 1) / 2) * SELF.H;
+        z = ((z + 1) / 2) * SELF.D;
+        let x0 = Math.floor(x);
+        let y0 = Math.floor(y);
+        let z0 = Math.floor(z);
+        let x1 = x0 + 1;
+        let y1 = y0 + 1;
+        let z1 = z0 + 1;
+        let v000 = Volume.Get(SELF, x0, y0, z0);
+        let v001 = Volume.Get(SELF, x0, y0, z1);
+        let v010 = Volume.Get(SELF, x0, y1, z0);
+        let v011 = Volume.Get(SELF, x0, y1, z1);
+        let v100 = Volume.Get(SELF, x1, y0, z0);
+        let v101 = Volume.Get(SELF, x1, y0, z1);
+        let v110 = Volume.Get(SELF, x1, y1, z0);
+        let v111 = Volume.Get(SELF, x1, y1, z1);
+        x -= x0;
+        y -= y0;
+        z -= z0;
+        let c00 = v000*(1-x) + v100*x;
+        let c01 = v001*(1-x) + v101*x;
+        let c10 = v010*(1-x) + v110*x;
+        let c11 = v011*(1-x) + v111*x;
+        let c0 = c00*(1-y) + c10*y;
+        let c1 = c01*(1-y) + c11*y;
+        return c0*(1-z) + c1*z;
+    }
+
+    static Compile() {
+    }
+
+    static BoundingBox(SELF):number {
+        return SELF.Box;
+    }
+
+    static Sign(SELF, a:number /*Vector*/):number {
+        let s = SELF.Sample(Vector.x(a), Vector.y(a), Vector.z(a));
+        let numWindows  = SELF.NumWindows;
+        for (let i:number = 0;i < numWindows;i++) {
+            let window:number = VolumeWindow.Array.at(SELF.NumWindows, i);
+            if (s < VolumeWindow.Lo(window)) {
+                return i + 1;
+            }
+            if (s > VolumeWindow.Hi(window)) {
+                continue;
+            }
+            return 0
+        }
+        return numWindows + 1;
+    }
+
+    static Intersect(SELF, ray:number):Hit {
+        let hit = Box.Intersect(SELF.Box, ray);
+        let tmin = hit.tmin;
+        let tmax = hit.tmax;
+        let step = 1.0 / 512;
+        let start = Math.max(step, tmin);
+        let sign = -1;
+        for (let t = start; t <= tmax; t += step) {
+            let p = Ray.Position(ray, t);
+            let s = Volume.Sign(SELF, p);
+            if (s == 0 || (sign >= 0 && s != sign)) {
+                t -= step;
+                step /= 64;
+                t += step;
+                for (let i = 0; i < 64; i++) {
+                    if (Volume.Sign(SELF, Ray.Position(ray, t)) == 0) {
+                        return new Hit(SELF, t - step, null)
+                    }
+                    t += step;
+                }
+            }
+            sign = s;
+        }
+        return Hit.NoHit;
+    }
+
+    static UV(SELF, p:number):number{
+        return @new Vector; // not implemented
+    }
+
+    static MaterialAt(SELF, p:number):number {
+        let be = 1e9;
+        let bm:number = null;
+        let s = Volume.Sample(SELF, Vector.x(p), Vector.y(p), Vector.z(p));
+        for (let i=0;i<SELF.NumWindows;i++) {
+            let window:number = VolumeWindow.Array.at(SELF.Windows, i);
+            if (s >= VolumeWindow.Lo(window) && s <= VolumeWindow.Hi(window)) {
+                return VolumeWindow.Material(window);
+            }
+            let e = Math.min(Math.abs(s-VolumeWindow.Lo(window)), Math.abs(s-VolumeWindow.Hi(window)));
+            if (e < be) {
+                be = e;
+                bm = VolumeWindow.Material(window);
+            }
+        }
+        return bm;
+    }
+
+    static NormalAt(SELF, p:number):number{
+        let eps = 0.001;
+        let n = @new Vector;
+
+        Vector.init(n,
+            Volume.Sample(SELF, Vector.x(p) - eps, Vector.y(p), Vector.z(p)) - SELF.Sample(Vector.x(p)+eps, Vector.y(p), Vector.z(p)),
+            Volume.Sample(SELF, Vector.x(p), Vector.y(p)-eps, Vector.z(p)) - SELF.Sample(Vector.x(p), Vector.y(p)+eps, Vector.z(p)),
+            Volume.Sample(SELF, Vector.x(p), Vector.y(p), Vector.z(p)-eps) - SELF.Sample(Vector.x(p), Vector.y(p), Vector.z(p)+eps)
+        );
+        return Vector.Normalize_mem(n, n);
+    }
+
+} @end
+

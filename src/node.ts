@@ -780,6 +780,11 @@ export class Node {
         return this.firstChild.nextSibling;
     }
 
+    hasVariableValue(): boolean {
+        assert(this.kind == NodeKind.VARIABLE);
+        return this.firstChild && this.firstChild.nextSibling;
+    }
+
     expressionValue(): Node {
         assert(this.kind == NodeKind.EXPRESSION);
         assert(this.childCount() == 1);

@@ -3170,6 +3170,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         while (true) {
                             let firstArgumentFlag = this.parseFlags();
                             let argument = this.current;
+                            ;
                             if (!this.expect(lexer_1.TokenKind.IDENTIFIER)) {
                                 return null;
                             }
@@ -3198,10 +3199,33 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             else if (this.peek(lexer_1.TokenKind.COMMA) || this.peek(lexer_1.TokenKind.RIGHT_PARENTHESIS)) {
                                 type = node_1.createParseError();
                             }
+                            let firstType = type;
+                            //Type alias
+                            while (this.eat(lexer_1.TokenKind.BITWISE_OR)) {
+                                let aliasType = this.parseType();
+                                if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
+                                    let parameters = this.parseParameters();
+                                    if (parameters == null) {
+                                        return null;
+                                    }
+                                    aliasType.appendChild(parameters);
+                                }
+                                if (aliasType != null) {
+                                    range = log_2.spanRanges(range, aliasType.range);
+                                }
+                                else if (this.peek(lexer_1.TokenKind.COMMA) || this.peek(lexer_1.TokenKind.RIGHT_PARENTHESIS)) {
+                                    aliasType = node_1.createParseError();
+                                }
+                                else {
+                                    return null;
+                                }
+                                type.appendChild(aliasType);
+                                type = aliasType;
+                            }
                             if (this.eat(lexer_1.TokenKind.ASSIGN)) {
                                 value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                             }
-                            let variable = node_1.createVariable(argument.range.toString(), type, value);
+                            let variable = node_1.createVariable(argument.range.toString(), firstType, value);
                             variable.firstFlag = firstArgumentFlag;
                             variable.flags = node_1.allFlags(firstArgumentFlag);
                             node.appendChild(variable.withRange(range).withInternalRange(argument.range));
@@ -3235,6 +3259,29 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                                 else {
                                     return null;
                                 }
+                            }
+                            let firstType = returnType;
+                            //Type alias
+                            while (this.eat(lexer_1.TokenKind.BITWISE_OR)) {
+                                let aliasType = this.parseType();
+                                if (this.peek(lexer_1.TokenKind.LESS_THAN)) {
+                                    let parameters = this.parseParameters();
+                                    if (parameters == null) {
+                                        return null;
+                                    }
+                                    aliasType.appendChild(parameters);
+                                }
+                                if (aliasType == null) {
+                                    // Recover from a missing return type
+                                    if (this.peek(lexer_1.TokenKind.SEMICOLON) || this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
+                                        aliasType = node_1.createParseError();
+                                    }
+                                    else {
+                                        return null;
+                                    }
+                                }
+                                firstType.appendChild(aliasType);
+                                firstType = aliasType;
                             }
                         }
                         else if (this.peek(lexer_1.TokenKind.SEMICOLON) || this.peek(lexer_1.TokenKind.LEFT_BRACE)) {
@@ -8298,7 +8345,7 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                             return lib;
                         case compiler_2.CompileTarget.ASMJS:
                             lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/types.tbs") + "\n";
-                            // lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/math.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/math.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/malloc.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/array.tbs") + "\n";
                             return lib;
@@ -11490,7 +11537,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                     // Not enough arguments?
                     if (returnType.resolvedType != context.anyType) {
-                        if (argumentVariable != returnType) {
+                        if (argumentVariable != returnType && !argumentVariable.hasVariableValue()) {
                             context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                                 .append("Not enough arguments for function '")
                                 .append(symbol.name)
@@ -13399,6 +13446,10 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                     assert(this.childCount() <= 2);
                     assert(this.firstChild.nextSibling == null || isExpression(this.firstChild.nextSibling));
                     return this.firstChild.nextSibling;
+                }
+                hasVariableValue() {
+                    assert(this.kind == NodeKind.VARIABLE);
+                    return this.firstChild && this.firstChild.nextSibling;
                 }
                 expressionValue() {
                     assert(this.kind == NodeKind.EXPRESSION);

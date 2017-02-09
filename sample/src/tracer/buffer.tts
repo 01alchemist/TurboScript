@@ -1,0 +1,118 @@
+export enum Channel{
+	ColorChannel,
+	VarianceChannel,
+	StandardDeviationChannel
+}
+
+@turbo class Pixel{
+
+    Samples:int32
+    M:int32
+    V:int32
+
+	static tmp:number;
+	
+	@method init(SELF, Samples:number=0, M:number=0, V:number=0){
+		Pixel.tmp = @new Color;
+        SELF.Samples = Samples;
+        SELF.M = M;
+        SELF.V = V;
+	}
+
+	static AddSample(SELF, sample:number) {
+		SELF.Samples++;
+		if (SELF.Samples == 1) {
+            SELF.M = sample;
+			return;
+		}
+		Color.Clone(SELF.M, Pixel.tmp);
+		Color.Add_mem(SELF.M, Color.DivScalar_mem(Color.Sub_mem(sample, SELF.M), SELF.Samples), SELF.M);
+		Color.Add_mem(SELF.V, Color.Mul_mem(Color.Sub_mem(sample, Pixel.tmp), Color.Sub_mem(sample, SELF.M)), SELF.V);
+	}
+
+	static Color(SELF):number{
+		return SELF.M;
+	}
+
+	static Variance(SELF):number {
+		if (SELF.Samples < 2) {
+			return Color.BLACK;
+		}
+		return Color.DivScalar_mem(SELF.V, SELF.Samples - 1);
+	}
+
+    static StandardDeviation(SELF):number {
+		return Color.Pow_mem(Pixel.Variance(SELF), 0.5);
+	}
+} @end
+
+@turbo class Buffer{
+
+    W:int32
+    H:int32
+    Pixela:int32
+
+	@method init(SELF, W:number, H:number, Pixels:number){
+        SELF.W = W;
+        SELF.H = H;
+        SELF.Pixels = Pixels;
+        return SELF;
+    }
+    static NewBuffer(w:number, h:number):Buffer {
+        let pixels:number = @new Pixel.Array(w*h);
+        return Buffer.init(@new Buffer, w, h, pixels);
+    }
+
+    // static Copy(SELF):Buffer {
+    //     let pixels = [];//thus.w*this.h
+    //
+    //     SELF.Pixels.forEach((item) => {
+    //         pixels.push(item);
+    //     });
+    //
+    //     return new Buffer(SELF.W, SELF.H, pixels);
+    // }
+
+    static AddSample(SELF, x:number, y:number, sample:number) {
+        SELF.Pixels[y*SELF.W+x].AddSample(sample);
+    }
+
+    static Samples(SELF, x:number, y:number):number {
+        return SELF.Pixels[y*SELF.W+x].Samples;
+    }
+
+    static Color(SELF, x:number, y:number):number{
+        return SELF.Pixels[y*SELF.W+x].Color();
+    }
+
+    static Variance(SELF, x:number, y:number):number {
+        return SELF.Pixels[y*SELF.W+x].Variance();
+    }
+
+    static StandardDeviation(SELF, x:number, y:number):number {
+        return SELF.Pixels[y*SELF.W+x].StandardDeviation();
+    }
+
+    static Image(SELF, channel:Channel):number {
+        let result = Image.NewRGBA64({x:0, y:0, width: SELF.W, height: SELF.H});
+        for (let y = 0; y < SELF.H; y++) {
+            for (let x = 0; x < SELF.W; x++) {
+                var c:number;
+                switch (channel) {
+                    case Channel.ColorChannel:
+                        c = Color.Pow_mem(SELF.Pixels[y*SELF.W+x].Color(), 1 / 2.2);
+                        break;
+                    case Channel.VarianceChannel:
+                        c = SELF.Pixels[y*SELF.W+x].Variance();
+                        break;
+                    case Channel.StandardDeviationChannel:
+                        c = SELF.Pixels[y*SELF.W+x].StandardDeviation();
+                        break;
+                }
+                result.SetRGBA64(x, y, Color.RGBA64(c));
+            }
+        }
+        return result
+    }
+
+}

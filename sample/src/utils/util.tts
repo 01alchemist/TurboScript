@@ -1,0 +1,149 @@
+
+export class Utils {
+
+    static Radians(degrees:number):number {
+        return degrees * Math.PI / 180
+    }
+
+    static Degrees(radians:number):number {
+        return radians * 180 / Math.PI
+    }
+
+    static Cone(direction:Vector3, theta:number, u:number, v:number):Vector3{
+        if (theta < EPS) {
+            return direction;
+        }
+        theta = theta * (1 - (2 * Math.acos(u) / Math.PI));
+        let m1 = Math.sin(theta);
+        let m2 = Math.cos(theta);
+        let a = v * 2 * Math.PI;
+        let q = Vector3.RandomUnitVector();
+        let s = direction.cross(q);
+        let t = direction.cross(s);
+        let d = new Vector3();
+        d = d.add(s.mulScalar(m1 * Math.cos(a)));
+        d = d.add(t.mulScalar(m1 * Math.sin(a)));
+        d = d.add(direction.mulScalar(m2));
+        d = d.normalize();
+        return d;
+    }
+    
+    static LoadImage(path:string):number /*Image*/ {
+        //TODO: load image using img tag and canvas
+        return null;
+    }
+
+    static SavePNG(path:string, im:number /*Image*/):boolean {
+        //TODO: save using file
+        return null;
+    }
+
+    static Median(items:number[]):number {
+        let n = items.length;
+        if (n == 0) {
+            return 0;
+        } else if (n % 2 == 1) {
+            return items[n / 2];
+        } else {
+            let a = items[n / 2 - 1];
+            let b = items[n / 2];
+            return (a + b) / 2;
+        }
+    }
+
+    static DurationString(t:number/*milliseconds*/):string {
+        let d:Date = new Date();
+        d.setHours(0);
+        d.setMinutes(0);
+        d.setSeconds(0);
+        d.setMilliseconds(t);
+        return d.toLocaleTimeString();
+    }
+
+    static NumberString(x:number):string {
+        let suffixes = ["", "k", "M", "g"];
+
+        suffixes.forEach((suffix) => {
+            if (x < 1000) {
+                return x + suffix;
+            }
+            x /= 1000
+        });
+
+        return x + "T";
+    }
+
+    static ParseFloats(items:string[]):number[] {
+        let result:number[] = [];
+
+        items.forEach((item) => {
+            result.push(parseFloat(item));
+        });
+        return result;
+    }
+
+    static ParseInts(items:string[]):number[] {
+        let result:number[] = [];
+
+        items.forEach((item) => {
+            result.push(parseInt(item));
+        });
+        return result;
+    }
+
+    static Fract(x:number):number {
+        return x - Math.floor(x);
+    }
+
+    static FractAddOne(x:number):number {
+        let f1 = x - Math.floor(x);
+        return f1 - Math.floor(f1 + 1);
+    }
+
+    static  Modf(f):{int:number,frac:number} {
+        var int = Math.floor(f);
+        var frac = f - int;
+        return {int: int, frac: frac};
+    }
+
+    static Clamp(x:number, lo:number, hi:number):number {
+        if (x < lo) {
+            return lo;
+        }
+        if (x > hi) {
+            return hi;
+        }
+        return x;
+    }
+
+    static ClampInt(x:number, lo:number, hi:number):number {
+        if (x < lo) {
+            return lo;
+        }
+        if (x > hi) {
+            return hi;
+        }
+        return x;
+    }
+
+    static append(slice:Array<any>, ...elements):Array<any>{
+        if (slice == undefined) {
+            return elements;
+        } else {
+            slice.push.apply(slice, elements);
+        }
+        return slice;
+    }
+
+    static sortAscending(slice) {
+        slice.sort(function (a, b) {
+            return a - b;
+        });
+    }
+
+    static sortDescending(slice) {
+        slice.sort(function (a, b) {
+            return b - a;
+        });
+    }
+}

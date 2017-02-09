@@ -1,0 +1,121 @@
+export class Ray {
+
+    origin: Vector3;
+    direction: Vector3;
+
+    constructor(origin: Vector3, direction: Vector3): Ray {
+        this.origin = origin;
+        this.direction = direction;
+        return this;
+    }
+
+    position(t: float32, c: Vector3 = null): Vector3 {
+        c = this.direction.mulScalar(t, c);
+        return this.origin.add(c, c);
+    }
+
+    reflect(i: Ray, c: Ray = null): Ray {
+        c = c != null ? c : new Ray();
+        return c.set(this.origin, this.direction.reflect(i.direction));
+    }
+
+    refract(i: Ray, n1: number, n2: number): Ray {
+        return new Ray(this.origin, this.direction.refract(i.direction, n1, n2));
+    }
+
+    reflectance(i: Ray, n1: number, n2: number): number {
+        return this.direction.reflectance(i.direction, n1, n2);
+    }
+
+    weightedBounce(u, v: number): Ray {
+        var m1 = Math.sqrt(u);
+        var m2 = Math.sqrt(1 - u);
+        var a = v * 2 * Math.PI;
+        var q = new Vector3(u - 0.5, v - 0.5, u + v - 1);
+        var s = this.direction.cross(q.normalize());
+        var t = this.direction.cross(s);
+        var d = new Vector3();
+        d = d.add(s.mulScalar(m1 * Math.cos(a)));
+        d = d.add(t.mulScalar(m1 * Math.sin(a)));
+        d = d.add(this.direction.mulScalar(m2));
+        return new Ray(this.origin, d);
+    }
+
+    coneBounce(theta: number, u: number, v: number, c?: number): Ray {
+        return new Ray(this.origin, Utils.Cone(this.direction, theta, u, v));
+    }
+
+
+    bounce2(info: HitInfo, p: number, u: number, v: number): {ray: Ray,reflected: boolean} {
+        var n: Ray = info.Ray;
+        F
+        let material = info.Material;
+        let n1 = 1.0;
+        let n2 = Material.Index(material);
+        let gloss = Material.Gloss(material);
+        let transparent = Material.Transparent(material);
+
+        if (info.Inside) {
+            var _n1 = n1;
+            n1 = n2;
+            n2 = _n1;
+        }
+        if (p < n.reflectance(this, n1, n2)) {
+            var reflected: Ray = n.reflect(this);
+            var ray: Ray = reflected.coneBounce(gloss, u, v);
+            return {ray: ray, reflected: true};
+        } else if (transparent) {
+            var refracted = n.Refract(this, n1, n2);
+            var ray = refracted.coneBounce(gloss, u, v);
+            return {ray: ray, reflected: true};
+        } else {
+            var ray: Ray = n.weightedBounce(u, v);
+            return {ray: ray, reflected: false};
+        }
+    }
+
+    bounce(info: HitInfo, u: number, v: number, bounceType: BounceType): {ray: Ray, reflected: boolean, coefficient: number} {
+        let n: Ray = info.Ray;
+        let material = info.Material;
+        let n1 = 1.0;
+        let n2 = Material.Index(material);
+
+        if (info.Inside) {
+            let tmp = n1;
+            n1 = n2;
+            n2 = tmp;
+        }
+
+        let p: number;
+
+        if (Material.Reflectivity(material) >= 0) {
+            p = Material.Reflectivity(material);
+        } else {
+            p = n.reflectance(this, n1, n2);
+        }
+
+        let reflect: boolean;
+
+        switch (bounceType) {
+            case BounceType.Any:
+                reflect = Math.random() < p;
+                break;
+            case BounceType.Diffuse:
+                reflect = false;
+                break;
+            case BounceType.Specular:
+                reflect = true;
+                break;
+        }
+        if (reflect) {
+            let reflected: Ray = n.reflect(this);
+            return {ray: reflected.coneBounce(Material.Gloss(material), u, v), reflected: true, coefficient: p};
+        } else if (Material.Transparent(material)) {
+            let refracted: Ray = n.refract(this, n1, n2);
+            refracted.origin = refracted.origin.add(refracted.direction.mulScalar(1e-4));
+            return {ray: refracted.coneBounce(Material.Gloss(material), u, v), reflected: true, coefficient: 1 - p};
+        } else {
+            return {ray: n.weightedBounce(u, v), reflected: false, coefficient: 1 - p};
+        }
+    }
+}

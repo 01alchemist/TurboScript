@@ -1351,7 +1351,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 // Not enough arguments?
                 if (returnType.resolvedType != context.anyType) {
 
-                    if (argumentVariable != returnType) {
+                    if (argumentVariable != returnType && !argumentVariable.hasVariableValue()) {
                         context.log.error(node.internalRange, StringBuilder_new()
                             .append("Not enough arguments for function '")
                             .append(symbol.name)

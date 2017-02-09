@@ -1,0 +1,285 @@
+export class BufferGeometry {
+
+    static defaultMaterial;
+
+    constructor(){
+    }
+
+    static NewBufferGeometry(obj, scene:MasterScene){
+        BufferGeometry.loadChildren(obj, scene);
+    }
+
+    static loadChildren(parent, scene) {
+        var child;
+        for (var i:number = 0; i < parent.children.length; i++) {
+            child = parent.children[i];
+
+            if (child.children.length > 0) {
+                this.loadChildren(child, scene);
+            }else{
+                scene.Add(this.buildSceneObject(child));
+            }
+        }
+    }
+
+    static identityMatrix = new THREE.Matrix4().identity();
+
+    static buildSceneObject(src) {
+
+        /*switch (src.type) {
+            case ThreeObjects.Mesh:
+                var material = GIJSView.getMaterial(src.material);
+                var shape:Shape = this.buildGeometry(src.geometry, material, src.smooth);
+
+                var matrixWorld = src.matrixWorld;
+
+                if (matrixWorld.equals(this.identityMatrix)) {
+                    return shape;
+                } else {
+                    var mat:Matrix4 = Matrix4.fromTHREEJS(matrixWorld.elements);
+                    return TransformedShape.newTransformedShape(shape, mat);
+                }
+
+            case ThreeObjects.PointLight:
+                return this.getLight(src);
+
+        }*/
+        // return null;
+        let color = src.material.color || {r:0,g:0,b:0};
+        let mat = Material.DiffuseMaterial(Color.NewColor(color.r, color.g, color.b));
+        return this.buildGeometry(src.geometry, mat, src.smooth);
+    }
+
+    static buildGeometry(geometry:THREE.BufferGeometry|any, material:number, smooth:boolean=false):number {
+
+        if (geometry["_bufferGeometry"]) {
+            geometry = geometry["_bufferGeometry"];
+        }
+
+        var triangles:number[] = [];
+
+        if (!geometry.attributes) {
+
+            var vertices = geometry.vertices;
+            var faces = geometry.faces;
+            if (vertices && faces) {
+                for (var i = 0; i < faces.length; i++) {
+                    var face = faces[i];
+                    var t:number = @new Triangle;
+
+                    Triangle.Material(t) = material;
+                    Triangle.V1(t) = Vector.NewVector(vertices[face.a].x, vertices[face.a].y, vertices[face.a].z);
+                    Triangle.V2(t) = Vector.NewVector(vertices[face.b].x, vertices[face.b].y, vertices[face.b].z);
+                    Triangle.V3(t) = Vector.NewVector(vertices[face.c].x, vertices[face.c].y, vertices[face.c].z);
+                    Triangle.N1(t) = Vector.NewVector();
+                    Triangle.N2(t) = Vector.NewVector();
+                    Triangle.N3(t) = Vector.NewVector();
+
+                    Triangle.FixNormals(t);
+                    triangles.push(t);
+                }
+            } else {
+                return null;
+            }
+
+        } else {
+
+            var positions:Float32Array = geometry.attributes["position"].array;
+            if(geometry.attributes["uv"]){
+                var uv:Float32Array = geometry.attributes["uv"].array;
+            }
+
+            var normals:Float32Array;
+            if (geometry.attributes["normal"]) {
+                normals = geometry.attributes["normal"].array;
+            } else {
+                normals = this.computeNormals(positions);
+            }
+            var triCount:number = 0;
+            var indexAttribute = geometry.getIndex();
+
+            if (indexAttribute) {
+
+                var indices = indexAttribute.array;
+                var uvIndex:number = 0;
+
+                for (var i = 0; i < indices.length; i = i + 3) {
+
+                    triCount++;
+
+                    let a;
+                    let b;
+                    let c;
+
+                    a = indices[i];
+                    b = indices[i + 1];
+                    c = indices[i + 2];
+
+                    if (triCount % 2 !== 0) {
+                        a = indices[i];
+                        b = indices[i + 1];
+                        c = indices[i + 2];
+                    } else {
+                        c = indices[i];
+                        b = indices[i + 1];
+                        a = indices[i + 2];
+                    }
+
+                    //[....,ax,ay,az, bx,by,bz, cx,xy,xz,....]
+                    let ax = a * 3;
+                    let ay = (a * 3) + 1;
+                    let az = (a * 3) + 2;
+
+                    let bx = b * 3;
+                    let by = (b * 3) + 1;
+                    let bz = (b * 3) + 2;
+
+                    let cx = c * 3;
+                    let cy = (c * 3) + 1;
+                    let cz = (c * 3) + 2;
+
+                    let au = a * 2;
+                    let av = (a * 2) + 1;
+
+                    let bu = b * 2;
+                    let bv = (b * 2) + 1;
+
+                    let cu = c * 2;
+                    let cv = (c * 2) + 1;
+
+                    let t = @new Triangle;
+                    Triangle.Material(t) = material;
+                    Triangle.V1(t) = Vector.NewVector(positions[ax], positions[ay], positions[az]);
+                    Triangle.V2(t) = Vector.NewVector(positions[bx], positions[by], positions[bz]);
+                    Triangle.V3(t) = Vector.NewVector(positions[cx], positions[cy], positions[cz]);
+
+                    Triangle.N1(t) = Vector.NewVector(normals[ax], normals[ay], normals[az]);
+                    Triangle.N2(t) = Vector.NewVector(normals[bx], normals[by], normals[bz]);
+                    Triangle.N3(t) = Vector.NewVector(normals[cx], normals[cy], normals[cz]);
+
+                    if(uv){
+                        Triangle.T1(t) = Vector.NewVector(uv[au], uv[av], 0);
+                        Triangle.T2(t) = Vector.NewVector(uv[bu], uv[bv], 0);
+                        Triangle.T3(t) = Vector.NewVector(uv[cu], uv[cv], 0);
+                    }
+
+                    Triangle.FixNormals(t);
+                    triangles.push(t);
+                    uvIndex += 2;
+                }
+
+            } else {
+                uvIndex = 0;
+                for (let i = 0; i < positions.length; i = i + 9) {
+
+                    // triCount++;
+                    //
+                    // let ax,ay,az;
+                    // let bx,by,bz;
+                    // let cx,cy,cz;
+                    //
+                    // let au,av;
+                    // let bu,bv;
+                    // let cu,cv;
+                    //
+                    // if (triCount % 2 !== 0) {
+                    //     ax = i;
+                    //     ay = i + 1;
+                    //     az = i + 2;
+                    //
+                    //     bx = i + 3;
+                    //     by = i + 4;
+                    //     bz = i + 5;
+                    //
+                    //     cx = i + 6;
+                    //     cy = i + 7;
+                    //     cz = i + 8;
+                    //
+                    //     au = uvIndex;
+                    //     av = uvIndex + 1;
+                    //
+                    //     bu = uvIndex + 2;
+                    //     bv = uvIndex + 3;
+                    //
+                    //     cu = uvIndex + 4;
+                    //     cv = uvIndex + 5;
+                    // } else {
+                    //     ax = i + 8;
+                    //     ay = i + 7;
+                    //     az = i + 6;
+                    //
+                    //     bx = i + 5;
+                    //     by = i + 4;
+                    //     bz = i + 3;
+                    //
+                    //     cx = i + 2;
+                    //     cy = i + 1;
+                    //     cz = i;
+                    //
+                    //     au = uvIndex + 5;
+                    //     av = uvIndex + 4;
+                    //
+                    //     bu = uvIndex + 3;
+                    //     bv = uvIndex + 2;
+                    //
+                    //     cu = uvIndex + 1;
+                    //     cv = uvIndex;
+                    // }
+                    //
+                    // //[....,ax,ay,az, bx,by,bz, cx,xy,xz,....]
+                    //
+                    //
+                    // let t = @new Triangle;
+                    // Triangle.Material(t) = material;
+                    // Triangle.V1(t) = Vector.NewVector(positions[ax], positions[ay], positions[az]);
+                    // Triangle.V2(t) = Vector.NewVector(positions[bx], positions[by], positions[bz]);
+                    // Triangle.V3(t) = Vector.NewVector(positions[cx], positions[cy], positions[cz]);
+                    //
+                    // Triangle.N1(t) = Vector.NewVector(normals[ax], normals[ay], normals[az]);
+                    // Triangle.N2(t) = Vector.NewVector(normals[bx], normals[by], normals[bz]);
+                    // Triangle.N3(t) = Vector.NewVector(normals[cx], normals[cy], normals[cz]);
+                    //
+                    // if(uv){
+                    //     Triangle.T1(t) = Vector.NewVector(uv[au], uv[av], 0);
+                    //     Triangle.T2(t) = Vector.NewVector(uv[bu], uv[bv], 0);
+                    //     Triangle.T3(t) = Vector.NewVector(uv[cu], uv[cv], 0);
+                    // }
+
+                    let t = @new Triangle;
+                    Triangle.Material(t) = material;
+
+                    Triangle.V1(t) = Vector.NewVector(positions[i], positions[i + 1], positions[i + 2]);
+                    Triangle.V2(t) = Vector.NewVector(positions[i + 3], positions[i + 4], positions[i + 5]);
+                    Triangle.V3(t) = Vector.NewVector(positions[i + 6], positions[i + 7], positions[i + 8]);
+
+                    Triangle.N1(t) = Vector.NewVector(normals[i], normals[i + 1], normals[i + 2]);
+                    Triangle.N2(t) = Vector.NewVector(normals[i + 3], normals[i + 4], normals[i + 5]);
+                    Triangle.N3(t) = Vector.NewVector(normals[i + 6], normals[i + 7], normals[i + 8]);
+
+                    if(uv){
+                        Triangle.T1(t) = Vector.NewVector(uv[uvIndex], uv[uvIndex + 1], 0);
+                        Triangle.T2(t) = Vector.NewVector(uv[uvIndex + 2], uv[uvIndex + 3], 0);
+                        Triangle.T3(t) = Vector.NewVector(uv[uvIndex + 4], uv[uvIndex + 5], 0);
+                    }
+
+                    Triangle.FixNormals(t);
+                    triangles.push(t);
+                    uvIndex += 6;
+                }
+            }
+        }
+
+        let meshRef = Mesh.NewMesh(Triangle.Pack(triangles));
+        // Mesh.SmoothNormals(meshRef);
+        return meshRef;
+        // if(smooth){
+        //     mesh.smoothNormals();
+        // }
+        // return mesh;
+    }
+
+    static computeNormals(positions:Float32Array):Float32Array {
+        return new Float32Array(positions.length);
+    }
+
+}
