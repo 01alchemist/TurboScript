@@ -1,0 +1,145 @@
+export class Material {
+    color: Color;
+    albedoMap: Texture;
+    normalMap: Texture;
+    roughnessMap: Texture;
+    bumpMap: Texture;
+    bumpMultiplier: float32;
+    emittance: float32;
+    index: float32;
+    roughness: float32;
+    tint: float32;
+    reflectivity: float32;
+    transparent: boolean;
+
+    constructor(color: Color, albedoMap: Texture, normalMap: Texture, bumpMap: Texture, roughnessMap: Texture,
+                bumpMultiplier, emittance, index, roughness, tint: float32, reflectivity: float32, transparent: float32) {
+        this.color = Color;
+        this.albedoMap = albedoMap;
+        this.normalMap = normalMap;
+        this.bumpMap = bumpMap;
+        this.roughnessMap = roughnessMap;
+        this.bumpMultiplier = bumpMultiplier;
+        this.emittance = emittance;
+        this.index = index;
+        this.roughness = roughness;
+        this.tint = tint;
+        this.reflectivity = reflectivity;
+        this.transparent = transparent;
+        return this;
+    }
+
+    isLight(): boolean {
+        return this.emittance > 0;
+    }
+
+    clone(): Material {
+        return new Material(
+            this.color.clone(),
+            this.albedoMap,
+            this.normalMap,
+            this.bumpMap,
+            this.roughnessMap,
+            this.bumpMultiplier,
+            this.emittance,
+            this.index,
+            this.roughness,
+            this.tint,
+            this.reflectivity,
+            this.transparent
+        );
+    }
+
+    setEmittance(emittance) {
+        this.emittance = emittance;
+    }
+
+    setIndex(index) {
+        this.index = index;
+    }
+
+    setGloss(roughness) {
+        this.roughness = roughness;
+    }
+
+    setTint(tint) {
+        this.tint = tint;
+    }
+
+    setReflectivity(reflectivity) {
+        this.reflectivity = reflectivity;
+    }
+
+    setTransparent(transparent) {
+        this.transparent = transparent;
+    }
+
+    setTexture(Texture) {
+        this.albedoMap = Texture;
+    }
+
+    setNormalTexture(normalMap) {
+        this.normalMap = normalMap;
+    }
+
+    setBumpTexture(bumpMap) {
+        this.bumpMap = bumpMap;
+    }
+
+    setBumpMultiplier(bumpMultiplier) {
+        this.bumpMultiplier = bumpMultiplier;
+    }
+
+    setGlossTexture(roughnessMap) {
+        this.roughnessMap = roughnessMap;
+    }
+
+    static newDiffuseMaterial(color: Color): Material {
+        return new Material(
+            color, null, null, null, null, 1.0, 0.0, 1.0, 0.0, 0.0, -1.0, false
+        );
+    }
+
+    static newSpecularMaterial(color: Color, index: float32): Material {
+        return new Material(
+            color, null, null, null, null, 1.0, 0.0, index, 0.0, 0.0, -1.0, false
+        );
+    }
+
+    static newGlossyMaterial(color: Color, index: float32, gloss: float32): Material {
+        return new Material(
+            color, null, null, null, null, 1.0, 0.0, index, gloss, 0.0, -1.0, false
+        );
+    }
+
+    static newClearMaterial(index: float32, gloss: float32): Material {
+        return new Material(Color.BLACK, null, null, null, null, 1.0, 0.0, index, gloss, 0.0, -1.0, true);
+    }
+
+    static newTransparentMaterial(color: Color, index: float32, gloss: float32, tint: float32): Material {
+        return new Material(color, null, null, null, null, 1.0, 0.0, index, gloss, tint, -1.0, true);
+    }
+
+    static newMetallicMaterial(color: Color, gloss: float32, tint: float32): Material {
+        return new Material(color, null, null, null, null, 1.0, 0.0, 1.0, gloss, tint, -1.0, false);
+    }
+
+    static newLightMaterial(color: Color, emittance: float32): Material {
+        return new Material(color, null, null, null, null, 1.0, emittance, 1.0, 0.0, 0.0, -1.0, false);
+    }
+
+    static materialAt(shape: Shape, point: Vector3): Material {
+        let material: Material = shape.materialAt(point);
+        let uv: Vector3 = shape.uv(point);
+
+        if (material.albedoMap != null) {
+            material.color.set(material.albedoMap.sample(uv.x, uv.y));
+        }
+        if (Material.roughnessMap(material)) {
+            let c: Color = material.roughnessMap.sample(uv.x, uv.y);
+            Material.roughness(material) = (c.r + c.g + c.b) / 3;
+        }
+        return material;
+    }
+
+}

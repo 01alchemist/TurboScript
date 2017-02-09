@@ -15,6 +15,7 @@ export class Box{
         return this;
 	}
 
+    //@JS
     // static ToJSON(this){
      //    return {
      //        min:Vector.ToJSON(this.min),
@@ -76,38 +77,18 @@ export class Box{
         return radius;
     }
 
-	contains(b:Box):boolean{
-
-        let a_min = this.min;
-        let a_max = this.max;
-
+	contains(b:Vector3):boolean{
         return this.min.x <= b.x && this.max.x >= b.x &&
                 this.min.y <= b.y && this.max.y >= b.y &&
                 this.min.z <= b.z && this.max.z >= b.z;
 	}
 
 	intersects(b:Box):boolean {
-        let this.min = Box.min(a);
-        let this.max = Box.max(a);
-        let b.min = Box.min(b);
-        let b.max = Box.max(b);
-
 		return !(this.min.x > b.max.x || this.max.x < b.min.x || this.min.y > b.max.y ||
 		            this.max.y < b.min.y || this.min.z > b.max.z || this.max.z < b.min.z);
 	}
 
-	static intersect(r:Ray):Intersection {
-
-        let min = this.min;
-        let max = this.max;
-
-        // x1 := (b.min.x - r.Origin.x) / r.Direction.x
-        // y1 := (b.min.y - r.Origin.y) / r.Direction.y
-        // z1 := (b.min.z - r.Origin.z) / r.Direction.z
-        // x2 := (b.max.x - r.Origin.x) / r.Direction.x
-        // y2 := (b.max.y - r.Origin.y) / r.Direction.y
-        // z2 := (b.max.z - r.Origin.z) / r.Direction.z
-
+	intersect(r:Ray):Intersection {
 		let x1 = (this.min.x - r.origin.x) / r.direction.x;
         let y1 = (this.min.y - r.origin.y) / r.direction.y;
         let z1 = (this.min.z - r.origin.z) / r.direction.z;
@@ -137,7 +118,7 @@ export class Box{
         );
 	}
 
-	static Partition(axis:Axis, point:number): {left:boolean, right:boolean} {
+	partition(axis:Axis, point:number): {left:boolean, right:boolean} {
         let min = this.min;
         let max = this.max;
         let left;
@@ -162,5 +143,5 @@ export class Box{
         };
 	}
 
-} @end
+}
 

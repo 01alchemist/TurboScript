@@ -14,6 +14,20 @@ export enum BounceType{
     BounceTypeSpecular
 }
 
+class Bounce {
+    ray: Ray;
+    reflected: boolean;
+    coefficient: float32;
+
+    constructor(ray: Ray, reflected: boolean, coefficient:float32): Bounce {
+        this.ray = ray;
+        this.reflected = reflected;
+        this.coefficient = coefficient;
+        return this;
+    }
+
+}
+
 interface Sampler{
 	Sample(scene:number, ray:Ray):Color3
 }

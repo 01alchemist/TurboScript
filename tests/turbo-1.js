@@ -166,7 +166,7 @@ function TurboModule(global, env, buffer) {
         }
     }
     function _waitForUpdate(self, tag, timeout) {
-        // Spin for a short time before going into the futexWait.
+        // Spin for a int16 time before going into the futexWait.
         //
         // Hard to know what a good count should be - it is machine
         // dependent, for sure, and "typical" applications should

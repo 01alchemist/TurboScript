@@ -454,7 +454,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Reads a UTF-8 string from the byte stream.  The string
-                 * is assumed to be prefixed with an unsigned short indicating
+                 * is assumed to be prefixed with an unsigned int16 indicating
                  * the length in bytes.
                  * @return    UTF-8 encoded  string.
                  */
@@ -473,7 +473,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 /**
                  * Reads a sequence of UTF-8 bytes specified by the length
                  * parameter from the byte stream and returns a string.
-                 * @param    length    An unsigned short indicating the length of the UTF-8 bytes.
+                 * @param    length    An unsigned int16 indicating the length of the UTF-8 bytes.
                  * @return    A string composed of the UTF-8 bytes of the specified length.
                  */
                 readUTFBytes(length) {
@@ -815,7 +815,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Read a Uint8Array from the byte stream.
-                 * @param    length An unsigned short indicating the length of the Uint8Array.
+                 * @param    length An unsigned int16 indicating the length of the Uint8Array.
                  */
                 readUint8Array(length, createNewBuffer = true) {
                     if (!this.validate(length))
@@ -835,7 +835,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Read a Uint16Array from the byte stream.
-                 * @param    length An unsigned short indicating the length of the Uint16Array.
+                 * @param    length An unsigned int16 indicating the length of the Uint16Array.
                  */
                 readUint16Array(length, createNewBuffer = true) {
                     var size = length * ByteArray.SIZE_OF_UINT16;
@@ -856,7 +856,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Read a Uint32Array from the byte stream.
-                 * @param    length An unsigned short indicating the length of the Uint32Array.
+                 * @param    length An unsigned int16 indicating the length of the Uint32Array.
                  */
                 readUint32Array(length, createNewBuffer = true) {
                     var size = length * ByteArray.SIZE_OF_UINT32;
@@ -877,7 +877,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Read a Int8Array from the byte stream.
-                 * @param    length An unsigned short indicating the length of the Int8Array.
+                 * @param    length An unsigned int16 indicating the length of the Int8Array.
                  */
                 readInt8Array(length, createNewBuffer = true) {
                     if (!this.validate(length))
@@ -897,7 +897,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Read a Int16Array from the byte stream.
-                 * @param    length An unsigned short indicating the length of the Int16Array.
+                 * @param    length An unsigned int16 indicating the length of the Int16Array.
                  */
                 readInt16Array(length, createNewBuffer = true) {
                     var size = length * ByteArray.SIZE_OF_INT16;
@@ -918,7 +918,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Read a Int32Array from the byte stream.
-                 * @param    length An unsigned short indicating the length of the Int32Array.
+                 * @param    length An unsigned int16 indicating the length of the Int32Array.
                  */
                 readInt32Array(length, createNewBuffer = true) {
                     var size = length * ByteArray.SIZE_OF_INT32;
@@ -949,7 +949,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Read a Float32Array from the byte stream.
-                 * @param    length An unsigned short indicating the length of the Float32Array.
+                 * @param    length An unsigned int16 indicating the length of the Float32Array.
                  */
                 readFloat32Array(length, createNewBuffer = true) {
                     var size = length * ByteArray.SIZE_OF_FLOAT32;
@@ -980,7 +980,7 @@ System.register("bytearray", [], function (exports_1, context_1) {
                 }
                 /**
                  * Read a Float64Array from the byte stream.
-                 * @param    length An unsigned short indicating the length of the Float64Array.
+                 * @param    length An unsigned int16 indicating the length of the Float64Array.
                  */
                 readFloat64Array(length, createNewBuffer = true) {
                     var size = length * ByteArray.SIZE_OF_FLOAT64;
@@ -3332,7 +3332,7 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                                 this.advance();
                                 let arrayType = this.parseType();
                                 this.expect(lexer_1.TokenKind.GREATER_THAN);
-                                node.appendChild(arrayType);
+                                type.appendChild(arrayType);
                             }
                             if (type == null) {
                                 return null;
@@ -4487,21 +4487,21 @@ System.register("c", ["stringbuilder", "compiler", "node", "parser", "symbol", "
                     if (type.isClass()) {
                         code.append("struct ");
                     }
-                    if (type == context.booleanType || type == context.byteType)
+                    if (type == context.booleanType || type == context.uint8Type)
                         code.append("uint8_t");
-                    else if (type == context.sbyteType)
+                    else if (type == context.int8Type)
                         code.append("int8_t");
                     else if (type == context.int32Type)
                         code.append("int32_t");
                     else if (type == context.int64Type)
                         code.append("int64_t");
-                    else if (type == context.shortType)
+                    else if (type == context.int16Type)
                         code.append("int16_t");
                     else if (type == context.stringType)
                         code.append("const uint16_t");
                     else if (type == context.uint32Type)
                         code.append("uint32_t");
-                    else if (type == context.ushortType)
+                    else if (type == context.uint16Type)
                         code.append("uint16_t");
                     else if (type == context.float32Type)
                         code.append("float");
@@ -5002,7 +5002,7 @@ System.register("js", ["stringbuilder", "symbol", "node", "parser"], function (e
                         }
                         else {
                             // Sign-extend
-                            if (type == context.sbyteType || type == context.shortType) {
+                            if (type == context.int8Type || type == context.int16Type) {
                                 if (parentPrecedence > parser_3.Precedence.SHIFT) {
                                     code.append('(');
                                 }
@@ -5016,7 +5016,7 @@ System.register("js", ["stringbuilder", "symbol", "node", "parser"], function (e
                                     code.append(')');
                                 }
                             }
-                            else if (type == context.byteType || type == context.ushortType) {
+                            else if (type == context.uint8Type || type == context.uint16Type) {
                                 if (parentPrecedence > parser_3.Precedence.BITWISE_AND) {
                                     code.append('(');
                                 }
@@ -5606,7 +5606,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                         }
                         else {
                             // Sign-extend
-                            if (type == context.sbyteType || type == context.shortType) {
+                            if (type == context.int8Type || type == context.int16Type) {
                                 if (parentPrecedence > parser_4.Precedence.SHIFT) {
                                     this.code.append("(");
                                 }
@@ -5620,7 +5620,7 @@ System.register("turbojs", ["stringbuilder", "node", "parser", "js", "symbol"], 
                                     this.code.append(")");
                                 }
                             }
-                            else if (type == context.byteType || type == context.ushortType) {
+                            else if (type == context.uint8Type || type == context.uint16Type) {
                                 if (parentPrecedence > parser_4.Precedence.BITWISE_AND) {
                                     this.code.append("(");
                                 }
@@ -8000,7 +8000,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         }
                         else {
                             // Sign-extend
-                            if (type == context.sbyteType || type == context.shortType) {
+                            if (type == context.int8Type || type == context.int16Type) {
                                 let shift = 32 - typeSize * 8;
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHR_S);
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
@@ -8012,7 +8012,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                 log(array, byteOffset, shift, "i32 literal");
                                 array.writeLEB128(shift);
                             }
-                            else if (type == context.byteType || type == context.ushortType) {
+                            else if (type == context.uint8Type || type == context.uint16Type) {
                                 this.emitNode(array, byteOffset, value);
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                 let _value = type.integerBitMask(this.context);
@@ -8986,7 +8986,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                         //
                         // else {
                         // Sign-extend
-                        if (type == context.sbyteType || type == context.shortType) {
+                        if (type == context.int8Type || type == context.int16Type) {
                             if (parentPrecedence > parser_5.Precedence.SHIFT) {
                                 this.code.append("(");
                             }
@@ -9000,7 +9000,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                                 this.code.append(")");
                             }
                         }
-                        else if (type == context.byteType || type == context.ushortType) {
+                        else if (type == context.uint8Type || type == context.uint16Type) {
                             if (parentPrecedence > parser_5.Precedence.BITWISE_AND) {
                                 this.code.append("(");
                             }
@@ -9942,8 +9942,8 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     let initializerLength = memoryInitializer.length;
                     let initialHeapPointer = imports_2.alignToNextMultipleOf(ASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
                     // Pass the initial heap pointer to the "malloc" function
-                    memoryInitializer.writeUnsignedInt(initialHeapPointer, ASM_MEMORY_INITIALIZER_BASE + this.originalHeapPointer);
-                    memoryInitializer.writeUnsignedInt(initialHeapPointer, ASM_MEMORY_INITIALIZER_BASE + this.currentHeapPointer);
+                    memoryInitializer.writeUnsignedInt(initialHeapPointer, this.originalHeapPointer);
+                    memoryInitializer.writeUnsignedInt(initialHeapPointer, this.currentHeapPointer);
                     // Copy the entire memory initializer (also includes zero-initialized data for now)
                     this.code.append("function initMemory() {\n", 1);
                     let i = 0;
@@ -9951,10 +9951,10 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     let col = 4;
                     while (i < initializerLength) {
                         for (let j = 0; j < col; j++) {
-                            let index = i + j;
+                            let index = (i + j);
                             if (index < initializerLength) {
                                 value = memoryInitializer.get(index);
-                                this.code.append(`HEAPU8[${index}] = ${value}; `);
+                                this.code.append(`HEAPU8[${ASM_MEMORY_INITIALIZER_BASE + index}] = ${value}; `);
                             }
                         }
                         this.code.append("\n");
@@ -10495,16 +10495,22 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             parentScope = symbol.scope;
             if (node.parameterCount() > 0) {
                 //Class has generic parameters
+                //TODO: Lift generic parameter limit from 1 to many
                 let genericType = node.firstGenericType();
-                let symbol = new symbol_8.Symbol();
-                symbol.kind = symbol_8.SymbolKind.TYPE_GENERIC;
-                symbol.name = genericType.stringValue;
-                symbol.resolvedType = new type_2.Type();
-                symbol.resolvedType.symbol = symbol;
-                symbol.flags = symbol_8.SYMBOL_FLAG_IS_GENERIC;
-                addScopeToSymbol(symbol, parentScope);
-                linkSymbolToNode(symbol, genericType);
-                parentScope.define(context.log, symbol, scope_2.ScopeHint.NORMAL);
+                let genericSymbol = new symbol_8.Symbol();
+                genericSymbol.kind = symbol_8.SymbolKind.TYPE_GENERIC;
+                genericSymbol.name = genericType.stringValue;
+                genericSymbol.resolvedType = new type_2.Type();
+                genericSymbol.resolvedType.symbol = genericSymbol;
+                genericSymbol.flags = symbol_8.SYMBOL_FLAG_IS_GENERIC;
+                addScopeToSymbol(genericSymbol, parentScope);
+                linkSymbolToNode(genericSymbol, genericType);
+                parentScope.define(context.log, genericSymbol, scope_2.ScopeHint.NORMAL);
+                symbol.generics = [];
+                symbol.genericMaps = new Map();
+                let genericMap = new Map();
+                symbol.genericMaps.set(genericSymbol.name, genericMap);
+                symbol.generics.push(genericSymbol.name);
             }
         }
         else if (kind == node_9.NodeKind.FUNCTION) {
@@ -10594,22 +10600,22 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         if (kind == node_9.NodeKind.FILE && mode == CheckMode.INITIALIZE) {
             context.booleanType = parentScope.findLocal("boolean", scope_2.ScopeHint.NORMAL).resolvedType;
-            context.byteType = parentScope.findLocal("byte", scope_2.ScopeHint.NORMAL).resolvedType;
+            context.uint8Type = parentScope.findLocal("uint8", scope_2.ScopeHint.NORMAL).resolvedType;
             context.int32Type = parentScope.findLocal("int32", scope_2.ScopeHint.NORMAL).resolvedType;
             context.int64Type = parentScope.findLocal("int64", scope_2.ScopeHint.NORMAL).resolvedType;
-            context.sbyteType = parentScope.findLocal("sbyte", scope_2.ScopeHint.NORMAL).resolvedType;
-            context.shortType = parentScope.findLocal("short", scope_2.ScopeHint.NORMAL).resolvedType;
+            context.int8Type = parentScope.findLocal("int8", scope_2.ScopeHint.NORMAL).resolvedType;
+            context.int16Type = parentScope.findLocal("int16", scope_2.ScopeHint.NORMAL).resolvedType;
             context.stringType = parentScope.findLocal("string", scope_2.ScopeHint.NORMAL).resolvedType;
             context.uint32Type = parentScope.findLocal("uint32", scope_2.ScopeHint.NORMAL).resolvedType;
             context.uint64Type = parentScope.findLocal("uint64", scope_2.ScopeHint.NORMAL).resolvedType;
-            context.ushortType = parentScope.findLocal("ushort", scope_2.ScopeHint.NORMAL).resolvedType;
+            context.uint16Type = parentScope.findLocal("uint16", scope_2.ScopeHint.NORMAL).resolvedType;
             context.float32Type = parentScope.findLocal("float32", scope_2.ScopeHint.NORMAL).resolvedType;
             context.float64Type = parentScope.findLocal("float64", scope_2.ScopeHint.NORMAL).resolvedType;
             prepareNativeType(context.booleanType, 1, 0);
-            prepareNativeType(context.byteType, 1, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
-            prepareNativeType(context.sbyteType, 1, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER);
-            prepareNativeType(context.shortType, 2, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER);
-            prepareNativeType(context.ushortType, 2, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
+            prepareNativeType(context.uint8Type, 1, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
+            prepareNativeType(context.int8Type, 1, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER);
+            prepareNativeType(context.int16Type, 2, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER);
+            prepareNativeType(context.uint16Type, 2, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
             prepareNativeType(context.int32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER);
             prepareNativeType(context.int64Type, 8, symbol_8.SYMBOL_FLAG_NATIVE_LONG);
             prepareNativeType(context.uint32Type, 4, symbol_8.SYMBOL_FLAG_NATIVE_INTEGER | symbol_8.SYMBOL_FLAG_IS_UNSIGNED);
@@ -10837,6 +10843,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             if (type != null) {
                 resolveAsType(context, type, symbol.scope);
+                // if(type.resolvedType.isArray() && type.firstChild){
+                //     resolveAsType(context, type.firstChild, symbol.scope);
+                // }
                 symbol.resolvedType = type.resolvedType;
             }
             else if (value != null) {
@@ -11083,6 +11092,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         if (type == context.booleanType) {
             return node_9.createboolean(false);
+        }
+        if (type.isClass()) {
+            return node_9.createNull();
         }
         assert(type.isReference());
         return node_9.createNull();
@@ -11418,8 +11430,34 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             else if (isSymbolAccessAllowed(context, symbol, node, node.range)) {
                 initializeSymbol(context, symbol);
-                node.symbol = symbol;
-                node.resolvedType = symbol.resolvedType;
+                if (symbol.resolvedType.isArray() && node.firstChild && node.firstChild.kind != node_9.NodeKind.PARAMETERS) {
+                    resolveAsType(context, node.firstChild, symbol.scope);
+                    let arrayType = node.firstChild.resolvedType;
+                    // let arrayTypeName = symbol.name + `<${arrayType.symbol.name}>`;
+                    // let arraySymbol = parentScope.findNested(arrayTypeName, ScopeHint.NORMAL, FindNested.NORMAL);
+                    //
+                    // if(arraySymbol ==  null) {
+                    //     let arraySymbolType = new Type();
+                    //     arraySymbol = symbol.clone();
+                    //     arraySymbol.name = symbol.name + `<${arrayType.symbol.name}>`;
+                    //     arraySymbol.resolvedType = arraySymbolType;
+                    //     arraySymbol.node = node;
+                    //     arraySymbolType.symbol = arraySymbol;
+                    //     parentScope.define(context.log, arraySymbol, ScopeHint.NORMAL);
+                    // }
+                    // node.symbol = arraySymbol;
+                    // node.resolvedType = arraySymbol.resolvedType;
+                    //
+                    let genericName = symbol.generics[0];
+                    let genericMap = symbol.genericMaps.get(genericName);
+                    genericMap.set(node.parent.symbol.name, arrayType.symbol);
+                    node.symbol = symbol;
+                    node.resolvedType = symbol.resolvedType;
+                }
+                else {
+                    node.symbol = symbol;
+                    node.resolvedType = symbol.resolvedType;
+                }
                 // Inline constants
                 if (symbol.kind == symbol_8.SymbolKind.VARIABLE_CONSTANT) {
                     if (symbol.resolvedType == context.booleanType) {
@@ -11706,9 +11744,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         else if (kind == node_9.NodeKind.NEW) {
             let type = node.newType();
             resolveAsType(context, type, parentScope);
-            if (type.resolvedType.isArray()) {
-                resolveAsType(context, type.firstChild, parentScope);
-            }
+            //if (type.resolvedType.isArray()) {
+            //resolveAsType(context, type.firstChild, parentScope);
+            // node.resolvedType = type.resolvedType;
+            //}
             if (type.resolvedType != context.errorType) {
                 if (!type.resolvedType.isClass()) {
                     context.log.error(type.range, stringbuilder_11.StringBuilder_new()
@@ -12203,6 +12242,21 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
                     this.state = SymbolState.UNINITIALIZED;
                     this.byteSize = 0;
                     this.maxAlignment = 0;
+                }
+                clone() {
+                    let symbol = new Symbol();
+                    symbol.kind = this.kind;
+                    symbol.name = this.name;
+                    symbol.node = this.node;
+                    symbol.range = this.range;
+                    symbol.scope = this.scope;
+                    symbol.resolvedType = this.resolvedType;
+                    symbol.byteSize = this.byteSize;
+                    symbol.state = this.state;
+                    symbol.maxAlignment = this.maxAlignment;
+                    symbol.flags = this.flags;
+                    symbol.rename = this.rename;
+                    return symbol;
                 }
                 isEnumValue() {
                     return this.node.parent.kind == node_10.NodeKind.ENUM;
@@ -13449,7 +13503,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                 }
                 hasVariableValue() {
                     assert(this.kind == NodeKind.VARIABLE);
-                    return this.firstChild && this.firstChild.nextSibling;
+                    return this.firstChild != undefined && this.firstChild.nextSibling != undefined;
                 }
                 expressionValue() {
                     assert(this.kind == NodeKind.EXPRESSION);

@@ -241,7 +241,7 @@ export function isAlpha(c: string): boolean {
     return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_';
 }
 
-export function isASCII(c: ushort): boolean {
+export function isASCII(c: uint16): boolean {
     return c >= 0x20 && c <= 0x7E;
 }
 
@@ -249,7 +249,7 @@ export function isNumber(c: string): boolean {
     return c >= '0' && c <= '9';
 }
 
-export function isDigit(c: any, base: byte): boolean {
+export function isDigit(c: any, base: uint8): boolean {
     if(c.trim() == "") return false;
     if (base == 16) {
         return isNumber(c) || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f';
@@ -372,7 +372,7 @@ export function tokenize(source: Source, log: Log): Token {
 
             if (i < limit) {
                 var next = contents[i];
-                var base: byte = 10;
+                var base: uint8 = 10;
 
                 // Handle binary, octal, and hexadecimal prefixes
                 if (c == '0' && i + 1 < limit) {

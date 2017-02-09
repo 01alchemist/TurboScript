@@ -34,9 +34,6 @@ function rgb(r:number, g:number, b:number) {
 function ray(origin:number, direction:number) {
     return {Origin: origin, Direction: direction};
 }
-function free(ptr){
-    unsafe.free(ptr);
-}
 // const black = DL3(0,0,0);
 
 // function add(a, b) { return DL3(a.x+b.x, a.y+b.y, a.z+b.z); }

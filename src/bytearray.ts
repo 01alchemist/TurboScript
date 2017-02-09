@@ -512,7 +512,7 @@ export class ByteArray {
 
     /**
      * Reads a UTF-8 string from the byte stream.  The string
-     * is assumed to be prefixed with an unsigned short indicating
+     * is assumed to be prefixed with an unsigned int16 indicating
      * the length in bytes.
      * @return    UTF-8 encoded  string.
      */
@@ -532,7 +532,7 @@ export class ByteArray {
     /**
      * Reads a sequence of UTF-8 bytes specified by the length
      * parameter from the byte stream and returns a string.
-     * @param    length    An unsigned short indicating the length of the UTF-8 bytes.
+     * @param    length    An unsigned int16 indicating the length of the UTF-8 bytes.
      * @return    A string composed of the UTF-8 bytes of the specified length.
      */
     public readUTFBytes(length: number): string {
@@ -921,7 +921,7 @@ export class ByteArray {
 
     /**
      * Read a Uint8Array from the byte stream.
-     * @param    length An unsigned short indicating the length of the Uint8Array.
+     * @param    length An unsigned int16 indicating the length of the Uint8Array.
      */
     public readUint8Array(length: number, createNewBuffer: boolean = true): Uint8Array {
         if (!this.validate(length)) return null;
@@ -940,7 +940,7 @@ export class ByteArray {
 
     /**
      * Read a Uint16Array from the byte stream.
-     * @param    length An unsigned short indicating the length of the Uint16Array.
+     * @param    length An unsigned int16 indicating the length of the Uint16Array.
      */
     public readUint16Array(length: number, createNewBuffer: boolean = true): Uint16Array {
         var size: number = length * ByteArray.SIZE_OF_UINT16;
@@ -961,7 +961,7 @@ export class ByteArray {
 
     /**
      * Read a Uint32Array from the byte stream.
-     * @param    length An unsigned short indicating the length of the Uint32Array.
+     * @param    length An unsigned int16 indicating the length of the Uint32Array.
      */
     public readUint32Array(length: number, createNewBuffer: boolean = true): Uint32Array {
         var size: number = length * ByteArray.SIZE_OF_UINT32;
@@ -982,7 +982,7 @@ export class ByteArray {
 
     /**
      * Read a Int8Array from the byte stream.
-     * @param    length An unsigned short indicating the length of the Int8Array.
+     * @param    length An unsigned int16 indicating the length of the Int8Array.
      */
     public readInt8Array(length: number, createNewBuffer: boolean = true): Int8Array {
         if (!this.validate(length)) return null;
@@ -1002,7 +1002,7 @@ export class ByteArray {
 
     /**
      * Read a Int16Array from the byte stream.
-     * @param    length An unsigned short indicating the length of the Int16Array.
+     * @param    length An unsigned int16 indicating the length of the Int16Array.
      */
     public readInt16Array(length: number, createNewBuffer: boolean = true): Int16Array {
         var size: number = length * ByteArray.SIZE_OF_INT16;
@@ -1023,7 +1023,7 @@ export class ByteArray {
 
     /**
      * Read a Int32Array from the byte stream.
-     * @param    length An unsigned short indicating the length of the Int32Array.
+     * @param    length An unsigned int16 indicating the length of the Int32Array.
      */
     public readInt32Array(length: number, createNewBuffer: boolean = true): Int32Array {
         var size: number = length * ByteArray.SIZE_OF_INT32;
@@ -1054,7 +1054,7 @@ export class ByteArray {
 
     /**
      * Read a Float32Array from the byte stream.
-     * @param    length An unsigned short indicating the length of the Float32Array.
+     * @param    length An unsigned int16 indicating the length of the Float32Array.
      */
     public readFloat32Array(length: number, createNewBuffer: boolean = true): Float32Array {
         var size: number = length * ByteArray.SIZE_OF_FLOAT32;
@@ -1085,7 +1085,7 @@ export class ByteArray {
 
     /**
      * Read a Float64Array from the byte stream.
-     * @param    length An unsigned short indicating the length of the Float64Array.
+     * @param    length An unsigned int16 indicating the length of the Float64Array.
      */
     public readFloat64Array(length: number, createNewBuffer: boolean = true): Float64Array {
         var size: number = length * ByteArray.SIZE_OF_FLOAT64;

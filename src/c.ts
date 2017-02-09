@@ -340,14 +340,14 @@ export class CResult {
             code.append("struct ");
         }
 
-        if (type == context.booleanType || type == context.byteType) code.append("uint8_t");
-        else if (type == context.sbyteType) code.append("int8_t");
+        if (type == context.booleanType || type == context.uint8Type) code.append("uint8_t");
+        else if (type == context.int8Type) code.append("int8_t");
         else if (type == context.int32Type) code.append("int32_t");
         else if (type == context.int64Type) code.append("int64_t");
-        else if (type == context.shortType) code.append("int16_t");
+        else if (type == context.int16Type) code.append("int16_t");
         else if (type == context.stringType) code.append("const uint16_t");
         else if (type == context.uint32Type) code.append("uint32_t");
-        else if (type == context.ushortType) code.append("uint16_t");
+        else if (type == context.uint16Type) code.append("uint16_t");
         else if (type == context.float32Type) code.append("float");
         else this.emitSymbolName(type.symbol);
 

@@ -764,7 +764,7 @@ class WasmModule {
         }
     }
 
-    emitBinaryExpression(array: ByteArray, byteOffset: int32, node: Node, opcode: byte): void {
+    emitBinaryExpression(array: ByteArray, byteOffset: int32, node: Node, opcode: uint8): void {
         this.emitNode(array, byteOffset, node.binaryLeft());
         this.emitNode(array, byteOffset, node.binaryRight());
         appendOpcode(array, byteOffset, opcode);
@@ -1263,7 +1263,7 @@ class WasmModule {
 
             else {
                 // Sign-extend
-                if (type == context.sbyteType || type == context.shortType) {
+                if (type == context.int8Type || type == context.int16Type) {
                     let shift = 32 - typeSize * 8;
                     appendOpcode(array, byteOffset, WasmOpcode.I32_SHR_S);
                     appendOpcode(array, byteOffset, WasmOpcode.I32_SHL);
@@ -1277,7 +1277,7 @@ class WasmModule {
                 }
 
                 // Mask
-                else if (type == context.byteType || type == context.ushortType) {
+                else if (type == context.uint8Type || type == context.uint16Type) {
                     this.emitNode(array, byteOffset, value);
                     appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
                     let _value = type.integerBitMask(this.context);

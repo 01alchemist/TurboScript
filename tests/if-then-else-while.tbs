@@ -1,4 +1,4 @@
-unsafe function memcpy(target: *byte, source: *byte, length: uint32): void {
+unsafe function memcpy(target: *uint8, source: *uint8, length: uint32): void {
     // No-op if either of the inputs are null
     // if (source == null || target == null) {
     //   return;

@@ -1411,7 +1411,7 @@ class ParserContext {
                     this.advance();
                     let arrayType = this.parseType();
                     this.expect(TokenKind.GREATER_THAN);
-                    node.appendChild(arrayType);
+                    type.appendChild(arrayType);
                 }
 
                 if (type == null) {

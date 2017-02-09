@@ -1,6 +1,6 @@
 type byte = number;
 type ubyte = number;
-type short = number;
+type shirt = number;
 type ushort = number;
 type int8 = number;
 type int16 = number;

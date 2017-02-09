@@ -782,7 +782,7 @@ export class Node {
 
     hasVariableValue(): boolean {
         assert(this.kind == NodeKind.VARIABLE);
-        return this.firstChild && this.firstChild.nextSibling;
+        return this.firstChild != undefined && this.firstChild.nextSibling != undefined;
     }
 
     expressionValue(): Node {

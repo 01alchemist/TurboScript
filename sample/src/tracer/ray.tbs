@@ -3,7 +3,13 @@ export class Ray {
     origin: Vector3;
     direction: Vector3;
 
-    constructor(origin: Vector3, direction: Vector3): Ray {
+    constructor(origin: Vector3 = null, direction: Vector3 = null): Ray {
+        this.origin = origin == null ? new Vector3() : origin;
+        this.direction = direction == null ? new Vector3() : direction;
+        return this;
+    }
+
+    set(origin: Vector3, direction: Vector3): Ray {
         this.origin = origin;
         this.direction = direction;
         return this;
@@ -16,80 +22,61 @@ export class Ray {
 
     reflect(i: Ray, c: Ray = null): Ray {
         c = c != null ? c : new Ray();
-        return c.set(this.origin, this.direction.reflect(i.direction));
+        return c.set(this.origin/*.clone()*/, this.direction.reflect(i.direction));
     }
 
-    refract(i: Ray, n1: number, n2: number): Ray {
-        return new Ray(this.origin, this.direction.refract(i.direction, n1, n2));
+    refract(i: Ray, n1: number, n2: number, c: Ray = null): Ray {
+        c = c != null ? c : new Ray();
+        return c.set(this.origin/*.clone()*/, this.direction.refract(i.direction, n1, n2));
     }
 
-    reflectance(i: Ray, n1: number, n2: number): number {
+    reflectance(i: Ray, n1: number, n2: number): float32 {
         return this.direction.reflectance(i.direction, n1, n2);
     }
 
-    weightedBounce(u, v: number): Ray {
-        var m1 = Math.sqrt(u);
-        var m2 = Math.sqrt(1 - u);
-        var a = v * 2 * Math.PI;
-        var q = new Vector3(u - 0.5, v - 0.5, u + v - 1);
-        var s = this.direction.cross(q.normalize());
-        var t = this.direction.cross(s);
-        var d = new Vector3();
-        d = d.add(s.mulScalar(m1 * Math.cos(a)));
-        d = d.add(t.mulScalar(m1 * Math.sin(a)));
-        d = d.add(this.direction.mulScalar(m2));
-        return new Ray(this.origin, d);
+    weightedBounce(u: float32, v: float32, c: Ray = null): Ray {
+        c = c != null ? c : new Ray();
+        let m1 = Math.sqrt(u);
+        let m2 = Math.sqrt(1.0 - u);
+        let a = v * 2.0 * PI;
+        let q = new Vector3(u - 0.5, v - 0.5, u + v - 1.0);
+        let s = this.direction.cross(q.normalize(q), q);
+        let t = this.direction.cross(s);
+        let d = new Vector3();
+
+        d = d.add(s.mulScalar(m1 * Math.cos(a), s), d);
+        d = d.add(t.mulScalar(m1 * Math.sin(a), t), d);
+        d = d.add(this.direction.mulScalar(m2, s), d);
+
+        delete s;
+        delete t;
+
+        return c.set(this.origin/*.clone()*/, d);
     }
 
-    coneBounce(theta: number, u: number, v: number, c?: number): Ray {
-        return new Ray(this.origin, Utils.Cone(this.direction, theta, u, v));
+    coneBounce(theta: float32, u: float32, v: float32, c: Ray = null): Ray {
+        c = c != null ? c : new Ray();
+        return c.set(this.origin/*.clone()*/, Utils.cone(this.direction, theta, u, v));
     }
 
-
-    bounce2(info: HitInfo, p: number, u: number, v: number): {ray: Ray,reflected: boolean} {
-        var n: Ray = info.Ray;
-        F
-        let material = info.Material;
+    bounce(info: HitInfo, u: float32, v: float32, bounceType: BounceType): Bounce {
+        let n: Ray = info.ray;
+        let material = info.material;
         let n1 = 1.0;
-        let n2 = Material.Index(material);
-        let gloss = Material.Gloss(material);
-        let transparent = Material.Transparent(material);
+        let n2 = material.index;
+        let gloss = material.gloss;
+        let transparent = material.transparent;
 
-        if (info.Inside) {
-            var _n1 = n1;
-            n1 = n2;
-            n2 = _n1;
-        }
-        if (p < n.reflectance(this, n1, n2)) {
-            var reflected: Ray = n.reflect(this);
-            var ray: Ray = reflected.coneBounce(gloss, u, v);
-            return {ray: ray, reflected: true};
-        } else if (transparent) {
-            var refracted = n.Refract(this, n1, n2);
-            var ray = refracted.coneBounce(gloss, u, v);
-            return {ray: ray, reflected: true};
-        } else {
-            var ray: Ray = n.weightedBounce(u, v);
-            return {ray: ray, reflected: false};
-        }
-    }
-
-    bounce(info: HitInfo, u: number, v: number, bounceType: BounceType): {ray: Ray, reflected: boolean, coefficient: number} {
-        let n: Ray = info.Ray;
-        let material = info.Material;
-        let n1 = 1.0;
-        let n2 = Material.Index(material);
-
-        if (info.Inside) {
+        if (info.inside) {
             let tmp = n1;
             n1 = n2;
             n2 = tmp;
         }
 
-        let p: number;
+        let p: float32;
 
-        if (Material.Reflectivity(material) >= 0) {
-            p = Material.Reflectivity(material);
+        if (material.reflectivity >= 0.0) {
+            p = material.reflectivity;
         } else {
             p = n.reflectance(this, n1, n2);
         }
@@ -109,13 +96,13 @@ export class Ray {
         }
         if (reflect) {
             let reflected: Ray = n.reflect(this);
-            return {ray: reflected.coneBounce(Material.Gloss(material), u, v), reflected: true, coefficient: p};
-        } else if (Material.Transparent(material)) {
+            return new Bounce(reflected.coneBounce(gloss, u, v), true, p);
+        } else if (transparent) {
             let refracted: Ray = n.refract(this, n1, n2);
             refracted.origin = refracted.origin.add(refracted.direction.mulScalar(1e-4));
-            return {ray: refracted.coneBounce(Material.Gloss(material), u, v), reflected: true, coefficient: 1 - p};
+            return new Bounce(refracted.coneBounce(gloss, u, v), true, 1.0 - p);
         } else {
-            return {ray: n.weightedBounce(u, v), reflected: false, coefficient: 1 - p};
+            return new Bounce(n.weightedBounce(u, v), false, 1.0 - p);
         }
     }
 }

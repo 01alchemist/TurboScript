@@ -440,7 +440,7 @@ export class AsmJsModule {
             //
             // else {
             // Sign-extend
-            if (type == context.sbyteType || type == context.shortType) {
+            if (type == context.int8Type || type == context.int16Type) {
                 if (parentPrecedence > Precedence.SHIFT) {
                     this.code.append("(");
                 }
@@ -458,7 +458,7 @@ export class AsmJsModule {
             }
 
             // Mask
-            else if (type == context.byteType || type == context.ushortType) {
+            else if (type == context.uint8Type || type == context.uint16Type) {
                 if (parentPrecedence > Precedence.BITWISE_AND) {
                     this.code.append("(");
                 }
@@ -1571,8 +1571,8 @@ export class AsmJsModule {
         let initialHeapPointer = alignToNextMultipleOf(ASM_MEMORY_INITIALIZER_BASE + initializerLength, 8);
 
         // Pass the initial heap pointer to the "malloc" function
-        memoryInitializer.writeUnsignedInt(initialHeapPointer, ASM_MEMORY_INITIALIZER_BASE + this.originalHeapPointer);
-        memoryInitializer.writeUnsignedInt(initialHeapPointer, ASM_MEMORY_INITIALIZER_BASE + this.currentHeapPointer);
+        memoryInitializer.writeUnsignedInt(initialHeapPointer, this.originalHeapPointer);
+        memoryInitializer.writeUnsignedInt(initialHeapPointer, this.currentHeapPointer);
 
         // Copy the entire memory initializer (also includes zero-initialized data for now)
         this.code.append("function initMemory() {\n", 1);
@@ -1581,10 +1581,10 @@ export class AsmJsModule {
         let col = 4;
         while (i < initializerLength) {
             for (let j = 0; j < col; j++) {
-                let index = i + j;
+                let index = (i + j);
                 if (index < initializerLength) {
                     value = memoryInitializer.get(index);
-                    this.code.append(`HEAPU8[${index}] = ${value}; `);
+                    this.code.append(`HEAPU8[${ASM_MEMORY_INITIALIZER_BASE + index}] = ${value}; `);
                 }
             }
             this.code.append("\n");

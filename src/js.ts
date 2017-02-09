@@ -183,7 +183,7 @@ export class JsResult {
 
             else {
                 // Sign-extend
-                if (type == context.sbyteType || type == context.shortType) {
+                if (type == context.int8Type || type == context.int16Type) {
                     if (parentPrecedence > Precedence.SHIFT) {
                         code.append('(');
                     }
@@ -201,7 +201,7 @@ export class JsResult {
                 }
 
                 // Mask
-                else if (type == context.byteType || type == context.ushortType) {
+                else if (type == context.uint8Type || type == context.uint16Type) {
                     if (parentPrecedence > Precedence.BITWISE_AND) {
                         code.append('(');
                     }

@@ -72,6 +72,9 @@ export class Symbol {
     maxAlignment: int32 = 0;
     rename: string;
 
+    generics: string[];
+    genericMaps: Map<string, Map<string,Symbol>>;
+
     // The "offset" variable is used to store kind-specific information
     //
     //   TYPE_CLASS: N/A
@@ -89,6 +92,22 @@ export class Symbol {
     //   VARIABLE_LOCAL: N/A
     //
     offset: int32;
+
+    clone(): Symbol {
+        let symbol = new Symbol();
+        symbol.kind = this.kind;
+        symbol.name = this.name;
+        symbol.node = this.node;
+        symbol.range = this.range;
+        symbol.scope = this.scope;
+        symbol.resolvedType = this.resolvedType;
+        symbol.byteSize = this.byteSize;
+        symbol.state = this.state;
+        symbol.maxAlignment = this.maxAlignment;
+        symbol.flags = this.flags;
+        symbol.rename = this.rename;
+        return symbol;
+    }
 
     isEnumValue(): boolean {
         return this.node.parent.kind == NodeKind.ENUM;

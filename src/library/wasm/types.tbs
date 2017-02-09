@@ -4,25 +4,25 @@ toString(): string {
 }
 }
 
-declare class sbyte {
+declare class int8 {
 toString(): string {
   return (this as int32).toString();
 }
 }
 
-declare class byte {
+declare class uint8 {
 toString(): string {
   return (this as uint32).toString();
 }
 }
 
-declare class short {
+declare class int16 {
 toString(): string {
   return (this as int32).toString();
 }
 }
 
-declare class ushort {
+declare class uint16 {
 toString(): string {
   return (this as uint32).toString();
 }
@@ -87,16 +87,16 @@ if (value == 1) return sign ? "-1" : "1";
         value >= 1000 ? 4 : 3 :
         value >= 10 ? 2 : 1)) as uint32;
 
-  var ptr = string_new(length) as *byte;
+  var ptr = string_new(length) as *uint8;
   var end = ptr + 4 + length * 2;
 
   if (sign) {
-    *((ptr + 4) as *ushort) = '-';
+    *((ptr + 4) as *uint16) = '-';
   }
 
   while (value != 0) {
     end = end + -2;
-    *(end as *ushort) = (value % 10 + '0') as ushort;
+    *(end as *uint16) = (value % 10 + '0') as uint16;
     value = value / 10;
   }
 
@@ -114,7 +114,7 @@ charAt(index: int32): string {
   return this.slice(index, index + 1);
 }
 
-charCodeAt(index: int32): ushort {
+charCodeAt(index: int32): uint16 {
   return this[index];
 }
 
@@ -122,19 +122,19 @@ get length(): int32 {
     return *(this as *int32);
 }
 
-operator [] (index: int32): ushort {
+operator [] (index: int32): uint16 {
   if (index as uint32 < this.length as uint32) {
-      return *((this as *byte + 4 + index * 2) as *ushort);
+      return *((this as *uint8 + 4 + index * 2) as *uint16);
   }
   return 0;
 }
 
 operator == (other: string): boolean {
-    if (this as *byte == other as *byte) return true;
-    if (this as *byte == null || other as *byte == null) return false;
+    if (this as *uint8 == other as *uint8) return true;
+    if (this as *uint8 == null || other as *uint8 == null) return false;
     var length = this.length;
     if (length != other.length) return false;
-    return memcmp(this as *byte + 4, other as *byte + 4, length as uint32 * 2) == 0;
+    return memcmp(this as *uint8 + 4, other as *uint8 + 4, length as uint32 * 2) == 0;
 }
 
 slice(start: int32, end: int32): string {
@@ -151,21 +151,21 @@ slice(start: int32, end: int32): string {
 
     var range = (end - start) as uint32;
     var ptr = string_new(range);
-    memcpy(ptr as *byte + 4, this as *byte + 4 + start * 2, range * 2);
+    memcpy(ptr as *uint8 + 4, this as *uint8 + 4 + start * 2, range * 2);
     return ptr;
 }
 
 startsWith(text: string): boolean {
   var textLength = text.length;
   if (this.length < textLength) return false;
-    return memcmp(this as *byte + 4, text as *byte + 4, textLength as uint32 * 2) == 0;
+    return memcmp(this as *uint8 + 4, text as *uint8 + 4, textLength as uint32 * 2) == 0;
 }
 
 endsWith(text: string): boolean {
   var thisLength = this.length;
   var textLength = text.length;
   if (thisLength < textLength) return false;
-    return memcmp(this as *byte + 4 + (thisLength - textLength) * 2, text as *byte + 4, textLength as uint32 * 2) == 0;
+    return memcmp(this as *uint8 + 4 + (thisLength - textLength) * 2, text as *uint8 + 4, textLength as uint32 * 2) == 0;
 }
 
 indexOf(text: string): int32 {
@@ -174,7 +174,7 @@ indexOf(text: string): int32 {
   if (thisLength >= textLength) {
     var i = 0;
     while (i < thisLength - textLength) {
-        if (memcmp(this as *byte + 4 + i * 2, text as *byte + 4, textLength as uint32 * 2) == 0) {
+        if (memcmp(this as *uint8 + 4 + i * 2, text as *uint8 + 4, textLength as uint32 * 2) == 0) {
           return i;
         }
       i = i + 1;
@@ -189,7 +189,7 @@ lastIndexOf(text: string): int32 {
   if (thisLength >= textLength) {
     var i = thisLength - textLength;
     while (i >= 0) {
-        if (memcmp(this as *byte + 4 + i * 2, text as *byte + 4, textLength as uint32 * 2) == 0) {
+        if (memcmp(this as *uint8 + 4 + i * 2, text as *uint8 + 4, textLength as uint32 * 2) == 0) {
           return i;
         }
       i = i - 1;
