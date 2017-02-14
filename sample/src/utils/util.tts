@@ -1,15 +1,14 @@
-
 export class Utils {
 
-    static Radians(degrees:number):number {
+    static radians(degrees:number):number {
         return degrees * Math.PI / 180
     }
 
-    static Degrees(radians:number):number {
+    static degrees(radians:number):number {
         return radians * 180 / Math.PI
     }
 
-    static Cone(direction:Vector3, theta:number, u:number, v:number):Vector3{
+    static cone(direction:Vector3, theta:number, u:number, v:number):Vector3{
         if (theta < EPS) {
             return direction;
         }
@@ -28,17 +27,17 @@ export class Utils {
         return d;
     }
     
-    static LoadImage(path:string):number /*Image*/ {
+    static loadImage(path:string):number /*Image*/ {
         //TODO: load image using img tag and canvas
         return null;
     }
 
-    static SavePNG(path:string, im:number /*Image*/):boolean {
+    static savePNG(path:string, im:number /*Image*/):boolean {
         //TODO: save using file
         return null;
     }
 
-    static Median(items:number[]):number {
+    static median(items:number[]):number {
         let n = items.length;
         if (n == 0) {
             return 0;
@@ -51,7 +50,7 @@ export class Utils {
         }
     }
 
-    static DurationString(t:number/*milliseconds*/):string {
+    static durationString(t:number/*milliseconds*/):string {
         let d:Date = new Date();
         d.setHours(0);
         d.setMinutes(0);
@@ -60,7 +59,7 @@ export class Utils {
         return d.toLocaleTimeString();
     }
 
-    static NumberString(x:number):string {
+    static numberString(x:number):string {
         let suffixes = ["", "k", "M", "g"];
 
         suffixes.forEach((suffix) => {
@@ -73,7 +72,7 @@ export class Utils {
         return x + "T";
     }
 
-    static ParseFloats(items:string[]):number[] {
+    static parseFloats(items:string[]):number[] {
         let result:number[] = [];
 
         items.forEach((item) => {
@@ -82,7 +81,7 @@ export class Utils {
         return result;
     }
 
-    static ParseInts(items:string[]):number[] {
+    static parseInts(items:string[]):number[] {
         let result:number[] = [];
 
         items.forEach((item) => {
@@ -91,22 +90,22 @@ export class Utils {
         return result;
     }
 
-    static Fract(x:number):number {
+    static fract(x:number):number {
         return x - Math.floor(x);
     }
 
-    static FractAddOne(x:number):number {
+    static fractAddOne(x:number):number {
         let f1 = x - Math.floor(x);
         return f1 - Math.floor(f1 + 1);
     }
 
-    static  Modf(f):{int:number,frac:number} {
+    static  modf(f):{int:number,frac:number} {
         var int = Math.floor(f);
         var frac = f - int;
         return {int: int, frac: frac};
     }
 
-    static Clamp(x:number, lo:number, hi:number):number {
+    static clamp(x:number, lo:number, hi:number):number {
         if (x < lo) {
             return lo;
         }
@@ -116,7 +115,7 @@ export class Utils {
         return x;
     }
 
-    static ClampInt(x:number, lo:number, hi:number):number {
+    static clampInt(x:number, lo:number, hi:number):number {
         if (x < lo) {
             return lo;
         }

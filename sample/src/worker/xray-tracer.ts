@@ -191,7 +191,7 @@ export class xRayTracer {
 
                 /*// adaptive sampling
                 if (this.AdaptiveSamples > 0) {
-                    let v = Clamp(buf.StandardDeviation(x, y).MaxComponent(), 0, 1);
+                    let v = clamp(buf.StandardDeviation(x, y).MaxComponent(), 0, 1);
                     // v = math.Pow(v, 2)
                     let samples = int(v * float64(r.AdaptiveSamples))
                     for (let i = 0; i < samples; i++) {

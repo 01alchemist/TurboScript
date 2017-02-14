@@ -49,7 +49,7 @@
 
     static ConeBounce(r:number, theta:number, u:number, v:number, c?:number):number{
         c = c?c:@new Ray;
-        return Ray.init(c, Ray.Origin(r), Cone(Ray.Direction(r), theta, u, v));
+        return Ray.init(c, Ray.Origin(r), cone(Ray.Direction(r), theta, u, v));
     }
 
     static Bounce(i:number, info:HitInfo, u:number, v:number, bounceType:BounceType):{ray:number, reflected:boolean, coefficient:number} {

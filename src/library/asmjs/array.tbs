@@ -3,17 +3,6 @@ export class Array<T> {
     bytesLength: int32;
     elementSize: int32;
 
-    // operator [] (index: int32): T;
-    operator [] (index: int32): *T {
-        if (index < (this.bytesLength/this.elementSize)) {
-            return *((this as *int32 + 8 + index * 4) as *int32) as *T;
-        }
-        return null;
-    }
-    operator []= (index: int32, value:*T):void {
-        *((this as *int32 + 8 + index * 4) as *int32) = value;
-    }
-
     constructor(bytesLength: int32, elementSize: int32): Array<T> {
         this.bytesLength = bytesLength;
         this.elementSize = elementSize;
@@ -22,5 +11,71 @@ export class Array<T> {
 
     get length(): int32 {
         return this.bytesLength / this.elementSize;
+    }
+
+    sort(items:Array<T>, left:int32=0, right:int32=-1):Array<T> {
+
+        let index:int32;
+
+        if (items.length > 1) {
+
+            right = right == -1 ? items.length - 1 : right;
+
+            index = this.partition(items, left, right);
+
+            if (left < index - 1) {
+                this.sort(items, left, index - 1);
+            }
+
+            if (index < right) {
+                this.sort(items, index, right);
+            }
+
+        }
+
+        return items;
+    }
+
+    swap(items:Array<T>, firstIndex:int32, secondIndex:int32):void{
+        let temp = items[firstIndex];
+        items[firstIndex] = items[secondIndex];
+        items[secondIndex] = temp;
+    }
+
+    partition(items:Array<T>, left:int32, right:int32):int32 {
+
+        let pivot   = items[Math.floor((right + left) / 2)],
+            i       = left,
+            j       = right;
+
+
+        while (i <= j) {
+
+            while (items[i] < pivot) {
+                i++;
+            }
+
+            while (items[j] > pivot) {
+                j--;
+            }
+
+            if (i <= j) {
+                this.swap(items, i, j);
+                i++;
+                j--;
+            }
+        }
+
+        return i;
+    }
+
+    operator [] (index: int32): *T {
+        if (index < (this.bytesLength/this.elementSize)) {
+            return *((this as *int32 + 8 + index * 4) as *int32) as *T;
+        }
+        return null;
+    }
+    operator []= (index: int32, value:*T):void {
+        *((this as *int32 + 8 + index * 4) as *int32) = value;
     }
 }

@@ -74,21 +74,25 @@ class Camera {
         let py = ((y+v - 0.5)/(height - 1.0)) * 2.0 - 1.0;
 
         let d = new Vector3();
-        d = d.add(this.u.mulScalar(-px * aspect));
-        d = d.add(this.v.mulScalar(-py));
-        d = d.add(this.w.mulScalar(this.m));
-        d = d.normalize();
-
+        let tmp = new Vector3();
+        d.add(this.u.mulScalar(-px * aspect, tmp), d);
+        d.add(this.v.mulScalar(-py, tmp), d);
+        d.add(this.w.mulScalar(this.m, tmp), d);
+        d.normalize(d);
+        let p;
         if (this.apertureRadius > 0) {
-            let focalPoint = this.p.add(d.mulScalar(this.focalDistance));
+            let focalPoint = this.p.add(d.mulScalar(this.focalDistance, tmp));
             let angle = Math.random() * 2 * Math.PI;
             let radius = Math.random() * this.apertureRadius;
 
-            this.p = this.p.add(this.u.mulScalar(Math.cos(angle) * radius));
-            this.p = this.p.add(this.v.mulScalar(Math.sin(angle) * radius));
-            d = focalPoint.sub(this.p).normalize();
+            p = this.p.add(this.u.mulScalar(Math.cos(angle) * radius, tmp));
+            p.add(this.v.mulScalar(Math.sin(angle) * radius, tmp), p);
+            d = focalPoint.sub(this.p, tmp).normalize(d);
+
+            delete focalPoint;
+            delete tmp;
         }
-        return new Ray(this.p, d);
+        return new Ray(p, d);
     }
 
 }

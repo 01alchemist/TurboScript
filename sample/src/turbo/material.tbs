@@ -50,47 +50,47 @@ export class Material {
         );
     }
 
-    setEmittance(emittance) {
+    setEmittance(emittance:float32):void {
         this.emittance = emittance;
     }
 
-    setIndex(index) {
+    setIndex(index:float32):void {
         this.index = index;
     }
 
-    setGloss(roughness) {
+    setGloss(roughness:float32):void {
         this.roughness = roughness;
     }
 
-    setTint(tint) {
+    setTint(tint:float32):void {
         this.tint = tint;
     }
 
-    setReflectivity(reflectivity) {
+    setReflectivity(reflectivity:float32):void {
         this.reflectivity = reflectivity;
     }
 
-    setTransparent(transparent) {
+    setTransparent(transparent:boolean):void {
         this.transparent = transparent;
     }
 
-    setTexture(Texture) {
-        this.albedoMap = Texture;
+    setAlbedoMap(albedoMap:Texture):void {
+        this.albedoMap = albedoMap;
     }
 
-    setNormalTexture(normalMap) {
+    setNormalTexture(normalMap:Texture):void {
         this.normalMap = normalMap;
     }
 
-    setBumpTexture(bumpMap) {
+    setBumpTexture(bumpMap:Texture):void {
         this.bumpMap = bumpMap;
     }
 
-    setBumpMultiplier(bumpMultiplier) {
+    setBumpMultiplier(bumpMultiplier:float32):void {
         this.bumpMultiplier = bumpMultiplier;
     }
 
-    setGlossTexture(roughnessMap) {
+    setGlossTexture(roughnessMap:Texture):void {
         this.roughnessMap = roughnessMap;
     }
 
@@ -135,9 +135,9 @@ export class Material {
         if (material.albedoMap != null) {
             material.color.set(material.albedoMap.sample(uv.x, uv.y));
         }
-        if (Material.roughnessMap(material)) {
+        if (material.roughnessMap) {
             let c: Color = material.roughnessMap.sample(uv.x, uv.y);
-            Material.roughness(material) = (c.r + c.g + c.b) / 3;
+            material.roughness = (c.r + c.g + c.b) / 3;
         }
         return material;
     }

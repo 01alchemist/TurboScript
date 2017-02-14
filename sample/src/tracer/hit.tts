@@ -1,4 +1,4 @@
-class Intersection{
+export class Intersection{
 	tmin:float64;
 	tmax:float64;
 

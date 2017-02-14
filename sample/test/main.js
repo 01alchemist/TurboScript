@@ -48,7 +48,7 @@ let refJobs = [];
 let deferredQueue = [];
 
 function add_debug_scene(){
-    let wall = Material.GlossyMaterial(Color.HexColor(0xFCFAE1), 1.5, Utils.Radians(10));
+    let wall = Material.GlossyMaterial(Color.HexColor(0xFCFAE1), 1.5, Utils.radians(10));
     let light = Material.LightMaterial(Color.WHITE, 50);
     let green_light = Material.LightMaterial(Color.HexColor(0x00FF00), 80);
 

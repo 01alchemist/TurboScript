@@ -1,148 +1,160 @@
-@turbo class Texture {
+export class Texture {
+    width: int32;
+    height: int32;
+    data: Array<Color>;
 
-    Width:int32
-    Height:int32
-    Data:Color.Array
-
-    @method init(SELF, width:number, height:number, data:number){
-        SELF.Width = width;
-        SELF.Height = height;
-        SELF.Data = data;
-        return SELF;
+    constructor(width: int32, height: int32, data: Array<Color>): Texture {
+        this.width = width;
+        this.height = height;
+        this.data = data;
+        return this;
     }
 
-    static textures:any = [];
+    static createTexture(imgdata: Uint8Array, width: int32, height: int32): Texture {
 
-    static GetTexture(path:string):number {
+        let data = new Array<Color>(width * height);
+        let y = 0;
+        let x = 0;
 
-        let texture = Texture.textures[path];
-        if(texture) {
-            return texture;
-        }
-        texture = Texture.LoadTexture(path);
-        if(texture){
-            Texture.textures[path] = texture;
-            return texture
-        }
-        return null;
-    }
-
-    static LoadTexture(path:string):number {
-        console.log("Loading IMG: "+ path);
-        let im = Utils.LoadImage(path);
-        return Texture.NewTexture(im);
-    }
-
-    static NewTexture(imgData:Uint8Array, width:number, height:number):number /*Texture*/{
-
-        let data = @new Color.Array(width * height);
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
+        while (y < height) {
+            x = 0;
+            while (x < width) {
                 let i = (y * (width * 4)) + (x * 4);
                 let index = y * width + x;
-                let c = Color.NewColor(imgData[i]/255, imgData[i+1]/255, imgData[i+2]/255);
-                Color.Array.setAt(data, index, Color.Pow_mem(c, 2.2, c) );
+                let c = new Color(
+                    (imgdata[i] / 255) as float64,
+                    (imgdata[i + 1] / 255) as float64,
+                    (imgdata[i + 2] / 255) as float64
+                );
+                data[index] = c.pow(2.2, c);
+                x = x + 1;
             }
+            y = y + 1;
         }
-        let ptr = @new Texture;
-        return Texture.init(ptr, width, height, data);
+
+        return new Texture(width, height, data);
     }
 
-    static Pow(t:number, a:number):number {
-        let data:number = Texture.Data(t);
-        let len:number = Texture.DataLength(t);
-
-        for (let i:number = 0; i < len; i++) {
-            let d = Color.Array.at(data, i);
-            Color.Pow_mem(d, a, d);
+    pow(a: float64): Texture {
+        let i: int32 = 0;
+        while(i < this.data.length) {
+            let d = this.data[i];
+            d.pow(a, d);
+            i = i + 1;
         }
-        return t;
+        return this;
     }
 
-    static MulScalar(t:number, a:number):number{
-        let data:number = Texture.Data(t);
-        let len:number = Texture.DataLength(t);
-
-        for (let i:number = 0; i < len; i++) {
-            let d = Color.Array.at(data, i);
-            Color.MulScalar_mem(d, a, d);
+    mulScalar(a: float64): Texture {
+        let i: int32 = 0;
+        while(i < this.data.length) {
+            let d = this.data[i];
+            d.mulScalar(a, d);
+            i = i + 1;
         }
-        return t;
+        return this;
     }
 
-    static bilinearSample(t:number, u:number, v:number):Color3{
-        let Width:number = Texture.Width(t);
-        let Height:number = Texture.Height(t);
-        let data:number = Texture.Data(t);
+    bilinearSample(u: float32, v: float32, c:Color = null): Color {
+        c = c != null ? c : new Color();
 
-        let w:number = Width - 1;
-        let h:number = Height - 1;
-        
-        let _ = Utils.Modf(u * w);
-        
+        let w: number = this.width - 1;
+        let h: number = this.height - 1;
+
+        let _ = Utils.modf(u * w);
+
         let _x = _.int;
         let x = _.frac;
-        _ = Utils.Modf(v * h);
+        _ = Utils.modf(v * h);
         let _y = _.int;
         let y = _.frac;
 
-        let x0:number = _x;
-        let y0:number = _y;
-        let x1:number = x0 + 1;
-        let y1:number = y0 + 1;
-        let c00:number = Color.Array.at(data, y0 * Width + x0);
-        let c01:number = Color.Array.at(data, y1 * Width + x0);
-        let c10:number = Color.Array.at(data, y0 * Width + x1);
-        let c11:number = Color.Array.at(data, y1 * Width + x1);
-        let c:Color3 = new Color3();
-        c = c.add(Color.MulScalar2(c00, (1 - x) * (1 - y)));
-        c = c.add(Color.MulScalar2(c10, x * (1 - y)));
-        c = c.add(Color.MulScalar2(c01, (1 - x) * y));
-        c = c.add(Color.MulScalar2(c11, x * y));
+        let x0: number = _x;
+        let y0: number = _y;
+        let x1: number = x0 + 1;
+        let y1: number = y0 + 1;
+        let c00: Color = this.data[y0 * this.width + x0];
+        let c01: Color = this.data[y1 * this.width + x0];
+        let c10: Color = this.data[y0 * this.width + x1];
+        let c11: Color = this.data[y1 * this.width + x1];
+
+        let tmp = c00.mulScalar((1 - x) * (1 - y));
+
+        c.add(tmp, c);
+        c.add(c10.mulScalar(x * (1 - y), tmp), c);
+        c.add(c01.mulScalar((1 - x) * y, tmp), c);
+        c.add(c11.mulScalar(x * y, tmp), c);
+
+        delete tmp;
+
         return c;
     }
 
-    static Sample(t:number, u:number, v:number):Color3 {
-        u = Utils.Fract(Utils.Fract(u) + 1);
-        v = Utils.Fract(Utils.Fract(v) + 1);
-        return Texture.bilinearSample(t, u, 1-v);
+    sample(u: float32, v: float32, c:Color=null): Color {
+        u = Utils.fract(Utils.fract(u) + 1);
+        v = Utils.fract(Utils.fract(v) + 1);
+        return this.bilinearSample(u, 1 - v, c);
     }
 
-    static SimpleSample(t:number, u:number, v:number):Color3 {
-        let Width:number = Texture.Width(t);
-        let Height:number = Texture.Height(t);
-        let data:number = Texture.Data(t);
-
-        u = Utils.Fract(Utils.Fract(u) + 1);
-        v = Utils.Fract(Utils.Fract(v) + 1);
+    simpleSample(u: float32, v: float32): Color {
+        u = Utils.fract(Utils.fract(u) + 1);
+        v = Utils.fract(Utils.fract(v) + 1);
         v = 1 - v;
-        let x = Math.round(u * Width);
-        let y = Math.round(v * Height);
-        let c = Color.toColor3(Color.Array.at(data, y * Width + x));
-        return c;
+        let x = Math.round(u * this.width);
+        let y = Math.round(v * this.height);
+        return this.data[y * this.width + x];
     }
 
-    static NormalSample(t:number, u:number, v:number, c?:number):Vector3 {
-        let c = Texture.Sample(t, u, v);
-        return new Vector3(Color.r(c) * 2 - 1, Color.g(c) * 2 - 1, Color.b(c) * 2 - 1).normalize();
+    normalSample(u: float32, v: float32, n: Vector3 = null): Vector3 {
+        n = n != null ? n : new Vector3();
+        let c = this.sample(u, v);
+        n.set(c.r * 2 - 1, c.g * 2 - 1, c.b * 2 - 1).normalize(n);
+        delete c;
+        return n;
     }
 
-    static BumpSample(t:number, u:number, v:number, c?:number):Vector3 {
-        let Width:number = Texture.Width(t);
-        let Height:number = Texture.Height(t);
-        let data:number = Texture.Data(t);
-        u = Utils.FractAddOne(u);
-        v = Utils.FractAddOne(v);
-        v = 1 - v;
-        let x:number = parseInt(u * Width);
-        let y:number = parseInt(v * Height);
-        let x1 = Utils.ClampInt(x-1, 0, Width-1);
-        let x2 = Utils.ClampInt(x+1, 0, Width-1);
-        let y1 = Utils.ClampInt(y-1, 0, Height-1);
-        let y2 = Utils.ClampInt(y+1, 0, Height-1);
-        let cx = Color.Sub_mem2(Color.Array.at(data, y * Width + x1), Color.Array.at(data, y * Width + x2));
-        let cy = Color.Sub_mem2(Color.Array.at(data, y1 * Width + x), Color.Array.at(data, y2 * Width + x));
-        return new Vector3(cx.r, cy.r, 0);
+    bumpSample(u: float32, v: float32, b: Vector3=null): Vector3 {
+        b = b != null ? b : new Vector3();
+        u = Utils.fractAddOne(u);
+        v = Utils.fractAddOne(v);
+        v = 1.0 - v;
+        let x: int32 = (u * this.width) as int32;
+        let y: int32 = (v * this.height) as int32;
+        let x1 = Utils.clampInt(x - 1, 0, this.width - 1);
+        let x2 = Utils.clampInt(x + 1, 0, this.width - 1);
+        let y1 = Utils.clampInt(y - 1, 0, this.height - 1);
+        let y2 = Utils.clampInt(y + 1, 0, this.height - 1);
+        let cx = this.data[y * this.width + x1].sub(this.data[y * this.width + x2]);
+        let cy = this.data[y1 * this.width + x].sub(this.data[y2 * this.width + x]);
+        b.set(cx.r, cy.r, 0);
+        delete cx;
+        delete cy;
+        return b;
     }
 
-} @end
+    //TODO: implement Pure JS exports
+    // @JS
+    // {
+    //     static textures: any = [];
+    //
+    //     static getTexture(path: string): Texture {
+    //
+    //         let texture = Texture.textures[path];
+    //         if (texture) {
+    //             return texture;
+    //         }
+    //         texture = Texture.loadTexture(path);
+    //         if (texture) {
+    //             Texture.textures[path] = texture;
+    //             return texture
+    //         }
+    //         return null;
+    //     }
+    //
+    //     static loadTexture(path: string): Texture {
+    //         console.log("Loading IMG: " + path);
+    //         let img = Utils.LoadImage(path);
+    //         return Texture.createTexture(img, img.width, img.height);
+    //     }
+    // }
+}

@@ -1,5 +1,14 @@
-export class Box{
+class Partition{
+	left:boolean;
+	right:boolean;
 
+	constructor(left:boolean, right:boolean):Partition {
+		this.left = left;
+		this.right = right;
+		return this;
+	}
+}
+export class Box{
 	min:Vector3;
 	max:Vector3;
 
@@ -23,6 +32,18 @@ export class Box{
      //    };
 	// }
 
+	static boxForObjects(firstObject:Object3D):Box{
+		let box = new Box();
+		if(firstObject == null) {
+			return box;
+		}
+        let next = firstObject;
+		while(next != null){
+			box.extend(next.shape.boundingBox());
+			next = next.nextObject;
+		}
+		return box;
+	}
 	static boxForShapes(shapes:Array<Shape>):Box{
 		let box = new Box();
 		if(shapes.length == 0) {
@@ -31,7 +52,7 @@ export class Box{
         let i:number = 0;
 		while(i < shapes.length){
 			let shape:number = shapes[i];
-			box.extend(shape.boundingBox);
+			box.extend(shape.boundingBox());
 			i = i + 1;
 		}
 		return box;
@@ -118,7 +139,7 @@ export class Box{
         );
 	}
 
-	partition(axis:Axis, point:number): {left:boolean, right:boolean} {
+	partition(axis:Axis, point:number):Partition {
         let min = this.min;
         let max = this.max;
         let left;
@@ -137,10 +158,7 @@ export class Box{
 				right = this.max.z >= point;// EPIC Bug :D it was min and got weird triangle intersection
                 break;
 		}
-		return {
-            left :left,
-            right:right
-        };
+		return new Partition(left, right);
 	}
 
 }

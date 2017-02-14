@@ -6,7 +6,7 @@
     HasBox:uint8
 
 	@method init(SELF, point, normal, material){
-        SELF.Point = point;
+        SELF.point = point;
         SELF.Normal = normal;
         SELF.Material = material;
         SELF.Box = 0;
@@ -26,7 +26,7 @@
 
     @virtual ToJSON(SELF){
         return {
-            point:Vector.ToJSON(SELF.Point),
+            point:Vector.ToJSON(SELF.point),
             normal:Vector.ToJSON(SELF.Normal),
             material:Material.ToJSON(SELF.Material),
             box:Box.ToJSON(SELF.Box),
@@ -61,7 +61,7 @@
         if (Math.abs(d) < EPS) {
             return Hit.NoHit
         }
-        let a:number = Vector.Sub_mem(SELF.Point, Ray.Origin(ray));
+        let a:number = Vector.Sub_mem(SELF.point, Ray.Origin(ray));
         let t:number = Vector.Dot_mem(a, SELF.Normal) / d;
         if (t < EPS) {
             return Hit.NoHit
