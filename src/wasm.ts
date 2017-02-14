@@ -45,7 +45,7 @@ enum WasmSection {
     Start = 8, //Start function declaration
     Element = 9, //Elements section
     Code = 10, //Function bodies (code)
-    Data = 11, //Data segments
+    Data = 11, //data segments
 }
 
 enum WasmExternalKind {

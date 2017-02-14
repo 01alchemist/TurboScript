@@ -63,10 +63,10 @@ export class DefaultSampler {
             return new Color3();
         }
         let hit:Hit = Scene.Intersect(scene, ray);
-        if (!hit.Ok()) {
+        if (!hit.ok()) {
             return this.sampleEnvironment(scene, ray);
         }
-        let info = hit.Info(ray);
+        let info = hit.info(ray);
         let material = info.Material;
         let result:Color3 = new Color3();
         if (Material.Emittance(material) > 0) {
@@ -169,7 +169,7 @@ export class DefaultSampler {
 
             default:
                 // get bounding sphere from bounding box
-                let box = Shape.BoundingBox(light);
+                let box = Shape.boundingBox(light);
                 radius = Box.OuterRadius(box);
                 center = Box.Center(box);
                 break;
@@ -214,7 +214,7 @@ export class DefaultSampler {
         // check for light visibility
         let hit = Scene.Intersect(scene, ray);
 
-        if (!hit.Ok()) {
+        if (!hit.ok()) {
             return new Color3();
         }
 

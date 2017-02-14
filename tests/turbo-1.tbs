@@ -78,7 +78,7 @@ export class Vector3{
 // // }
 //
 // @unsafe
-// export class Shape {
+// export class shape {
 //     v1:Vec3;
 //
 //     constructor(v1:Vec3):void {

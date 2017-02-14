@@ -29,7 +29,7 @@ export class BufferGeometry {
         /*switch (src.type) {
             case ThreeObjects.Mesh:
                 var material = GIJSView.getMaterial(src.material);
-                var shape:Shape = this.buildGeometry(src.geometry, material, src.smooth);
+                var shape:shape = this.buildGeometry(src.geometry, material, src.smooth);
 
                 var matrixWorld = src.matrixWorld;
 
@@ -269,7 +269,7 @@ export class BufferGeometry {
             }
         }
 
-        let meshRef = Mesh.NewMesh(Triangle.Pack(triangles));
+        let meshRef = Mesh.NewMesh(Triangle.pack(triangles));
         // Mesh.SmoothNormals(meshRef);
         return meshRef;
         // if(smooth){

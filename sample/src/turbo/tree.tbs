@@ -113,7 +113,7 @@ export class Node {
         let next = this.firstObject;
         while (next != null) {
             let box = next.shape.boundingBox();
-            // let box = Triangle.Box(shape);
+            // let box = Triangle.box(shape);
             let lr: Partition = box.partition(axis, point);
             if (lr.left) {
                 left++
@@ -255,7 +255,7 @@ export class Tree {
     }
 
     static create(firstObject: Object3D, numShapes: int32): Tree {
-        console.log(`Building k-d tree (${numShapes} shapes)... `);
+        //console.log(`Building k-d tree (${numShapes} shapes)... `);
         // console.time("Tree:BuildingBox");
         let box = Box.boxForObjects(firstObject);
         // console.timeEnd("Tree:BuildingBox");

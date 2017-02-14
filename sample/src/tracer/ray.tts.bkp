@@ -3,16 +3,16 @@
 	Origin:Vector
 	Direction:Vector
 
-	@method init(SELF:number, origin:number, direction:number):number{
-		SELF.Origin = origin;
-		SELF.Direction = direction;
+	constructor(SELF:number, origin:number, direction:number):number{
+		this.Origin = origin;
+		this.Direction = direction;
 		return SELF;
 	}
 
     static ToJSON(SELF){
         return {
-            origin:Vector.XYZ(SELF.Origin),
-            direction:Vector.XYZ(SELF.Direction)
+            origin:Vector.XYZ(this.Origin),
+            direction:Vector.XYZ(this.Direction)
         };
     }
 

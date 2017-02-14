@@ -60,7 +60,7 @@ export class Matrix4{
         ]
     }
 
-    static Identity():Matrix4 {
+    static identity():Matrix4 {
         return new Matrix4(
             1, 0, 0, 0,
             0, 1, 0, 0,
@@ -69,11 +69,11 @@ export class Matrix4{
         )
     }
 
-    static IsEqual(a:number, b:number):boolean {
-        return a.x00 == b.x00 && a.x01 == b.x01 && a.x02 == b.x02 && a.x03 == b.x03 &&
-            a.x10 == b.x10 && a.x11 == b.x11 && a.x12 == b.x12 && a.x13 == b.x13 &&
-            a.x20 == b.x20 && a.x21 == b.x21 && a.x22 == b.x22 && a.x23 == b.x23 &&
-            a.x30 == b.x30 && a.x31 == b.x31 && a.x32 == b.x32 && a.x33 == b.x33;
+    isEqual(b:Matrix):boolean {
+        return this.x00 == b.x00 && this.x01 == b.x01 && this.x02 == b.x02 && this.x03 == b.x03 &&
+            this.x10 == b.x10 && this.x11 == b.x11 && this.x12 == b.x12 && this.x13 == b.x13 &&
+            this.x20 == b.x20 && this.x21 == b.x21 && this.x22 == b.x22 && this.x23 == b.x23 &&
+            this.x30 == b.x30 && this.x31 == b.x31 && this.x32 == b.x32 && this.x33 == b.x33;
     }
 
     isIdentity():boolean {
@@ -242,7 +242,7 @@ export class Matrix4{
         let yb:Vector3 = u.mulScalar(Vector.y(max));
         let za:Vector3 = b.mulScalar(Vector.z(min));
         let zb:Vector3 = b.mulScalar(Vector.z(max));
-        xa = xa.min(xb);
+        xa = xthis.min(xb);
         xb = xa.max(xb);
         ya = ya.min(yb);
         yb = ya.max(yb);

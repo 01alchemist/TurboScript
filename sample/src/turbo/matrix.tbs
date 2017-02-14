@@ -95,7 +95,7 @@ export class Matrix{
                 this.x30 == 0.0 && this.x31 == 0.0 && this.x32 == 0.0 && this.x33 == 1.0;
     }
 
-    static TranslateUnitMatrix(v:Vector3, c:Matrix=null):Matrix{
+    static translateUnitMatrix(v:Vector3, c:Matrix=null):Matrix{
         c = c != null ? c : new Matrix();
         return c.set(
             1.0, 0.0, 0.0, v.x,
@@ -105,7 +105,7 @@ export class Matrix{
         )
     }
 
-    static ScaleUnitMatrix(v:Vector3, c:Matrix=null):Matrix{
+    static scaleUnitMatrix(v:Vector3, c:Matrix=null):Matrix{
         c = c != null ? c : new Matrix();
         return c.set(
             v.x, 0.0, 0.0, 0.0,
@@ -115,7 +115,7 @@ export class Matrix{
         );
     }
 
-    static RotateUnitMatrix(v:Vector3, a:float32, c:Matrix=null):Matrix{
+    static rotateUnitMatrix(v:Vector3, a:float32, c:Matrix=null):Matrix{
         v.normalize(v);
         let s:float32 = Math.sin(a);
         let _c:float32 = Math.cos(a);
@@ -130,7 +130,7 @@ export class Matrix{
         );
     }
 
-    static FrustumUnitMatrix(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix{
+    static frustumUnitMatrix(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix{
 
         let t1:float32 = 2.0 * n;
         let t2:float32 = r - l;
@@ -146,7 +146,7 @@ export class Matrix{
         );
     }
 
-    static OrthographicUnitMatrix(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix{
+    static orthographicUnitMatrix(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix{
         c = c != null ? c : new Matrix();
         return c.set(
             2.0 / (r - l), 0.0, 0.0, -(r + l) / (r - l),
@@ -156,10 +156,10 @@ export class Matrix{
         );
     }
 
-    static PerspectiveUnitMatrix(fovy:float32, aspect:float32, near:float32, far:float32, c:Matrix=null):Matrix {
+    static perspectiveUnitMatrix(fovy:float32, aspect:float32, near:float32, far:float32, c:Matrix=null):Matrix {
         let ymax:float32 = near * Math.tan(fovy * PI/360);
         let xmax:float32 = ymax * aspect;
-        return Matrix.FrustumUnitMatrix(-xmax, xmax, -ymax, ymax, near, far, c);
+        return Matrix.frustumUnitMatrix(-xmax, xmax, -ymax, ymax, near, far, c);
     }
 
     static LookAtMatrix(eye:Vector3, center:Vector3, up:Vector3, c:Matrix=null):Matrix{
@@ -179,27 +179,27 @@ export class Matrix{
     }
     
     translate(v:Vector3, c:Matrix=null):Matrix {
-        return this.mul(Matrix.TranslateUnitMatrix(v), c);
+        return this.mul(Matrix.translateUnitMatrix(v), c);
     }
 
     scale(v:Vector3, c:Matrix=null):Matrix{
-        return this.mul(Matrix.ScaleUnitMatrix(v), c);
+        return this.mul(Matrix.scaleUnitMatrix(v), c);
     }
 
     rotate(v:Vector3, a:Vector3, c:Matrix=null):Matrix {
-        return this.mul(Matrix.RotateUnitMatrix(v, a), c);
+        return this.mul(Matrix.rotateUnitMatrix(v, a), c);
     }
 
     frustum(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix {
-        return this.mul(Matrix.FrustumUnitMatrix(l, r, b, t, n, f, c), c);
+        return this.mul(Matrix.frustumUnitMatrix(l, r, b, t, n, f, c), c);
     }
 
     orthographic(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix {
-        return this.mul(Matrix.OrthographicUnitMatrix(l, r, b, t, n, f, c), c);
+        return this.mul(Matrix.orthographicUnitMatrix(l, r, b, t, n, f, c), c);
     }
 
     perspective(fovy:float32, aspect:float32, near:float32, far:float32, c:Matrix=null):Matrix {
-        return this.mul(Matrix.PerspectiveUnitMatrix(fovy, aspect, near, far, c), c);
+        return this.mul(Matrix.perspectiveUnitMatrix(fovy, aspect, near, far, c), c);
     }
 
     mul(b:Matrix, m:Matrix=null):Matrix {
@@ -334,7 +334,7 @@ export class Matrix{
     // {
     //     static fromTHREEJS(e:float32[]):float32 {
     //
-    //         return Matrix.NewMatrix(
+    //         return matrix.NewMatrix(
     //             e[0], e[4], e[8], e[12],
     //             e[1], e[5], e[9], e[13],
     //             e[2], e[6], e[10], e[14],

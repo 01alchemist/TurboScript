@@ -175,7 +175,7 @@ function TurboModule(global, env, buffer) {
         // decrease performance.  If the count is low it is pointless.
         // (This is why Synchronic really wants a native implementation.)
         //
-        // Data points from a 2.6GHz i7 MacBook Pro:
+        // data points from a 2.6GHz i7 MacBook Pro:
         //
         // - the simple send-integer benchmark (test-sendint.html),
         //   which is the very simplest case we can really imagine,

@@ -163,7 +163,7 @@ export class OBJLoader {
             }
         }
         console.log(`Num triangles: ${triangles.length}`);
-        return Mesh.NewMesh(Triangle.Pack(triangles), triangles.length);
+        return Mesh.NewMesh(Triangle.pack(triangles), triangles.length);
     }
 
     static GetMaterial(index:string):number {

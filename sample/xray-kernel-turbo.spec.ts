@@ -4,7 +4,7 @@ import kernel = require("./xray-kernel-turbo");
 const turbo = kernel.turbo;
 const Color = kernel.Color;
 const Vector = kernel.Vector;
-const Matrix = kernel.Matrix;
+const Matrix = kernel.matrix;
 
 describe("Turbo Runtime suite", () => {
 
@@ -396,7 +396,7 @@ describe("Kernel suite >> ", () => {
             expect(Color.FloatRGBA(result2)).toEqual(color_mix);
         });
 
-        it("Should check IsEqual without a problem", () => {
+        it("Should check isEqual without a problem", () => {
 
             //float64 (input)
             let color1 = {R: 0.256, G: 0, B: 1};
@@ -407,10 +407,10 @@ describe("Kernel suite >> ", () => {
             let _c2:number = Color.NewColor(color2);
             let _c3:number = Color.NewColor(color3);
 
-            let result1:boolean = Color.IsEqual(_c1, _c2);
-            let result2:boolean = Color.IsEqual(_c2, _c1);
-            let result3:boolean = Color.IsEqual(_c1, _c3);
-            let result4:boolean = Color.IsEqual(_c2, _c3);
+            let result1:boolean = Color.isEqual(_c1, _c2);
+            let result2:boolean = Color.isEqual(_c2, _c1);
+            let result3:boolean = Color.isEqual(_c1, _c3);
+            let result4:boolean = Color.isEqual(_c2, _c3);
 
             expect(result1).toBeTruthy();
             expect(result2).toBeTruthy();
@@ -902,7 +902,7 @@ describe("Kernel suite >> ", () => {
             expect(Vector.XYZ(result)).toEqual(color_pow);
         });
 
-        it("Should check IsEqual without a problem", () => {
+        it("Should check isEqual without a problem", () => {
 
             //float64 (input)
             let vector1 = {X: 0.256, Y: 0, Z: 1};
@@ -913,10 +913,10 @@ describe("Kernel suite >> ", () => {
             let _c2:number = Vector.NewVector(vector2);
             let _c3:number = Vector.NewVector(color3);
 
-            let result1:boolean = Vector.IsEqual(_c1, _c2);
-            let result2:boolean = Vector.IsEqual(_c2, _c1);
-            let result3:boolean = Vector.IsEqual(_c1, _c3);
-            let result4:boolean = Vector.IsEqual(_c2, _c3);
+            let result1:boolean = Vector.isEqual(_c1, _c2);
+            let result2:boolean = Vector.isEqual(_c2, _c1);
+            let result3:boolean = Vector.isEqual(_c1, _c3);
+            let result4:boolean = Vector.isEqual(_c2, _c3);
 
             expect(result1).toBeTruthy();
             expect(result2).toBeTruthy();
@@ -960,118 +960,118 @@ describe("Kernel suite >> ", () => {
         });
     });
 
-    describe("Matrix definition >> ", () => {
+    describe("matrix definition >> ", () => {
 
-        it("Matrix should have defined", () => {
+        it("matrix should have defined", () => {
             expect(Matrix).toBeDefined();
         });
 
-        it("Matrix should have Identity method", () => {
+        it("matrix should have identity method", () => {
             expect(Matrix.Identity).toBeDefined();
         });
 
-        it("Matrix should have NewMatrix method", () => {
+        it("matrix should have NewMatrix method", () => {
             expect(Matrix.NewMatrix).toBeDefined();
         });
 
-        it("Matrix should have TranslateUnitMatrix method", () => {
+        it("matrix should have translateUnitMatrix method", () => {
             expect(Matrix.TranslateUnitMatrix).toBeDefined();
         });
 
-        it("Matrix should have ScaleUnitMatrix method", () => {
+        it("matrix should have scaleUnitMatrix method", () => {
             expect(Matrix.ScaleUnitMatrix).toBeDefined();
         });
 
-        it("Matrix should have RotateUnitMatrix method", () => {
+        it("matrix should have rotateUnitMatrix method", () => {
             expect(Matrix.RotateUnitMatrix).toBeDefined();
         });
 
-        it("Matrix should have FrustumUnitMatrix method", () => {
+        it("matrix should have frustumUnitMatrix method", () => {
             expect(Matrix.FrustumUnitMatrix).toBeDefined();
         });
 
-        it("Matrix should have OrthographicUnitMatrix method", () => {
+        it("matrix should have orthographicUnitMatrix method", () => {
             expect(Matrix.OrthographicUnitMatrix).toBeDefined();
         });
 
-        it("Matrix should have PerspectiveUnitMatrix method", () => {
+        it("matrix should have perspectiveUnitMatrix method", () => {
             expect(Matrix.PerspectiveUnitMatrix).toBeDefined();
         });
 
-        it("Matrix should have LookAtMatrix method", () => {
+        it("matrix should have LookAtMatrix method", () => {
             expect(Matrix.LookAtMatrix).toBeDefined();
         });
 
-        it("Matrix should have Translate method", () => {
+        it("matrix should have Translate method", () => {
             expect(Matrix.Translate).toBeDefined();
         });
 
-        it("Matrix should have Scale method", () => {
+        it("matrix should have Scale method", () => {
             expect(Matrix.Scale).toBeDefined();
         });
 
-        it("Matrix should have Rotate method", () => {
+        it("matrix should have Rotate method", () => {
             expect(Matrix.Rotate).toBeDefined();
         });
 
-        it("Matrix should have Frustum method", () => {
+        it("matrix should have Frustum method", () => {
             expect(Matrix.Frustum).toBeDefined();
         });
 
-        it("Matrix should have Orthographic method", () => {
+        it("matrix should have Orthographic method", () => {
             expect(Matrix.Orthographic).toBeDefined();
         });
 
-        it("Matrix should have Perspective method", () => {
+        it("matrix should have Perspective method", () => {
             expect(Matrix.Perspective).toBeDefined();
         });
 
-        it("Matrix should have Mul method", () => {
+        it("matrix should have Mul method", () => {
             expect(Matrix.Mul).toBeDefined();
         });
 
-        it("Matrix should have MulPosition method", () => {
+        it("matrix should have MulPosition method", () => {
             expect(Matrix.MulPosition).toBeDefined();
         });
 
-        it("Matrix should have MulDirection method", () => {
+        it("matrix should have MulDirection method", () => {
             expect(Matrix.MulDirection).toBeDefined();
         });
 
-        it("Matrix should have Mul method", () => {
+        it("matrix should have Mul method", () => {
             expect(Matrix.Mul).toBeDefined();
         });
 
-        it("Matrix should have MulRay method", () => {
+        it("matrix should have MulRay method", () => {
             expect(Matrix.MulRay).toBeDefined();
         });
 
-        it("Matrix should have MulBox method", () => {
+        it("matrix should have MulBox method", () => {
             expect(Matrix.MulBox).toBeDefined();
         });
 
-        it("Matrix should have Transpose method", () => {
+        it("matrix should have transpose method", () => {
             expect(Matrix.Transpose).toBeDefined();
         });
 
-        it("Matrix should have Determinant method", () => {
+        it("matrix should have Determinant method", () => {
             expect(Matrix.Determinant).toBeDefined();
         });
 
-        it("Matrix should have Inverse method", () => {
+        it("matrix should have inverse method", () => {
             expect(Matrix.Inverse).toBeDefined();
         });
 
     });
 
-    describe("Matrix instance >> ", () => {
+    describe("matrix instance >> ", () => {
 
         it("Should create without a problem", () => {
             let matrix = new Matrix(0);
             expect(matrix).toBeTruthy();
         });
 
-        it("Should TranslateUnitMatrix without a problem", () => {
+        it("Should translateUnitMatrix without a problem", () => {
 
             //float64 (input)
             let a1 = {X: 1, Y: 0, Z: 0};
@@ -1089,7 +1089,7 @@ describe("Kernel suite >> ", () => {
             expect(Matrix.IsIdentity(transUnitMatrix)).not.toBeTruthy();
         });
 
-        it("Should ScaleUnitMatrix without a problem", () => {
+        it("Should scaleUnitMatrix without a problem", () => {
 
             //float64 (input)
             let a1 = {X: 1, Y: 0, Z: 0};
@@ -1107,7 +1107,7 @@ describe("Kernel suite >> ", () => {
             expect(Matrix.IsIdentity(scaleUnitMatrix)).not.toBeTruthy();
         });
 
-        it("Should RotateUnitMatrix without a problem", () => {
+        it("Should rotateUnitMatrix without a problem", () => {
 
             //float64 (input)
             let a1 = {X: 1, Y: 0, Z: 0};
@@ -1121,7 +1121,7 @@ describe("Kernel suite >> ", () => {
 
             let rotateUnitMatrix:number = Matrix.RotateUnitMatrix(vec, 90);
 
-            // console.log(Matrix.DATA(rotateUnitMatrix));
+            // console.log(matrix.DATA(rotateUnitMatrix));
 
             expect(Matrix.IsEqual(rotateUnitMatrix, expectedMat)).toBeTruthy();
             expect(Matrix.IsIdentity(rotateUnitMatrix)).not.toBeTruthy();

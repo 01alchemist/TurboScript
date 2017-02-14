@@ -1,0 +1,273 @@
+export class Triangle extends Shape{
+	V1:Vector3;
+    V2:Vector3;
+    V3:Vector3;
+    N1:Vector3;
+    N2:Vector3;
+    N3:Vector3;
+    T1:Vector3;
+    T2:Vector3;
+    T3:Vector3;
+    material:Material;
+    box:Box;
+
+    constructor(v1:Vector3=null, v2:Vector3=null, v3:Vector3=null,
+                n1:Vector3=null, n2:Vector3=null, n3:Vector3=null,
+                t1:Vector3=null, t2:Vector3=null, t3:Vector3=null,
+                material:Material=null):Triangle {
+        super();
+        this.V1 = v1 == null? new Vector3():v1;
+        this.V2 = v2 == null? new Vector3():v2;
+        this.V3 = v3 == null? new Vector3():v3;
+        this.N1 = n1 == null? new Vector3():n1;
+        this.N2 = n2 == null? new Vector3():n2;
+        this.N3 = n3 == null? new Vector3():n3;
+        this.T1 = t1 == null? new Vector3():t1;
+        this.T2 = t2 == null? new Vector3():t2;
+        this.T3 = t3 == null? new Vector3():t3;
+        this.material = material;
+		return this;
+	}
+
+    // static pack(triangles:number[]):Array<Triangle> {
+    //     let packed = @new int32.Array(triangles.length);
+    //     triangles.forEach((triangle, i) =>{
+    //         int32.Array.setAt(packed, i, triangle);
+    //     });
+    //     return packed;
+    // }
+
+    copy(b:Triangle):Triangle {
+        b.V1 = this.V1.clone();
+        b.V2 = this.V2.clone();
+        b.V3 = this.V3.clone();
+        b.N1 = this.N1.clone();
+        b.N2 = this.N2.clone();
+        b.N3 = this.N3.clone();
+        b.T1 = this.T1.clone();
+        b.T2 = this.T2.clone();
+        b.T3 = this.T3.clone();
+        b.material = this.material.clone();
+        return b;
+    }
+
+    // static Vertices(SELF){
+	// 	return {
+     //        V1:this.V1,
+     //        V2:this.V2,
+     //        V3:this.V3
+     //    }
+	// }
+
+    @virtual
+    type():ShapeType {
+        return ShapeType.TRIANGLE;
+    }
+
+	// @virtual
+    // toJSON(){
+	// 	return {
+	// 		vertex:{
+	// 			v1:Vector.ToJSON(this.V1),
+	// 			v2:Vector.ToJSON(this.V2),
+	// 			v3:Vector.ToJSON(this.V3)
+	// 		},
+	// 		normal:{
+	// 			n1:Vector.ToJSON(this.N1),
+	// 			n2:Vector.ToJSON(this.N2),
+	// 			n3:Vector.ToJSON(this.N3)
+	// 		},
+	// 		uv:{
+	// 			t1:Vector.ToJSON(this.T1),
+	// 			t2:Vector.ToJSON(this.T2),
+	// 			t3:Vector.ToJSON(this.T3)
+	// 		},
+	// 		material:Material.ToJSON(this.material),
+	// 		box:box.ToJSON(this.box),
+	// 	}
+	// }
+
+    @virtual
+    compile() {
+	}
+
+    @virtual
+    boundingBox():Box {
+        if(this.box == null){
+            let min = new Vector3();
+            let max = new Vector3();
+            this.V1.min(this.V2, min).min(this.V3, min);
+            this.V1.max(this.V2, max).max(this.V3, max);
+            this.box = new Box(min, max);
+        }
+		return this.box;
+	}
+
+    @virtual
+    intersect(r:Ray):Hit {
+
+		let e1x = this.V2.x - this.V1.x;
+        let e1y = this.V2.y - this.V1.y;
+        let e1z = this.V2.z - this.V1.z;
+        let e2x = this.V3.x - this.V1.x;
+        let e2y = this.V3.y - this.V1.y;
+        let e2z = this.V3.z - this.V1.z;
+        let px = r.direction.y * e2z - r.direction.z * e2y;
+        let py = r.direction.z * e2x - r.direction.x * e2z;
+        let pz = r.direction.x * e2y - r.direction.y * e2x;
+		let det = e1x * px + e1y * py + e1z * pz;
+		if (det > -EPS && det < EPS) {
+			return Hit.NoHit;
+		}
+		let inv = 1 / det;
+        let tx = r.origin.x - this.V1.x;
+        let ty = r.origin.y - this.V1.y;
+        let tz = r.origin.z - this.V1.z;
+        let u = (tx * px + ty * py + tz * pz) * inv;
+		if (u < 0 || u > 1) {
+			return Hit.NoHit;
+		}
+        let qx = ty * e1z - tz * e1y;
+        let qy = tz * e1x - tx * e1z;
+        let qz = tx * e1y - ty * e1x;
+        let v = (r.direction.x * qx + r.direction.y * qy + r.direction.z * qz) * inv;
+		if (v < 0 || u+v > 1) {
+			return Hit.NoHit;
+		}
+        let d = (e2x*qx + e2y*qy + e2z*qz) * inv;
+		if (d < EPS) {
+			return Hit.NoHit;
+		}
+		return new Hit(this, d, null);
+	}
+
+    @virtual
+    uv(p:Vector3):Vector3 {
+
+        let uvw = this.barycentric(p);
+        let n = new Vector3();
+        n.add(this.T1.mulScalar(uvw.u), n);
+        n.add(this.T2.mulScalar(uvw.v), n);
+        n.add(this.T3.mulScalar(uvw.w), n);
+        n.z = 0.0;
+		return n
+	}
+
+    @virtual
+    materialAt(p:Vector3):Vector3 {
+		return this.material;
+	}
+
+    @virtual
+    normalAt(p:Vector3):Vector3 {
+
+		let uvw = this.barycentric(p);
+		let n = new Vector3();
+        n.add(this.N1.mulScalar(uvw.u), n);
+        n.add(this.N2.mulScalar(uvw.v), n);
+        n.add(this.N3.mulScalar(uvw.w), n);
+        let b:Vector3 = null;
+
+		if (this.material.normalMap != null) {
+			b = new Vector3();
+            b.add(this.T1.mulScalar(uvw.u), b);
+            b.add(this.T2.mulScalar(uvw.v), b);
+            b.add(this.T3.mulScalar(uvw.w), b);
+			let ns:Vector3 = this.material.normalMap.normalSample(b.x, b.y);
+			let dv1 = this.V2.sub(this.V1);
+            let dv2 = this.V3.sub(this.V1);
+            let dt1 = this.T2.sub(this.T1);
+            let dt2 = this.T3.sub(this.T1);
+
+			let T = dv1.mulScalar(dt2.y).sub(dv2.mulScalar(dt1.y)).normalize();
+			let b = dv2.mulScalar(dt1.x).sub(dv1.mulScalar(dt2.x)).normalize();
+            let N = T.cross(b);
+			let matrix = new Matrix(
+					T.x, b.x, N.x, 0,
+					T.y, b.y, N.y, 0,
+					T.z, b.z, N.z, 0,
+					0, 0, 0, 1);
+			n = matrix.mulDirection(ns);
+		}
+
+		if (this.material.bumpMap != null) {
+			b = new Vector3();
+            b = b.add(this.T1.mulScalar(uvw.u));
+            b = b.add(this.T2.mulScalar(uvw.v));
+            b = b.add(this.T3.mulScalar(uvw.w));
+			let bump = this.material.bumpMap.bumpSample(b.x, b.y);
+            let dv1 = this.V2.sub(this.V1);
+            let dv2 = this.V3.sub(this.V1);
+            let dt1 = this.T2.sub(this.T1);
+            let dt2 = this.T3.sub(this.T1);
+			let tangent = dv1.mulScalar(dt2.y).sub(dv2.mulScalar(dt1.y)).normalize();
+			let bitangent = dv2.mulScalar(dt1.x).sub(dv1.mulScalar(dt2.x)).normalize();
+			n = n.add(tangent.mulScalar(bump.x * Material.BumpMultiplier(this.material)));
+			n = n.add(bitangent.mulScalar(bump.y * Material.BumpMultiplier(this.material)));
+		}
+		n = n.normalize();
+		return n;
+	}
+
+	area():float32 {
+		let e1 = this.V2.sub(this.V1);
+		let e2 = this.V3.sub(this.V1);
+		let n = e1.cross(e2);
+		let area = n.length() / 2.0;
+		delete e1;
+		delete e2;
+		delete n;
+		return area;
+	}
+
+	barycentric(p:Vector3):Vector3 {
+        let v0 = this.V2.sub(this.V1);
+        let v1 = this.V3.sub(this.V1);
+        let v2 = p.sub(this.V1);
+
+		let d00 = v0.dot(v0);
+		let d01 = v0.dot(v1);
+		let d11 = v1.dot(v1);
+		let d20 = v2.dot(v0);
+		let d21 = v2.dot(v1);
+		let d = d00*d11 - d01*d01;
+		let v = (d11*d20 - d01*d21) / d;
+		let w = (d00*d21 - d01*d20) / d;
+		let u = 1.0 - v - w;
+
+		delete v0;
+		delete v1;
+		delete v2;
+
+		return new Vector3(u,v,w);
+	}
+
+    updateBox():Box {
+        let min = this.box.min;
+        let max = this.box.max;
+        min.min(this.V1, min).min(this.V2, min).min(this.V3, min);
+        max.max(this.V1, max).max(this.V2, max).max(this.V3, max);
+        return Box;
+    }
+
+	fixNormals():void {
+		let e1 = this.V2.sub(this.V1);
+		let e2 = this.V3.sub(this.V1);
+		let n = e1.cross(e2);
+		n.normalize(n);
+
+        if(this.N1.isZero()) {
+            this.N1.copy(n);
+        }
+        if(this.N2.isZero()) {
+            this.N2.copy(n);
+        }
+        if(this.N3.isZero()) {
+            this.N3.copy(n);
+        }
+        delete e1;
+        delete e2;
+        delete n;
+	}
+
+}

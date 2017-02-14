@@ -1,0 +1,215 @@
+export class Mesh extends Shape{
+	triangles:Array<Triangle>;
+	material:Material;
+	box:Box;
+	tree:Tree;
+
+	constructor(triangles:Array<Triangle>, material:Material):Mesh {
+		super();
+        // console.log(`numTriangles:${Triangle.Array.len(triangles)}`);
+        this.triangles = triangles;
+        this.material = material;
+        this.box = null;
+        this.tree = null;
+        return this;
+	}
+
+	dirty() {
+		this.box = null;
+		this.tree = null;
+	}
+
+	copy():Mesh {
+		let triangles = new Array<Triangle>(this.triangles.length);
+
+		let i = 0;
+		while (i < triangles.length){
+			triangles[i] = this.triangles[i].clone();
+			i = i + 1;
+		}
+		return new Mesh(triangles, this.material.clone());
+	}
+
+    @virtual
+	type():ShapeType {
+        return ShapeType.MESH;
+    }
+
+    // @virtual ToJSON(){
+    //     return {
+    //         numTriangles:Triangle.Array.len(this.triangles),
+    //         box:box.ToJSON(Mesh.BoundingBox(SELF)),
+    //         tree:this.tree
+    //     }
+    // }
+
+    @virtual
+	compile():void {
+		if (this.tree == null) {
+			this.tree = Tree.create(this.triangles);
+		}
+        return this.tree;
+	}
+
+	add(mesh:Mesh) {
+        //TODO: Implement
+        this.dirty();
+	}
+
+	@virtual
+    boundingBox():Box {
+		if (this.box == null) {
+			let t = this.triangles[0];
+			let min = t.V1.clone();
+			let max = t.V1.clone();
+			let i=1;
+			while(i < this.triangles.length) {
+				t = this.triangles[i];
+				min.min(t.V1, min).min(t.V2, min).min(t.V3, min);
+				max.max(t.V1, max).max(t.V2, max).max(t.V3, max);
+				i = i + 1;
+			}
+			this.box = new Box(min, max);
+		}
+		return this.box;
+	}
+
+    @virtual
+    intersect(ray:Ray):Hit {
+		return this.tree.intersect(ray);
+	}
+
+    @virtual
+    uv(p:Vector3):Vector3 {
+		return null; // not implemented
+	}
+
+    @virtual
+    materialAt(p:Vector3):Material {
+		return this.material; // not implemented
+	}
+
+    @virtual
+    normalAt(p:Vector3):number {
+		return null; // not implemented
+	}
+
+	static _smoothNormalsThreshold(normal:Vector3, normals:Array<Vector3>, threshold:float32):Vector3 {
+		let result = new Vector3();
+		let i:int32 = 0;
+		while(i < normals.length) {
+            let x:Vector3 = normals[i];
+			if (x.dot(normal) >= threshold) {
+				result.add(x, result);
+			}
+		}
+		return result.normalize(result);
+	}
+
+	smoothNormalsThreshold(radians:float32):void {
+		let threshold:float32 = Math.cos(radians);
+		let lookup:Triangle[] = [];
+		let i:int32 = 0;
+        let t:Triangle;
+
+		while(i < this.triangles.length) {
+            t = this.triangles[i];
+			lookup[t.V1] = Utils.append(lookup[t.V1], t.N1);
+			lookup[t.V2] = Utils.append(lookup[t.V2], t.N2);
+			lookup[t.V3] = Utils.append(lookup[t.V3], t.N3);
+			i = i + 1;
+		}
+
+		i = 0;
+        while(i < this.triangles.length) {
+            t = this.triangles[i];
+			t.N1 = Mesh._smoothNormalsThreshold(t.N1, lookup[t.V1], threshold);
+			t.N2 = Mesh._smoothNormalsThreshold(t.N2, lookup[t.V2], threshold);
+			t.N3 = Mesh._smoothNormalsThreshold(t.N3, lookup[t.V3], threshold);
+			i = i + 1;
+		}
+	}
+
+	smoothNormals() {
+		let lookup:Triangle[] = [];
+        let i:int32 = 0;
+        let t:Triangle;
+
+		while(i < this.triangles.length) {
+            t = this.triangles[i];
+			lookup[t.V1].add(t.N1, lookup[t.V1]);
+			lookup[t.V2].add(t.N2, lookup[t.V2]);
+			lookup[t.V3].add(t.N3, lookup[t.V3]);
+			i = i + 1;
+		}
+		i = 0;
+		while (i < lookup.length) {
+			 lookup[i].normalize(lookup[i]);
+			 i = i + 1;
+		}
+		i = 0;
+        while(i < this.triangles.length) {
+            t = this.triangles[i];
+            t.N1 = lookup[t.V1];
+			t.N2 = lookup[t.V2];
+			t.N3 = lookup[t.V3];
+			i = i + 1;
+		}
+	}
+
+	unitCube():Mesh {
+		this.fitInside(new Box(new Vector3(), new Vector3(1.0, 1.0, 1.0)), new Vector3());
+        this.moveTo(new Vector3(), new Vector3(0.5, 0.5, 0.5));
+        return this;
+	}
+
+	moveTo(position:Vector3, anchor:Vector3):void {
+	    let tmp:Vector3 = this.boundingBox().anchor(anchor);
+		let matrix = Matrix.translateUnitMatrix(position.sub(tmp, tmp));
+		this.transform(matrix);
+	}
+
+	fitInside(box:Box, anchor:Vector3):void {
+        let bsize:Vector3 = box.size();
+        let mbox:Box = this.boundingBox();
+        let mbsize:Vector3 = mbox.size();
+		let scale:float32 = bsize.div(mbsize).minComponent();
+		let extra:Vector3 = bsize.sub(mbsize).mulScalar(scale);
+		let matrix:Matrix = Matrix.identity();
+		matrix.translate(mbox.min.negate(), matrix);
+		matrix.scale(new Vector3(scale, scale, scale), matrix);
+		matrix.translate(mbox.min.add(extra.mul(anchor)));
+		this.transform(matrix);
+	}
+
+	transform(matrix:Matrix):void {
+	    let i:int32 = 0;
+	    let t:Triangle;
+        while (i < this.triangles.length) {
+            t = this.triangles[i];
+			matrix.mulPosition(t.V1, t.V1);
+			matrix.mulPosition(t.V2, t.V2);
+			matrix.mulPosition(t.V3, t.V3);
+			matrix.mulDirection(t.N1, t.N1);
+			matrix.mulDirection(t.N2, t.N2);
+			matrix.mulDirection(t.N3, t.N3);
+			i = i + 1;
+		}
+		this.dirty();
+	}
+
+	setMaterial(material:Material):void {
+		let i:int32 = 0;
+	    let t:Triangle;
+        while (i < this.triangles.length) {
+            t = this.triangles[i];
+			t.material = material;
+		}
+	}
+
+	// saveSTL(path:number):boolean {
+	// 	//return STL.SaveSTL(path, SELF)
+     //    //TODO: Implement
+	// }
+
+}

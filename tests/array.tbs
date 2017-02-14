@@ -42,7 +42,7 @@ export function getData(index:int32):Data {
 }
 
 // @JS
-// anyfunc function data_to_json(data:Data) {
+// anyfunc function data_to_json(data:data) {
 //     return {
 //         v1:data.v1,
 //         v2:data.v2,

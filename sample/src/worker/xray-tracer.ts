@@ -134,8 +134,8 @@ export class xRayTracer {
         let camera = this.camera;
         let sampler = this.sampler;
         let buf = this.buffer;
-        // let w = buf.W;
-        // let h = buf.H;
+        // let w = buf.width;
+        // let h = buf.height;
         let spp = this.samplesPerPixel;
         let sppRoot = Math.round(Math.sqrt(this.samplesPerPixel));
 
