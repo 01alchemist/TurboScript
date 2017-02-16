@@ -1,10 +1,9 @@
+export class VolumeWindow {
+    lo: float64;
+    hi: float64;
+    material: int32;
 
-export class VolumeWindow{
-    lo:float64;
-    hi:float64;
-    material:int32;
-
-    constructor(lo:float64, hi:float64, material:Material){
+    constructor(lo: float64, hi: float64, material: Material) {
         this.lo = lo;
         this.hi = hi;
         this.material = material;
@@ -12,17 +11,17 @@ export class VolumeWindow{
 }
 
 
-export class Volume{
-	width:int32;
-	height:int32;
-	depth:int32;
-	zscale:float64;
-	data:Array<float64>;
-	windows:Array<VolumeWindow>;
-	box:Box;
+export class Volume {
+    width: int32;
+    height: int32;
+    depth: int32;
+    zscale: float64;
+    data: Array<float64>;
+    windows: Array<VolumeWindow>;
+    box: Box;
 
-	constructor(width:int32, height:int32, depth:int32, zd:float64, data:Array<float64>, windows:Array<VolumeWindow>,
-                box:Box):Volume {
+    constructor(width: int32, height: int32, depth: int32, zd: float64, data: Array<float64>, windows: Array<VolumeWindow>,
+                box: Box): Volume {
         this.width = width;
         this.height = height;
         this.depth = depth;
@@ -33,28 +32,28 @@ export class Volume{
         return this;
     }
 
-    static create(box:Box, images:Array<Image>, sliceSpacing:int32, windows:Array<VolumeWindow>):Volume {
-        let bounds:Box = images[0].bounds();
+    static create(box: Box, images: Array<Image>, sliceSpacing: int32, windows: Array<VolumeWindow>): Volume {
+        let bounds: Box = images[0].bounds();
         let size = bounds.size();
         let w = size.x;
         let h = size.y;
         let d = images.length;
         // TODO: w/h aspect ratio
-        let zs:float32 = (sliceSpacing * d) / w;
-        let numData:number = w*h*d;
+        let zs: float32 = (sliceSpacing * d) / w;
+        let numData: number = w * h * d;
         let data = new Array<float64>(numData);
-        let i:int32 = 0;
+        let i: int32 = 0;
         let y = 0;
         let x = 0;
-        while(i < images.length){
+        while (i < images.length) {
             let img = images[i];
             y = 0;
-            while(y < h) {
+            while (y < h) {
                 x = 0;
                 while (x < w) {
                     let r = img.getPixel64(x, y).r;
                     let f = r / 65535;
-                    data[x+y*w+i*w*h] = f;
+                    data[x + y * w + i * w * h] = f;
                     x = x + 1;
                 }
                 y = y + 1;
@@ -65,14 +64,14 @@ export class Volume{
         return vol;
     }
 
-    get(x:number, y:number, z:number):float64 {
+    get(x: number, y: number, z: number): float64 {
         if (x < 0 || y < 0 || z < 0 || x >= this.width || y >= this.height || z >= this.depth) {
             return 0
         }
-        return this.data[x+y*this.width+z*this.width*this.height];
+        return this.data[x + y * this.width + z * this.width * this.height];
     }
 
-    sample(x:number, y:number, z:number):number {
+    sample(x: number, y: number, z: number): number {
         z /= this.zscale;
         x = ((x + 1) / 2) * this.width;
         y = ((y + 1) / 2) * this.height;
@@ -94,27 +93,27 @@ export class Volume{
         x -= x0;
         y -= y0;
         z -= z0;
-        let c00 = v000*(1-x) + v100*x;
-        let c01 = v001*(1-x) + v101*x;
-        let c10 = v010*(1-x) + v110*x;
-        let c11 = v011*(1-x) + v111*x;
-        let c0 = c00*(1-y) + c10*y;
-        let c1 = c01*(1-y) + c11*y;
-        return c0*(1-z) + c1*z;
+        let c00 = v000 * (1 - x) + v100 * x;
+        let c01 = v001 * (1 - x) + v101 * x;
+        let c10 = v010 * (1 - x) + v110 * x;
+        let c11 = v011 * (1 - x) + v111 * x;
+        let c0 = c00 * (1 - y) + c10 * y;
+        let c1 = c01 * (1 - y) + c11 * y;
+        return c0 * (1 - z) + c1 * z;
     }
 
     compile() {
     }
 
-    boundingBox():number {
+    boundingBox(): number {
         return this.box;
     }
 
-    sign(a:Vector3):int32 {
-        let s = this.sample(a.x,a.y,a.z);
-        let i:int32 = 0;
+    sign(a: Vector3): int32 {
+        let s = this.sample(a.x, a.y, a.z);
+        let i: int32 = 0;
         while (i < this.windows.length) {
-            let window:VolumeWindow = this.windows[i];
+            let window: VolumeWindow = this.windows[i];
             if (s < window.lo) {
                 return i + 1;
             }
@@ -126,7 +125,7 @@ export class Volume{
         return this.windows.length + 1;
     }
 
-    intersect(ray:Ray):Hit {
+    intersect(ray: Ray): Hit {
         let hit = this.box.intersect(ray);
         let tmin = hit.tmin;
         let tmax = hit.tmax;
@@ -152,21 +151,21 @@ export class Volume{
         return Hit.NoHit;
     }
 
-    uv(p:number):Vector3{
+    uv(p: number): Vector3 {
         return new Vector3(); // not implemented
     }
 
-    materialAt(p:Vector3):Material {
-        let be = 1e9;
-        let bm:number = null;
-        let s = this.sample(p.x,p.y,p.z);
-        let i:int32 = 0;
-        while (i<this.windows.length) {
-            let window:VolumeWindow = this.windows[i];
+    materialAt(p: Vector3): Material {
+        let be: float32 = 1e9;
+        let bm: number = null;
+        let s = this.sample(p.x, p.y, p.z);
+        let i: int32 = 0;
+        while (i < this.windows.length) {
+            let window: VolumeWindow = this.windows[i];
             if (s >= window.lo && s <= window.hi) {
                 return window.material;
             }
-            let e = Math.min(Math.abs(s-window.lo), Math.abs(s-window.hi));
+            let e = Math.min(Math.abs(s - window.lo), Math.abs(s - window.hi));
             if (e < be) {
                 be = e;
                 bm = window.material;
@@ -175,16 +174,14 @@ export class Volume{
         return bm;
     }
 
-    normalAt(p:number):Vector3{
+    normalAt(p: Vector3): Vector3 {
         let eps = 0.001;
-        let n = @new Vector;
-
-        Vector.init(n,
-            this.sample(Vector.x(p) - eps, Vector.y(p), Vector.z(p)) - this.Sample(Vector.x(p)+eps, Vector.y(p), Vector.z(p)),
-            this.sample(Vector.x(p), Vector.y(p)-eps, Vector.z(p)) - this.Sample(Vector.x(p), Vector.y(p)+eps, Vector.z(p)),
-            this.sample(Vector.x(p), Vector.y(p), Vector.z(p)-eps) - this.Sample(Vector.x(p), Vector.y(p), Vector.z(p)+eps)
+        let n = new Vector3(
+            this.sample(p.x - eps, p.y, p.z) - this.sample(p.x + eps, p.y, p.z),
+            this.sample(p.x, p.y - eps, p.z) - this.sample(p.x, p.y + eps, p.z),
+            this.sample(p.x, p.y, p.z - eps) - this.sample(p.x, p.y, p.z + eps)
         );
-        return Vector.Normalize_mem(n, n);
+        return n.normalize(n);
     }
 
 }

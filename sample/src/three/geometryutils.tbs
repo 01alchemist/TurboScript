@@ -1,0 +1,214 @@
+import {Triangle} from "../turbo/shapes/triangle.tbs";
+import {Vector3} from "../turbo/vector3.tbs";
+import {Mesh} from "../turbo/shapes/mesh.tbs";
+
+@JS
+export class GeometryUtils {
+
+    static newBufferGeometry(obj, scene:MasterScene){
+        GeometryUtils.loadChildren(obj, scene);
+    }
+
+    static loadChildren(parent, scene) {
+        let child;
+        for (let i:number = 0; i < parent.children.length; i++) {
+            child = parent.children[i];
+
+            if (child.children.length > 0) {
+                this.loadChildren(child, scene);
+            }else{
+                scene.Add(this.buildSceneObject(child));
+            }
+        }
+    }
+
+    static identityMatrix = new THREE.Matrix4().identity();
+
+    static buildSceneObject(src) {
+
+        /*switch (src.type) {
+            case ThreeObjects.Mesh:
+                let material = GIJSView.getMaterial(src.material);
+                let shape:shape = this.buildGeometry(src.geometry, material, src.smooth);
+
+                let matrixWorld = src.matrixWorld;
+
+                if (matrixWorld.equals(this.identityMatrix)) {
+                    return shape;
+                } else {
+                    let mat:Matrix4 = Matrix4.fromTHREEJS(matrixWorld.elements);
+                    return TransformedShape.newTransformedShape(shape, mat);
+                }
+
+            case ThreeObjects.PointLight:
+                return this.getLight(src);
+
+        }*/
+        // return null;
+        let color = src.material.color || {r:0,g:0,b:0};
+        let mat = Material.DiffuseMaterial(new Color(color.r, color.g, color.b));
+        return this.buildGeometry(src.geometry, mat, src.smooth);
+    }
+
+    static buildGeometry(geometry:THREE.BufferGeometry|any, material:number, smooth:boolean=false):number {
+
+        if (geometry["_bufferGeometry"]) {
+            geometry = geometry["_bufferGeometry"];
+        }
+
+        let triangles:number[] = [];
+
+        if (!geometry.attributes) {
+
+            let vertices = geometry.vertices;
+            let faces = geometry.faces;
+            if (vertices && faces) {
+                for (let i = 0; i < faces.length; i++) {
+                    let face = faces[i];
+                    let t:Triangle = new Triangle(
+                        new Vector3(vertices[face.a].x, vertices[face.a].y, vertices[face.a].z),
+                        new Vector3(vertices[face.b].x, vertices[face.b].y, vertices[face.b].z),
+                        new Vector3(vertices[face.c].x, vertices[face.c].y, vertices[face.c].z)
+                    );
+
+                    t.material = material;
+
+                    t.fixNormals();
+                    triangles.push(t);
+                }
+            } else {
+                return null;
+            }
+
+        } else {
+
+            let positions:Float32Array = geometry.attributes["position"].array;
+            let uv:Float32Array;
+            let normals:Float32Array;
+
+            if(geometry.attributes["uv"]){
+                uv = geometry.attributes["uv"].array;
+            }
+
+            if (geometry.attributes["normal"]) {
+                normals = geometry.attributes["normal"].array;
+            } else {
+                normals = this.computeNormals(positions);
+            }
+
+            let triCount:int32 = 0;
+            let uvIndex:int32 = 0;
+            let indexAttribute = geometry.getIndex();
+
+            if (indexAttribute) {
+
+                let indices = indexAttribute.array;
+
+                for (let i = 0; i < indices.length; i = i + 3) {
+
+                    triCount++;
+
+                    let a;
+                    let b;
+                    let c;
+
+                    a = indices[i];
+                    b = indices[i + 1];
+                    c = indices[i + 2];
+
+                    if (triCount % 2 !== 0) {
+                        a = indices[i];
+                        b = indices[i + 1];
+                        c = indices[i + 2];
+                    } else {
+                        c = indices[i];
+                        b = indices[i + 1];
+                        a = indices[i + 2];
+                    }
+
+                    //[....,ax,ay,az, bx,by,bz, cx,xy,xz,....]
+                    let ax = a * 3;
+                    let ay = (a * 3) + 1;
+                    let az = (a * 3) + 2;
+
+                    let bx = b * 3;
+                    let by = (b * 3) + 1;
+                    let bz = (b * 3) + 2;
+
+                    let cx = c * 3;
+                    let cy = (c * 3) + 1;
+                    let cz = (c * 3) + 2;
+
+                    let au = a * 2;
+                    let av = (a * 2) + 1;
+
+                    let bu = b * 2;
+                    let bv = (b * 2) + 1;
+
+                    let cu = c * 2;
+                    let cv = (c * 2) + 1;
+
+                    let t:Triangle = new Triangle(
+                        new Vector3(positions[ax], positions[ay], positions[az]),
+                        new Vector3(positions[bx], positions[by], positions[bz]),
+                        new Vector3(positions[cx], positions[cy], positions[cz]),
+                        new Vector3(normals[ax], normals[ay], normals[az]),
+                        new Vector3(normals[bx], normals[by], normals[bz]),
+                        new Vector3(normals[cx], normals[cy], normals[cz])
+                    );
+                    t.material = material;
+
+                    if(uv){
+                        t.T1 = new Vector3(uv[au], uv[av], 0.0);
+                        t.T2 = new Vector3(uv[bu], uv[bv], 0.0);
+                        t.T3 = new Vector3(uv[cu], uv[cv], 0.0);
+                    }
+
+                    t.fixNormals();
+                    triangles.push(t);
+                    uvIndex += 2;
+                }
+
+            } else {
+                uvIndex = 0;
+                for (let i = 0; i < positions.length; i = i + 9) {
+
+                    let t = new Triangle(
+                        new Vector3(positions[i], positions[i + 1], positions[i + 2]),
+                        new Vector3(positions[i + 3], positions[i + 4], positions[i + 5]),
+                        new Vector3(positions[i + 6], positions[i + 7], positions[i + 8]),
+                        new Vector3(normals[i], normals[i + 1], normals[i + 2]),
+                        new Vector3(normals[i + 3], normals[i + 4], normals[i + 5]),
+                        new Vector3(normals[i + 6], normals[i + 7], normals[i + 8])
+                    );
+
+                    t.material = material;
+
+                    if(uv){
+                        t.T1 = new Vector3(uv[uvIndex], uv[uvIndex + 1], 0);
+                        t.T2 = new Vector3(uv[uvIndex + 2], uv[uvIndex + 3], 0);
+                        t.T3 = new Vector3(uv[uvIndex + 4], uv[uvIndex + 5], 0);
+                    }
+
+                    t.fixNormals();
+                    triangles.push(t);
+                    uvIndex += 6;
+                }
+            }
+        }
+
+        let meshRef = new Mesh(triangles);
+        // Mesh.SmoothNormals(meshRef);
+        return meshRef;
+        // if(smooth){
+        //     mesh.smoothNormals();
+        // }
+        // return mesh;
+    }
+
+    static computeNormals(positions:Float32Array):Float32Array {
+        //TODO: Implement it
+        return new Float32Array(positions.length);
+    }
+
+}

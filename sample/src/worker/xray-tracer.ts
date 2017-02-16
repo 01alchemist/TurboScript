@@ -169,7 +169,7 @@ export class xRayTracer {
                             let fu = (u + 0.5) / sppRoot;
                             let fv = (v + 0.5) / sppRoot;
                             let ray = Camera.CastRay(camera, x, y, this.full_width, this.full_height, fu, fv);
-                            let sample = sampler.sample(scene, ray, true, sampler.FirstHitSamples, 1);
+                            let sample = sampler.sample(scene, ray, true, sampler.firstHitSamples, 1);
                             c = c.add(sample);
                         }
                     }
@@ -181,7 +181,7 @@ export class xRayTracer {
                         let fv = Math.random();
                         let ray = Camera.CastRay(camera, x, y, this.full_width, this.full_height, fu, fv);
                         // let sample = Sampler.Sample(sampler, scene, ray);
-                        let sample = sampler.sample(scene, ray, true, sampler.FirstHitSamples, 1);
+                        let sample = sampler.sample(scene, ray, true, sampler.firstHitSamples, 1);
                         c = c.add(sample);
                         //Color.Add_mem(c, sample, c);
                         //Buffer.AddSample(buf, x, y, sample);

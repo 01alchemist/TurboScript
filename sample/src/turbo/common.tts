@@ -13,7 +13,7 @@ const antialias:boolean = false; // true;		// Antialias the image (expensive but
 const debug:boolean = false;		// Progress printout, may confuse the consumer
 
 const INF:number = 1e9;
-const EPS:number = 1e-9;
+const EPS:float64 = 1e-9;
 const SENTINEL:number = 1e32;
 
 function xy(x:number, y:number) {

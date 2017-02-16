@@ -1,5 +1,12 @@
 import {Material} from "../material.tbs";
+import {Shape, ShapeType} from "./shape.tbs";
+import {Vector3} from "../../../../tests/vector3.tbs";
+import {Box} from "../box.tbs";
+import {Ray} from "../../tracer/ray.tbs";
+import {Hit} from "../../tracer/hit.tbs";
+
 export class Sphere extends Shape{
+
 	center:Vector3;
 	radius:float32;
 	material:Material;

@@ -107,7 +107,7 @@ var xRayTracer = (function () {
                             var fu = (u + 0.5) / sppRoot;
                             var fv = (v + 0.5) / sppRoot;
                             var ray = Camera.CastRay(camera, x, y, this.full_width, this.full_height, fu, fv);
-                            var sample = sampler.sample(scene, ray, true, sampler.FirstHitSamples, 1);
+                            var sample = sampler.sample(scene, ray, true, sampler.firstHitSamples, 1);
                             c = c.add(sample);
                         }
                     }
@@ -118,7 +118,7 @@ var xRayTracer = (function () {
                         var fu = Math.random();
                         var fv = Math.random();
                         var ray = Camera.CastRay(camera, x, y, this.full_width, this.full_height, fu, fv);
-                        var sample = sampler.sample(scene, ray, true, sampler.FirstHitSamples, 1);
+                        var sample = sampler.sample(scene, ray, true, sampler.firstHitSamples, 1);
                         c = c.add(sample);
                     }
                     c = c.divScalar(spp);

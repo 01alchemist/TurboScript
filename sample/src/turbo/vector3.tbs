@@ -230,20 +230,19 @@ export class Vector3 {
     }
 }
 
-// function RandomUnitVector3(): Vector3 {
-//     let x = Math.random() * 2.0 - 1.0;
-//     let y = Math.random() * 2.0 - 1.0;
-//     let z = Math.random() * 2.0 - 1.0;
-//     while (x * x + y * y + z * z > 1.0) {
-//         x = Math.random() * 2.0 - 1.0;
-//         y = Math.random() * 2.0 - 1.0;
-//         z = Math.random() * 2.0 - 1.0;
-//     }
-//     let vec: Vector3 = new Vector3(x, y, z);
-//     let vecN = vec.normalize();
-//     delete vec;
-//     return vecN;
-// }
+export function randomUnitVector3(c:Vector3 = null): Vector3 {
+    let x = Math.random() * 2.0 - 1.0;
+    let y = Math.random() * 2.0 - 1.0;
+    let z = Math.random() * 2.0 - 1.0;
+    while (x * x + y * y + z * z > 1.0) {
+        x = Math.random() * 2.0 - 1.0;
+        y = Math.random() * 2.0 - 1.0;
+        z = Math.random() * 2.0 - 1.0;
+    }
+    c = c != null ? c : new Vector3();
+    c.set(x, y, z);
+    return c.normalize(c);
+}
 
 var ZERO: Vector3 = new Vector3(0.0, 0.0, 0.0);
 var ONE: Vector3 = new Vector3(1.0, 1.0, 1.0);
