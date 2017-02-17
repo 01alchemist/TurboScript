@@ -1,16 +1,12 @@
-export class Array<T> {
+export class Float64Array {
 
+    length: int32;
     bytesLength: int32;
-    elementSize: int32;
 
-    constructor(bytesLength: int32, elementSize: int32): Array<T> {
-        this.bytesLength = bytesLength;
-        this.elementSize = elementSize;
+    constructor(elementSize: int32): Float64Array {
+        this.length = elementSize;
+        this.bytesLength = elementSize * 8;
         return this;
-    }
-
-    get length(): int32 {
-        return this.bytesLength / this.elementSize;
     }
 
     // sort():void {
@@ -72,13 +68,13 @@ export class Array<T> {
     //     return i;
     // }
 
-    operator [] (index: int32): *T {
-        if (index < (this.bytesLength/this.elementSize)) {
-            return *((this as *int32 + 8 + index * 4) as *int32) as *T;
+    operator [] (index: int32): float64 {
+        if (index < this.length) {
+            return *((this as *int32 + 8 + index * 8) as *float64) as float64;
         }
-        return null;
+        return 0.0;
     }
-    operator []= (index: int32, value:*T):void {
-        *((this as *int32 + 8 + index * 4) as *int32) = value;
+    operator []= (index: int32, value:float64):void {
+        *((this as *int32 + 8 + index * 8) as *float64) = value;
     }
 }

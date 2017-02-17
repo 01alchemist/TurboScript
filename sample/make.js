@@ -57,13 +57,16 @@ function copyFile(source, target, cb) {
     }
 }
 
-
+var debug = true;
 var stdlib = {};
 global["buildCommand"] = buildCommand;
 global["System"] = System;
 global["stdlib"] = stdlib;
 stdlib["assert"] = function (truth) {
     if (!truth) {
+        if (debug) {
+            debugger;
+        }
         console.error(new Error('Assertion failed'));
         process.exit(1);
     }
@@ -102,7 +105,7 @@ Math["log2"] = Math["log2"] || function (x) {
 
 global["TURBO_PATH"] = process.env.TURBO_PATH;
 
-console.log("TURBO_PATH:"+global["TURBO_PATH"])
+console.log("TURBO_PATH:" + global["TURBO_PATH"])
 
 //Import compiler
 require(path.resolve(process.env.TURBO_PATH, "bin/turbo.js"));

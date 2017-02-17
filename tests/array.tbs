@@ -19,8 +19,8 @@ export class Data {
 
 var a: Array<Data> = null;
 
-export function test(): Array<Data> {
-    a = new Array<Data>(10);
+export function test(num:int32): Array<Data> {
+    a = new Array<Data>(num);
     let i:int32 = 0;
     while (i < 10) {
         a[i] = new Data(i);

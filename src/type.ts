@@ -56,6 +56,13 @@ export class Type {
         return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_ARRAY) != 0;
     }
 
+    isTypedArray(): boolean {
+        return this.symbol != null &&
+            (this.symbol.name == "Float32Array" || this.symbol.name == "Float64Array" ||
+            this.symbol.name == "Int8Array" || this.symbol.name == "Int16Array"|| this.symbol.name == "Int32Array" ||
+            this.symbol.name == "Uint8Array" || this.symbol.name == "Uint16Array"|| this.symbol.name == "Uint32Array");
+    }
+
     isReference(): boolean {
         return this.pointerTo != null || this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_REFERENCE) != 0;
     }

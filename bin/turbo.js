@@ -2795,57 +2795,47 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     }
                     return node.withRange(log_2.spanRanges(open.range, close.range));
                 }
-                // parseInternalImports(): Node {
-                //     let token = this.current;
-                //     assert(token.kind == TokenKind.INTERNAL_IMPORT);
-                //     this.advance();
-                //
-                //     let node = createImports();
-                //     node.flags = node.flags | NODE_FLAG_INTERNAL_IMPORT;
-                //
-                //     if (this.peek(TokenKind.MULTIPLY)) { //check for wildcard '*' import
-                //
-                //          this.log.error(this.current.range, "wildcard '*' import not supported");
-                //
-                //         assert(this.eat(TokenKind.MULTIPLY));
-                //         assert(this.eat(TokenKind.AS));
-                //
-                //         let importName = this.current;
-                //         let range = importName.range;
-                //         let _import = createInternalImport(importName.range.toString());
-                //         node.appendChild(_import.withRange(range).withInternalRange(importName.range));
-                //         this.advance();
-                //     }
-                //     else {
-                //
-                //         if (!this.expect(TokenKind.LEFT_BRACE)) {
-                //             return null;
-                //         }
-                //         while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
-                //
-                //             let importName = this.current;
-                //             let range = importName.range;
-                //             let _import = createInternalImport(importName.range.toString());
-                //             node.appendChild(_import.withRange(range).withInternalRange(importName.range));
-                //
-                //             if (!this.eat(TokenKind.COMMA)) {
-                //                 break;
-                //             }
-                //         }
-                //
-                //         this.advance();
-                //         assert(this.expect(TokenKind.RIGHT_BRACE));
-                //     }
-                //
-                //     this.expect(TokenKind.FROM);
-                //     let importFrom = this.current;
-                //     let _from = createInternalImportFrom(importFrom.range.toString());
-                //     node.appendChild(_from.withRange(importFrom.range).withInternalRange(importFrom.range));
-                //     this.advance();
-                //     let semicolon = this.current;
-                //     this.expect(TokenKind.SEMICOLON);
-                //     return node.withRange(spanRanges(token.range, semicolon.range));
-                // }
+                parseInternalImports() {
+                    let token = this.current;
+                    assert(token.kind == lexer_1.TokenKind.INTERNAL_IMPORT);
+                    this.advance();
+                    let node = node_1.createImports();
+                    node.flags = node.flags | node_1.NODE_FLAG_INTERNAL_IMPORT;
+                    if (this.peek(lexer_1.TokenKind.MULTIPLY)) {
+                        this.log.error(this.current.range, "wildcard '*' import not supported");
+                        assert(this.eat(lexer_1.TokenKind.MULTIPLY));
+                        assert(this.eat(lexer_1.TokenKind.AS));
+                        let importName = this.current;
+                        let range = importName.range;
+                        let _import = node_1.createInternalImport(importName.range.toString());
+                        node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+                        this.advance();
+                    }
+                    else {
+                        if (!this.expect(lexer_1.TokenKind.LEFT_BRACE)) {
+                            return null;
+                        }
+                        while (!this.peek(lexer_1.TokenKind.END_OF_FILE) && !this.peek(lexer_1.TokenKind.RIGHT_BRACE)) {
+                            let importName = this.current;
+                            let range = importName.range;
+                            let _import = node_1.createInternalImport(importName.range.toString());
+                            node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+                            if (!this.eat(lexer_1.TokenKind.COMMA)) {
+                                break;
+                            }
+                        }
+                        this.advance();
+                        assert(this.expect(lexer_1.TokenKind.RIGHT_BRACE));
+                    }
+                    this.expect(lexer_1.TokenKind.FROM);
+                    let importFrom = this.current;
+                    let _from = node_1.createInternalImportFrom(importFrom.range.toString());
+                    node.appendChild(_from.withRange(importFrom.range).withInternalRange(importFrom.range));
+                    this.advance();
+                    let semicolon = this.current;
+                    this.expect(lexer_1.TokenKind.SEMICOLON);
+                    return node.withRange(log_2.spanRanges(token.range, semicolon.range));
+                }
                 parseModule(firstFlag) {
                     let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.MODULE);
@@ -3424,18 +3414,6 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     node.flags = node.flags | node_1.NODE_FLAG_UNSAFE;
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
-                // parseInternalImport(): Node {
-                //     let token = this.current;
-                //     this.advance();
-                //
-                //     let node = this.parseBlock();
-                //     if (node == null) {
-                //         return null;
-                //     }
-                //
-                //     node.flags = node.flags | NODE_FLAG_INTERNAL_IMPORT;
-                //     return node.withRange(spanRanges(token.range, node.range));
-                // }
                 parseJavaScript() {
                     let token = this.current;
                     this.advance();
@@ -3469,7 +3447,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                 parseStatement(mode) {
                     let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
                     // if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe(); //disabled for now
-                    // if (this.peek(TokenKind.INTERNAL_IMPORT) && firstFlag == null) return this.parseInternalImports(); // This should handle before parsing
+                    if (this.peek(lexer_1.TokenKind.INTERNAL_IMPORT) && firstFlag == null)
+                        return this.parseInternalImports(); // This should handle before parsing
                     if (this.peek(lexer_1.TokenKind.JAVASCRIPT) && firstFlag == null)
                         return this.parseJavaScript();
                     if (this.peek(lexer_1.TokenKind.START) && firstFlag == null)
@@ -8348,9 +8327,11 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                             return lib;
                         case compiler_2.CompileTarget.ASMJS:
                             lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/types.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/foreign.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/math.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/malloc.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/array.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/typedarray/float64array.tbs") + "\n";
                             return lib;
                     }
                 }
@@ -8517,6 +8498,25 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
         }
         return n;
     }
+    function getTypedArrayElementSize(name) {
+        switch (name) {
+            case "Uint8ClampedArray":
+            case "Uint8Array":
+            case "Int8Array":
+                return 1;
+            case "Uint16Array":
+            case "Int16Array":
+                return 2;
+            case "Uint32Array":
+            case "Int32Array":
+            case "Float32Array":
+                return 4;
+            case "Float64Array":
+                return 8;
+            default:
+                throw "unknown typed array";
+        }
+    }
     function getMemoryType(name) {
         if (name == "int32") {
             return "32";
@@ -8599,7 +8599,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
         module.memoryInitializer = new bytearray_2.ByteArray();
         module.code = code;
         module.prepareToEmit(compiler.global);
-        code.append("function TurboModule(global, env, buffer) {\n");
+        code.append("function TurboModule(stdlib, foreign, buffer) {\n");
         code.emitIndent(1);
         code.append('"use asm";\n');
         code.append('//##################################\n');
@@ -8760,7 +8760,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     let _import = this.firstImport;
                     while (_import) {
                         let importName = _import.module + "_" + _import.name;
-                        this.code.append(`var ${importName} = global.${_import.module}.${_import.name};\n`);
+                        this.code.append(`var ${importName} = ${_import.module == "foreign" ? "" : "stdlib."}${_import.module}.${_import.name};\n`);
                         _import = _import.next;
                     }
                 }
@@ -8888,7 +8888,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     if (node.kind == node_7.NodeKind.NAME) {
                         let symbol = node.symbol;
                         if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                            this.code.append("global.");
+                            this.code.append("stdlib.");
                         }
                         if (symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
                             this.emitLoadFromMemory(symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.offset);
@@ -9087,19 +9087,23 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                         }
                         else {
                             let value = node.callValue();
-                            let fn = functionMap.get(value.symbol.name);
+                            let namespace = value.symbol.node.parent.symbol ? value.symbol.node.parent.symbol.name + "_" : "";
+                            let fnName = namespace + value.symbol.name;
+                            let fn = functionMap.get(fnName);
                             let signature;
                             let isImported = false;
                             let isMath = false;
                             let importedFnName = "";
-                            if (value.symbol.node.isDeclare() && value.symbol.node.parent.isExternalImport()) {
+                            if (value.symbol.node.isDeclare()) {
                                 let moduleName = value.symbol.node.parent.symbol.name;
-                                let fnName = value.symbol.name;
-                                isMath = moduleName == "Math";
-                                importedFnName = moduleName + "_" + fnName;
-                                let asmImport = importMap.get(moduleName + "." + fnName);
-                                signature = signatureMap.get(asmImport.signatureIndex);
-                                isImported = true;
+                                if (value.symbol.node.parent.isExternalImport() || moduleName == "foreign") {
+                                    let fnName = value.symbol.name;
+                                    isMath = moduleName == "Math";
+                                    importedFnName = moduleName + "_" + fnName;
+                                    let asmImport = importMap.get(moduleName + "." + fnName);
+                                    signature = signatureMap.get(asmImport.signatureIndex);
+                                    isImported = true;
+                                }
                             }
                             else {
                                 signature = signatureMap.get(fn.signatureIndex);
@@ -9116,7 +9120,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                             else {
                                 this.emitExpression(value, parser_5.Precedence.UNARY_POSTFIX);
                             }
-                            if (value.symbol == null || !value.symbol.isGetter()) {
+                            if (value.symbol != null || !value.symbol.isGetter()) {
                                 this.code.append("(");
                                 let needComma = false;
                                 if (node.firstChild) {
@@ -9395,11 +9399,6 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     else if (node.kind == node_7.NodeKind.MODULE) {
                     }
                     else if (node.kind == node_7.NodeKind.IMPORTS) {
-                        let child = node.firstChild;
-                        while (child) {
-                            assert(child.kind == node_7.NodeKind.EXTERNAL_IMPORT);
-                            child = child.nextSibling;
-                        }
                     }
                     else if (node.kind == node_7.NodeKind.CLASS) {
                         currentClass = node.symbol.name;
@@ -9512,6 +9511,9 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                             let size = parent.resolvedType.allocationSizeOf(this.context).toString();
                             if (parent.resolvedType.isArray()) {
                                 size = `(${size} + bytesLength)|0`;
+                            }
+                            else if (parent.resolvedType.isTypedArray()) {
+                                size = `(${size} + elementSize << ${getTypedArrayElementSize(parent.resolvedType.symbol.name)})|0`;
                             }
                             this.code.append(`var ptr = 0;\n`);
                             this.code.append(`ptr = ${namespace}malloc(${size})|0;\n`);
@@ -9975,11 +9977,6 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                         let offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
                     }
                     else if (node.kind == node_7.NodeKind.IMPORTS) {
-                        let child = node.firstChild;
-                        while (child) {
-                            assert(child.kind == node_7.NodeKind.EXTERNAL_IMPORT);
-                            child = child.nextSibling;
-                        }
                     }
                     else if (node.kind == node_7.NodeKind.VARIABLE) {
                         let symbol = node.symbol;
@@ -10079,7 +10076,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                             //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
                             // }
                             if (node.isExternalImport() || node.parent.isExternalImport()) {
-                                let moduleName = symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                                let moduleName = symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "stdlib";
                                 symbol.offset = this.importCount;
                                 this.allocateImport(signatureIndex, moduleName, symbol.name);
                             }
@@ -10087,7 +10084,9 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                             return;
                         }
                         symbol.offset = this.functionCount;
-                        let fn = this.allocateFunction(symbol, signatureIndex);
+                        let parent = symbol.parent();
+                        let namespace = parent ? parent.name + "_" : "";
+                        let fn = this.allocateFunction(symbol, namespace, signatureIndex);
                         // Make sure "malloc" is tracked
                         if (symbol.kind == symbol_7.SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
                             assert(this.mallocFunctionIndex == -1);
@@ -10129,7 +10128,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     importMap.set(mod + "." + name, result);
                     return result;
                 }
-                allocateFunction(symbol, signatureIndex) {
+                allocateFunction(symbol, namespace, signatureIndex) {
                     let fn = new AsmFunction();
                     fn.symbol = symbol;
                     fn.signatureIndex = signatureIndex;
@@ -10139,7 +10138,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                         this.lastFunction.next = fn;
                     this.lastFunction = fn;
                     this.functionCount = this.functionCount + 1;
-                    functionMap.set(symbol.name, fn);
+                    functionMap.set(namespace + symbol.name, fn);
                     return fn;
                 }
                 allocateSignature(argumentTypes, returnType) {
@@ -10270,12 +10269,11 @@ System.register("preparser", ["lexer", "main", "stringbuilder"], function (expor
                             let text = contents.slice(start + 1, i - 1);
                             let importContent = resolveImport(basePath + pathSeparator + text);
                             if (importContent) {
-                                compiler.addInput(text, importContent);
+                                compiler.addInputBefore(text, importContent, source);
                             }
                             else {
                                 return false;
                             }
-                            console.log(text);
                             kind = c == '\'' ? lexer_4.TokenKind.CHARACTER : lexer_4.TokenKind.STRING;
                             break;
                         }
@@ -10434,21 +10432,21 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     source.contents = contents;
                     if (this.firstSource == null)
                         this.firstSource = source;
-                    else
+                    else {
+                        source.prev = this.lastSource;
                         this.lastSource.next = source;
+                    }
                     this.lastSource = source;
                     return source;
                 }
-                addInputBefore(name, contents, source) {
+                addInputBefore(name, contents, nextSource) {
                     var source = new log_4.Source();
                     source.name = name;
                     source.contents = contents;
-                    if (this.firstSource == null)
-                        this.firstSource = source;
-                    else
-                        this.lastSource.next = source;
-                    this.lastSource = source;
-                    source.next;
+                    nextSource.prev.next = source;
+                    source.prev = nextSource.prev;
+                    nextSource.prev = source;
+                    source.next = nextSource;
                     return source;
                 }
                 finish() {
@@ -10634,6 +10632,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 genericSymbol.resolvedType = new type_2.Type();
                 genericSymbol.resolvedType.symbol = genericSymbol;
                 genericSymbol.flags = symbol_8.SYMBOL_FLAG_IS_GENERIC;
+                genericType.flags = node_9.NODE_FLAG_GENERIC;
                 addScopeToSymbol(genericSymbol, parentScope);
                 linkSymbolToNode(genericSymbol, genericType);
                 parentScope.define(context.log, genericSymbol, scope_2.ScopeHint.NORMAL);
@@ -11563,7 +11562,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 initializeSymbol(context, symbol);
                 if (symbol.resolvedType.isArray() && node.firstChild && node.firstChild.kind != node_9.NodeKind.PARAMETERS) {
                     resolveAsType(context, node.firstChild, symbol.scope);
-                    let arrayType = node.firstChild.resolvedType;
+                    let arrayType = node.firstChild;
                     // let arrayTypeName = symbol.name + `<${arrayType.symbol.name}>`;
                     // let arraySymbol = parentScope.findNested(arrayTypeName, ScopeHint.NORMAL, FindNested.NORMAL);
                     //
@@ -11581,7 +11580,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     //
                     let genericName = symbol.generics[0];
                     let genericMap = symbol.genericMaps.get(genericName);
-                    genericMap.set(node.parent.previousSibling.symbol.name, arrayType.symbol);
+                    let dataTypeName = node.parent.symbol ? node.parent.symbol.name : node.parent.previousSibling.symbol.name;
+                    genericMap.set(dataTypeName, arrayType);
                     node.symbol = symbol;
                     node.resolvedType = symbol.resolvedType;
                 }
@@ -11723,6 +11723,12 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                                 .append(symbol.name)
                                 .appendChar('\'')
                                 .finish());
+                        }
+                    }
+                    if (returnType.resolvedType.isGeneric()) {
+                        let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
+                        if (mappedType) {
+                            returnType = mappedType;
                         }
                     }
                     // Pass the return type along
@@ -12246,6 +12252,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
         }
+        else if (kind == node_9.NodeKind.INTERNAL_IMPORT || kind == node_9.NodeKind.INTERNAL_IMPORT_FROM) {
+        }
         else {
             console.error(`Unexpected kind: ${node_9.NodeKind[kind]}`);
             assert(false);
@@ -12507,6 +12515,12 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_22, conte
                 }
                 isArray() {
                     return this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_IS_ARRAY) != 0;
+                }
+                isTypedArray() {
+                    return this.symbol != null &&
+                        (this.symbol.name == "Float32Array" || this.symbol.name == "Float64Array" ||
+                            this.symbol.name == "Int8Array" || this.symbol.name == "Int16Array" || this.symbol.name == "Int32Array" ||
+                            this.symbol.name == "Uint8Array" || this.symbol.name == "Uint16Array" || this.symbol.name == "Uint32Array");
                 }
                 isReference() {
                     return this.pointerTo != null || this.symbol != null && (this.symbol.flags & symbol_9.SYMBOL_FLAG_IS_REFERENCE) != 0;
@@ -13048,7 +13062,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
         return node;
     }
     exports_23("createJSArray", createJSArray);
-    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_INTERNAL_IMPORT, NODE_FLAG_EXTERNAL_IMPORT, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_JAVASCRIPT, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NODE_FLAG_ANYFUNC, NodeFlag, Node;
+    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_INTERNAL_IMPORT, NODE_FLAG_EXTERNAL_IMPORT, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_JAVASCRIPT, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NODE_FLAG_ANYFUNC, NODE_FLAG_GENERIC, NodeFlag, Node;
     return {
         setters: [
             function (symbol_10_1) {
@@ -13173,6 +13187,7 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
             exports_23("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 15);
             exports_23("NODE_FLAG_START", NODE_FLAG_START = 1 << 16);
             exports_23("NODE_FLAG_ANYFUNC", NODE_FLAG_ANYFUNC = 1 << 17);
+            exports_23("NODE_FLAG_GENERIC", NODE_FLAG_GENERIC = 1 << 18);
             NodeFlag = class NodeFlag {
             };
             exports_23("NodeFlag", NodeFlag);
@@ -13385,6 +13400,9 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
                 isUnsafe() {
                     return (this.flags & NODE_FLAG_UNSAFE) != 0;
                 }
+                isGeneric() {
+                    return (this.flags & NODE_FLAG_GENERIC) != 0;
+                }
                 isUnsignedOperator() {
                     return (this.flags & NODE_FLAG_UNSIGNED_OPERATOR) != 0;
                 }
@@ -13554,6 +13572,22 @@ System.register("node", ["symbol"], function (exports_23, context_23) {
                     assert(this.childCount() >= 2);
                     assert(isExpression(this.lastChild.previousSibling));
                     return this.lastChild.previousSibling;
+                }
+                getMappedGenericType(name) {
+                    let symbol = this.parent.parent.symbol;
+                    if (symbol.generics && symbol.generics.length > 0) {
+                        let genericMaps = symbol.genericMaps;
+                        let type = this.lastChild.resolvedType;
+                        if (type.pointerTo) {
+                            return genericMaps.get(type.pointerTo.symbol.name).get(name);
+                        }
+                        else {
+                            return genericMaps.get(type.symbol.name).get(name);
+                        }
+                    }
+                    else {
+                        return this.lastChild;
+                    }
                 }
                 constructorNode() {
                     assert(this.kind == NodeKind.NEW);

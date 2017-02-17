@@ -1,7 +1,11 @@
+var debug = true;
 var stdlib = {};
 global["stdlib"] = stdlib;
 stdlib["assert"] = function (truth) {
     if (!truth) {
+        if(debug){
+            debugger;
+        }
         console.error(new Error('Assertion failed'));
         process.exit(1);
     }

@@ -102,7 +102,7 @@ export enum NodeKind {
     SHIFT_RIGHT,
     SUBTRACT,
 
-    //JavaScript
+        //JavaScript
     JS_NUMBER,
     JS_OBJECT,
     JS_STRING,
@@ -157,6 +157,7 @@ export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 14;
 export const NODE_FLAG_VIRTUAL = 1 << 15;
 export const NODE_FLAG_START = 1 << 16;
 export const NODE_FLAG_ANYFUNC = 1 << 17;
+export const NODE_FLAG_GENERIC = 1 << 18;
 
 export class NodeFlag {
     flag: int32;
@@ -306,13 +307,13 @@ export class Node {
 
         switch (node.resolvedType) {
             case context.int64Type:
-                if(this.kind != NodeKind.NAME){
+                if (this.kind != NodeKind.NAME) {
                     this.kind = NodeKind.INT64;
                 }
                 this.resolvedType = context.int64Type;
                 break;
             case context.float64Type:
-                if(this.kind != NodeKind.NAME){
+                if (this.kind != NodeKind.NAME) {
                     this.kind = NodeKind.FLOAT64;
                 }
                 this.resolvedType = context.float64Type;
@@ -336,7 +337,7 @@ export class Node {
                     if (this.kind == NodeKind.NULL) {
                         this.longValue = 0;
                     }
-                    if(this.kind != NodeKind.NAME) {
+                    if (this.kind != NodeKind.NAME) {
                         this.kind = NodeKind.INT64;
                     }
                     break;
@@ -345,7 +346,7 @@ export class Node {
                     if (this.kind == NodeKind.NULL) {
                         this.doubleValue = 0.0;
                     }
-                    if(this.kind != NodeKind.NAME) {
+                    if (this.kind != NodeKind.NAME) {
                         this.kind = NodeKind.FLOAT64;
                     }
                     break;
@@ -477,6 +478,10 @@ export class Node {
         return (this.flags & NODE_FLAG_UNSAFE) != 0;
     }
 
+    isGeneric(): boolean {
+        return (this.flags & NODE_FLAG_GENERIC) != 0;
+    }
+
     isUnsignedOperator(): boolean {
         return (this.flags & NODE_FLAG_UNSIGNED_OPERATOR) != 0;
     }
@@ -494,7 +499,7 @@ export class Node {
     parameterCount(): int32 {
         let count = 0;
         let child = this.firstChild;
-        if(child.kind == NodeKind.PARAMETERS) {
+        if (child.kind == NodeKind.PARAMETERS) {
             child = child.firstChild;
             while (child != null) {
                 count = count + 1;
@@ -507,7 +512,7 @@ export class Node {
     hasParameters(): boolean {
         let count = 0;
         let child = this.firstChild;
-        if(child.kind == NodeKind.PARAMETERS) {
+        if (child.kind == NodeKind.PARAMETERS) {
             return child.childCount() > 0;
         }
         return false;
@@ -672,6 +677,21 @@ export class Node {
         assert(this.childCount() >= 2);
         assert(isExpression(this.lastChild.previousSibling));
         return this.lastChild.previousSibling;
+    }
+
+    getMappedGenericType(name: string): Node {
+        let symbol = this.parent.parent.symbol;
+        if (symbol.generics && symbol.generics.length > 0) {
+            let genericMaps = symbol.genericMaps;
+            let type = this.lastChild.resolvedType;
+            if (type.pointerTo) {
+                return genericMaps.get(type.pointerTo.symbol.name).get(name);
+            } else {
+                return genericMaps.get(type.symbol.name).get(name);
+            }
+        } else {
+            return this.lastChild;
+        }
     }
 
     constructorNode(): Node {

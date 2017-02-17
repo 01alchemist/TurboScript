@@ -83,11 +83,10 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
                         let text = contents.slice(start + 1, i - 1);
                         let importContent = resolveImport(basePath + pathSeparator + text);
                         if (importContent) {
-                            compiler.addInput(text, importContent);
+                            compiler.addInputBefore(text, importContent, source);
                         } else {
                             return false;
                         }
-                        console.log(text);
                         kind = c == '\'' ? TokenKind.CHARACTER : TokenKind.STRING;
                         break;
                     }

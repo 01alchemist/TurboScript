@@ -10,7 +10,7 @@ import {
     NODE_FLAG_PUBLIC, NODE_FLAG_GET, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_PROTECTED,
     NODE_FLAG_DECLARE, isExpression, createInt, createboolean, createNull, createMemberReference, createSymbolReference,
     isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat,
-    NODE_FLAG_EXTERNAL_IMPORT
+    NODE_FLAG_EXTERNAL_IMPORT, NODE_FLAG_GENERIC
 } from "./node";
 import {CompileTarget} from "./compiler";
 import {Log, Range, spanRanges} from "./log";
@@ -133,13 +133,14 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
             genericSymbol.resolvedType = new Type();
             genericSymbol.resolvedType.symbol = genericSymbol;
             genericSymbol.flags = SYMBOL_FLAG_IS_GENERIC;
+            genericType.flags = NODE_FLAG_GENERIC;
             addScopeToSymbol(genericSymbol, parentScope);
             linkSymbolToNode(genericSymbol, genericType);
             parentScope.define(context.log, genericSymbol, ScopeHint.NORMAL);
 
             symbol.generics = [];
-            symbol.genericMaps = new Map<string, Map<string,Symbol>>();
-            let genericMap = new Map<string, Symbol>();
+            symbol.genericMaps = new Map<string, Map<string, Node>>();
+            let genericMap = new Map<string, Node>();
             symbol.genericMaps.set(genericSymbol.name, genericMap);
             symbol.generics.push(genericSymbol.name);
         }
@@ -1226,7 +1227,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             initializeSymbol(context, symbol);
             if (symbol.resolvedType.isArray() && node.firstChild && node.firstChild.kind != NodeKind.PARAMETERS) {
                 resolveAsType(context, node.firstChild, symbol.scope);
-                let arrayType = node.firstChild.resolvedType;
+                let arrayType = node.firstChild;
 
                 // let arrayTypeName = symbol.name + `<${arrayType.symbol.name}>`;
                 // let arraySymbol = parentScope.findNested(arrayTypeName, ScopeHint.NORMAL, FindNested.NORMAL);
@@ -1246,7 +1247,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 //
                 let genericName = symbol.generics[0];
                 let genericMap = symbol.genericMaps.get(genericName);
-                genericMap.set(node.parent.previousSibling.symbol.name, arrayType.symbol);
+                let dataTypeName: string = node.parent.symbol ? node.parent.symbol.name : node.parent.previousSibling.symbol.name;
+                genericMap.set(dataTypeName, arrayType);
 
                 node.symbol = symbol;
                 node.resolvedType = symbol.resolvedType;
@@ -1417,6 +1419,12 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     }
                 }
 
+                if (returnType.resolvedType.isGeneric()) {
+                    let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
+                    if (mappedType) {
+                        returnType = mappedType;
+                    }
+                }
                 // Pass the return type along
                 node.resolvedType = returnType.resolvedType;
             }
@@ -2033,6 +2041,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     .finish());
             }
         }
+    }
+
+    else if (kind == NodeKind.INTERNAL_IMPORT || kind == NodeKind.INTERNAL_IMPORT_FROM) {
+        //ignore imports
     }
 
     else {

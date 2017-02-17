@@ -155,7 +155,9 @@ export class AsmJsModule {
         let _import: AsmImport = this.firstImport;
         while (_import) {
             let importName = _import.module + "_" + _import.name;
-            this.code.append(`var ${importName} = global.${_import.module}.${_import.name};\n`);
+            this.code.append(
+                `var ${importName} = ${_import.module == "foreign" ? "" : "stdlib."}${_import.module}.${_import.name};\n`
+            );
             _import = _import.next;
         }
     }
@@ -321,7 +323,7 @@ export class AsmJsModule {
         if (node.kind == NodeKind.NAME) {
             let symbol = node.symbol;
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.node.isDeclare()) {
-                this.code.append("global.");
+                this.code.append("stdlib.");
             }
             if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
                 this.emitLoadFromMemory(symbol.resolvedType, null, ASM_MEMORY_INITIALIZER_BASE + symbol.offset);
@@ -572,20 +574,24 @@ export class AsmJsModule {
 
             else {
                 let value = node.callValue();
-                let fn = functionMap.get(value.symbol.name);
+                let namespace: string = value.symbol.node.parent.symbol ? value.symbol.node.parent.symbol.name + "_" : "";
+                let fnName: string = namespace + value.symbol.name;
+                let fn = functionMap.get(fnName);
                 let signature;
                 let isImported = false;
                 let isMath = false;
                 let importedFnName = "";
 
-                if (value.symbol.node.isDeclare() && value.symbol.node.parent.isExternalImport()) {
+                if (value.symbol.node.isDeclare()) {
                     let moduleName = value.symbol.node.parent.symbol.name;
-                    let fnName = value.symbol.name;
-                    isMath = moduleName == "Math";
-                    importedFnName = moduleName + "_" + fnName;
-                    let asmImport: AsmImport = importMap.get(moduleName + "." + fnName);
-                    signature = signatureMap.get(asmImport.signatureIndex);
-                    isImported = true;
+                    if (value.symbol.node.parent.isExternalImport() || moduleName == "foreign") {
+                        let fnName = value.symbol.name;
+                        isMath = moduleName == "Math";
+                        importedFnName = moduleName + "_" + fnName;
+                        let asmImport: AsmImport = importMap.get(moduleName + "." + fnName);
+                        signature = signatureMap.get(asmImport.signatureIndex);
+                        isImported = true;
+                    }
                 } else {
                     signature = signatureMap.get(fn.signatureIndex);
                 }
@@ -603,7 +609,7 @@ export class AsmJsModule {
                     this.emitExpression(value, Precedence.UNARY_POSTFIX);
                 }
 
-                if (value.symbol == null || !value.symbol.isGetter()) {
+                if (value.symbol != null || !value.symbol.isGetter()) {
                     this.code.append("(");
                     let needComma = false;
                     if (node.firstChild) {
@@ -923,11 +929,11 @@ export class AsmJsModule {
         }
 
         else if (node.kind == NodeKind.IMPORTS) {
-            let child = node.firstChild;
-            while (child) {
-                assert(child.kind == NodeKind.EXTERNAL_IMPORT);
-                child = child.nextSibling;
-            }
+            // let child = node.firstChild;
+            // while (child) {
+            //     assert(child.kind == NodeKind.EXTERNAL_IMPORT);
+            //     child = child.nextSibling;
+            // }
         }
 
         else if (node.kind == NodeKind.CLASS) {
@@ -1065,6 +1071,8 @@ export class AsmJsModule {
                 let size = parent.resolvedType.allocationSizeOf(this.context).toString();
                 if (parent.resolvedType.isArray()) {
                     size = `(${size} + bytesLength)|0`;
+                } else if (parent.resolvedType.isTypedArray()) {
+                    size = `(${size} + elementSize << ${getTypedArrayElementSize(parent.resolvedType.symbol.name)})|0`;
                 }
                 this.code.append(`var ptr = 0;\n`);
                 this.code.append(`ptr = ${namespace}malloc(${size})|0;\n`);
@@ -1606,11 +1614,11 @@ export class AsmJsModule {
         }
 
         else if (node.kind == NodeKind.IMPORTS) {
-            let child = node.firstChild;
-            while (child) {
-                assert(child.kind == NodeKind.EXTERNAL_IMPORT);
-                child = child.nextSibling;
-            }
+            // let child = node.firstChild;
+            // while (child) {
+            //     assert(child.kind == NodeKind.EXTERNAL_IMPORT);
+            //     child = child.nextSibling;
+            // }
         }
 
         else if (node.kind == NodeKind.VARIABLE) {
@@ -1722,7 +1730,7 @@ export class AsmJsModule {
                 //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
                 // }
                 if (node.isExternalImport() || node.parent.isExternalImport()) {
-                    let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                    let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "stdlib";
                     symbol.offset = this.importCount;
                     this.allocateImport(signatureIndex, moduleName, symbol.name);
                 }
@@ -1731,7 +1739,9 @@ export class AsmJsModule {
             }
 
             symbol.offset = this.functionCount;
-            let fn = this.allocateFunction(symbol, signatureIndex);
+            let parent = symbol.parent();
+            let namespace = parent ? parent.name + "_" : "";
+            let fn = this.allocateFunction(symbol, namespace, signatureIndex);
 
             // Make sure "malloc" is tracked
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
@@ -1782,7 +1792,7 @@ export class AsmJsModule {
         return result;
     }
 
-    allocateFunction(symbol: Symbol, signatureIndex: int32): AsmFunction {
+    allocateFunction(symbol: Symbol, namespace: string, signatureIndex: int32): AsmFunction {
         let fn = new AsmFunction();
         fn.symbol = symbol;
         fn.signatureIndex = signatureIndex;
@@ -1793,7 +1803,7 @@ export class AsmJsModule {
 
         this.functionCount = this.functionCount + 1;
 
-        functionMap.set(symbol.name, fn);
+        functionMap.set(namespace + symbol.name, fn);
 
         return fn;
     }
@@ -2021,6 +2031,26 @@ function computeClassId(name: string): number {
     return n;
 }
 
+function getTypedArrayElementSize(name: string): int32 {
+    switch (name) {
+        case "Uint8ClampedArray":
+        case "Uint8Array":
+        case "Int8Array":
+            return 1;
+        case "Uint16Array":
+        case "Int16Array":
+            return 2;
+        case "Uint32Array":
+        case "Int32Array":
+        case "Float32Array":
+            return 4;
+        case "Float64Array":
+            return 8;
+        default :
+            throw "unknown typed array";
+    }
+}
+
 function getMemoryType(name: string): string {
     if (name == "int32") {
         return "32";
@@ -2104,7 +2134,7 @@ export function asmJsEmit(compiler: Compiler): void {
 
     module.prepareToEmit(compiler.global);
 
-    code.append("function TurboModule(global, env, buffer) {\n");
+    code.append("function TurboModule(stdlib, foreign, buffer) {\n");
     code.emitIndent(1);
     code.append('"use asm";\n');
     code.append('//##################################\n');

@@ -108,22 +108,24 @@ export class Compiler {
         source.contents = contents;
 
         if (this.firstSource == null) this.firstSource = source;
-        else this.lastSource.next = source;
+        else {
+            source.prev = this.lastSource;
+            this.lastSource.next = source;
+        }
         this.lastSource = source;
 
         return source;
     }
 
-    addInputBefore(name: string, contents: string, source:Source): Source {
+    addInputBefore(name: string, contents: string, nextSource:Source): Source {
         var source = new Source();
         source.name = name;
         source.contents = contents;
 
-        if (this.firstSource == null) this.firstSource = source;
-        else this.lastSource.next = source;
-        this.lastSource = source;
-
-        source.next;
+        nextSource.prev.next = source;
+        source.prev = nextSource.prev;
+        nextSource.prev = source;
+        source.next = nextSource;
 
         return source;
     }

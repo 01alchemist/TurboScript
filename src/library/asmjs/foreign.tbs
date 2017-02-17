@@ -1,1 +1,6 @@
-declare function random():float32;
+//@foreign //asmjs only
+@import
+declare class foreign {
+  static random():float32;
+  static sort(ptr:*int32, len:int32):void;
+}

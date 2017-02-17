@@ -7,14 +7,36 @@
 <body>
 <script src="array.asm.js"></script>
 <script>
+
+    log = console.log;
+
     var turbo = initTurbo(0x10000);
-    function data_to_json(ptr){
+
+    var num = 1000;
+    var dataArray = turbo.exports.test(num);
+
+    for (var i = 0; i < num; i++) {
+        var d1 = turbo.exports.getData(dataArray, i);
+        turbo.exports.Data_set(d1, 1.1, 1.2, 1.3);
+    }
+
+    function data_to_json(ptr) {
         return {
-            v1:turbo.HEAPF32[(ptr + 4) >> 2],
-            v2:turbo.HEAPF32[(ptr + 8) >> 2],
-            v3:turbo.HEAPF32[(ptr + 12) >> 2]
+            v1: turbo.HEAPF32[(ptr + 4) >> 2],
+            v2: turbo.HEAPF32[(ptr + 8) >> 2],
+            v3: turbo.HEAPF32[(ptr + 12) >> 2]
         }
     }
+
+    var f64a = turbo.exports.Float64Array_new(10);
+    turbo.exports.Float64Array_op_set(f64a, 0, 1.1);
+    turbo.exports.Float64Array_op_set(f64a, 1, 1.2);
+    turbo.exports.Float64Array_op_set(f64a, 2, 1.3);
+    log(turbo.exports.Float64Array_op_get(f64a, 0));
+    log(turbo.exports.Float64Array_op_get(f64a, 1));
+    log(turbo.exports.Float64Array_op_get(f64a, 2));
+
+
 </script>
 </body>
 </html>
