@@ -1487,8 +1487,9 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
             return "'if'";
         if (token == TokenKind.IMPLEMENTS)
             return "'implements'";
-        // if (token == TokenKind.IMPORT) return "'import'"; //TODO: Standardize import
-        if (token == TokenKind.IMPORT)
+        if (token == TokenKind.INTERNAL_IMPORT)
+            return "'import'";
+        if (token == TokenKind.EXTERNAL_IMPORT)
             return "'@import'";
         if (token == TokenKind.LET)
             return "'let'";
@@ -1656,6 +1657,8 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             kind = TokenKind.EXPORT;
                         else if (text == "module")
                             kind = TokenKind.MODULE;
+                        else if (text == "import")
+                            kind = TokenKind.INTERNAL_IMPORT;
                         else if (text == "public")
                             kind = TokenKind.PUBLIC;
                         else if (text == "return")
@@ -1681,7 +1684,7 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                         else if (text == "private")
                             kind = TokenKind.PRIVATE;
                         else if (text == "@import")
-                            kind = TokenKind.IMPORT;
+                            kind = TokenKind.EXTERNAL_IMPORT;
                         else if (text == "anyfunc")
                             kind = TokenKind.ANYFUNC;
                     }
@@ -2096,38 +2099,39 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                 TokenKind[TokenKind["ANYFUNC"] = 59] = "ANYFUNC";
                 TokenKind[TokenKind["IF"] = 60] = "IF";
                 TokenKind[TokenKind["IMPLEMENTS"] = 61] = "IMPLEMENTS";
-                TokenKind[TokenKind["IMPORT"] = 62] = "IMPORT";
-                TokenKind[TokenKind["LET"] = 63] = "LET";
-                TokenKind[TokenKind["NEW"] = 64] = "NEW";
-                TokenKind[TokenKind["DELETE"] = 65] = "DELETE";
-                TokenKind[TokenKind["NULL"] = 66] = "NULL";
-                TokenKind[TokenKind["UNDEFINED"] = 67] = "UNDEFINED";
-                TokenKind[TokenKind["OPERATOR"] = 68] = "OPERATOR";
-                TokenKind[TokenKind["PRIVATE"] = 69] = "PRIVATE";
-                TokenKind[TokenKind["PROTECTED"] = 70] = "PROTECTED";
-                TokenKind[TokenKind["PUBLIC"] = 71] = "PUBLIC";
-                TokenKind[TokenKind["RETURN"] = 72] = "RETURN";
-                TokenKind[TokenKind["SIZEOF"] = 73] = "SIZEOF";
-                TokenKind[TokenKind["STATIC"] = 74] = "STATIC";
-                TokenKind[TokenKind["THIS"] = 75] = "THIS";
-                TokenKind[TokenKind["TRUE"] = 76] = "TRUE";
-                TokenKind[TokenKind["UNSAFE"] = 77] = "UNSAFE";
-                TokenKind[TokenKind["JAVASCRIPT"] = 78] = "JAVASCRIPT";
-                TokenKind[TokenKind["START"] = 79] = "START";
-                TokenKind[TokenKind["VIRTUAL"] = 80] = "VIRTUAL";
-                TokenKind[TokenKind["VAR"] = 81] = "VAR";
-                TokenKind[TokenKind["WHILE"] = 82] = "WHILE";
+                TokenKind[TokenKind["INTERNAL_IMPORT"] = 62] = "INTERNAL_IMPORT";
+                TokenKind[TokenKind["EXTERNAL_IMPORT"] = 63] = "EXTERNAL_IMPORT";
+                TokenKind[TokenKind["LET"] = 64] = "LET";
+                TokenKind[TokenKind["NEW"] = 65] = "NEW";
+                TokenKind[TokenKind["DELETE"] = 66] = "DELETE";
+                TokenKind[TokenKind["NULL"] = 67] = "NULL";
+                TokenKind[TokenKind["UNDEFINED"] = 68] = "UNDEFINED";
+                TokenKind[TokenKind["OPERATOR"] = 69] = "OPERATOR";
+                TokenKind[TokenKind["PRIVATE"] = 70] = "PRIVATE";
+                TokenKind[TokenKind["PROTECTED"] = 71] = "PROTECTED";
+                TokenKind[TokenKind["PUBLIC"] = 72] = "PUBLIC";
+                TokenKind[TokenKind["RETURN"] = 73] = "RETURN";
+                TokenKind[TokenKind["SIZEOF"] = 74] = "SIZEOF";
+                TokenKind[TokenKind["STATIC"] = 75] = "STATIC";
+                TokenKind[TokenKind["THIS"] = 76] = "THIS";
+                TokenKind[TokenKind["TRUE"] = 77] = "TRUE";
+                TokenKind[TokenKind["UNSAFE"] = 78] = "UNSAFE";
+                TokenKind[TokenKind["JAVASCRIPT"] = 79] = "JAVASCRIPT";
+                TokenKind[TokenKind["START"] = 80] = "START";
+                TokenKind[TokenKind["VIRTUAL"] = 81] = "VIRTUAL";
+                TokenKind[TokenKind["VAR"] = 82] = "VAR";
+                TokenKind[TokenKind["WHILE"] = 83] = "WHILE";
                 // Preprocessor
-                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 83] = "PREPROCESSOR_DEFINE";
-                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 84] = "PREPROCESSOR_ELIF";
-                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 85] = "PREPROCESSOR_ELSE";
-                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 86] = "PREPROCESSOR_ENDIF";
-                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 87] = "PREPROCESSOR_ERROR";
-                TokenKind[TokenKind["PREPROCESSOR_IF"] = 88] = "PREPROCESSOR_IF";
-                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 89] = "PREPROCESSOR_NEEDED";
-                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 90] = "PREPROCESSOR_NEWLINE";
-                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 91] = "PREPROCESSOR_UNDEF";
-                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 92] = "PREPROCESSOR_WARNING";
+                TokenKind[TokenKind["PREPROCESSOR_DEFINE"] = 84] = "PREPROCESSOR_DEFINE";
+                TokenKind[TokenKind["PREPROCESSOR_ELIF"] = 85] = "PREPROCESSOR_ELIF";
+                TokenKind[TokenKind["PREPROCESSOR_ELSE"] = 86] = "PREPROCESSOR_ELSE";
+                TokenKind[TokenKind["PREPROCESSOR_ENDIF"] = 87] = "PREPROCESSOR_ENDIF";
+                TokenKind[TokenKind["PREPROCESSOR_ERROR"] = 88] = "PREPROCESSOR_ERROR";
+                TokenKind[TokenKind["PREPROCESSOR_IF"] = 89] = "PREPROCESSOR_IF";
+                TokenKind[TokenKind["PREPROCESSOR_NEEDED"] = 90] = "PREPROCESSOR_NEEDED";
+                TokenKind[TokenKind["PREPROCESSOR_NEWLINE"] = 91] = "PREPROCESSOR_NEWLINE";
+                TokenKind[TokenKind["PREPROCESSOR_UNDEF"] = 92] = "PREPROCESSOR_UNDEF";
+                TokenKind[TokenKind["PREPROCESSOR_WARNING"] = 93] = "PREPROCESSOR_WARNING";
             })(TokenKind || (TokenKind = {}));
             exports_3("TokenKind", TokenKind);
             Token = class Token {
@@ -2545,12 +2549,6 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                             return node_1.createHook(node, middle, right).withRange(log_2.spanRanges(node.range, right.range));
                         }
                     }
-                    // if(mode == ParseKind.TYPE && node.rawValue && node.rawValue == "Array"){
-                    //     this.expect(TokenKind.LESS_THAN);
-                    //     let type = this.parseType();
-                    //     this.expect(TokenKind.GREATER_THAN);
-                    //     node.appendChild(type);
-                    // }
                     return node;
                 }
                 parseDelete() {
@@ -2797,54 +2795,57 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     }
                     return node.withRange(log_2.spanRanges(open.range, close.range));
                 }
-                //TODO: finalize import method
-                /*parseImports(): Node {
-                 let token = this.current;
-                 assert(token.kind == TokenKind.IMPORT);
-                 this.advance();
-            
-                 let node = createImports();
-                 node.flags = node.flags | NODE_FLAG_IMPORT;
-            
-                 if (this.peek(TokenKind.MULTIPLY)) { //check for wildcard '*' import
-                 assert(this.eat(TokenKind.MULTIPLY));
-                 assert(this.eat(TokenKind.AS));
-            
-                 let importName = this.current;
-                 let range = importName.range;
-                 let _import = createImport(importName.range.toString());
-                 node.appendChild(_import.withRange(range).withInternalRange(importName.range));
-                 this.advance();
-                 }
-                 else {
-            
-                 if (!this.expect(TokenKind.LEFT_BRACE)) {
-                 return null;
-                 }
-                 while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
-            
-                 let importName = this.current;
-                 let range = importName.range;
-                 let _import = createImport(importName.range.toString());
-                 node.appendChild(_import.withRange(range).withInternalRange(importName.range));
-            
-                 if (!this.eat(TokenKind.COMMA)) {
-                 break;
-                 }
-                 }
-            
-                 this.advance();
-                 assert(this.expect(TokenKind.RIGHT_BRACE));
-                 }
-            
-                 let importFrom = this.current;
-                 this.expect(TokenKind.FROM);
-                 node.stringValue = importFrom.range.toString();
-                 this.advance();
-                 let semicolon = this.current;
-                 this.expect(TokenKind.SEMICOLON);
-                 return node.withRange(spanRanges(token.range, semicolon.range));
-                 }*/
+                // parseInternalImports(): Node {
+                //     let token = this.current;
+                //     assert(token.kind == TokenKind.INTERNAL_IMPORT);
+                //     this.advance();
+                //
+                //     let node = createImports();
+                //     node.flags = node.flags | NODE_FLAG_INTERNAL_IMPORT;
+                //
+                //     if (this.peek(TokenKind.MULTIPLY)) { //check for wildcard '*' import
+                //
+                //          this.log.error(this.current.range, "wildcard '*' import not supported");
+                //
+                //         assert(this.eat(TokenKind.MULTIPLY));
+                //         assert(this.eat(TokenKind.AS));
+                //
+                //         let importName = this.current;
+                //         let range = importName.range;
+                //         let _import = createInternalImport(importName.range.toString());
+                //         node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+                //         this.advance();
+                //     }
+                //     else {
+                //
+                //         if (!this.expect(TokenKind.LEFT_BRACE)) {
+                //             return null;
+                //         }
+                //         while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
+                //
+                //             let importName = this.current;
+                //             let range = importName.range;
+                //             let _import = createInternalImport(importName.range.toString());
+                //             node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+                //
+                //             if (!this.eat(TokenKind.COMMA)) {
+                //                 break;
+                //             }
+                //         }
+                //
+                //         this.advance();
+                //         assert(this.expect(TokenKind.RIGHT_BRACE));
+                //     }
+                //
+                //     this.expect(TokenKind.FROM);
+                //     let importFrom = this.current;
+                //     let _from = createInternalImportFrom(importFrom.range.toString());
+                //     node.appendChild(_from.withRange(importFrom.range).withInternalRange(importFrom.range));
+                //     this.advance();
+                //     let semicolon = this.current;
+                //     this.expect(TokenKind.SEMICOLON);
+                //     return node.withRange(spanRanges(token.range, semicolon.range));
+                // }
                 parseModule(firstFlag) {
                     let token = this.current;
                     assert(token.kind == lexer_1.TokenKind.MODULE);
@@ -3377,8 +3378,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     while (true) {
                         let token = this.current;
                         let flag;
-                        if (this.eat(lexer_1.TokenKind.IMPORT))
-                            flag = node_1.NODE_FLAG_IMPORT;
+                        if (this.eat(lexer_1.TokenKind.EXTERNAL_IMPORT))
+                            flag = node_1.NODE_FLAG_EXTERNAL_IMPORT;
                         else if (this.eat(lexer_1.TokenKind.DECLARE))
                             flag = node_1.NODE_FLAG_DECLARE;
                         else if (this.eat(lexer_1.TokenKind.EXPORT))
@@ -3423,16 +3424,18 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     node.flags = node.flags | node_1.NODE_FLAG_UNSAFE;
                     return node.withRange(log_2.spanRanges(token.range, node.range));
                 }
-                parseImport() {
-                    let token = this.current;
-                    this.advance();
-                    let node = this.parseBlock();
-                    if (node == null) {
-                        return null;
-                    }
-                    node.flags = node.flags | node_1.NODE_FLAG_IMPORT;
-                    return node.withRange(log_2.spanRanges(token.range, node.range));
-                }
+                // parseInternalImport(): Node {
+                //     let token = this.current;
+                //     this.advance();
+                //
+                //     let node = this.parseBlock();
+                //     if (node == null) {
+                //         return null;
+                //     }
+                //
+                //     node.flags = node.flags | NODE_FLAG_INTERNAL_IMPORT;
+                //     return node.withRange(spanRanges(token.range, node.range));
+                // }
                 parseJavaScript() {
                     let token = this.current;
                     this.advance();
@@ -3465,8 +3468,8 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                 }
                 parseStatement(mode) {
                     let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
-                    // if (this.peek(TokenKind.IMPORT) && firstFlag == null) return this.parseImport(); //disabled or now
                     // if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe(); //disabled for now
+                    // if (this.peek(TokenKind.INTERNAL_IMPORT) && firstFlag == null) return this.parseInternalImports(); // This should handle before parsing
                     if (this.peek(lexer_1.TokenKind.JAVASCRIPT) && firstFlag == null)
                         return this.parseJavaScript();
                     if (this.peek(lexer_1.TokenKind.START) && firstFlag == null)
@@ -4042,7 +4045,7 @@ System.register("shaking", ["symbol", "node"], function (exports_7, context_7) {
     }
     exports_7("treeShakingMarkAllUsed", treeShakingMarkAllUsed);
     function treeShakingSearchForUsed(node) {
-        if (node.kind == node_2.NodeKind.FUNCTION && (node.isImport() || node.isExport() || node.isStart())) {
+        if (node.kind == node_2.NodeKind.FUNCTION && (node.isExternalImport() || node.isExport() || node.isStart())) {
             treeShakingMarkAllUsed(node);
         }
         else if (node.kind == node_2.NodeKind.GLOBAL || node.kind == node_2.NodeKind.CLASS) {
@@ -7540,7 +7543,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let argumentTypesFirst = null;
                         let argumentTypesLast = null;
                         // Make sure to include the implicit "this" variable as a normal argument
-                        let argument = node.isImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
+                        let argument = node.isExternalImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
                         while (argument != returnType) {
                             let type = wasmWrapType(this.getWasmType(argument.variableType().resolvedType));
                             if (argumentTypesFirst == null)
@@ -7935,7 +7938,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let symbol = value.symbol;
                         assert(symbol_6.isFunction(symbol.kind));
                         // Write out the implicit "this" argument
-                        if (!symbol.node.isImport() && symbol.kind == symbol_6.SymbolKind.FUNCTION_INSTANCE) {
+                        if (!symbol.node.isExternalImport() && symbol.kind == symbol_6.SymbolKind.FUNCTION_INSTANCE) {
                             this.emitNode(array, byteOffset, value.dotTarget());
                         }
                         let child = value.nextSibling;
@@ -9089,7 +9092,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                             let isImported = false;
                             let isMath = false;
                             let importedFnName = "";
-                            if (value.symbol.node.isDeclare() && value.symbol.node.parent.isImport()) {
+                            if (value.symbol.node.isDeclare() && value.symbol.node.parent.isExternalImport()) {
                                 let moduleName = value.symbol.node.parent.symbol.name;
                                 let fnName = value.symbol.name;
                                 isMath = moduleName == "Math";
@@ -9394,7 +9397,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     else if (node.kind == node_7.NodeKind.IMPORTS) {
                         let child = node.firstChild;
                         while (child) {
-                            assert(child.kind == node_7.NodeKind.IMPORT);
+                            assert(child.kind == node_7.NodeKind.EXTERNAL_IMPORT);
                             child = child.nextSibling;
                         }
                     }
@@ -9974,7 +9977,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     else if (node.kind == node_7.NodeKind.IMPORTS) {
                         let child = node.firstChild;
                         while (child) {
-                            assert(child.kind == node_7.NodeKind.IMPORT);
+                            assert(child.kind == node_7.NodeKind.EXTERNAL_IMPORT);
                             child = child.nextSibling;
                         }
                     }
@@ -10071,11 +10074,11 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                         // console.log(symbol.name);
                         // Functions without bodies are imports
                         if (body == null) {
-                            // if (node.parent.isImport()) {
+                            // if (node.parent.isExternalImport()) {
                             //     let _import = importMap.get(node.parent.symbol.name);
                             //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
                             // }
-                            if (node.isImport() || node.parent.isImport()) {
+                            if (node.isExternalImport() || node.parent.isExternalImport()) {
                                 let moduleName = symbol.kind == symbol_7.SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                                 symbol.offset = this.importCount;
                                 this.allocateImport(signatureIndex, moduleName, symbol.name);
@@ -10204,11 +10207,115 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
         }
     };
 });
-System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "wasm", "library/library", "asmjs"], function (exports_17, context_17) {
+System.register("preparser", ["lexer", "main", "stringbuilder"], function (exports_17, context_17) {
     "use strict";
     var __moduleName = context_17 && context_17.id;
+    function preparse(source, compiler, log) {
+        let contents = source.contents;
+        let limit = contents.length;
+        let pathSeparator = source.name.indexOf("/") > -1 ? "/" : (source.name.indexOf("\\") > -1 ? "\\" : "/");
+        let basePath = source.name.substring(0, source.name.lastIndexOf(pathSeparator));
+        let wantNewline = false;
+        let captureImportFrom = false;
+        let captureImportPath = false;
+        let i = 0;
+        while (i < limit) {
+            let start = i;
+            let c = contents[i];
+            i = i + 1;
+            if (c == ' ' || c == '\t' || c == '\r') {
+                continue;
+            }
+            let kind = lexer_4.TokenKind.END_OF_FILE;
+            // Newline
+            if (c == '\n') {
+                if (!wantNewline) {
+                    continue;
+                }
+                // Preprocessor commands all end in a newline
+                wantNewline = false;
+            }
+            else if (lexer_4.isAlpha(c)) {
+                while (i < limit && (lexer_4.isAlpha(contents[i]) || lexer_4.isNumber(contents[i]))) {
+                    i = i + 1;
+                }
+                // Keywords
+                let length = i - start;
+                if (length >= 2 && length <= 10) {
+                    let text = contents.slice(start, i);
+                    if (text == "import") {
+                        captureImportFrom = true;
+                    }
+                    else if (text == "from" && captureImportFrom) {
+                        captureImportFrom = false;
+                        captureImportPath = true;
+                    }
+                }
+            }
+            else if (captureImportPath && (c == '"' || c == '\'' || c == '`')) {
+                captureImportPath = false;
+                while (i < limit) {
+                    let next = contents[i];
+                    // Escape any character including newlines
+                    if (i + 1 < limit && next == '\\') {
+                        i = i + 2;
+                    }
+                    else if (next == '\n' && c != '`') {
+                        break;
+                    }
+                    else {
+                        i = i + 1;
+                        // End the string with a matching quote character
+                        if (next == c) {
+                            let text = contents.slice(start + 1, i - 1);
+                            let importContent = resolveImport(basePath + pathSeparator + text);
+                            if (importContent) {
+                                compiler.addInput(text, importContent);
+                            }
+                            else {
+                                return false;
+                            }
+                            console.log(text);
+                            kind = c == '\'' ? lexer_4.TokenKind.CHARACTER : lexer_4.TokenKind.STRING;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+    exports_17("preparse", preparse);
+    function resolveImport(importPath) {
+        let contents = stdlib.IO_readTextFile(importPath);
+        if (contents == null) {
+            main_1.printError(stringbuilder_10.StringBuilder_new().append("Cannot read from ").append(importPath).finish());
+            return null;
+        }
+        return contents;
+    }
+    var lexer_4, main_1, stringbuilder_10;
+    return {
+        setters: [
+            function (lexer_4_1) {
+                lexer_4 = lexer_4_1;
+            },
+            function (main_1_1) {
+                main_1 = main_1_1;
+            },
+            function (stringbuilder_10_1) {
+                stringbuilder_10 = stringbuilder_10_1;
+            }
+        ],
+        execute: function () {
+        }
+    };
+});
+System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", "lexer", "parser", "shaking", "stringbuilder", "wasm", "library/library", "asmjs", "preparser"], function (exports_18, context_18) {
+    "use strict";
+    var __moduleName = context_18 && context_18.id;
     function replaceFileExtension(path, extension) {
-        var builder = stringbuilder_10.StringBuilder_new();
+        var builder = stringbuilder_11.StringBuilder_new();
         var dot = path.lastIndexOf(".");
         var forward = path.lastIndexOf("/");
         var backward = path.lastIndexOf("\\");
@@ -10218,8 +10325,8 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
         }
         return builder.append(path).append(extension).finish();
     }
-    exports_17("replaceFileExtension", replaceFileExtension);
-    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_4, parser_6, shaking_1, stringbuilder_10, wasm_1, library_1, asmjs_1, CompileTarget, Compiler;
+    exports_18("replaceFileExtension", replaceFileExtension);
+    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_5, parser_6, shaking_1, stringbuilder_11, wasm_1, library_1, asmjs_1, preparser_1, CompileTarget, Compiler;
     return {
         setters: [
             function (checker_1_1) {
@@ -10237,8 +10344,8 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             function (scope_1_1) {
                 scope_1 = scope_1_1;
             },
-            function (lexer_4_1) {
-                lexer_4 = lexer_4_1;
+            function (lexer_5_1) {
+                lexer_5 = lexer_5_1;
             },
             function (parser_6_1) {
                 parser_6 = parser_6_1;
@@ -10246,8 +10353,8 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             function (shaking_1_1) {
                 shaking_1 = shaking_1_1;
             },
-            function (stringbuilder_10_1) {
-                stringbuilder_10 = stringbuilder_10_1;
+            function (stringbuilder_11_1) {
+                stringbuilder_11 = stringbuilder_11_1;
             },
             function (wasm_1_1) {
                 wasm_1 = wasm_1_1;
@@ -10257,6 +10364,9 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             },
             function (asmjs_1_1) {
                 asmjs_1 = asmjs_1_1;
+            },
+            function (preparser_1_1) {
+                preparser_1 = preparser_1_1;
             }
         ],
         execute: function () {
@@ -10271,7 +10381,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                 CompileTarget[CompileTarget["ASMJS"] = 4] = "ASMJS";
                 CompileTarget[CompileTarget["WEBASSEMBLY"] = 5] = "WEBASSEMBLY";
             })(CompileTarget || (CompileTarget = {}));
-            exports_17("CompileTarget", CompileTarget);
+            exports_18("CompileTarget", CompileTarget);
             Compiler = class Compiler {
                 initialize(target, outputName) {
                     assert(this.log == null);
@@ -10329,11 +10439,32 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     this.lastSource = source;
                     return source;
                 }
+                addInputBefore(name, contents, source) {
+                    var source = new log_4.Source();
+                    source.name = name;
+                    source.contents = contents;
+                    if (this.firstSource == null)
+                        this.firstSource = source;
+                    else
+                        this.lastSource.next = source;
+                    this.lastSource = source;
+                    source.next;
+                    return source;
+                }
                 finish() {
-                    stdlib.Profiler_begin("lexing");
-                    var source = this.firstSource;
+                    stdlib.Profiler_begin("pre-parsing");
+                    let source = this.firstSource;
                     while (source != null) {
-                        source.firstToken = lexer_4.tokenize(source, this.log);
+                        if (!preparser_1.preparse(source, this, this.log)) {
+                            return false;
+                        }
+                        source = source.next;
+                    }
+                    stdlib.Profiler_end("pre-parsing");
+                    stdlib.Profiler_begin("lexing");
+                    source = this.firstSource;
+                    while (source != null) {
+                        source.firstToken = lexer_5.tokenize(source, this.log);
                         source = source.next;
                     }
                     stdlib.Profiler_end("lexing");
@@ -10412,13 +10543,13 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
                     return true;
                 }
             };
-            exports_17("Compiler", Compiler);
+            exports_18("Compiler", Compiler);
         }
     };
 });
-System.register("const", [], function (exports_18, context_18) {
+System.register("const", [], function (exports_19, context_19) {
     "use strict";
-    var __moduleName = context_18 && context_18.id;
+    var __moduleName = context_19 && context_19.id;
     var MIN_INT32_VALUE, MAX_INT32_VALUE, MIN_UINT32_VALUE, MAX_UINT32_VALUE, MIN_INT64_VALUE, MAX_INT64_VALUE, MIN_UINT64_VALUE, MAX_UINT64_VALUE;
     return {
         setters: [],
@@ -10426,35 +10557,35 @@ System.register("const", [], function (exports_18, context_18) {
             /**
              * Created by Nidin Vinayakan on 11/01/17.
              */
-            exports_18("MIN_INT32_VALUE", MIN_INT32_VALUE = -Math.pow(2, 31));
-            exports_18("MAX_INT32_VALUE", MAX_INT32_VALUE = Math.pow(2, 31) - 1);
-            exports_18("MIN_UINT32_VALUE", MIN_UINT32_VALUE = 0);
-            exports_18("MAX_UINT32_VALUE", MAX_UINT32_VALUE = Math.pow(2, 32) - 1);
+            exports_19("MIN_INT32_VALUE", MIN_INT32_VALUE = -Math.pow(2, 31));
+            exports_19("MAX_INT32_VALUE", MAX_INT32_VALUE = Math.pow(2, 31) - 1);
+            exports_19("MIN_UINT32_VALUE", MIN_UINT32_VALUE = 0);
+            exports_19("MAX_UINT32_VALUE", MAX_UINT32_VALUE = Math.pow(2, 32) - 1);
             //FIXME: Cannot represent 64 bit integer in javascript
-            exports_18("MIN_INT64_VALUE", MIN_INT64_VALUE = -Math.pow(2, 63));
-            exports_18("MAX_INT64_VALUE", MAX_INT64_VALUE = Math.pow(2, 63) - 1);
-            exports_18("MIN_UINT64_VALUE", MIN_UINT64_VALUE = 0);
-            exports_18("MAX_UINT64_VALUE", MAX_UINT64_VALUE = Math.pow(2, 64) - 1);
+            exports_19("MIN_INT64_VALUE", MIN_INT64_VALUE = -Math.pow(2, 63));
+            exports_19("MAX_INT64_VALUE", MAX_INT64_VALUE = Math.pow(2, 63) - 1);
+            exports_19("MIN_UINT64_VALUE", MIN_UINT64_VALUE = 0);
+            exports_19("MAX_UINT64_VALUE", MAX_UINT64_VALUE = Math.pow(2, 64) - 1);
         }
     };
 });
-System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope", "stringbuilder", "imports", "const"], function (exports_19, context_19) {
+System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope", "stringbuilder", "imports", "const"], function (exports_20, context_20) {
     "use strict";
-    var __moduleName = context_19 && context_19.id;
+    var __moduleName = context_20 && context_20.id;
     function addScopeToSymbol(symbol, parentScope) {
         let scope = new scope_2.Scope();
         scope.parent = parentScope;
         scope.symbol = symbol;
         symbol.scope = scope;
     }
-    exports_19("addScopeToSymbol", addScopeToSymbol);
+    exports_20("addScopeToSymbol", addScopeToSymbol);
     function linkSymbolToNode(symbol, node) {
         node.symbol = symbol;
         node.scope = symbol.scope;
         symbol.range = node.internalRange != null ? node.internalRange : node.range;
         symbol.node = node;
     }
-    exports_19("linkSymbolToNode", linkSymbolToNode);
+    exports_20("linkSymbolToNode", linkSymbolToNode);
     function initialize(context, node, parentScope, mode) {
         let kind = node.kind;
         if (node.parent != null) {
@@ -10628,7 +10759,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             prepareBuiltinType(context.arrayType, 0, symbol_8.SYMBOL_FLAG_IS_ARRAY); //byteSize will calculate later
         }
     }
-    exports_19("initialize", initialize);
+    exports_20("initialize", initialize);
     function prepareNativeType(type, byteSizeAndMaxAlignment, flags) {
         let symbol = type.symbol;
         symbol.kind = symbol_8.SymbolKind.TYPE_NATIVE;
@@ -10652,14 +10783,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
     }
-    exports_19("forbidFlag", forbidFlag);
+    exports_20("forbidFlag", forbidFlag);
     function requireFlag(context, node, flag, text) {
         if ((node.flags & flag) == 0) {
             node.flags = node.flags | flag;
             context.log.error(node.range, text);
         }
     }
-    exports_19("requireFlag", requireFlag);
+    exports_20("requireFlag", requireFlag);
     function initializeSymbol(context, symbol) {
         if (symbol.state == symbol_8.SymbolState.INITIALIZED) {
             assert(symbol.resolvedType != null);
@@ -10736,7 +10867,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else if (node.isSet()) {
-                symbol.rename = stringbuilder_11.StringBuilder_new()
+                symbol.rename = stringbuilder_12.StringBuilder_new()
                     .append("set_")
                     .append(symbol.name)
                     .finish();
@@ -10748,7 +10879,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             else if (node.isOperator()) {
                 if (symbol.name == "~" || symbol.name == "++" || symbol.name == "--") {
                     if (argumentCount != 1) {
-                        context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
+                        context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
                             .append("Operator '")
                             .append(symbol.name)
                             .append("' must not have any arguments")
@@ -10757,7 +10888,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
                 else if (symbol.name == "+" || symbol.name == "-") {
                     if (argumentCount > 2) {
-                        context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
+                        context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
                             .append("Operator '")
                             .append(symbol.name)
                             .append("' must have at most one argument")
@@ -10770,7 +10901,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                 }
                 else if (argumentCount != 2) {
-                    context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
+                    context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
                         .append("Operator '")
                         .append(symbol.name)
                         .append("' must have exactly one argument")
@@ -10788,8 +10919,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 if (parent.node.isDeclare()) {
                     if (body == null) {
                         node.flags = node.flags | node_9.NODE_FLAG_DECLARE;
-                        if (parent.node.isImport()) {
-                            node.flags = node.flags | node_9.NODE_FLAG_IMPORT;
+                        if (parent.node.isExternalImport()) {
+                            node.flags = node.flags | node_9.NODE_FLAG_EXTERNAL_IMPORT;
                         }
                     }
                     else {
@@ -10809,7 +10940,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 if (shouldConvertInstanceToGlobal) {
                     symbol.kind = symbol_8.SymbolKind.FUNCTION_GLOBAL;
                     symbol.flags = symbol.flags | symbol_8.SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL;
-                    symbol.rename = stringbuilder_11.StringBuilder_new()
+                    symbol.rename = stringbuilder_12.StringBuilder_new()
                         .append(parent.name)
                         .appendChar('_')
                         .append(symbol.rename != null ? symbol.rename : symbol.name)
@@ -10858,7 +10989,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             // Validate the variable type
             if (symbol.resolvedType == context.voidType || symbol.resolvedType == context.nullType) {
-                context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                     .append("Cannot create a variable with type '")
                     .append(symbol.resolvedType.toString())
                     .appendChar('\'')
@@ -10901,7 +11032,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 while (scope != null) {
                     let shadowed = scope.findLocal(symbol.name, scope_2.ScopeHint.NORMAL);
                     if (shadowed != null) {
-                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                        context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                             .append("The symbol '")
                             .append(symbol.name)
                             .append("' shadows another symbol with the same name in a parent scope")
@@ -10923,7 +11054,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         assert(symbol.resolvedType != null);
         symbol.state = symbol_8.SymbolState.INITIALIZED;
     }
-    exports_19("initializeSymbol", initializeSymbol);
+    exports_20("initializeSymbol", initializeSymbol);
     function resolveChildren(context, node, parentScope) {
         let child = node.firstChild;
         while (child != null) {
@@ -10932,7 +11063,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             child = child.nextSibling;
         }
     }
-    exports_19("resolveChildren", resolveChildren);
+    exports_20("resolveChildren", resolveChildren);
     function resolveChildrenAsExpressions(context, node, parentScope) {
         let child = node.firstChild;
         while (child != null) {
@@ -10940,7 +11071,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             child = child.nextSibling;
         }
     }
-    exports_19("resolveChildrenAsExpressions", resolveChildrenAsExpressions);
+    exports_20("resolveChildrenAsExpressions", resolveChildrenAsExpressions);
     function resolveAsExpression(context, node, parentScope) {
         assert(node_9.isExpression(node));
         resolve(context, node, parentScope);
@@ -10956,7 +11087,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
         }
     }
-    exports_19("resolveAsExpression", resolveAsExpression);
+    exports_20("resolveAsExpression", resolveAsExpression);
     function resolveAsType(context, node, parentScope) {
         assert(node_9.isExpression(node));
         resolve(context, node, parentScope);
@@ -10966,7 +11097,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             node.resolvedType = context.errorType;
         }
     }
-    exports_19("resolveAsType", resolveAsType);
+    exports_20("resolveAsType", resolveAsType);
     function canConvert(context, node, to, kind) {
         let from = node.resolvedType;
         assert(node_9.isExpression(node));
@@ -11054,10 +11185,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         return false;
     }
-    exports_19("canConvert", canConvert);
+    exports_20("canConvert", canConvert);
     function checkConversion(context, node, to, kind) {
         if (!canConvert(context, node, to, kind)) {
-            context.log.error(node.range, stringbuilder_11.StringBuilder_new()
+            context.log.error(node.range, stringbuilder_12.StringBuilder_new()
                 .append("Cannot convert from type '")
                 .append(node.resolvedType.toString())
                 .append("' to type '")
@@ -11067,7 +11198,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             node.resolvedType = context.errorType;
         }
     }
-    exports_19("checkConversion", checkConversion);
+    exports_20("checkConversion", checkConversion);
     function checkStorage(context, target) {
         assert(node_9.isExpression(target));
         if (target.resolvedType != context.errorType && target.kind != node_9.NodeKind.INDEX && target.kind != node_9.NodeKind.DEREFERENCE &&
@@ -11076,7 +11207,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             target.resolvedType = context.errorType;
         }
     }
-    exports_19("checkStorage", checkStorage);
+    exports_20("checkStorage", checkStorage);
     function createDefaultValueForType(context, type) {
         if (type.isLong()) {
             return node_9.createLong(0);
@@ -11099,7 +11230,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         assert(type.isReference());
         return node_9.createNull();
     }
-    exports_19("createDefaultValueForType", createDefaultValueForType);
+    exports_20("createDefaultValueForType", createDefaultValueForType);
     function simplifyBinary(node) {
         let left = node.binaryLeft();
         let right = node.binaryRight();
@@ -11147,7 +11278,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             right.intValue = -right.intValue;
         }
     }
-    exports_19("simplifyBinary", simplifyBinary);
+    exports_20("simplifyBinary", simplifyBinary);
     function binaryHasUnsignedArguments(node) {
         let left = node.binaryLeft();
         let right = node.binaryRight();
@@ -11156,7 +11287,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         return leftType.isUnsigned() && rightType.isUnsigned() || leftType.isUnsigned() && right.isNonNegativeInteger() ||
             left.isNonNegativeInteger() && rightType.isUnsigned();
     }
-    exports_19("binaryHasUnsignedArguments", binaryHasUnsignedArguments);
+    exports_20("binaryHasUnsignedArguments", binaryHasUnsignedArguments);
     function isBinaryLong(node) {
         let left = node.binaryLeft();
         let right = node.binaryRight();
@@ -11164,7 +11295,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         let rightType = right.resolvedType;
         return leftType.isLong() || rightType.isLong();
     }
-    exports_19("isBinaryLong", isBinaryLong);
+    exports_20("isBinaryLong", isBinaryLong);
     function isBinaryDouble(node) {
         let left = node.binaryLeft();
         let right = node.binaryRight();
@@ -11172,10 +11303,10 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         let rightType = right.resolvedType;
         return leftType.isDouble() || rightType.isDouble();
     }
-    exports_19("isBinaryDouble", isBinaryDouble);
+    exports_20("isBinaryDouble", isBinaryDouble);
     function isSymbolAccessAllowed(context, symbol, node, range) {
         if (symbol.isUnsafe() && !context.isUnsafeAllowed) {
-            context.log.error(range, stringbuilder_11.StringBuilder_new()
+            context.log.error(range, stringbuilder_12.StringBuilder_new()
                 .append("Cannot use symbol '")
                 .append(symbol.name)
                 .append("' outside an 'unsafe' block")
@@ -11185,7 +11316,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         if (symbol.node != null && symbol.node.isPrivate()) {
             let parent = symbol.parent();
             if (parent != null && context.enclosingClass != parent) {
-                context.log.error(range, stringbuilder_11.StringBuilder_new()
+                context.log.error(range, stringbuilder_12.StringBuilder_new()
                     .append("Cannot access private symbol '")
                     .append(symbol.name)
                     .append("' here")
@@ -11195,14 +11326,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         if (symbol_8.isFunction(symbol.kind) && (symbol.isSetter() ? !node.isAssignTarget() : !node.isCallValue())) {
             if (symbol.isSetter()) {
-                context.log.error(range, stringbuilder_11.StringBuilder_new()
+                context.log.error(range, stringbuilder_12.StringBuilder_new()
                     .append("Cannot use setter '")
                     .append(symbol.name)
                     .append("' here")
                     .finish());
             }
             else {
-                context.log.error(range, stringbuilder_11.StringBuilder_new()
+                context.log.error(range, stringbuilder_12.StringBuilder_new()
                     .append("Must call function '")
                     .append(symbol.name)
                     .appendChar('\'')
@@ -11212,7 +11343,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         return true;
     }
-    exports_19("isSymbolAccessAllowed", isSymbolAccessAllowed);
+    exports_20("isSymbolAccessAllowed", isSymbolAccessAllowed);
     function resolve(context, node, parentScope) {
         let kind = node.kind;
         assert(kind == node_9.NodeKind.FILE || parentScope != null);
@@ -11233,7 +11364,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             // }
             context.enclosingModule = oldEnclosingModule;
         }
-        else if (kind == node_9.NodeKind.IMPORT) {
+        else if (kind == node_9.NodeKind.EXTERNAL_IMPORT) {
             let symbol = node.symbol;
         }
         else if (kind == node_9.NodeKind.CLASS) {
@@ -11354,7 +11485,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             if (type != context.errorType) {
                 let symbol = type.hasInstanceMembers() ? type.findMember("[]", scope_2.ScopeHint.NORMAL) : null;
                 if (symbol == null) {
-                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                         .append("Cannot index into type '")
                         .append(target.resolvedType.toString())
                         .appendChar('\'')
@@ -11403,7 +11534,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let name = node.stringValue;
             let symbol = parentScope.findNested(name, scope_2.ScopeHint.NORMAL, scope_2.FindNested.NORMAL);
             if (symbol == null) {
-                let builder = stringbuilder_11.StringBuilder_new()
+                let builder = stringbuilder_12.StringBuilder_new()
                     .append("No symbol named '")
                     .append(name)
                     .append("' here");
@@ -11422,7 +11553,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 context.log.error(node.range, builder.finish());
             }
             else if (symbol.state == symbol_8.SymbolState.INITIALIZING) {
-                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
+                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
                     .append("Cyclic reference to symbol '")
                     .append(name)
                     .append("' here")
@@ -11450,7 +11581,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     //
                     let genericName = symbol.generics[0];
                     let genericMap = symbol.genericMaps.get(genericName);
-                    genericMap.set(node.parent.symbol.name, arrayType.symbol);
+                    genericMap.set(node.parent.previousSibling.symbol.name, arrayType.symbol);
                     node.symbol = symbol;
                     node.resolvedType = symbol.resolvedType;
                 }
@@ -11506,7 +11637,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     if (name.length > 0) {
                         let symbol = target.resolvedType.findMember(name, node.isAssignTarget() ? scope_2.ScopeHint.PREFER_SETTER : scope_2.ScopeHint.PREFER_GETTER);
                         if (symbol == null) {
-                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                            context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                                 .append("No member named '")
                                 .append(name)
                                 .append("' on type '")
@@ -11533,7 +11664,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                         .append("The type '")
                         .append(target.resolvedType.toString())
                         .append("' has no members")
@@ -11548,7 +11679,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 let symbol = value.symbol;
                 // Only functions are callable
                 if (symbol == null || !symbol_8.isFunction(symbol.kind)) {
-                    context.log.error(value.range, stringbuilder_11.StringBuilder_new()
+                    context.log.error(value.range, stringbuilder_12.StringBuilder_new()
                         .append("Cannot call value of type '")
                         .append(value.resolvedType.toString())
                         .appendChar('\'')
@@ -11576,7 +11707,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     // Not enough arguments?
                     if (returnType.resolvedType != context.anyType) {
                         if (argumentVariable != returnType && !argumentVariable.hasVariableValue()) {
-                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                            context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                                 .append("Not enough arguments for function '")
                                 .append(symbol.name)
                                 .appendChar('\'')
@@ -11587,7 +11718,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                                 resolveAsExpression(context, argumentValue, parentScope);
                                 argumentValue = argumentValue.nextSibling;
                             }
-                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                            context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                                 .append("Too many arguments for function '")
                                 .append(symbol.name)
                                 .appendChar('\'')
@@ -11608,7 +11739,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else {
-                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
+                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
                     .append("Expected delete value '")
                     .append(context.currentReturnType.toString())
                     .appendChar('\'')
@@ -11629,7 +11760,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else if (context.currentReturnType != null && context.currentReturnType != context.voidType) {
-                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
+                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
                     .append("Expected return value in function returning '")
                     .append(context.currentReturnType.toString())
                     .appendChar('\'')
@@ -11684,7 +11815,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let commonType = (yes.resolvedType == context.nullType ? no : yes).resolvedType;
             if (yes.resolvedType != commonType && (yes.resolvedType != context.nullType || !commonType.isReference()) &&
                 no.resolvedType != commonType && (no.resolvedType != context.nullType || !commonType.isReference())) {
-                context.log.error(log_5.spanRanges(yes.range, no.range), stringbuilder_11.StringBuilder_new()
+                context.log.error(log_5.spanRanges(yes.range, no.range), stringbuilder_12.StringBuilder_new()
                     .append("Type '")
                     .append(yes.resolvedType.toString())
                     .append("' is not the same as type '")
@@ -11704,7 +11835,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 if (type != context.errorType) {
                     let symbol = type.hasInstanceMembers() ? type.findMember("[]=", scope_2.ScopeHint.NORMAL) : null;
                     if (symbol == null) {
-                        context.log.error(left.internalRange, stringbuilder_11.StringBuilder_new()
+                        context.log.error(left.internalRange, stringbuilder_12.StringBuilder_new()
                             .append("Cannot index into type '")
                             .append(target.resolvedType.toString())
                             .appendChar('\'')
@@ -11750,7 +11881,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             //}
             if (type.resolvedType != context.errorType) {
                 if (!type.resolvedType.isClass()) {
-                    context.log.error(type.range, stringbuilder_11.StringBuilder_new()
+                    context.log.error(type.range, stringbuilder_12.StringBuilder_new()
                         .append("Cannot construct type '")
                         .append(type.resolvedType.toString())
                         .appendChar('\'')
@@ -11799,7 +11930,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let type = value.resolvedType;
             if (type != context.errorType) {
                 if (type.pointerTo == null) {
-                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                         .append("Cannot dereference type '")
                         .append(type.toString())
                         .appendChar('\'')
@@ -11879,7 +12010,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     resolveAsExpression(context, node, parentScope);
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                         .append("Cannot use unary operator '")
                         .append(name)
                         .append("' with type '")
@@ -11914,7 +12045,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.resolvedType = context.booleanType;
                 // Both pointer types must be exactly the same
                 if (leftType != rightType) {
-                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                         .append("Cannot compare type '")
                         .append(leftType.toString())
                         .append("' with type '")
@@ -12095,7 +12226,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 else if (kind == node_9.NodeKind.EQUAL || kind == node_9.NodeKind.NOT_EQUAL) {
                     node.resolvedType = context.booleanType;
                     if (leftType != context.errorType && rightType != context.errorType && leftType != rightType && !canConvert(context, right, leftType, type_2.ConversionKind.IMPLICIT) && !canConvert(context, left, rightType, type_2.ConversionKind.IMPLICIT)) {
-                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                        context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                             .append("Cannot compare type '")
                             .append(leftType.toString())
                             .append("' with type '")
@@ -12105,7 +12236,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
                         .append("Cannot use binary operator '")
                         .append(name)
                         .append("' with type '")
@@ -12120,8 +12251,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             assert(false);
         }
     }
-    exports_19("resolve", resolve);
-    var symbol_8, type_2, node_9, compiler_3, log_5, scope_2, stringbuilder_11, imports_3, const_1, CheckContext, CheckMode;
+    exports_20("resolve", resolve);
+    var symbol_8, type_2, node_9, compiler_3, log_5, scope_2, stringbuilder_12, imports_3, const_1, CheckContext, CheckMode;
     return {
         setters: [
             function (symbol_8_1) {
@@ -12142,8 +12273,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             function (scope_2_1) {
                 scope_2 = scope_2_1;
             },
-            function (stringbuilder_11_1) {
-                stringbuilder_11 = stringbuilder_11_1;
+            function (stringbuilder_12_1) {
+                stringbuilder_12 = stringbuilder_12_1;
             },
             function (imports_3_1) {
                 imports_3 = imports_3_1;
@@ -12163,34 +12294,34 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     return offset;
                 }
             };
-            exports_19("CheckContext", CheckContext);
+            exports_20("CheckContext", CheckContext);
             (function (CheckMode) {
                 CheckMode[CheckMode["NORMAL"] = 0] = "NORMAL";
                 CheckMode[CheckMode["INITIALIZE"] = 1] = "INITIALIZE";
             })(CheckMode || (CheckMode = {}));
-            exports_19("CheckMode", CheckMode);
+            exports_20("CheckMode", CheckMode);
         }
     };
 });
-System.register("symbol", ["node", "imports"], function (exports_20, context_20) {
+System.register("symbol", ["node", "imports"], function (exports_21, context_21) {
     "use strict";
-    var __moduleName = context_20 && context_20.id;
+    var __moduleName = context_21 && context_21.id;
     function isModule(kind) {
         return kind == SymbolKind.TYPE_MODULE;
     }
-    exports_20("isModule", isModule);
+    exports_21("isModule", isModule);
     function isType(kind) {
         return kind >= SymbolKind.TYPE_CLASS && kind <= SymbolKind.TYPE_NATIVE;
     }
-    exports_20("isType", isType);
+    exports_21("isType", isType);
     function isFunction(kind) {
         return kind >= SymbolKind.FUNCTION_INSTANCE && kind <= SymbolKind.FUNCTION_GLOBAL;
     }
-    exports_20("isFunction", isFunction);
+    exports_21("isFunction", isFunction);
     function isVariable(kind) {
         return kind >= SymbolKind.VARIABLE_ARGUMENT && kind <= SymbolKind.VARIABLE_LOCAL;
     }
-    exports_20("isVariable", isVariable);
+    exports_21("isVariable", isVariable);
     var node_10, imports_4, SymbolKind, SymbolState, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_NATIVE_DOUBLE, SYMBOL_FLAG_USED, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, Symbol;
     return {
         setters: [
@@ -12218,25 +12349,25 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
                 SymbolKind[SymbolKind["VARIABLE_INSTANCE"] = 12] = "VARIABLE_INSTANCE";
                 SymbolKind[SymbolKind["VARIABLE_LOCAL"] = 13] = "VARIABLE_LOCAL";
             })(SymbolKind || (SymbolKind = {}));
-            exports_20("SymbolKind", SymbolKind);
+            exports_21("SymbolKind", SymbolKind);
             (function (SymbolState) {
                 SymbolState[SymbolState["UNINITIALIZED"] = 0] = "UNINITIALIZED";
                 SymbolState[SymbolState["INITIALIZING"] = 1] = "INITIALIZING";
                 SymbolState[SymbolState["INITIALIZED"] = 2] = "INITIALIZED";
             })(SymbolState || (SymbolState = {}));
-            exports_20("SymbolState", SymbolState);
-            exports_20("SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL", SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL = 1 << 0);
-            exports_20("SYMBOL_FLAG_IS_BINARY_OPERATOR", SYMBOL_FLAG_IS_BINARY_OPERATOR = 1 << 1);
-            exports_20("SYMBOL_FLAG_IS_REFERENCE", SYMBOL_FLAG_IS_REFERENCE = 1 << 2);
-            exports_20("SYMBOL_FLAG_IS_UNARY_OPERATOR", SYMBOL_FLAG_IS_UNARY_OPERATOR = 1 << 3);
-            exports_20("SYMBOL_FLAG_IS_UNSIGNED", SYMBOL_FLAG_IS_UNSIGNED = 1 << 4);
-            exports_20("SYMBOL_FLAG_NATIVE_INTEGER", SYMBOL_FLAG_NATIVE_INTEGER = 1 << 5);
-            exports_20("SYMBOL_FLAG_NATIVE_LONG", SYMBOL_FLAG_NATIVE_LONG = 1 << 6);
-            exports_20("SYMBOL_FLAG_NATIVE_FLOAT", SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7);
-            exports_20("SYMBOL_FLAG_NATIVE_DOUBLE", SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8);
-            exports_20("SYMBOL_FLAG_USED", SYMBOL_FLAG_USED = 1 << 9);
-            exports_20("SYMBOL_FLAG_IS_ARRAY", SYMBOL_FLAG_IS_ARRAY = 1 << 10);
-            exports_20("SYMBOL_FLAG_IS_GENERIC", SYMBOL_FLAG_IS_GENERIC = 1 << 11);
+            exports_21("SymbolState", SymbolState);
+            exports_21("SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL", SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL = 1 << 0);
+            exports_21("SYMBOL_FLAG_IS_BINARY_OPERATOR", SYMBOL_FLAG_IS_BINARY_OPERATOR = 1 << 1);
+            exports_21("SYMBOL_FLAG_IS_REFERENCE", SYMBOL_FLAG_IS_REFERENCE = 1 << 2);
+            exports_21("SYMBOL_FLAG_IS_UNARY_OPERATOR", SYMBOL_FLAG_IS_UNARY_OPERATOR = 1 << 3);
+            exports_21("SYMBOL_FLAG_IS_UNSIGNED", SYMBOL_FLAG_IS_UNSIGNED = 1 << 4);
+            exports_21("SYMBOL_FLAG_NATIVE_INTEGER", SYMBOL_FLAG_NATIVE_INTEGER = 1 << 5);
+            exports_21("SYMBOL_FLAG_NATIVE_LONG", SYMBOL_FLAG_NATIVE_LONG = 1 << 6);
+            exports_21("SYMBOL_FLAG_NATIVE_FLOAT", SYMBOL_FLAG_NATIVE_FLOAT = 1 << 7);
+            exports_21("SYMBOL_FLAG_NATIVE_DOUBLE", SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8);
+            exports_21("SYMBOL_FLAG_USED", SYMBOL_FLAG_USED = 1 << 9);
+            exports_21("SYMBOL_FLAG_IS_ARRAY", SYMBOL_FLAG_IS_ARRAY = 1 << 10);
+            exports_21("SYMBOL_FLAG_IS_GENERIC", SYMBOL_FLAG_IS_GENERIC = 1 << 11);
             Symbol = class Symbol {
                 constructor() {
                     this.state = SymbolState.UNINITIALIZED;
@@ -12325,21 +12456,21 @@ System.register("symbol", ["node", "imports"], function (exports_20, context_20)
                     this.maxAlignment = maxAlignment;
                 }
             };
-            exports_20("Symbol", Symbol);
+            exports_21("Symbol", Symbol);
         }
     };
 });
-System.register("type", ["symbol", "stringbuilder"], function (exports_21, context_21) {
+System.register("type", ["symbol", "stringbuilder"], function (exports_22, context_22) {
     "use strict";
-    var __moduleName = context_21 && context_21.id;
-    var symbol_9, stringbuilder_12, ConversionKind, Type;
+    var __moduleName = context_22 && context_22.id;
+    var symbol_9, stringbuilder_13, ConversionKind, Type;
     return {
         setters: [
             function (symbol_9_1) {
                 symbol_9 = symbol_9_1;
             },
-            function (stringbuilder_12_1) {
-                stringbuilder_12 = stringbuilder_12_1;
+            function (stringbuilder_13_1) {
+                stringbuilder_13 = stringbuilder_13_1;
             }
         ],
         execute: function () {
@@ -12347,7 +12478,7 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_21, conte
                 ConversionKind[ConversionKind["IMPLICIT"] = 0] = "IMPLICIT";
                 ConversionKind[ConversionKind["EXPLICIT"] = 1] = "EXPLICIT";
             })(ConversionKind || (ConversionKind = {}));
-            exports_21("ConversionKind", ConversionKind);
+            exports_22("ConversionKind", ConversionKind);
             Type = class Type {
                 isClass() {
                     return this.symbol != null && this.symbol.kind == symbol_9.SymbolKind.TYPE_CLASS;
@@ -12413,7 +12544,7 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_21, conte
                 toString() {
                     if (this.cachedToString == null) {
                         this.cachedToString =
-                            this.pointerTo != null ? stringbuilder_12.StringBuilder_new().appendChar('*').append(this.pointerTo.toString()).finish() :
+                            this.pointerTo != null ? stringbuilder_13.StringBuilder_new().appendChar('*').append(this.pointerTo.toString()).finish() :
                                 this.symbol.name;
                     }
                     return this.cachedToString;
@@ -12427,25 +12558,25 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_21, conte
                     return symbol != null && (symbol.kind == symbol_9.SymbolKind.TYPE_CLASS || symbol.kind == symbol_9.SymbolKind.TYPE_NATIVE);
                 }
             };
-            exports_21("Type", Type);
+            exports_22("Type", Type);
         }
     };
 });
-System.register("node", ["symbol"], function (exports_22, context_22) {
+System.register("node", ["symbol"], function (exports_23, context_23) {
     "use strict";
-    var __moduleName = context_22 && context_22.id;
+    var __moduleName = context_23 && context_23.id;
     function isUnary(kind) {
         return kind >= NodeKind.ADDRESS_OF && kind <= NodeKind.PREFIX_INCREMENT;
     }
-    exports_22("isUnary", isUnary);
+    exports_23("isUnary", isUnary);
     function isUnaryPostfix(kind) {
         return kind >= NodeKind.POSTFIX_DECREMENT && kind <= NodeKind.POSTFIX_INCREMENT;
     }
-    exports_22("isUnaryPostfix", isUnaryPostfix);
+    exports_23("isUnaryPostfix", isUnaryPostfix);
     function isBinary(kind) {
         return kind >= NodeKind.ADD && kind <= NodeKind.SUBTRACT;
     }
-    exports_22("isBinary", isBinary);
+    exports_23("isBinary", isBinary);
     function invertedBinaryKind(kind) {
         if (kind == NodeKind.EQUAL)
             return NodeKind.NOT_EQUAL;
@@ -12461,15 +12592,15 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
             return NodeKind.GREATER_THAN;
         return kind;
     }
-    exports_22("invertedBinaryKind", invertedBinaryKind);
+    exports_23("invertedBinaryKind", invertedBinaryKind);
     function isExpression(node) {
         return node.kind >= NodeKind.ALIGN_OF && node.kind <= NodeKind.SUBTRACT;
     }
-    exports_22("isExpression", isExpression);
+    exports_23("isExpression", isExpression);
     function isCompactNodeKind(kind) {
         return kind == NodeKind.CONSTANTS || kind == NodeKind.EXPRESSION || kind == NodeKind.VARIABLES;
     }
-    exports_22("isCompactNodeKind", isCompactNodeKind);
+    exports_23("isCompactNodeKind", isCompactNodeKind);
     function appendFlag(first, flag, range) {
         let link = new NodeFlag();
         link.flag = flag;
@@ -12486,7 +12617,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         secondToLast.next = link;
         return first;
     }
-    exports_22("appendFlag", appendFlag);
+    exports_23("appendFlag", appendFlag);
     function allFlags(link) {
         let all = 0;
         while (link != null) {
@@ -12495,7 +12626,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         }
         return all;
     }
-    exports_22("allFlags", allFlags);
+    exports_23("allFlags", allFlags);
     function rangeForFlag(link, flag) {
         while (link != null) {
             if (link.flag == flag) {
@@ -12505,7 +12636,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         }
         return null;
     }
-    exports_22("rangeForFlag", rangeForFlag);
+    exports_23("rangeForFlag", rangeForFlag);
     function createNew(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -12513,7 +12644,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(type);
         return node;
     }
-    exports_22("createNew", createNew);
+    exports_23("createNew", createNew);
     function createDelete(value) {
         assert(value == null || isExpression(value));
         let node = new Node();
@@ -12523,7 +12654,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         }
         return node;
     }
-    exports_22("createDelete", createDelete);
+    exports_23("createDelete", createDelete);
     function createHook(test, primary, secondary) {
         assert(isExpression(test));
         assert(isExpression(primary));
@@ -12535,7 +12666,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(secondary);
         return node;
     }
-    exports_22("createHook", createHook);
+    exports_23("createHook", createHook);
     function createIndex(target) {
         assert(isExpression(target));
         let node = new Node();
@@ -12543,25 +12674,25 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(target);
         return node;
     }
-    exports_22("createIndex", createIndex);
+    exports_23("createIndex", createIndex);
     function createNull() {
         let node = new Node();
         node.kind = NodeKind.NULL;
         return node;
     }
-    exports_22("createNull", createNull);
+    exports_23("createNull", createNull);
     function createUndefined() {
         let node = new Node();
         node.kind = NodeKind.UNDEFINED;
         return node;
     }
-    exports_22("createUndefined", createUndefined);
+    exports_23("createUndefined", createUndefined);
     function createThis() {
         let node = new Node();
         node.kind = NodeKind.THIS;
         return node;
     }
-    exports_22("createThis", createThis);
+    exports_23("createThis", createThis);
     function createAddressOf(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -12569,7 +12700,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(value);
         return node;
     }
-    exports_22("createAddressOf", createAddressOf);
+    exports_23("createAddressOf", createAddressOf);
     function createDereference(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -12577,7 +12708,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(value);
         return node;
     }
-    exports_22("createDereference", createDereference);
+    exports_23("createDereference", createDereference);
     function createAlignOf(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -12585,7 +12716,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(type);
         return node;
     }
-    exports_22("createAlignOf", createAlignOf);
+    exports_23("createAlignOf", createAlignOf);
     function createSizeOf(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -12593,63 +12724,63 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(type);
         return node;
     }
-    exports_22("createSizeOf", createSizeOf);
+    exports_23("createSizeOf", createSizeOf);
     function createboolean(value) {
         let node = new Node();
         node.kind = NodeKind.BOOLEAN;
         node.intValue = value ? 1 : 0;
         return node;
     }
-    exports_22("createboolean", createboolean);
+    exports_23("createboolean", createboolean);
     function createInt(value) {
         let node = new Node();
         node.kind = NodeKind.INT32;
         node.intValue = value;
         return node;
     }
-    exports_22("createInt", createInt);
+    exports_23("createInt", createInt);
     function createLong(value) {
         let node = new Node();
         node.kind = NodeKind.INT64;
         node.longValue = value;
         return node;
     }
-    exports_22("createLong", createLong);
+    exports_23("createLong", createLong);
     function createFloat(value) {
         let node = new Node();
         node.kind = NodeKind.FLOAT32;
         node.floatValue = value;
         return node;
     }
-    exports_22("createFloat", createFloat);
+    exports_23("createFloat", createFloat);
     function createDouble(value) {
         let node = new Node();
         node.kind = NodeKind.FLOAT64;
         node.doubleValue = value;
         return node;
     }
-    exports_22("createDouble", createDouble);
+    exports_23("createDouble", createDouble);
     function createString(value) {
         let node = new Node();
         node.kind = NodeKind.STRING;
         node.stringValue = value;
         return node;
     }
-    exports_22("createString", createString);
+    exports_23("createString", createString);
     function createArray(type) {
         let node = new Node();
         node.kind = NodeKind.ARRAY;
         node.resolvedType = type;
         return node;
     }
-    exports_22("createArray", createArray);
+    exports_23("createArray", createArray);
     function createName(value) {
         let node = new Node();
         node.kind = NodeKind.NAME;
         node.referenceValue = value;
         return node;
     }
-    exports_22("createName", createName);
+    exports_23("createName", createName);
     function createType(type) {
         assert(type != null);
         let node = new Node();
@@ -12657,19 +12788,19 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.resolvedType = type;
         return node;
     }
-    exports_22("createType", createType);
+    exports_23("createType", createType);
     function createAny() {
         let node = new Node();
         node.kind = NodeKind.ANY;
         return node;
     }
-    exports_22("createAny", createAny);
+    exports_23("createAny", createAny);
     function createEmpty() {
         let node = new Node();
         node.kind = NodeKind.EMPTY;
         return node;
     }
-    exports_22("createEmpty", createEmpty);
+    exports_23("createEmpty", createEmpty);
     function createExpression(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -12677,34 +12808,34 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(value);
         return node;
     }
-    exports_22("createExpression", createExpression);
+    exports_23("createExpression", createExpression);
     function createBlock() {
         let node = new Node();
         node.kind = NodeKind.BLOCK;
         return node;
     }
-    exports_22("createBlock", createBlock);
+    exports_23("createBlock", createBlock);
     function createModule(name) {
         let node = new Node();
         node.kind = NodeKind.MODULE;
         node.stringValue = name;
         return node;
     }
-    exports_22("createModule", createModule);
+    exports_23("createModule", createModule);
     function createClass(name) {
         let node = new Node();
         node.kind = NodeKind.CLASS;
         node.stringValue = name;
         return node;
     }
-    exports_22("createClass", createClass);
+    exports_23("createClass", createClass);
     function createEnum(name) {
         let node = new Node();
         node.kind = NodeKind.ENUM;
         node.stringValue = name;
         return node;
     }
-    exports_22("createEnum", createEnum);
+    exports_23("createEnum", createEnum);
     function createIf(value, trueBranch, falseBranch) {
         assert(isExpression(value));
         assert(trueBranch.kind == NodeKind.BLOCK);
@@ -12718,7 +12849,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         }
         return node;
     }
-    exports_22("createIf", createIf);
+    exports_23("createIf", createIf);
     function createWhile(value, body) {
         assert(isExpression(value));
         assert(body.kind == NodeKind.BLOCK);
@@ -12728,7 +12859,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(body);
         return node;
     }
-    exports_22("createWhile", createWhile);
+    exports_23("createWhile", createWhile);
     function createReturn(value) {
         assert(value == null || isExpression(value));
         let node = new Node();
@@ -12738,38 +12869,52 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         }
         return node;
     }
-    exports_22("createReturn", createReturn);
+    exports_23("createReturn", createReturn);
     function createImports() {
         let node = new Node();
         node.kind = NodeKind.IMPORTS;
         return node;
     }
-    exports_22("createImports", createImports);
-    function createImport(name) {
+    exports_23("createImports", createImports);
+    function createInternalImport(name) {
         let node = new Node();
-        node.kind = NodeKind.IMPORT;
+        node.kind = NodeKind.INTERNAL_IMPORT;
         node.stringValue = name;
         return node;
     }
-    exports_22("createImport", createImport);
+    exports_23("createInternalImport", createInternalImport);
+    function createInternalImportFrom(name) {
+        let node = new Node();
+        node.kind = NodeKind.INTERNAL_IMPORT_FROM;
+        node.stringValue = name;
+        return node;
+    }
+    exports_23("createInternalImportFrom", createInternalImportFrom);
+    function createExternalImport(name) {
+        let node = new Node();
+        node.kind = NodeKind.EXTERNAL_IMPORT;
+        node.stringValue = name;
+        return node;
+    }
+    exports_23("createExternalImport", createExternalImport);
     function createVariables() {
         let node = new Node();
         node.kind = NodeKind.VARIABLES;
         return node;
     }
-    exports_22("createVariables", createVariables);
+    exports_23("createVariables", createVariables);
     function createConstants() {
         let node = new Node();
         node.kind = NodeKind.CONSTANTS;
         return node;
     }
-    exports_22("createConstants", createConstants);
+    exports_23("createConstants", createConstants);
     function createParameters() {
         let node = new Node();
         node.kind = NodeKind.PARAMETERS;
         return node;
     }
-    exports_22("createParameters", createParameters);
+    exports_23("createParameters", createParameters);
     function createExtends(type) {
         assert(isExpression(type));
         let node = new Node();
@@ -12777,20 +12922,20 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(type);
         return node;
     }
-    exports_22("createExtends", createExtends);
+    exports_23("createExtends", createExtends);
     function createImplements() {
         let node = new Node();
         node.kind = NodeKind.IMPLEMENTS;
         return node;
     }
-    exports_22("createImplements", createImplements);
+    exports_23("createImplements", createImplements);
     function createParameter(name) {
         let node = new Node();
         node.kind = NodeKind.PARAMETER;
         node.stringValue = name;
         return node;
     }
-    exports_22("createParameter", createParameter);
+    exports_23("createParameter", createParameter);
     function createVariable(name, type, value) {
         assert(type == null || isExpression(type));
         assert(value == null || isExpression(value));
@@ -12803,14 +12948,14 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         }
         return node;
     }
-    exports_22("createVariable", createVariable);
+    exports_23("createVariable", createVariable);
     function createFunction(name) {
         let node = new Node();
         node.kind = NodeKind.FUNCTION;
         node.stringValue = name;
         return node;
     }
-    exports_22("createFunction", createFunction);
+    exports_23("createFunction", createFunction);
     function createUnary(kind, value) {
         assert(isUnary(kind));
         assert(isExpression(value));
@@ -12819,7 +12964,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(value);
         return node;
     }
-    exports_22("createUnary", createUnary);
+    exports_23("createUnary", createUnary);
     function createBinary(kind, left, right) {
         assert(isBinary(kind));
         assert(isExpression(left));
@@ -12830,7 +12975,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(right);
         return node;
     }
-    exports_22("createBinary", createBinary);
+    exports_23("createBinary", createBinary);
     function createCall(value) {
         assert(isExpression(value));
         let node = new Node();
@@ -12838,7 +12983,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(value);
         return node;
     }
-    exports_22("createCall", createCall);
+    exports_23("createCall", createCall);
     function createCast(value, type) {
         assert(isExpression(value));
         assert(isExpression(type));
@@ -12848,7 +12993,7 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(type);
         return node;
     }
-    exports_22("createCast", createCast);
+    exports_23("createCast", createCast);
     function createDot(value, name) {
         assert(isExpression(value));
         let node = new Node();
@@ -12857,53 +13002,53 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
         node.appendChild(value);
         return node;
     }
-    exports_22("createDot", createDot);
+    exports_23("createDot", createDot);
     function createSymbolReference(symbol) {
         let node = createName(symbol.name);
         node.symbol = symbol;
         node.resolvedType = symbol.resolvedType;
         return node;
     }
-    exports_22("createSymbolReference", createSymbolReference);
+    exports_23("createSymbolReference", createSymbolReference);
     function createMemberReference(value, symbol) {
         let node = createDot(value, symbol.name);
         node.symbol = symbol;
         node.resolvedType = symbol.resolvedType;
         return node;
     }
-    exports_22("createMemberReference", createMemberReference);
+    exports_23("createMemberReference", createMemberReference);
     function createParseError() {
         let node = new Node();
         node.kind = NodeKind.PARSE_ERROR;
         return node;
     }
-    exports_22("createParseError", createParseError);
+    exports_23("createParseError", createParseError);
     //JavaScript
     function createJSNumber() {
         let node = new Node();
         node.kind = NodeKind.JS_NUMBER;
         return node;
     }
-    exports_22("createJSNumber", createJSNumber);
+    exports_23("createJSNumber", createJSNumber);
     function createJSObject() {
         let node = new Node();
         node.kind = NodeKind.JS_OBJECT;
         return node;
     }
-    exports_22("createJSObject", createJSObject);
+    exports_23("createJSObject", createJSObject);
     function createJSString() {
         let node = new Node();
         node.kind = NodeKind.JS_STRING;
         return node;
     }
-    exports_22("createJSString", createJSString);
+    exports_23("createJSString", createJSString);
     function createJSArray() {
         let node = new Node();
         node.kind = NodeKind.JS_ARRAY;
         return node;
     }
-    exports_22("createJSArray", createJSArray);
-    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_IMPORT, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_JAVASCRIPT, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NODE_FLAG_ANYFUNC, NodeFlag, Node;
+    exports_23("createJSArray", createJSArray);
+    var symbol_10, NodeKind, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_INTERNAL_IMPORT, NODE_FLAG_EXTERNAL_IMPORT, NODE_FLAG_GET, NODE_FLAG_OPERATOR, NODE_FLAG_POSITIVE, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED, NODE_FLAG_PUBLIC, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, NODE_FLAG_JAVASCRIPT, NODE_FLAG_UNSIGNED_OPERATOR, NODE_FLAG_VIRTUAL, NODE_FLAG_START, NODE_FLAG_ANYFUNC, NodeFlag, Node;
     return {
         setters: [
             function (symbol_10_1) {
@@ -12923,111 +13068,114 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                 NodeKind[NodeKind["PARAMETER"] = 4] = "PARAMETER";
                 NodeKind[NodeKind["PARAMETERS"] = 5] = "PARAMETERS";
                 NodeKind[NodeKind["VARIABLE"] = 6] = "VARIABLE";
-                NodeKind[NodeKind["IMPORT"] = 7] = "IMPORT";
+                NodeKind[NodeKind["INTERNAL_IMPORT"] = 7] = "INTERNAL_IMPORT";
+                NodeKind[NodeKind["INTERNAL_IMPORT_FROM"] = 8] = "INTERNAL_IMPORT_FROM";
+                NodeKind[NodeKind["EXTERNAL_IMPORT"] = 9] = "EXTERNAL_IMPORT";
                 // Statements
-                NodeKind[NodeKind["BLOCK"] = 8] = "BLOCK";
-                NodeKind[NodeKind["BREAK"] = 9] = "BREAK";
-                NodeKind[NodeKind["MODULE"] = 10] = "MODULE";
-                NodeKind[NodeKind["IMPORTS"] = 11] = "IMPORTS";
-                NodeKind[NodeKind["CLASS"] = 12] = "CLASS";
-                NodeKind[NodeKind["CONSTANTS"] = 13] = "CONSTANTS";
-                NodeKind[NodeKind["CONTINUE"] = 14] = "CONTINUE";
-                NodeKind[NodeKind["EMPTY"] = 15] = "EMPTY";
-                NodeKind[NodeKind["ENUM"] = 16] = "ENUM";
-                NodeKind[NodeKind["EXPRESSION"] = 17] = "EXPRESSION";
-                NodeKind[NodeKind["FUNCTION"] = 18] = "FUNCTION";
-                NodeKind[NodeKind["IF"] = 19] = "IF";
-                NodeKind[NodeKind["RETURN"] = 20] = "RETURN";
-                NodeKind[NodeKind["UNSAFE"] = 21] = "UNSAFE";
-                NodeKind[NodeKind["JAVASCRIPT"] = 22] = "JAVASCRIPT";
-                NodeKind[NodeKind["START"] = 23] = "START";
-                NodeKind[NodeKind["VARIABLES"] = 24] = "VARIABLES";
-                NodeKind[NodeKind["WHILE"] = 25] = "WHILE";
+                NodeKind[NodeKind["BLOCK"] = 10] = "BLOCK";
+                NodeKind[NodeKind["BREAK"] = 11] = "BREAK";
+                NodeKind[NodeKind["MODULE"] = 12] = "MODULE";
+                NodeKind[NodeKind["IMPORTS"] = 13] = "IMPORTS";
+                NodeKind[NodeKind["CLASS"] = 14] = "CLASS";
+                NodeKind[NodeKind["CONSTANTS"] = 15] = "CONSTANTS";
+                NodeKind[NodeKind["CONTINUE"] = 16] = "CONTINUE";
+                NodeKind[NodeKind["EMPTY"] = 17] = "EMPTY";
+                NodeKind[NodeKind["ENUM"] = 18] = "ENUM";
+                NodeKind[NodeKind["EXPRESSION"] = 19] = "EXPRESSION";
+                NodeKind[NodeKind["FUNCTION"] = 20] = "FUNCTION";
+                NodeKind[NodeKind["IF"] = 21] = "IF";
+                NodeKind[NodeKind["RETURN"] = 22] = "RETURN";
+                NodeKind[NodeKind["UNSAFE"] = 23] = "UNSAFE";
+                NodeKind[NodeKind["JAVASCRIPT"] = 24] = "JAVASCRIPT";
+                NodeKind[NodeKind["START"] = 25] = "START";
+                NodeKind[NodeKind["VARIABLES"] = 26] = "VARIABLES";
+                NodeKind[NodeKind["WHILE"] = 27] = "WHILE";
                 // Expressions
-                NodeKind[NodeKind["ALIGN_OF"] = 26] = "ALIGN_OF";
-                NodeKind[NodeKind["BOOLEAN"] = 27] = "BOOLEAN";
-                NodeKind[NodeKind["CALL"] = 28] = "CALL";
-                NodeKind[NodeKind["CAST"] = 29] = "CAST";
-                NodeKind[NodeKind["DOT"] = 30] = "DOT";
-                NodeKind[NodeKind["HOOK"] = 31] = "HOOK";
-                NodeKind[NodeKind["INDEX"] = 32] = "INDEX";
-                NodeKind[NodeKind["ANY"] = 33] = "ANY";
-                NodeKind[NodeKind["INT32"] = 34] = "INT32";
-                NodeKind[NodeKind["INT64"] = 35] = "INT64";
-                NodeKind[NodeKind["FLOAT32"] = 36] = "FLOAT32";
-                NodeKind[NodeKind["FLOAT64"] = 37] = "FLOAT64";
-                NodeKind[NodeKind["ARRAY"] = 38] = "ARRAY";
-                NodeKind[NodeKind["GENERIC"] = 39] = "GENERIC";
-                NodeKind[NodeKind["NAME"] = 40] = "NAME";
-                NodeKind[NodeKind["NEW"] = 41] = "NEW";
-                NodeKind[NodeKind["DELETE"] = 42] = "DELETE";
-                NodeKind[NodeKind["NULL"] = 43] = "NULL";
-                NodeKind[NodeKind["UNDEFINED"] = 44] = "UNDEFINED";
-                NodeKind[NodeKind["PARSE_ERROR"] = 45] = "PARSE_ERROR";
-                NodeKind[NodeKind["SIZE_OF"] = 46] = "SIZE_OF";
-                NodeKind[NodeKind["STRING"] = 47] = "STRING";
-                NodeKind[NodeKind["THIS"] = 48] = "THIS";
-                NodeKind[NodeKind["TYPE"] = 49] = "TYPE";
+                NodeKind[NodeKind["ALIGN_OF"] = 28] = "ALIGN_OF";
+                NodeKind[NodeKind["BOOLEAN"] = 29] = "BOOLEAN";
+                NodeKind[NodeKind["CALL"] = 30] = "CALL";
+                NodeKind[NodeKind["CAST"] = 31] = "CAST";
+                NodeKind[NodeKind["DOT"] = 32] = "DOT";
+                NodeKind[NodeKind["HOOK"] = 33] = "HOOK";
+                NodeKind[NodeKind["INDEX"] = 34] = "INDEX";
+                NodeKind[NodeKind["ANY"] = 35] = "ANY";
+                NodeKind[NodeKind["INT32"] = 36] = "INT32";
+                NodeKind[NodeKind["INT64"] = 37] = "INT64";
+                NodeKind[NodeKind["FLOAT32"] = 38] = "FLOAT32";
+                NodeKind[NodeKind["FLOAT64"] = 39] = "FLOAT64";
+                NodeKind[NodeKind["ARRAY"] = 40] = "ARRAY";
+                NodeKind[NodeKind["GENERIC"] = 41] = "GENERIC";
+                NodeKind[NodeKind["NAME"] = 42] = "NAME";
+                NodeKind[NodeKind["NEW"] = 43] = "NEW";
+                NodeKind[NodeKind["DELETE"] = 44] = "DELETE";
+                NodeKind[NodeKind["NULL"] = 45] = "NULL";
+                NodeKind[NodeKind["UNDEFINED"] = 46] = "UNDEFINED";
+                NodeKind[NodeKind["PARSE_ERROR"] = 47] = "PARSE_ERROR";
+                NodeKind[NodeKind["SIZE_OF"] = 48] = "SIZE_OF";
+                NodeKind[NodeKind["STRING"] = 49] = "STRING";
+                NodeKind[NodeKind["THIS"] = 50] = "THIS";
+                NodeKind[NodeKind["TYPE"] = 51] = "TYPE";
                 // Unary expressions
-                NodeKind[NodeKind["ADDRESS_OF"] = 50] = "ADDRESS_OF";
-                NodeKind[NodeKind["COMPLEMENT"] = 51] = "COMPLEMENT";
-                NodeKind[NodeKind["DEREFERENCE"] = 52] = "DEREFERENCE";
-                NodeKind[NodeKind["NEGATIVE"] = 53] = "NEGATIVE";
-                NodeKind[NodeKind["NOT"] = 54] = "NOT";
-                NodeKind[NodeKind["POINTER_TYPE"] = 55] = "POINTER_TYPE";
-                NodeKind[NodeKind["POSITIVE"] = 56] = "POSITIVE";
-                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 57] = "POSTFIX_DECREMENT";
-                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 58] = "POSTFIX_INCREMENT";
-                NodeKind[NodeKind["PREFIX_DECREMENT"] = 59] = "PREFIX_DECREMENT";
-                NodeKind[NodeKind["PREFIX_INCREMENT"] = 60] = "PREFIX_INCREMENT";
+                NodeKind[NodeKind["ADDRESS_OF"] = 52] = "ADDRESS_OF";
+                NodeKind[NodeKind["COMPLEMENT"] = 53] = "COMPLEMENT";
+                NodeKind[NodeKind["DEREFERENCE"] = 54] = "DEREFERENCE";
+                NodeKind[NodeKind["NEGATIVE"] = 55] = "NEGATIVE";
+                NodeKind[NodeKind["NOT"] = 56] = "NOT";
+                NodeKind[NodeKind["POINTER_TYPE"] = 57] = "POINTER_TYPE";
+                NodeKind[NodeKind["POSITIVE"] = 58] = "POSITIVE";
+                NodeKind[NodeKind["POSTFIX_DECREMENT"] = 59] = "POSTFIX_DECREMENT";
+                NodeKind[NodeKind["POSTFIX_INCREMENT"] = 60] = "POSTFIX_INCREMENT";
+                NodeKind[NodeKind["PREFIX_DECREMENT"] = 61] = "PREFIX_DECREMENT";
+                NodeKind[NodeKind["PREFIX_INCREMENT"] = 62] = "PREFIX_INCREMENT";
                 // Binary expressions
-                NodeKind[NodeKind["ADD"] = 61] = "ADD";
-                NodeKind[NodeKind["ASSIGN"] = 62] = "ASSIGN";
-                NodeKind[NodeKind["BITWISE_AND"] = 63] = "BITWISE_AND";
-                NodeKind[NodeKind["BITWISE_OR"] = 64] = "BITWISE_OR";
-                NodeKind[NodeKind["BITWISE_XOR"] = 65] = "BITWISE_XOR";
-                NodeKind[NodeKind["DIVIDE"] = 66] = "DIVIDE";
-                NodeKind[NodeKind["EQUAL"] = 67] = "EQUAL";
-                NodeKind[NodeKind["EXPONENT"] = 68] = "EXPONENT";
-                NodeKind[NodeKind["GREATER_THAN"] = 69] = "GREATER_THAN";
-                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 70] = "GREATER_THAN_EQUAL";
-                NodeKind[NodeKind["LESS_THAN"] = 71] = "LESS_THAN";
-                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 72] = "LESS_THAN_EQUAL";
-                NodeKind[NodeKind["LOGICAL_AND"] = 73] = "LOGICAL_AND";
-                NodeKind[NodeKind["LOGICAL_OR"] = 74] = "LOGICAL_OR";
-                NodeKind[NodeKind["MULTIPLY"] = 75] = "MULTIPLY";
-                NodeKind[NodeKind["NOT_EQUAL"] = 76] = "NOT_EQUAL";
-                NodeKind[NodeKind["REMAINDER"] = 77] = "REMAINDER";
-                NodeKind[NodeKind["SHIFT_LEFT"] = 78] = "SHIFT_LEFT";
-                NodeKind[NodeKind["SHIFT_RIGHT"] = 79] = "SHIFT_RIGHT";
-                NodeKind[NodeKind["SUBTRACT"] = 80] = "SUBTRACT";
+                NodeKind[NodeKind["ADD"] = 63] = "ADD";
+                NodeKind[NodeKind["ASSIGN"] = 64] = "ASSIGN";
+                NodeKind[NodeKind["BITWISE_AND"] = 65] = "BITWISE_AND";
+                NodeKind[NodeKind["BITWISE_OR"] = 66] = "BITWISE_OR";
+                NodeKind[NodeKind["BITWISE_XOR"] = 67] = "BITWISE_XOR";
+                NodeKind[NodeKind["DIVIDE"] = 68] = "DIVIDE";
+                NodeKind[NodeKind["EQUAL"] = 69] = "EQUAL";
+                NodeKind[NodeKind["EXPONENT"] = 70] = "EXPONENT";
+                NodeKind[NodeKind["GREATER_THAN"] = 71] = "GREATER_THAN";
+                NodeKind[NodeKind["GREATER_THAN_EQUAL"] = 72] = "GREATER_THAN_EQUAL";
+                NodeKind[NodeKind["LESS_THAN"] = 73] = "LESS_THAN";
+                NodeKind[NodeKind["LESS_THAN_EQUAL"] = 74] = "LESS_THAN_EQUAL";
+                NodeKind[NodeKind["LOGICAL_AND"] = 75] = "LOGICAL_AND";
+                NodeKind[NodeKind["LOGICAL_OR"] = 76] = "LOGICAL_OR";
+                NodeKind[NodeKind["MULTIPLY"] = 77] = "MULTIPLY";
+                NodeKind[NodeKind["NOT_EQUAL"] = 78] = "NOT_EQUAL";
+                NodeKind[NodeKind["REMAINDER"] = 79] = "REMAINDER";
+                NodeKind[NodeKind["SHIFT_LEFT"] = 80] = "SHIFT_LEFT";
+                NodeKind[NodeKind["SHIFT_RIGHT"] = 81] = "SHIFT_RIGHT";
+                NodeKind[NodeKind["SUBTRACT"] = 82] = "SUBTRACT";
                 //JavaScript
-                NodeKind[NodeKind["JS_NUMBER"] = 81] = "JS_NUMBER";
-                NodeKind[NodeKind["JS_OBJECT"] = 82] = "JS_OBJECT";
-                NodeKind[NodeKind["JS_STRING"] = 83] = "JS_STRING";
-                NodeKind[NodeKind["JS_ARRAY"] = 84] = "JS_ARRAY";
+                NodeKind[NodeKind["JS_NUMBER"] = 83] = "JS_NUMBER";
+                NodeKind[NodeKind["JS_OBJECT"] = 84] = "JS_OBJECT";
+                NodeKind[NodeKind["JS_STRING"] = 85] = "JS_STRING";
+                NodeKind[NodeKind["JS_ARRAY"] = 86] = "JS_ARRAY";
             })(NodeKind || (NodeKind = {}));
-            exports_22("NodeKind", NodeKind);
-            exports_22("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
-            exports_22("NODE_FLAG_EXPORT", NODE_FLAG_EXPORT = 1 << 1);
-            exports_22("NODE_FLAG_IMPORT", NODE_FLAG_IMPORT = 1 << 2);
-            exports_22("NODE_FLAG_GET", NODE_FLAG_GET = 1 << 3);
-            exports_22("NODE_FLAG_OPERATOR", NODE_FLAG_OPERATOR = 1 << 4);
-            exports_22("NODE_FLAG_POSITIVE", NODE_FLAG_POSITIVE = 1 << 5);
-            exports_22("NODE_FLAG_PRIVATE", NODE_FLAG_PRIVATE = 1 << 6);
-            exports_22("NODE_FLAG_PROTECTED", NODE_FLAG_PROTECTED = 1 << 7);
-            exports_22("NODE_FLAG_PUBLIC", NODE_FLAG_PUBLIC = 1 << 8);
-            exports_22("NODE_FLAG_SET", NODE_FLAG_SET = 1 << 9);
-            exports_22("NODE_FLAG_STATIC", NODE_FLAG_STATIC = 1 << 10);
-            exports_22("NODE_FLAG_UNSAFE", NODE_FLAG_UNSAFE = 1 << 11);
-            exports_22("NODE_FLAG_JAVASCRIPT", NODE_FLAG_JAVASCRIPT = 1 << 12);
-            exports_22("NODE_FLAG_UNSIGNED_OPERATOR", NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13);
-            exports_22("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 14);
-            exports_22("NODE_FLAG_START", NODE_FLAG_START = 1 << 15);
-            exports_22("NODE_FLAG_ANYFUNC", NODE_FLAG_ANYFUNC = 1 << 16);
+            exports_23("NodeKind", NodeKind);
+            exports_23("NODE_FLAG_DECLARE", NODE_FLAG_DECLARE = 1 << 0);
+            exports_23("NODE_FLAG_EXPORT", NODE_FLAG_EXPORT = 1 << 1);
+            exports_23("NODE_FLAG_INTERNAL_IMPORT", NODE_FLAG_INTERNAL_IMPORT = 1 << 2);
+            exports_23("NODE_FLAG_EXTERNAL_IMPORT", NODE_FLAG_EXTERNAL_IMPORT = 1 << 3);
+            exports_23("NODE_FLAG_GET", NODE_FLAG_GET = 1 << 4);
+            exports_23("NODE_FLAG_OPERATOR", NODE_FLAG_OPERATOR = 1 << 5);
+            exports_23("NODE_FLAG_POSITIVE", NODE_FLAG_POSITIVE = 1 << 6);
+            exports_23("NODE_FLAG_PRIVATE", NODE_FLAG_PRIVATE = 1 << 7);
+            exports_23("NODE_FLAG_PROTECTED", NODE_FLAG_PROTECTED = 1 << 8);
+            exports_23("NODE_FLAG_PUBLIC", NODE_FLAG_PUBLIC = 1 << 9);
+            exports_23("NODE_FLAG_SET", NODE_FLAG_SET = 1 << 10);
+            exports_23("NODE_FLAG_STATIC", NODE_FLAG_STATIC = 1 << 11);
+            exports_23("NODE_FLAG_UNSAFE", NODE_FLAG_UNSAFE = 1 << 12);
+            exports_23("NODE_FLAG_JAVASCRIPT", NODE_FLAG_JAVASCRIPT = 1 << 13);
+            exports_23("NODE_FLAG_UNSIGNED_OPERATOR", NODE_FLAG_UNSIGNED_OPERATOR = 1 << 14);
+            exports_23("NODE_FLAG_VIRTUAL", NODE_FLAG_VIRTUAL = 1 << 15);
+            exports_23("NODE_FLAG_START", NODE_FLAG_START = 1 << 16);
+            exports_23("NODE_FLAG_ANYFUNC", NODE_FLAG_ANYFUNC = 1 << 17);
             NodeFlag = class NodeFlag {
             };
-            exports_22("NodeFlag", NodeFlag);
+            exports_23("NodeFlag", NodeFlag);
             Node = class Node {
                 get hasValue() {
                     return this._hasValue;
@@ -13039,6 +13187,10 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                     else {
                         return this._rawValue;
                     }
+                }
+                set rawValue(newValue) {
+                    this._hasValue = true;
+                    this._rawValue = newValue;
                 }
                 get intValue() {
                     let n = this._rawValue;
@@ -13194,8 +13346,8 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                 isExport() {
                     return (this.flags & NODE_FLAG_EXPORT) != 0;
                 }
-                isImport() {
-                    return (this.flags & NODE_FLAG_IMPORT) != 0;
+                isExternalImport() {
+                    return (this.flags & NODE_FLAG_EXTERNAL_IMPORT) != 0;
                 }
                 isStart() {
                     return (this.flags & NODE_FLAG_START) != 0;
@@ -13634,13 +13786,13 @@ System.register("node", ["symbol"], function (exports_22, context_22) {
                     return false;
                 }
             };
-            exports_22("Node", Node);
+            exports_23("Node", Node);
         }
     };
 });
-System.register("log", ["stringbuilder"], function (exports_23, context_23) {
+System.register("log", ["stringbuilder"], function (exports_24, context_24) {
     "use strict";
-    var __moduleName = context_23 && context_23.id;
+    var __moduleName = context_24 && context_24.id;
     function createRange(source, start, end) {
         assert(start <= end);
         var range = new Range();
@@ -13649,25 +13801,25 @@ System.register("log", ["stringbuilder"], function (exports_23, context_23) {
         range.end = end;
         return range;
     }
-    exports_23("createRange", createRange);
+    exports_24("createRange", createRange);
     function spanRanges(left, right) {
         assert(left.source == right.source);
         assert(left.start <= right.start);
         assert(left.end <= right.end);
         return createRange(left.source, left.start, right.end);
     }
-    exports_23("spanRanges", spanRanges);
-    var stringbuilder_13, LineColumn, Source, Range, DiagnosticKind, Diagnostic, Log;
+    exports_24("spanRanges", spanRanges);
+    var stringbuilder_14, LineColumn, Source, Range, DiagnosticKind, Diagnostic, Log;
     return {
         setters: [
-            function (stringbuilder_13_1) {
-                stringbuilder_13 = stringbuilder_13_1;
+            function (stringbuilder_14_1) {
+                stringbuilder_14 = stringbuilder_14_1;
             }
         ],
         execute: function () {
             LineColumn = class LineColumn {
             };
-            exports_23("LineColumn", LineColumn);
+            exports_24("LineColumn", LineColumn);
             Source = class Source {
                 indexToLineColumn(index) {
                     var contents = this.contents;
@@ -13692,7 +13844,7 @@ System.register("log", ["stringbuilder"], function (exports_23, context_23) {
                     return location;
                 }
             };
-            exports_23("Source", Source);
+            exports_24("Source", Source);
             Range = class Range {
                 toString() {
                     return this.source.contents.slice(this.start, this.end);
@@ -13717,12 +13869,12 @@ System.register("log", ["stringbuilder"], function (exports_23, context_23) {
                     return createRange(this.source, this.end, this.end);
                 }
             };
-            exports_23("Range", Range);
+            exports_24("Range", Range);
             (function (DiagnosticKind) {
                 DiagnosticKind[DiagnosticKind["ERROR"] = 0] = "ERROR";
                 DiagnosticKind[DiagnosticKind["WARNING"] = 1] = "WARNING";
             })(DiagnosticKind || (DiagnosticKind = {}));
-            exports_23("DiagnosticKind", DiagnosticKind);
+            exports_24("DiagnosticKind", DiagnosticKind);
             Diagnostic = class Diagnostic {
                 appendSourceName(builder, location) {
                     builder
@@ -13766,7 +13918,7 @@ System.register("log", ["stringbuilder"], function (exports_23, context_23) {
                     builder.append('\n');
                 }
             };
-            exports_23("Diagnostic", Diagnostic);
+            exports_24("Diagnostic", Diagnostic);
             Log = class Log {
                 error(range, message) {
                     this.append(range, message, DiagnosticKind.ERROR);
@@ -13786,7 +13938,7 @@ System.register("log", ["stringbuilder"], function (exports_23, context_23) {
                     this.last = diagnostic;
                 }
                 toString() {
-                    var builder = stringbuilder_13.StringBuilder_new();
+                    var builder = stringbuilder_14.StringBuilder_new();
                     var diagnostic = this.first;
                     while (diagnostic != null) {
                         var location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
@@ -13810,39 +13962,39 @@ System.register("log", ["stringbuilder"], function (exports_23, context_23) {
                     return false;
                 }
             };
-            exports_23("Log", Log);
+            exports_24("Log", Log);
         }
     };
 });
-System.register("main", ["log", "stringbuilder", "compiler"], function (exports_24, context_24) {
+System.register("main", ["log", "stringbuilder", "compiler"], function (exports_25, context_25) {
     "use strict";
-    var __moduleName = context_24 && context_24.id;
+    var __moduleName = context_25 && context_25.id;
     function writeLogToTerminal(log) {
         var diagnostic = log.first;
         while (diagnostic != null) {
             var location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
             // Source
-            var builder = stringbuilder_14.StringBuilder_new();
+            var builder = stringbuilder_15.StringBuilder_new();
             diagnostic.appendSourceName(builder, location);
             stdlib.Terminal_setColor(Color.BOLD);
             stdlib.Terminal_write(builder.finish());
             // Kind
-            builder = stringbuilder_14.StringBuilder_new();
+            builder = stringbuilder_15.StringBuilder_new();
             diagnostic.appendKind(builder);
             stdlib.Terminal_setColor(diagnostic.kind == log_6.DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
             stdlib.Terminal_write(builder.finish());
             // Message
-            builder = stringbuilder_14.StringBuilder_new();
+            builder = stringbuilder_15.StringBuilder_new();
             diagnostic.appendMessage(builder);
             stdlib.Terminal_setColor(Color.BOLD);
             stdlib.Terminal_write(builder.finish());
             // Line contents
-            builder = stringbuilder_14.StringBuilder_new();
+            builder = stringbuilder_15.StringBuilder_new();
             diagnostic.appendLineContents(builder, location);
             stdlib.Terminal_setColor(Color.DEFAULT);
             stdlib.Terminal_write(builder.finish());
             // Range
-            builder = stringbuilder_14.StringBuilder_new();
+            builder = stringbuilder_15.StringBuilder_new();
             diagnostic.appendRange(builder, location);
             stdlib.Terminal_setColor(Color.GREEN);
             stdlib.Terminal_write(builder.finish());
@@ -13850,7 +14002,7 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
         }
         stdlib.Terminal_setColor(Color.DEFAULT);
     }
-    exports_24("writeLogToTerminal", writeLogToTerminal);
+    exports_25("writeLogToTerminal", writeLogToTerminal);
     function printError(text) {
         stdlib.Terminal_setColor(Color.RED);
         stdlib.Terminal_write("error: ");
@@ -13859,7 +14011,7 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
         stdlib.Terminal_write("\n");
         stdlib.Terminal_setColor(Color.DEFAULT);
     }
-    exports_24("printError", printError);
+    exports_25("printError", printError);
     function main_addArgument(text) {
         var argument = new CommandLineArgument();
         argument.text = text;
@@ -13869,12 +14021,12 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
             lastArgument.next = argument;
         lastArgument = argument;
     }
-    exports_24("main_addArgument", main_addArgument);
+    exports_25("main_addArgument", main_addArgument);
     function main_reset() {
         firstArgument = null;
         lastArgument = null;
     }
-    exports_24("main_reset", main_reset);
+    exports_25("main_reset", main_reset);
     function printUsage() {
         stdlib.Terminal_write(`
 Usage: thinc [FLAGS] [INPUTS]
@@ -13891,7 +14043,7 @@ Examples:
 
 `);
     }
-    exports_24("printUsage", printUsage);
+    exports_25("printUsage", printUsage);
     function main_entry() {
         var target = compiler_4.CompileTarget.NONE;
         var argument = firstArgument;
@@ -13933,7 +14085,7 @@ Examples:
                     output = argument.text;
                 }
                 else {
-                    printError(stringbuilder_14.StringBuilder_new().append("Invalid flag: ").append(text).finish());
+                    printError(stringbuilder_15.StringBuilder_new().append("Invalid flag: ").append(text).finish());
                     return 1;
                 }
             }
@@ -13984,7 +14136,7 @@ Examples:
             else if (!text.startsWith("-")) {
                 var contents = stdlib.IO_readTextFile(text);
                 if (contents == null) {
-                    printError(stringbuilder_14.StringBuilder_new().append("Cannot read from ").append(text).finish());
+                    printError(stringbuilder_15.StringBuilder_new().append("Cannot read from ").append(text).finish());
                     return 1;
                 }
                 compiler.addInput(text, contents);
@@ -14005,19 +14157,19 @@ Examples:
                     stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {
                 return 0;
             }
-            printError(stringbuilder_14.StringBuilder_new().append("Cannot write to ").append(output).finish());
+            printError(stringbuilder_15.StringBuilder_new().append("Cannot write to ").append(output).finish());
         }
         return 1;
     }
-    exports_24("main_entry", main_entry);
-    var log_6, stringbuilder_14, compiler_4, Color, CommandLineArgument, firstArgument, lastArgument, main;
+    exports_25("main_entry", main_entry);
+    var log_6, stringbuilder_15, compiler_4, Color, CommandLineArgument, firstArgument, lastArgument, main;
     return {
         setters: [
             function (log_6_1) {
                 log_6 = log_6_1;
             },
-            function (stringbuilder_14_1) {
-                stringbuilder_14 = stringbuilder_14_1;
+            function (stringbuilder_15_1) {
+                stringbuilder_15 = stringbuilder_15_1;
             },
             function (compiler_4_1) {
                 compiler_4 = compiler_4_1;
@@ -14031,11 +14183,11 @@ Examples:
                 Color[Color["GREEN"] = 3] = "GREEN";
                 Color[Color["MAGENTA"] = 4] = "MAGENTA";
             })(Color || (Color = {}));
-            exports_24("Color", Color);
+            exports_25("Color", Color);
             CommandLineArgument = class CommandLineArgument {
             };
-            exports_24("CommandLineArgument", CommandLineArgument);
-            exports_24("main", main = {
+            exports_25("CommandLineArgument", CommandLineArgument);
+            exports_25("main", main = {
                 addArgument: main_addArgument,
                 reset: main_reset,
                 entry: main_entry

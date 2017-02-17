@@ -17,7 +17,9 @@ export enum NodeKind {
     PARAMETER,
     PARAMETERS,
     VARIABLE,
-    IMPORT,
+    INTERNAL_IMPORT,
+    INTERNAL_IMPORT_FROM,
+    EXTERNAL_IMPORT,
 
         // Statements
     BLOCK,
@@ -139,21 +141,22 @@ export function isCompactNodeKind(kind: NodeKind): boolean {
 
 export const NODE_FLAG_DECLARE = 1 << 0;
 export const NODE_FLAG_EXPORT = 1 << 1;
-export const NODE_FLAG_IMPORT = 1 << 2;
-export const NODE_FLAG_GET = 1 << 3;
-export const NODE_FLAG_OPERATOR = 1 << 4;
-export const NODE_FLAG_POSITIVE = 1 << 5;
-export const NODE_FLAG_PRIVATE = 1 << 6;
-export const NODE_FLAG_PROTECTED = 1 << 7;
-export const NODE_FLAG_PUBLIC = 1 << 8;
-export const NODE_FLAG_SET = 1 << 9;
-export const NODE_FLAG_STATIC = 1 << 10;
-export const NODE_FLAG_UNSAFE = 1 << 11;
-export const NODE_FLAG_JAVASCRIPT = 1 << 12;
-export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13;
-export const NODE_FLAG_VIRTUAL = 1 << 14;
-export const NODE_FLAG_START = 1 << 15;
-export const NODE_FLAG_ANYFUNC = 1 << 16;
+export const NODE_FLAG_INTERNAL_IMPORT = 1 << 2;
+export const NODE_FLAG_EXTERNAL_IMPORT = 1 << 3;
+export const NODE_FLAG_GET = 1 << 4;
+export const NODE_FLAG_OPERATOR = 1 << 5;
+export const NODE_FLAG_POSITIVE = 1 << 6;
+export const NODE_FLAG_PRIVATE = 1 << 7;
+export const NODE_FLAG_PROTECTED = 1 << 8;
+export const NODE_FLAG_PUBLIC = 1 << 9;
+export const NODE_FLAG_SET = 1 << 10;
+export const NODE_FLAG_STATIC = 1 << 11;
+export const NODE_FLAG_UNSAFE = 1 << 12;
+export const NODE_FLAG_JAVASCRIPT = 1 << 13;
+export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 14;
+export const NODE_FLAG_VIRTUAL = 1 << 15;
+export const NODE_FLAG_START = 1 << 16;
+export const NODE_FLAG_ANYFUNC = 1 << 17;
 
 export class NodeFlag {
     flag: int32;
@@ -231,6 +234,11 @@ export class Node {
         } else {
             return this._rawValue;
         }
+    }
+
+    set rawValue(newValue: any) {
+        this._hasValue = true;
+        this._rawValue = newValue;
     }
 
     get intValue(): int32 {
@@ -417,8 +425,8 @@ export class Node {
         return (this.flags & NODE_FLAG_EXPORT) != 0;
     }
 
-    isImport(): boolean {
-        return (this.flags & NODE_FLAG_IMPORT) != 0;
+    isExternalImport(): boolean {
+        return (this.flags & NODE_FLAG_EXTERNAL_IMPORT) != 0;
     }
 
     isStart(): boolean {
@@ -1160,9 +1168,23 @@ export function createImports(): Node {
     return node;
 }
 
-export function createImport(name: string): Node {
+export function createInternalImport(name: string): Node {
     let node = new Node();
-    node.kind = NodeKind.IMPORT;
+    node.kind = NodeKind.INTERNAL_IMPORT;
+    node.stringValue = name;
+    return node;
+}
+
+export function createInternalImportFrom(name: string): Node {
+    let node = new Node();
+    node.kind = NodeKind.INTERNAL_IMPORT_FROM;
+    node.stringValue = name;
+    return node;
+}
+
+export function createExternalImport(name: string): Node {
+    let node = new Node();
+    node.kind = NodeKind.EXTERNAL_IMPORT;
     node.stringValue = name;
     return node;
 }

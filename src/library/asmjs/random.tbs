@@ -1,0 +1,6 @@
+export function randomFloat32():float32{
+    return foreign.random();
+}
+export function randomFloat64():float64{
+    return foreign.random() as float64;
+}

@@ -15,6 +15,7 @@ import {turboJsEmit} from "./turbojs";
 import {wasmEmit} from "./wasm";
 import {Library} from "./library/library";
 import {asmJsEmit} from "./asmjs";
+import {preparse} from "./preparser";
 /**
  * Author: Nidin Vinayakan
  */
@@ -113,10 +114,35 @@ export class Compiler {
         return source;
     }
 
+    addInputBefore(name: string, contents: string, source:Source): Source {
+        var source = new Source();
+        source.name = name;
+        source.contents = contents;
+
+        if (this.firstSource == null) this.firstSource = source;
+        else this.lastSource.next = source;
+        this.lastSource = source;
+
+        source.next;
+
+        return source;
+    }
+
     finish(): boolean {
+        stdlib.Profiler_begin("pre-parsing");
+
+        let source = this.firstSource;
+        while (source != null) {
+            if(!preparse(source, this, this.log)){
+                 return false;
+            }
+            source = source.next;
+        }
+        stdlib.Profiler_end("pre-parsing");
+
         stdlib.Profiler_begin("lexing");
 
-        var source = this.firstSource;
+        source = this.firstSource;
         while (source != null) {
             source.firstToken = tokenize(source, this.log);
             source = source.next;

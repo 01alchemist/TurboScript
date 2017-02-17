@@ -703,7 +703,7 @@ class WasmModule {
             let argumentTypesLast: WasmWrappedType = null;
 
             // Make sure to include the implicit "this" variable as a normal argument
-            let argument = node.isImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
+            let argument = node.isExternalImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
             while (argument != returnType) {
                 let type = wasmWrapType(this.getWasmType(argument.variableType().resolvedType));
 
@@ -1184,7 +1184,7 @@ class WasmModule {
             assert(isFunction(symbol.kind));
 
             // Write out the implicit "this" argument
-            if (!symbol.node.isImport() && symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+            if (!symbol.node.isExternalImport() && symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
                 this.emitNode(array, byteOffset, value.dotTarget());
             }
 

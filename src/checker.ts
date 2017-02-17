@@ -9,7 +9,8 @@ import {
     Node, NodeKind, createVariable, createType, rangeForFlag, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE,
     NODE_FLAG_PUBLIC, NODE_FLAG_GET, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_PROTECTED,
     NODE_FLAG_DECLARE, isExpression, createInt, createboolean, createNull, createMemberReference, createSymbolReference,
-    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat, NODE_FLAG_IMPORT
+    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat,
+    NODE_FLAG_EXTERNAL_IMPORT
 } from "./node";
 import {CompileTarget} from "./compiler";
 import {Log, Range, spanRanges} from "./log";
@@ -462,8 +463,8 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             if (parent.node.isDeclare()) {
                 if (body == null) {
                     node.flags = node.flags | NODE_FLAG_DECLARE;
-                    if (parent.node.isImport()) {
-                        node.flags = node.flags | NODE_FLAG_IMPORT;
+                    if (parent.node.isExternalImport()) {
+                        node.flags = node.flags | NODE_FLAG_EXTERNAL_IMPORT;
                     }
                 } else {
                     shouldConvertInstanceToGlobal = true;
@@ -982,7 +983,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         context.enclosingModule = oldEnclosingModule;
     }
 
-    else if (kind == NodeKind.IMPORT) {
+    else if (kind == NodeKind.EXTERNAL_IMPORT) {
         let symbol = node.symbol;
     }
 
@@ -1245,7 +1246,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 //
                 let genericName = symbol.generics[0];
                 let genericMap = symbol.genericMaps.get(genericName);
-                genericMap.set(node.parent.symbol.name, arrayType.symbol);
+                genericMap.set(node.parent.previousSibling.symbol.name, arrayType.symbol);
 
                 node.symbol = symbol;
                 node.resolvedType = symbol.resolvedType;

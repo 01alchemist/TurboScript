@@ -71,7 +71,8 @@ export enum TokenKind {
     ANYFUNC,
     IF,
     IMPLEMENTS,
-    IMPORT,
+    INTERNAL_IMPORT,
+    EXTERNAL_IMPORT,
     LET,
     NEW,
     DELETE,
@@ -199,8 +200,8 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.ANYFUNC) return "'anyfunc'";
     if (token == TokenKind.IF) return "'if'";
     if (token == TokenKind.IMPLEMENTS) return "'implements'";
-    // if (token == TokenKind.IMPORT) return "'import'"; //TODO: Standardize import
-    if (token == TokenKind.IMPORT) return "'@import'";
+    if (token == TokenKind.INTERNAL_IMPORT) return "'import'";
+    if (token == TokenKind.EXTERNAL_IMPORT) return "'@import'";
     if (token == TokenKind.LET) return "'let'";
     if (token == TokenKind.NEW) return "'new'";
     if (token == TokenKind.DELETE) return "'delete'";
@@ -334,7 +335,7 @@ export function tokenize(source: Source, log: Log): Token {
                 else if (length == 6) {
                     if (text == "export") kind = TokenKind.EXPORT;
                     else if (text == "module") kind = TokenKind.MODULE;
-                    // else if (text == "import") kind = TokenKind.IMPORT;
+                    else if (text == "import") kind = TokenKind.INTERNAL_IMPORT;
                     else if (text == "public") kind = TokenKind.PUBLIC;
                     else if (text == "return") kind = TokenKind.RETURN;
                     else if (text == "sizeof") kind = TokenKind.SIZEOF;
@@ -349,7 +350,7 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "declare") kind = TokenKind.DECLARE;
                     else if (text == "extends") kind = TokenKind.EXTENDS;
                     else if (text == "private") kind = TokenKind.PRIVATE;
-                    else if (text == "@import") kind = TokenKind.IMPORT;
+                    else if (text == "@import") kind = TokenKind.EXTERNAL_IMPORT;
                     else if (text == "anyfunc") kind = TokenKind.ANYFUNC;
                 }
 

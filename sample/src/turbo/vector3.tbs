@@ -1,3 +1,5 @@
+import {randomFloat32} from "../../../src/library/asmjs/random.tbs";
+
 export class Vector3 {
     x: float32;
     y: float32;
@@ -231,13 +233,13 @@ export class Vector3 {
 }
 
 export function randomUnitVector3(c:Vector3 = null): Vector3 {
-    let x = Math.random() * 2.0 - 1.0;
-    let y = Math.random() * 2.0 - 1.0;
-    let z = Math.random() * 2.0 - 1.0;
+    let x = randomFloat32() * 2.0 - 1.0;
+    let y = randomFloat32() * 2.0 - 1.0;
+    let z = randomFloat32() * 2.0 - 1.0;
     while (x * x + y * y + z * z > 1.0) {
-        x = Math.random() * 2.0 - 1.0;
-        y = Math.random() * 2.0 - 1.0;
-        z = Math.random() * 2.0 - 1.0;
+        x = randomFloat32() * 2.0 - 1.0;
+        y = randomFloat32() * 2.0 - 1.0;
+        z = randomFloat32() * 2.0 - 1.0;
     }
     c = c != null ? c : new Vector3();
     c.set(x, y, z);

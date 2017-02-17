@@ -578,7 +578,7 @@ export class AsmJsModule {
                 let isMath = false;
                 let importedFnName = "";
 
-                if (value.symbol.node.isDeclare() && value.symbol.node.parent.isImport()) {
+                if (value.symbol.node.isDeclare() && value.symbol.node.parent.isExternalImport()) {
                     let moduleName = value.symbol.node.parent.symbol.name;
                     let fnName = value.symbol.name;
                     isMath = moduleName == "Math";
@@ -925,7 +925,7 @@ export class AsmJsModule {
         else if (node.kind == NodeKind.IMPORTS) {
             let child = node.firstChild;
             while (child) {
-                assert(child.kind == NodeKind.IMPORT);
+                assert(child.kind == NodeKind.EXTERNAL_IMPORT);
                 child = child.nextSibling;
             }
         }
@@ -1608,7 +1608,7 @@ export class AsmJsModule {
         else if (node.kind == NodeKind.IMPORTS) {
             let child = node.firstChild;
             while (child) {
-                assert(child.kind == NodeKind.IMPORT);
+                assert(child.kind == NodeKind.EXTERNAL_IMPORT);
                 child = child.nextSibling;
             }
         }
@@ -1685,7 +1685,7 @@ export class AsmJsModule {
         }
 
         else if (node.kind == NodeKind.CLASS) {
-            // if (node.isImport()) {
+            // if (node.isExternalImport()) {
             //     console.log(node.symbol.name);
             // }
         }
@@ -1717,11 +1717,11 @@ export class AsmJsModule {
 
             // Functions without bodies are imports
             if (body == null) {
-                // if (node.parent.isImport()) {
+                // if (node.parent.isExternalImport()) {
                 //     let _import = importMap.get(node.parent.symbol.name);
                 //     _import[node.symbol.name] = `${node.parent.symbol.name}.${node.symbol.name}`;
                 // }
-                if (node.isImport() || node.parent.isImport()) {
+                if (node.isExternalImport() || node.parent.isExternalImport()) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.importCount;
                     this.allocateImport(signatureIndex, moduleName, symbol.name);

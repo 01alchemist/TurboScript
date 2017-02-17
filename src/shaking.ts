@@ -24,7 +24,7 @@ export function treeShakingMarkAllUsed(node: Node): void {
 }
 
 export function treeShakingSearchForUsed(node: Node): void {
-    if (node.kind == NodeKind.FUNCTION && (node.isImport() || node.isExport() || node.isStart())) {
+    if (node.kind == NodeKind.FUNCTION && (node.isExternalImport() || node.isExport() || node.isStart())) {
         treeShakingMarkAllUsed(node);
     }
 

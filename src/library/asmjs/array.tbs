@@ -44,10 +44,9 @@ export class Array<T> {
 
     partition(items:Array<T>, left:int32, right:int32):int32 {
 
-        let pivot   = items[Math.floor((right + left) / 2)],
+        let pivot   = items[Math.floor(((right + left) / 2) as float32) as int32],
             i       = left,
             j       = right;
-
 
         while (i <= j) {
 

@@ -24,5 +24,4 @@ declare class Math {
     static sqrt(x: float32): float32;
     static tan(x: float64): float64;
     static imul(a: int32, b:int32): int32;
-
 }
