@@ -12,12 +12,16 @@
         foreign: {
             random: () => {
                 return Math.random() / Number.MAX_SAFE_INTEGER;
+            },
+
+            sort: (ptr) => {
+
             }
         }
     };
 
     async function init() {
-        let data = await fetch("array.wasm");
+        let data = await fetch("imports.wasm");
         let wasmBytes = await data.arrayBuffer();
         try {
             WebAssembly.compile(wasmBytes).then(function (compiled) {

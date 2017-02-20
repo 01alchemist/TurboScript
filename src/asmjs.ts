@@ -231,6 +231,7 @@ export class AsmJsModule {
         let childForceCastType = null;
         let forceCastLeft: boolean = false;
         let forceCastRight: boolean = false;
+        let casted: boolean = false;
         if (leftNode.resolvedType != rightNode.resolvedType && (leftNode.resolvedType.isDouble() || rightNode.resolvedType.isDouble())) {
             childForceCastType = AsmType.DOUBLE;
             if (!leftNode.resolvedType.isDouble()) {
@@ -250,10 +251,12 @@ export class AsmJsModule {
         }
 
         if (!isRightAssociative && forceCast) {
+            casted = true;
             this.code.append(identifier.left);
         }
 
         if (isBinary(leftNode.kind) || forceCastLeft) {
+            casted = true;
             this.code.append(idLeft.left);
         }
 
@@ -375,7 +378,8 @@ export class AsmJsModule {
                 this.code.append(`(+${node.intValue})`);
             }
             else if (parentPrecedence != Precedence.ASSIGN) {
-                this.code.append(`(${node.intValue}|0)`);
+                // this.code.append(`(${node.intValue}|0)`);
+                this.code.append(`${node.intValue}`);
             }
             else {
                 this.code.append(`${node.intValue}`);
@@ -613,8 +617,20 @@ export class AsmJsModule {
                     this.code.append("(");
                     let needComma = false;
                     if (node.firstChild) {
+
                         let firstNode = node.firstChild.resolvedType.symbol.node;
-                        if (!firstNode.isDeclare() && node.parent.firstChild.firstChild && node.parent.firstChild.firstChild.kind == NodeKind.DOT) {
+
+                        if (value.kind == NodeKind.DOT && !value.resolvedType.symbol.node.isDeclare()) {
+                            let dotTarget = value.dotTarget();
+                            if (dotTarget.symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
+                                this.emitExpression(dotTarget, Precedence.ASSIGN, true);
+                            } else {
+                                let ref = dotTarget.symbol.name == "this" ? "ptr" : dotTarget.symbol.name;
+                                this.code.append(`${ref}`);
+                            }
+                            needComma = true;
+                        }
+                        else if (!firstNode.isDeclare() && node.parent.firstChild.firstChild && node.parent.firstChild.firstChild.kind == NodeKind.DOT) {
                             let dotTarget = node.firstChild.firstChild;
                             if (dotTarget.symbol) {
                                 if (dotTarget.symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
@@ -779,13 +795,13 @@ export class AsmJsModule {
                 // }
 
             } else {
-                this.code.append(leftIdentifier.left);
+                // this.code.append(leftIdentifier.left);
                 this.emitExpression(left, Precedence.MULTIPLY);
-                this.code.append(leftIdentifier.right);
+                // this.code.append(leftIdentifier.right);
                 this.code.append(" * ");
-                this.code.append(rightIdentifier.left);
+                // this.code.append(rightIdentifier.left);
                 this.emitExpression(right, Precedence.MULTIPLY);
-                this.code.append(rightIdentifier.right);
+                // this.code.append(rightIdentifier.right);
             }
             this.foundMultiply = true;
 
@@ -841,8 +857,8 @@ export class AsmJsModule {
         else if (sizeOf == 8) {
             // idLeft = "(+";
             // idRight = ")";
-            idLeft = "+";
-            idRight = "";
+            // idLeft = "+";
+            // idRight = "";
             this.code.append(`${idLeft}HEAPF64[(`);
             shift = 3;
         }
@@ -1220,7 +1236,7 @@ export class AsmJsModule {
                         this.code.append(identifier.left);
                     }
 
-                    this.emitExpression(value, Precedence.LOWEST);
+                    this.emitExpression(value, Precedence.ASSIGN, false);
 
                     if (value.kind != NodeKind.NEW && value.kind != NodeKind.CALL) {
                         this.code.append(identifier.right);

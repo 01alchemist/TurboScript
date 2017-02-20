@@ -41,7 +41,11 @@ function initTurbo(bytes) {
 
     return TurboWrapper(TurboModule(
         typeof stdlib !== 'undefined' ? stdlib : window,
-        typeof foreign !== 'undefined' ? foreign : {random: Math.random},
+        typeof foreign !== 'undefined' ? foreign : {
+                random: () => {
+                    return Math.random() / Number.MAX_SAFE_INTEGER;
+                }
+            },
         buffer
     ), buffer);
 }

@@ -67,29 +67,29 @@ function TurboModule(stdlib, foreign, buffer) {
         var offset = 0;
         var top = 0;
         var ptr = 0;
-        nbytes = ((((((nbytes|0) + ((((alignment|0) - (1|0))|0))|0)|0)|0 & (~(alignment - (1|0)) | 0))|0)|0)|0;
-        chunkSize = ((nbytes|0) + (8|0))|0;
+        nbytes = ((((((nbytes|0) + ((((alignment|0) - 1)|0))|0)|0)|0 & (~(alignment - 1) | 0))|0)|0)|0;
+        chunkSize = ((nbytes|0) + 8)|0;
         freeChunk = (getFreeChunk((chunkSize|0))|0);
         
-        if ((((freeChunk|0) | 0) > (0|0))|0) {
+        if ((((freeChunk|0) | 0) > 0)|0) {
             return (freeChunk)|0;
         }
         
         offset = (HEAP32[(16) >> 2]|0) | 0;
-        offset = ((((offset|0) + (7|0))|0)|0)|0;
-        offset = ((((offset|0) & (-8|0))|0)|0)|0;
+        offset = ((((offset|0) + 7)|0)|0)|0;
+        offset = ((((offset|0) & -8)|0)|0)|0;
         top = ((offset|0) + (chunkSize|0))|0;
-        ptr = ((offset|0) + (4|0))|0;
+        ptr = ((offset|0) + 4)|0;
         setHeadSize((ptr|0), (chunkSize|0));
-        setInuse(((ptr|0) + (4|0))|0);
+        setInuse(((ptr|0) + 4)|0);
         setFoot((ptr|0), (chunkSize|0));
-        HEAP32[(16) >> 2] = ((top|0) + (4|0))|0;
-        offset = ((((offset|0) + (8|0))|0)|0)|0;
+        HEAP32[(16) >> 2] = ((top|0) + 4)|0;
+        offset = ((((offset|0) + 8)|0)|0)|0;
         ptr = ((offset|0))|0;
         
         while ((((ptr|0) | 0) < ((top|0) | 0))|0) {
             HEAP32[(ptr ) >> 2] = 0;
-            ptr = ((((ptr|0) + (4|0))|0)|0)|0;
+            ptr = ((((ptr|0) + 4)|0)|0)|0;
         }
         return (offset)|0;
     }
@@ -102,16 +102,16 @@ function TurboModule(stdlib, foreign, buffer) {
         chunkptr = 0;
         clearInuse((ptr|0));
         
-        if ((((HEAP32[(28) >> 2]|0) == (0|0))|0)) {
+        if ((((HEAP32[(28) >> 2]|0) == 0)|0)) {
             HEAP32[(28) >> 2] = (ptr|0) | 0;
         }
         
         tmp1 = ((HEAP32[(20) >> 2]|0) | 0)|0;
         tmp1 = ((((tmp1|0) + ((getChunkSize((ptr|0))|0) | 0))|0)|0)|0;
         HEAP32[(20) >> 2] = (tmp1|0) | 0;
-        chunkptr = ((((ptr|0) + (4|0))|0)|0)|0;
+        chunkptr = ((((ptr|0) + 4)|0)|0)|0;
         
-        if (((HEAP32[(32) >> 2]|0) > (0|0))|0) {
+        if (((HEAP32[(32) >> 2]|0) > 0)|0) {
             HEAP32[(chunkptr ) >> 2] = (HEAP32[(32) >> 2]|0);
             HEAP32[((HEAP32[(32) >> 2]|0) ) >> 2] = (ptr|0) | 0;
         }
@@ -122,7 +122,7 @@ function TurboModule(stdlib, foreign, buffer) {
         
         HEAP32[(ptr ) >> 2] = 0;
         HEAP32[(32) >> 2] = (ptr|0) | 0;
-        HEAP32[(24) >> 2] = ((HEAP32[(24) >> 2]|0) + (1|0))|0;
+        HEAP32[(24) >> 2] = ((HEAP32[(24) >> 2]|0) + 1)|0;
     }
     
     
@@ -138,10 +138,10 @@ function TurboModule(stdlib, foreign, buffer) {
         tmp2 = ((HEAP32[(32) >> 2]|0))|0;
         tmp3 = ((HEAP32[(20) >> 2]|0))|0;
         
-        if (((HEAP32[(24) >> 2]|0) > (0|0))|0) {
+        if (((HEAP32[(24) >> 2]|0) > 0)|0) {
             freeChunk = ((findChunk((nbytes|0))|0))|0;
             
-            if ((((freeChunk|0) | 0) > (0|0))|0) {
+            if ((((freeChunk|0) | 0) > 0)|0) {
                 if (((((freeChunk|0) | 0) == (tmp1|0))|0)) {
                     HEAP32[(28) >> 2] = (nextFree((freeChunk|0))|0) | 0;
                 }
@@ -150,7 +150,7 @@ function TurboModule(stdlib, foreign, buffer) {
                     HEAP32[(32) >> 2] = 0;
                 }
                 
-                HEAP32[(24) >> 2] = ((HEAP32[(24) >> 2]|0) - (1|0))|0;
+                HEAP32[(24) >> 2] = ((HEAP32[(24) >> 2]|0) - 1)|0;
                 setInuse((freeChunk|0));
                 tmp4 = ((getChunkSize((freeChunk|0))|0))|0;
                 tmp3 = ((((tmp3|0) - (tmp4|0))|0)|0)|0;
@@ -206,7 +206,7 @@ function TurboModule(stdlib, foreign, buffer) {
     function setHeadSize(ptr, s) {
         ptr = ptr|0;
         s = s|0;
-        HEAP32[(ptr ) >> 2] = ((((HEAP32[(ptr ) >> 2]|0) & (7|0))|0)|0 | (s|0))|0;
+        HEAP32[(ptr ) >> 2] = ((((HEAP32[(ptr ) >> 2]|0) & 7)|0)|0 | (s|0))|0;
     }
     
     
@@ -224,24 +224,24 @@ function TurboModule(stdlib, foreign, buffer) {
     function setInuse(ptr) {
         ptr = ptr|0;
         var chunkptr = 0;
-        chunkptr = (((((ptr|0) | 0) - (4|0))|0)|0)|0;
-        HEAP32[(chunkptr ) >> 2] = ((HEAP32[(chunkptr ) >> 2]|0) | (1|0))|0;
+        chunkptr = (((((ptr|0) | 0) - 4)|0)|0)|0;
+        HEAP32[(chunkptr ) >> 2] = ((HEAP32[(chunkptr ) >> 2]|0) | 1)|0;
     }
     
     
     function clearInuse(ptr) {
         ptr = ptr|0;
         var chunkptr = 0;
-        chunkptr = (((((ptr|0) | 0) - (4|0))|0)|0)|0;
-        HEAP32[(chunkptr ) >> 2] = ((HEAP32[(chunkptr ) >> 2]|0) & (-2|0))|0;
+        chunkptr = (((((ptr|0) | 0) - 4)|0)|0)|0;
+        HEAP32[(chunkptr ) >> 2] = ((HEAP32[(chunkptr ) >> 2]|0) & -2)|0;
     }
     
     
     function getChunkSize(ptr) {
         ptr = ptr|0;
         var chunkptr = 0;
-        chunkptr = (((((ptr|0) | 0) - (4|0))|0)|0)|0;
-        return ((HEAP32[(chunkptr ) >> 2]|0) & (-2|0))|0;
+        chunkptr = (((((ptr|0) | 0) - 4)|0)|0)|0;
+        return ((HEAP32[(chunkptr ) >> 2]|0) & -2)|0;
     }
     
     
@@ -266,7 +266,7 @@ function TurboModule(stdlib, foreign, buffer) {
         ptr = ptr|0;
         index = index|0;
         if (((index|0) < (((HEAP32[(ptr ) >> 2]|0) / (HEAP32[(ptr + (4|0) ) >> 2]|0))|0)|0)|0) {
-            return ((HEAP32[((ptr + (8|0))|0 + ((index << (2|0)))|0 ) >> 2]|0))|0;
+            return ((HEAP32[((ptr + 8)|0 + ((index << 2))|0 ) >> 2]|0))|0;
         }
         return 0;
     }
@@ -276,7 +276,7 @@ function TurboModule(stdlib, foreign, buffer) {
         ptr = ptr|0;
         index = index|0;
         value = value|0;
-        HEAP32[((ptr + (8|0))|0 + ((index << (2|0)))|0 ) >> 2] = (value|0);
+        HEAP32[((ptr + 8)|0 + ((index << 2))|0 ) >> 2] = (value|0);
     }
     
     
@@ -285,7 +285,7 @@ function TurboModule(stdlib, foreign, buffer) {
         var ptr = 0;
         ptr = malloc((8 + elementSize << 8)|0)|0;
         HEAP32[(ptr ) >> 2] = (elementSize|0);
-        HEAP32[(ptr + (4|0)) >> 2] = elementSize << (3|0);
+        HEAP32[(ptr + (4|0)) >> 2] = elementSize << 3;
         return (ptr)|0;
     }
     
@@ -294,7 +294,7 @@ function TurboModule(stdlib, foreign, buffer) {
         ptr = ptr|0;
         index = index|0;
         if (((index|0) < (HEAP32[(ptr ) >> 2]|0))|0) {
-            return +((++HEAPF64[((ptr + (8|0))|0 + ((index << (3|0)))|0 ) >> 3]));
+            return +((+HEAPF64[((ptr + 8)|0 + ((index << 3))|0 ) >> 3]));
         }
         return +(fround(0));
     }
@@ -304,7 +304,14 @@ function TurboModule(stdlib, foreign, buffer) {
         ptr = ptr|0;
         index = index|0;
         value = +value;
-        HEAPF64[((ptr + (8|0))|0 + ((index << (3|0)))|0 ) >> 3] = (+value);
+        HEAPF64[((ptr + 8)|0 + ((index << 3))|0 ) >> 3] = (+value);
+    }
+    
+    
+    function test_1() {
+        var a = 1;
+        var b = 0;
+        b = ((a|0) + 4)|0;
     }
     
     
@@ -334,9 +341,9 @@ function TurboModule(stdlib, foreign, buffer) {
         var i = 0;
         HEAP32[(40) >> 2] = Array_new(0|0, 4|0)|0;
         
-        while (((i|0) < (10|0))|0) {
+        while (((i|0) < 10)|0) {
             Array_op_set((HEAP32[(40) >> 2]|0) , (i|0), Data_new((i|0))|0);
-            i = ((((i|0) + (1|0))|0)|0)|0;
+            i = ((((i|0) + 1)|0)|0)|0;
         }
         return ((HEAP32[(40) >> 2]|0))|0;
     }
@@ -374,6 +381,7 @@ function TurboModule(stdlib, foreign, buffer) {
        Float64Array_new:Float64Array_new,
        Float64Array_op_get:Float64Array_op_get,
        Float64Array_op_set:Float64Array_op_set,
+       test_1:test_1,
        Data_new:Data_new,
        Data_set:Data_set,
        test:test,

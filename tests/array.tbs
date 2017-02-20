@@ -1,3 +1,9 @@
+
+export function test_1():void {
+    var a:int32 = 1;
+    var b:int32 = a + 4;
+}
+
 export class Data {
 
     id: int32;

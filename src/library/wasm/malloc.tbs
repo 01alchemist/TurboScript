@@ -53,7 +53,7 @@ function init_malloc():void{
     lastFree = 0;
 }
 
-/*export*/function malloc(nbytes: uint32): *uint8 {
+export function malloc(nbytes: uint32): *uint8 {
 
     var alignment:uint32 = 8;
     nbytes = (nbytes + (alignment - 1)) & ~(alignment - 1) as uint32;
@@ -86,7 +86,7 @@ function init_malloc():void{
 
     return offset;
 }
-/*export*/function free(ptr:*uint8):void{
+export function free(ptr:*uint8):void{
     clearInuse(ptr);
     if(firstFree == 0){
         firstFree = ptr as uint32;

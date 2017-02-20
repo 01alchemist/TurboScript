@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>X Ray kernel Test 1</title>
+
+    <!--<script src="../../../../node_modules/three/build/three.js"></script>-->
+    <!--<script src="../../../../libs/threejs/controls/EditorControls.js"></script>-->
+    <!--<script src="../../../../node_modules/three/examples/js/loaders/DDSLoader.js"></script>-->
+    <!--<script src="../../../../node_modules/three/examples/js/loaders/MTLLoader.js"></script>-->
+    <!--<script src="../../../../node_modules/three/examples/js/loaders/OBJLoader.js"></script>-->
+
+</head>
+<body>
+<script>
+    async function init() {
+        let data = await fetch("../xray-kernel-turbo.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                window.exports = new WebAssembly.Instance(compiled).exports;
+                window.memory = new WebAssembly.Instance(compiled).memory;
+                window.HEAPF32 = new Float32Array(memory);
+                console.log("WASM Compiled!");
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    init().then(() => {
+        let a = exports.Vector3_new(1.1, 1.2, 1.3);
+        let b = exports.Vector3_new(2, 2, 2);
+        let c = exports.Vector3_min(a, b, a);
+
+        console.log(vec_to_json(a));
+        console.log(vec_to_json(b));
+        console.log(vec_to_json(c));
+    });
+
+    function vec_to_json(v) {
+        return {
+            ptr: v,
+            x: turbo.HEAPF32[v >> 2],
+            y: turbo.HEAPF32[v + 4 >> 2],
+            z: turbo.HEAPF32[v + 8 >> 2]
+        }
+    }
+
+</script>
+<div id="output"></div>
+<!--<script src="main.js"></script>-->
+</body>
+</html>

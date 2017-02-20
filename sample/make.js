@@ -19,7 +19,8 @@ modules.forEach((file) => {
 let TURBO_PATH = path.resolve(__dirname, "../");
 process.env.TURBO_PATH = TURBO_PATH;
 
-let outFile = path.resolve(__dirname, "xray-kernel-turbo.asm.js");
+// let outFile = path.resolve(__dirname, "xray-kernel-turbo.asm.js");
+let outFile = path.resolve(__dirname, "xray-kernel-turbo.wasm");
 
 buildCommand.push("--out");
 buildCommand.push(outFile);

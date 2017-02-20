@@ -4,13 +4,11 @@ export class Vector3 {
     x: float32;
     y: float32;
     z: float32;
-    pi:float32 = PI;
 
-    constructor(x: float32=0.0, y: float32=0.0, z: float32=0.0): Vector3 {
+    constructor(x: float32, y: float32, z: float32): Vector3 {
         this.x = x;
         this.y = y;
         this.z = z;
-        this.pi = PI;
         return this;
     }
 
@@ -56,7 +54,7 @@ export class Vector3 {
     // }
 
     length(): float32 {
-        return Math.sqrt(
+        return sqrtf32(
             (this.x * this.x) + (this.y * this.y) + (this.z * this.z)
         ) as float32;
     }
@@ -65,12 +63,12 @@ export class Vector3 {
         if (n == 2.0) {
             return this.length();
         }
-        let a = this.abs();
-        let p1 = Math.pow(a.x, n);
-        let p2 = Math.pow(a.y, n);
-        let p3 = Math.pow(a.z, n);
+        let a = this.abs(null);
+        let p1 = powf32(a.x, n);
+        let p2 = powf32(a.y, n);
+        let p3 = powf32(a.z, n);
         let xyz = p1 + p2 + p3;
-        let length: float32 = Math.pow(xyz, (1.0 as float32) / n) as float32;
+        let length: float32 = powf32(xyz, (1.0 as float32) / n) as float32;
         delete a;
         return length;
     }
@@ -80,96 +78,96 @@ export class Vector3 {
     }
 
     cross(b: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set((this.y * b.z) - (this.z * b.y), (this.z * b.x) - (this.x * b.z), (this.x * b.y) - (this.y * b.x));
     }
 
     normalize(c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         let d: float32 = this.length();
         return c.set(this.x / d, this.y / d, this.z / d);
     }
 
-    negate(c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
-        return c.set(-this.x, -this.y, -this.z);
-    }
+    // negate(c:Vector3=null): Vector3 {
+    //     c = c != null ? c : new Vector3(0.0,0.0,0.0);
+    //     return c.set(-this.x, -this.y, -this.z);
+    // }
 
     abs(c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
-        return c.set(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
+        return c.set(absf32(this.x), absf32(this.y), absf32(this.z));
     }
 
     add(b: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x + b.x, this.y + b.y, this.z + b.z);
     }
 
     sub(b: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x - b.x, this.y - b.y, this.z - b.z);
     }
 
     mul(b: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
-        return c.set(this.x * b.x, this.y * b.y, this.z * b.z);
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
+        return c.set((this.x * b.x) as float32, (this.y * b.y) as float32, (this.z * b.z) as float32);
     }
 
     div(b: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x / b.x, this.y / b.y, this.z / b.z);
     }
 
     // as implemented in GLSL
     mod(b: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x - b.x * Math.floor(this.x / b.x), this.y - b.y * Math.floor(this.y / b.y), this.z - b.z * Math.floor(this.z / b.z));
     }
 
     addScalar(f: float32, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x + f, this.y + f, this.z + f);
     }
 
     subScalar(f: float32, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x - f, this.y - f, this.z - f);
     }
 
     mulScalar(f: float32, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
-        return c.set(this.x * f, this.y * f, this.z * f);
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
+        return c.set((this.x * f) as float32, (this.y * f) as float32, (this.z * f) as float32);
     }
 
     divScalar(f: float32, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x / f, this.y / f, this.z / f);
     }
 
     min(b: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(
-            Math.min(this.x, b.x) as float32,
-            Math.min(this.y, b.y) as float32,
-            Math.min(this.z, b.z) as float32
+            minf32(this.x, b.x) as float32,
+            minf32(this.y, b.y) as float32,
+            minf32(this.z, b.z) as float32
         );
     }
 
     max(b: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(
-            Math.max(this.x, b.x) as float32,
-            Math.max(this.y, b.y) as float32,
-            Math.max(this.z, b.z) as float32
+            maxf32(this.x, b.x) as float32,
+            maxf32(this.y, b.y) as float32,
+            maxf32(this.z, b.z) as float32
         );
     }
 
     minAxis(a: Vector3, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
 
-        let x: float32 = Math.abs(this.x);
-        let y: float32 = Math.abs(this.y);
-        let z: float32 = Math.abs(this.z);
+        let x: float32 = absf32(this.x);
+        let y: float32 = absf32(this.y);
+        let z: float32 = absf32(this.z);
         if (x <= y && x <= z) {
             return c.set(1.0, 0.0, 0.0);
         } else if (y <= x && y <= z) {
@@ -179,27 +177,27 @@ export class Vector3 {
     }
 
     minComponent(a: Vector3): float32 {
-        return Math.min(Math.min(this.x, this.y), this.z) as float32;
+        return minf32(minf32(this.x, this.y), this.z) as float32;
     }
 
     maxComponent(a: Vector3): float32 {
-        return Math.max(Math.max(this.x, this.y), this.z) as float32;
+        return maxf32(maxf32(this.x, this.y), this.z) as float32;
     }
 
     reflect(b: Vector3, c:Vector3=null): Vector3 {
-        c = this.mulScalar(2.0 * this.dot(b), c);
+        c = this.mulScalar((2.0 * this.dot(b)) as float32, c);
         return b.sub(c, c);
     }
 
     refract(b: Vector3, n1: float32, n2: float32, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         let nr: float32 = n1 / n2;
         let cosI: float32 = -this.dot(b);
         let sinT2: float32 = nr * nr * (1.0 - cosI * cosI);
         if (sinT2 > 1.0) {
             return c.set(0.0, 0.0, 0.0);
         }
-        let cosT: float32 = Math.sqrt(1.0 - sinT2);
+        let cosT: float32 = sqrtf32(1.0 - sinT2);
         b.mulScalar(nr, c);
         let tmp1 = this.mulScalar(nr * (cosI - cosT));
         c.add(tmp1, c);
@@ -216,18 +214,18 @@ export class Vector3 {
         if (sinT2 > 1.0) {
             return 1.0;
         }
-        let cosT: float32 = Math.sqrt(1.0 - sinT2);
+        let cosT: float32 = sqrtf32(1.0 - sinT2);
         let rOrth: float32 = (n1 * cosI - n2 * cosT) / (n1 * cosI + n2 * cosT);
         let rPar: float32 = (n2 * cosI - n1 * cosT) / (n2 * cosI + n1 * cosT);
         return (rOrth * rOrth + rPar * rPar) / 2.0;
     }
 
     pow(f: float32, c:Vector3=null): Vector3 {
-        c = c != null ? c : new Vector3();
+        c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(
-            Math.pow(this.x, f) as float32,
-            Math.pow(this.y, f) as float32,
-            Math.pow(this.z, f) as float32
+            powf32(this.x, f) as float32,
+            powf32(this.y, f) as float32,
+            powf32(this.z, f) as float32
         );
     }
 }
@@ -241,7 +239,7 @@ export function randomUnitVector3(c:Vector3 = null): Vector3 {
         y = randomFloat32() * 2.0 - 1.0;
         z = randomFloat32() * 2.0 - 1.0;
     }
-    c = c != null ? c : new Vector3();
+    c = c != null ? c : new Vector3(0.0,0.0,0.0);
     c.set(x, y, z);
     return c.normalize(c);
 }

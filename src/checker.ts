@@ -186,6 +186,11 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
                                                                                         null;
             }
         }
+
+        if(symbol.name == "constructor"){
+            symbol.rename = "new";
+        }
+
         addScopeToSymbol(symbol, parentScope);
         linkSymbolToNode(symbol, node);
         parentScope.define(context.log, symbol,
@@ -563,6 +568,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                 resolveAsExpression(context, value, symbol.scope);
                 checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), ConversionKind.IMPLICIT);
 
+                //FIXME: Why we need to set offset like this?
                 if (value.kind == NodeKind.INT32 || value.kind == NodeKind.INT64 || value.kind == NodeKind.BOOLEAN) {
                     symbol.offset = value.intValue;
                 }

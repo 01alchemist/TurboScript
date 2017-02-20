@@ -25,3 +25,14 @@ declare class Math {
     static tan(x: float64): float64;
     static imul(a: int32, b:int32): int32;
 }
+
+function powf32(x:float32, y:float32):float32{
+    return Math.pow(x as float64, y as float64) as float32;
+}
+
+function minf32(x:float32, y:float32):float32{
+    return Math.min(x as float64, y as float64) as float32;
+}
+function maxf32(x:float32, y:float32):float32{
+    return Math.max(x as float64, y as float64) as float32;
+}

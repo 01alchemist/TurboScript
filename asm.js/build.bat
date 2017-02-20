@@ -1,1 +1,1 @@
-emcc empty.cpp -s EXPORTED_FUNCTIONS="['_getString']"
+emcc test.cpp -s EXPORTED_FUNCTIONS="['_getRandom']"

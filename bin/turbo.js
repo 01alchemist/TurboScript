@@ -6808,7 +6808,7 @@ System.register("utils", [], function (exports_13, context_13) {
         }
     };
 });
-System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilder", "wasm/opcode", "utils"], function (exports_14, context_14) {
+System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode", "utils"], function (exports_14, context_14) {
     "use strict";
     var __moduleName = context_14 && context_14.id;
     function wasmAreSignaturesEqual(a, b) {
@@ -6832,6 +6832,10 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
             return false;
         }
         return true;
+    }
+    function getWasmFunctionName(symbol) {
+        let moduleName = symbol.kind == symbol_6.SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "";
+        return (moduleName == "" ? "" : moduleName + "_") + (symbol.rename ? symbol.rename : symbol.name);
     }
     function wasmStartSection(array, id, name) {
         let section = new SectionBuffer(id, name);
@@ -6878,6 +6882,9 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
         }
         else if (type.isLong() || (bitness == Bitness.x64 && type.pointerTo)) {
             return "I64";
+        }
+        else {
+            return "I32";
         }
     }
     function wasmAssignLocalVariableOffsets(fn, node, shared) {
@@ -6946,11 +6953,13 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
         // assert(module.freeFunctionIndex != -1);
         // assert(module.currentHeapPointer != -1);
         // assert(module.originalHeapPointer != -1);
+        module.mallocFunctionIndex += module.importCount;
+        module.freeFunctionIndex += module.importCount;
         compiler.outputWASM = new bytearray_1.ByteArray();
         module.emitModule(compiler.outputWASM);
     }
     exports_14("wasmEmit", wasmEmit);
-    var symbol_6, bytearray_1, imports_1, node_6, stringbuilder_8, opcode_1, utils_1, WASM_MAGIC, WASM_VERSION, WASM_SIZE_IN_PAGES, WASM_SET_MAX_MEMORY, WASM_MAX_MEMORY, WASM_MEMORY_INITIALIZER_BASE, debug, Bitness, WasmType, WasmSection, WasmExternalKind, WasmWrappedType, WasmSignature, SectionBuffer, WasmGlobal, WasmLocal, WasmFunction, WasmImport, WasmModule, WasmSharedOffset;
+    var symbol_6, bytearray_1, imports_1, node_6, opcode_1, utils_1, WASM_MAGIC, WASM_VERSION, WASM_SIZE_IN_PAGES, WASM_SET_MAX_MEMORY, WASM_MAX_MEMORY, WASM_MEMORY_INITIALIZER_BASE, debug, Bitness, WasmType, WasmSection, WasmExternalKind, WasmWrappedType, WasmSignature, SectionBuffer, WasmGlobal, WasmLocal, WasmFunction, WasmImport, WasmModule, WasmSharedOffset;
     return {
         setters: [
             function (symbol_6_1) {
@@ -6964,9 +6973,6 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
             },
             function (node_6_1) {
                 node_6 = node_6_1;
-            },
-            function (stringbuilder_8_1) {
-                stringbuilder_8 = stringbuilder_8_1;
             },
             function (opcode_1_1) {
                 opcode_1 = opcode_1_1;
@@ -6998,6 +7004,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                 WasmType[WasmType["block_type"] = 64] = "block_type";
             })(WasmType || (WasmType = {}));
             (function (WasmSection) {
+                WasmSection[WasmSection["Name"] = 0] = "Name";
                 WasmSection[WasmSection["Type"] = 1] = "Type";
                 WasmSection[WasmSection["Import"] = 2] = "Import";
                 WasmSection[WasmSection["Function"] = 3] = "Function";
@@ -7191,13 +7198,15 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     log(section.data, array.position, this.importCount, "num imports");
                     section.data.writeUnsignedLEB128(this.importCount);
                     let current = this.firstImport;
+                    let count = 0;
                     while (current != null) {
-                        log(section.data, array.position, null, `import ${current.module} ${current.name}`);
+                        log(section.data, array.position, null, `import func (${count}) ${current.module} ${current.name}`);
                         section.data.writeWasmString(current.module);
                         section.data.writeWasmString(current.name);
                         section.data.writeUnsignedLEB128(WasmExternalKind.Function);
                         section.data.writeUnsignedLEB128(current.signatureIndex);
                         current = current.next;
+                        count++;
                     }
                     wasmFinishSection(array, section);
                 }
@@ -7209,9 +7218,9 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     log(section.data, array.position, this.functionCount, "num functions");
                     section.data.writeUnsignedLEB128(this.functionCount);
                     let fn = this.firstFunction;
-                    let count = 0;
+                    let count = this.importCount;
                     while (fn != null) {
-                        log(section.data, array.position, fn.signatureIndex, `func ${count} sig ${fn.symbol.name}`);
+                        log(section.data, array.position, fn.signatureIndex, `func ${count} sig ${getWasmFunctionName(fn.symbol)}`);
                         section.data.writeUnsignedLEB128(fn.signatureIndex);
                         fn = fn.next;
                         count++;
@@ -7307,9 +7316,10 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     fn = this.firstFunction;
                     while (fn != null) {
                         if (fn.isExported) {
-                            log(section.data, array.position, fn.symbol.name.length, "export name length");
-                            log(section.data, null, null, `${utils_1.toHex(section.data.position + array.position + 4)}: ${fn.symbol.name} // export name`);
-                            section.data.writeWasmString(fn.symbol.name);
+                            let fnName = getWasmFunctionName(fn.symbol);
+                            log(section.data, array.position, fnName.length, "export name length");
+                            log(section.data, null, null, `${utils_1.toHex(section.data.position + array.position + 4)}: ${fnName} // export name`);
+                            section.data.writeWasmString(fnName);
                             log(section.data, array.position, WasmExternalKind.Function, "export kind");
                             section.data.writeUnsignedLEB128(WasmExternalKind.Function);
                             log(section.data, array.position, i, "export func index");
@@ -7370,7 +7380,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         appendOpcode(bodyData, sectionOffset, opcode_1.WasmOpcode.END); //end, 0x0b, indicating the end of the body
                         //Copy and finish body
                         section.data.writeUnsignedLEB128(bodyData.length);
-                        log(section.data, offset, null, ` - func body ${count++} (${fn.symbol.name})`);
+                        log(section.data, offset, null, ` - func body ${count++} (${getWasmFunctionName(fn.symbol)})`);
                         log(section.data, offset, bodyData.length, "func body size");
                         section.data.log += bodyData.log;
                         section.data.copy(bodyData);
@@ -7426,14 +7436,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     array.writeUnsignedLEB128(this.functionCount);
                     let fn = this.firstFunction;
                     while (fn != null) {
-                        let name = fn.symbol.name;
-                        if (fn.symbol.kind == symbol_6.SymbolKind.FUNCTION_INSTANCE) {
-                            name = stringbuilder_8.StringBuilder_new()
-                                .append(fn.symbol.parent().name)
-                                .appendChar('.')
-                                .append(name)
-                                .finish();
-                        }
+                        let name = getWasmFunctionName(fn.symbol);
                         array.writeWasmString(name);
                         array.writeUnsignedLEB128(0); // No local variables for now
                         fn = fn.next;
@@ -7545,7 +7548,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             return;
                         }
                         else {
-                            symbol.offset = this.importCount + this.functionCount;
+                            symbol.offset = this.functionCount;
                         }
                         let fn = this.allocateFunction(symbol, signatureIndex);
                         // Make sure "malloc" is tracked
@@ -7688,9 +7691,10 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         this.emitNode(array, byteOffset, child);
                         child = child.nextSibling;
                     }
+                    let callIndex = this.getWasmFunctionCallIndex(callSymbol);
                     appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
-                    log(array, byteOffset, callSymbol.offset, `call func index (${callSymbol.offset})`);
-                    array.writeUnsignedLEB128(callSymbol.offset);
+                    log(array, byteOffset, callIndex, `call func index (${callIndex})`);
+                    array.writeUnsignedLEB128(callIndex);
                 }
                 emitNode(array, byteOffset, node) {
                     assert(!node_6.isExpression(node) || node.resolvedType != null);
@@ -7925,9 +7929,10 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                             this.emitNode(array, byteOffset, child);
                             child = child.nextSibling;
                         }
+                        let callIndex = this.getWasmFunctionCallIndex(symbol);
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.CALL);
-                        log(array, byteOffset, symbol.offset, `call func index (${symbol.offset})`);
-                        array.writeUnsignedLEB128(symbol.offset);
+                        log(array, byteOffset, callIndex, `call func index (${callIndex})`);
+                        array.writeUnsignedLEB128(callIndex);
                     }
                     else if (node.kind == node_6.NodeKind.NEW) {
                         let type = node.newType();
@@ -7977,42 +7982,184 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                         let fromSize = from.variableSizeOf(context);
                         let typeSize = type.variableSizeOf(context);
                         // The cast isn't needed if it's to a wider integer type
-                        if (from == type || fromSize < typeSize) {
+                        // if (from != context.float32Type && from != context.float64Type && (from == type || fromSize < typeSize)) {
+                        //     this.emitNode(array, byteOffset, value);
+                        // }
+                        //
+                        // else {
+                        // Sign-extend
+                        if (type == context.int8Type || type == context.int16Type) {
+                            let shift = 32 - typeSize * 8;
                             this.emitNode(array, byteOffset, value);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                            log(array, byteOffset, shift, "i32 literal");
+                            array.writeLEB128(shift);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHR_S);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                            log(array, byteOffset, shift, "i32 literal");
+                            array.writeLEB128(shift);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
                         }
-                        else {
-                            // Sign-extend
-                            if (type == context.int8Type || type == context.int16Type) {
-                                let shift = 32 - typeSize * 8;
-                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHR_S);
-                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
-                                this.emitNode(array, byteOffset, value);
-                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                log(array, byteOffset, shift, "i32 literal");
-                                array.writeLEB128(shift);
-                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                log(array, byteOffset, shift, "i32 literal");
-                                array.writeLEB128(shift);
+                        else if (type == context.uint8Type || type == context.uint16Type) {
+                            this.emitNode(array, byteOffset, value);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                            let _value = type.integerBitMask(this.context);
+                            log(array, byteOffset, _value, "i32 literal");
+                            array.writeLEB128(_value);
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_AND);
+                        }
+                        else if ((from == context.int32Type || from == context.uint32Type) &&
+                            (type == context.int64Type || type == context.uint64Type)) {
+                            if (value.kind == node_6.NodeKind.INT32) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
+                                log(array, byteOffset, node.longValue, "i64 literal");
+                                array.writeLEB128(node.longValue || 0); //TODO: implement i64 write
                             }
-                            else if (type == context.uint8Type || type == context.uint16Type) {
+                            else {
+                                let isUnsigned = value.resolvedType.isUnsigned();
                                 this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.I64_EXTEND_U_I32 : opcode_1.WasmOpcode.I64_EXTEND_S_I32);
+                            }
+                        }
+                        else if ((from == context.int32Type || from == context.uint32Type) &&
+                            type == context.float32Type) {
+                            if (value.kind == node_6.NodeKind.INT32) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
+                                log(array, byteOffset, node.floatValue, "f32 literal");
+                                array.writeFloat(node.floatValue || 0);
+                            }
+                            else {
+                                let isUnsigned = value.resolvedType.isUnsigned();
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.F32_CONVERT_U_I32 : opcode_1.WasmOpcode.F32_CONVERT_S_I32);
+                            }
+                        }
+                        else if ((from == context.int32Type || from == context.uint32Type) &&
+                            type == context.float64Type) {
+                            if (value.kind == node_6.NodeKind.INT32) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
+                                log(array, byteOffset, node.doubleValue, "f64 literal");
+                                array.writeDouble(node.doubleValue || 0);
+                            }
+                            else {
+                                let isUnsigned = value.resolvedType.isUnsigned();
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.F64_CONVERT_U_I32 : opcode_1.WasmOpcode.F64_CONVERT_S_I32);
+                            }
+                        }
+                        else if ((from == context.int64Type || from == context.uint64Type) &&
+                            (type == context.int32Type || type == context.uint32Type)) {
+                            if (value.kind == node_6.NodeKind.INT64) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                let _value = type.integerBitMask(this.context);
-                                log(array, byteOffset, _value, "i32 literal");
-                                array.writeLEB128(_value);
-                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_AND);
-                            }
-                            else if (from == context.int32Type && type == context.float32Type) {
-                                //TODO implement
-                                this.emitNode(array, byteOffset, value);
-                            }
-                            else if (from == context.float32Type && type == context.int32Type) {
-                                //TODO implement
-                                this.emitNode(array, byteOffset, value);
+                                log(array, byteOffset, node.intValue, "i32 literal");
+                                array.writeLEB128(node.intValue || 0);
                             }
                             else {
                                 this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_WRAP_I64);
                             }
+                        }
+                        else if ((from == context.int64Type || from == context.uint64Type) &&
+                            type == context.float32Type) {
+                            if (value.kind == node_6.NodeKind.INT32) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
+                                log(array, byteOffset, node.floatValue, "f32 literal");
+                                array.writeFloat(node.floatValue || 0);
+                            }
+                            else {
+                                let isUnsigned = value.resolvedType.isUnsigned();
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.F32_CONVERT_U_I64 : opcode_1.WasmOpcode.F32_CONVERT_S_I64);
+                            }
+                        }
+                        else if (from == context.int64Type && type == context.float64Type) {
+                            if (value.kind == node_6.NodeKind.INT64) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
+                                log(array, byteOffset, node.doubleValue, "f64 literal");
+                                array.writeDouble(node.doubleValue || 0);
+                            }
+                            else {
+                                let isUnsigned = value.resolvedType.isUnsigned();
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.F64_CONVERT_U_I64 : opcode_1.WasmOpcode.F64_CONVERT_S_I64);
+                            }
+                        }
+                        else if (from == context.float32Type &&
+                            (type == context.int32Type || type == context.uint32Type)) {
+                            if (value.kind == node_6.NodeKind.FLOAT32) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                                log(array, byteOffset, node.intValue, "i32 literal");
+                                array.writeLEB128(node.intValue || 0);
+                            }
+                            else {
+                                let isUnsigned = type.isUnsigned();
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.I32_TRUNC_U_F32 : opcode_1.WasmOpcode.I32_TRUNC_S_F32);
+                            }
+                        }
+                        else if (from == context.float32Type &&
+                            (type == context.int64Type || type == context.uint64Type)) {
+                            if (value.kind == node_6.NodeKind.FLOAT32) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
+                                log(array, byteOffset, node.longValue, "i64 literal");
+                                array.writeLEB128(node.longValue || 0);
+                            }
+                            else {
+                                let isUnsigned = type.isUnsigned();
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.I64_TRUNC_U_F32 : opcode_1.WasmOpcode.I64_TRUNC_S_F32);
+                            }
+                        }
+                        else if (from == context.float32Type && type == context.float64Type) {
+                            if (value.kind == node_6.NodeKind.FLOAT32) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
+                                log(array, byteOffset, node.doubleValue, "f64 literal");
+                                array.writeDouble(node.doubleValue || 0);
+                            }
+                            else {
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_PROMOTE_F32);
+                            }
+                        }
+                        else if (from == context.float64Type &&
+                            (type == context.int32Type || type == context.uint32Type)) {
+                            if (value.kind == node_6.NodeKind.FLOAT64) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                                log(array, byteOffset, node.intValue, "i32 literal");
+                                array.writeLEB128(node.intValue || 0);
+                            }
+                            else {
+                                let isUnsigned = type.isUnsigned();
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.I32_TRUNC_U_F64 : opcode_1.WasmOpcode.I32_TRUNC_S_F64);
+                            }
+                        }
+                        else if (from == context.float64Type &&
+                            (type == context.int64Type || type == context.uint64Type)) {
+                            if (value.kind == node_6.NodeKind.FLOAT64) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
+                                log(array, byteOffset, node.longValue, "i64 literal");
+                                array.writeLEB128(node.longValue || 0);
+                            }
+                            else {
+                                let isUnsigned = type.isUnsigned();
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, isUnsigned ? opcode_1.WasmOpcode.I64_TRUNC_U_F64 : opcode_1.WasmOpcode.I64_TRUNC_S_F64);
+                            }
+                        }
+                        else if (from == context.float64Type && type == context.float32Type) {
+                            if (value.kind == node_6.NodeKind.FLOAT64) {
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
+                                log(array, byteOffset, node.floatValue, "f32 literal");
+                                array.writeFloat(node.floatValue || 0);
+                            }
+                            else {
+                                this.emitNode(array, byteOffset, value);
+                                appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_DEMOTE_F64);
+                            }
+                        }
+                        else {
+                            this.emitNode(array, byteOffset, value);
                         }
                     }
                     else if (node.kind == node_6.NodeKind.DOT) {
@@ -8158,11 +8305,11 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                         array.writeLEB128(_value);
                                     }
                                     else {
-                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
                                         this.emitNode(array, byteOffset, right);
                                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                         log(array, byteOffset, 1, "i32 literal");
                                         array.writeLEB128(1);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
                                     }
                                 }
                                 else if (size == 4) {
@@ -8178,11 +8325,11 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                                         array.writeFloat(right.floatValue);
                                     }
                                     else {
-                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
                                         this.emitNode(array, byteOffset, right);
                                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
                                         log(array, byteOffset, 2, "i32 literal");
                                         array.writeLEB128(2);
+                                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
                                     }
                                 }
                                 else if (size == 8) {
@@ -8271,6 +8418,9 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "stringbuilde
                     }
                     return 1;
                 }
+                getWasmFunctionCallIndex(symbol) {
+                    return symbol.node.isExternalImport() ? symbol.offset : this.importCount + symbol.offset;
+                }
                 getWasmType(type) {
                     let context = this.context;
                     if (type == context.booleanType || type.isClass() || type.isInteger() || (this.bitness == Bitness.x32 && type.isReference())) {
@@ -8318,9 +8468,11 @@ System.register("library/library", ["compiler"], function (exports_15, context_1
                     switch (target) {
                         case compiler_2.CompileTarget.WEBASSEMBLY:
                             lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/types.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/foreign.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/malloc.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/math.tbs") + "\n";
                             lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/array.tbs") + "\n";
+                            lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/typedarray/float64array.tbs") + "\n";
                             return lib;
                         case compiler_2.CompileTarget.TURBO_JAVASCRIPT:
                             lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/types.tbs") + "\n";
@@ -8593,7 +8745,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
     }
     function asmJsEmit(compiler) {
         reset();
-        let code = stringbuilder_9.StringBuilder_new();
+        let code = stringbuilder_8.StringBuilder_new();
         let module = new AsmJsModule();
         module.context = compiler.context;
         module.memoryInitializer = new bytearray_2.ByteArray();
@@ -8640,14 +8792,14 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
         compiler.outputJS = code.finish();
     }
     exports_16("asmJsEmit", asmJsEmit);
-    var bytearray_2, stringbuilder_9, node_7, parser_5, js_2, symbol_7, imports_2, ASM_MEMORY_INITIALIZER_BASE, optimization, importMap, classMap, functionMap, jsFunctionMap, signatureMap, virtualMap, currentClass, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, AsmJsModule;
+    var bytearray_2, stringbuilder_8, node_7, parser_5, js_2, symbol_7, imports_2, ASM_MEMORY_INITIALIZER_BASE, optimization, importMap, classMap, functionMap, jsFunctionMap, signatureMap, virtualMap, currentClass, namespace, exportTable, AsmType, AsmWrappedType, AsmSignature, AsmGlobal, AsmLocal, AsmSharedOffset, AsmFunction, AsmImport, AsmJsModule;
     return {
         setters: [
             function (bytearray_2_1) {
                 bytearray_2 = bytearray_2_1;
             },
-            function (stringbuilder_9_1) {
-                stringbuilder_9 = stringbuilder_9_1;
+            function (stringbuilder_8_1) {
+                stringbuilder_8 = stringbuilder_8_1;
             },
             function (node_7_1) {
                 node_7 = node_7_1;
@@ -8817,6 +8969,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     let childForceCastType = null;
                     let forceCastLeft = false;
                     let forceCastRight = false;
+                    let casted = false;
                     if (leftNode.resolvedType != rightNode.resolvedType && (leftNode.resolvedType.isDouble() || rightNode.resolvedType.isDouble())) {
                         childForceCastType = AsmType.DOUBLE;
                         if (!leftNode.resolvedType.isDouble()) {
@@ -8833,9 +8986,11 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                         this.code.append("(");
                     }
                     if (!isRightAssociative && forceCast) {
+                        casted = true;
                         this.code.append(identifier.left);
                     }
                     if (node_7.isBinary(leftNode.kind) || forceCastLeft) {
+                        casted = true;
                         this.code.append(idLeft.left);
                     }
                     //emit left
@@ -8933,7 +9088,8 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                             this.code.append(`(+${node.intValue})`);
                         }
                         else if (parentPrecedence != parser_5.Precedence.ASSIGN) {
-                            this.code.append(`(${node.intValue}|0)`);
+                            // this.code.append(`(${node.intValue}|0)`);
+                            this.code.append(`${node.intValue}`);
                         }
                         else {
                             this.code.append(`${node.intValue}`);
@@ -9125,7 +9281,18 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                                 let needComma = false;
                                 if (node.firstChild) {
                                     let firstNode = node.firstChild.resolvedType.symbol.node;
-                                    if (!firstNode.isDeclare() && node.parent.firstChild.firstChild && node.parent.firstChild.firstChild.kind == node_7.NodeKind.DOT) {
+                                    if (value.kind == node_7.NodeKind.DOT && !value.resolvedType.symbol.node.isDeclare()) {
+                                        let dotTarget = value.dotTarget();
+                                        if (dotTarget.symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
+                                            this.emitExpression(dotTarget, parser_5.Precedence.ASSIGN, true);
+                                        }
+                                        else {
+                                            let ref = dotTarget.symbol.name == "this" ? "ptr" : dotTarget.symbol.name;
+                                            this.code.append(`${ref}`);
+                                        }
+                                        needComma = true;
+                                    }
+                                    else if (!firstNode.isDeclare() && node.parent.firstChild.firstChild && node.parent.firstChild.firstChild.kind == node_7.NodeKind.DOT) {
                                         let dotTarget = node.firstChild.firstChild;
                                         if (dotTarget.symbol) {
                                             if (dotTarget.symbol.kind == symbol_7.SymbolKind.VARIABLE_GLOBAL) {
@@ -9274,13 +9441,12 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                             this.code.append(")|0)");
                         }
                         else {
-                            this.code.append(leftIdentifier.left);
+                            // this.code.append(leftIdentifier.left);
                             this.emitExpression(left, parser_5.Precedence.MULTIPLY);
-                            this.code.append(leftIdentifier.right);
+                            // this.code.append(leftIdentifier.right);
                             this.code.append(" * ");
-                            this.code.append(rightIdentifier.left);
+                            // this.code.append(rightIdentifier.left);
                             this.emitExpression(right, parser_5.Precedence.MULTIPLY);
-                            this.code.append(rightIdentifier.right);
                         }
                         this.foundMultiply = true;
                     }
@@ -9326,8 +9492,8 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                     else if (sizeOf == 8) {
                         // idLeft = "(+";
                         // idRight = ")";
-                        idLeft = "+";
-                        idRight = "";
+                        // idLeft = "+";
+                        // idRight = "";
                         this.code.append(`${idLeft}HEAPF64[(`);
                         shift = 3;
                     }
@@ -9635,7 +9801,7 @@ System.register("asmjs", ["bytearray", "stringbuilder", "node", "parser", "js", 
                                 if (value.kind != node_7.NodeKind.NEW && value.kind != node_7.NodeKind.CALL) {
                                     this.code.append(identifier.left);
                                 }
-                                this.emitExpression(value, parser_5.Precedence.LOWEST);
+                                this.emitExpression(value, parser_5.Precedence.ASSIGN, false);
                                 if (value.kind != node_7.NodeKind.NEW && value.kind != node_7.NodeKind.CALL) {
                                     this.code.append(identifier.right);
                                 }
@@ -10287,12 +10453,12 @@ System.register("preparser", ["lexer", "main", "stringbuilder"], function (expor
     function resolveImport(importPath) {
         let contents = stdlib.IO_readTextFile(importPath);
         if (contents == null) {
-            main_1.printError(stringbuilder_10.StringBuilder_new().append("Cannot read from ").append(importPath).finish());
+            main_1.printError(stringbuilder_9.StringBuilder_new().append("Cannot read from ").append(importPath).finish());
             return null;
         }
         return contents;
     }
-    var lexer_4, main_1, stringbuilder_10;
+    var lexer_4, main_1, stringbuilder_9;
     return {
         setters: [
             function (lexer_4_1) {
@@ -10301,8 +10467,8 @@ System.register("preparser", ["lexer", "main", "stringbuilder"], function (expor
             function (main_1_1) {
                 main_1 = main_1_1;
             },
-            function (stringbuilder_10_1) {
-                stringbuilder_10 = stringbuilder_10_1;
+            function (stringbuilder_9_1) {
+                stringbuilder_9 = stringbuilder_9_1;
             }
         ],
         execute: function () {
@@ -10313,7 +10479,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
     "use strict";
     var __moduleName = context_18 && context_18.id;
     function replaceFileExtension(path, extension) {
-        var builder = stringbuilder_11.StringBuilder_new();
+        var builder = stringbuilder_10.StringBuilder_new();
         var dot = path.lastIndexOf(".");
         var forward = path.lastIndexOf("/");
         var backward = path.lastIndexOf("\\");
@@ -10324,7 +10490,7 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
         return builder.append(path).append(extension).finish();
     }
     exports_18("replaceFileExtension", replaceFileExtension);
-    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_5, parser_6, shaking_1, stringbuilder_11, wasm_1, library_1, asmjs_1, preparser_1, CompileTarget, Compiler;
+    var checker_1, node_8, log_4, preprocessor_1, scope_1, lexer_5, parser_6, shaking_1, stringbuilder_10, wasm_1, library_1, asmjs_1, preparser_1, CompileTarget, Compiler;
     return {
         setters: [
             function (checker_1_1) {
@@ -10351,8 +10517,8 @@ System.register("compiler", ["checker", "node", "log", "preprocessor", "scope", 
             function (shaking_1_1) {
                 shaking_1 = shaking_1_1;
             },
-            function (stringbuilder_11_1) {
-                stringbuilder_11 = stringbuilder_11_1;
+            function (stringbuilder_10_1) {
+                stringbuilder_10 = stringbuilder_10_1;
             },
             function (wasm_1_1) {
                 wasm_1 = wasm_1_1;
@@ -10683,6 +10849,9 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                                                                                             null;
                 }
             }
+            if (symbol.name == "constructor") {
+                symbol.rename = "new";
+            }
             addScopeToSymbol(symbol, parentScope);
             linkSymbolToNode(symbol, node);
             parentScope.define(context.log, symbol, symbol.isSetter() ? scope_2.ScopeHint.NOT_GETTER :
@@ -10866,7 +11035,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else if (node.isSet()) {
-                symbol.rename = stringbuilder_12.StringBuilder_new()
+                symbol.rename = stringbuilder_11.StringBuilder_new()
                     .append("set_")
                     .append(symbol.name)
                     .finish();
@@ -10878,7 +11047,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             else if (node.isOperator()) {
                 if (symbol.name == "~" || symbol.name == "++" || symbol.name == "--") {
                     if (argumentCount != 1) {
-                        context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
+                        context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
                             .append("Operator '")
                             .append(symbol.name)
                             .append("' must not have any arguments")
@@ -10887,7 +11056,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
                 else if (symbol.name == "+" || symbol.name == "-") {
                     if (argumentCount > 2) {
-                        context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
+                        context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
                             .append("Operator '")
                             .append(symbol.name)
                             .append("' must have at most one argument")
@@ -10900,7 +11069,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                 }
                 else if (argumentCount != 2) {
-                    context.log.error(symbol.range, stringbuilder_12.StringBuilder_new()
+                    context.log.error(symbol.range, stringbuilder_11.StringBuilder_new()
                         .append("Operator '")
                         .append(symbol.name)
                         .append("' must have exactly one argument")
@@ -10939,7 +11108,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 if (shouldConvertInstanceToGlobal) {
                     symbol.kind = symbol_8.SymbolKind.FUNCTION_GLOBAL;
                     symbol.flags = symbol.flags | symbol_8.SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL;
-                    symbol.rename = stringbuilder_12.StringBuilder_new()
+                    symbol.rename = stringbuilder_11.StringBuilder_new()
                         .append(parent.name)
                         .appendChar('_')
                         .append(symbol.rename != null ? symbol.rename : symbol.name)
@@ -10988,7 +11157,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             }
             // Validate the variable type
             if (symbol.resolvedType == context.voidType || symbol.resolvedType == context.nullType) {
-                context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                     .append("Cannot create a variable with type '")
                     .append(symbol.resolvedType.toString())
                     .appendChar('\'')
@@ -11000,6 +11169,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 if (value != null) {
                     resolveAsExpression(context, value, symbol.scope);
                     checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), type_2.ConversionKind.IMPLICIT);
+                    //FIXME: Why we need to set offset like this?
                     if (value.kind == node_9.NodeKind.INT32 || value.kind == node_9.NodeKind.INT64 || value.kind == node_9.NodeKind.BOOLEAN) {
                         symbol.offset = value.intValue;
                     }
@@ -11031,7 +11201,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 while (scope != null) {
                     let shadowed = scope.findLocal(symbol.name, scope_2.ScopeHint.NORMAL);
                     if (shadowed != null) {
-                        context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("The symbol '")
                             .append(symbol.name)
                             .append("' shadows another symbol with the same name in a parent scope")
@@ -11187,7 +11357,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     exports_20("canConvert", canConvert);
     function checkConversion(context, node, to, kind) {
         if (!canConvert(context, node, to, kind)) {
-            context.log.error(node.range, stringbuilder_12.StringBuilder_new()
+            context.log.error(node.range, stringbuilder_11.StringBuilder_new()
                 .append("Cannot convert from type '")
                 .append(node.resolvedType.toString())
                 .append("' to type '")
@@ -11305,7 +11475,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
     exports_20("isBinaryDouble", isBinaryDouble);
     function isSymbolAccessAllowed(context, symbol, node, range) {
         if (symbol.isUnsafe() && !context.isUnsafeAllowed) {
-            context.log.error(range, stringbuilder_12.StringBuilder_new()
+            context.log.error(range, stringbuilder_11.StringBuilder_new()
                 .append("Cannot use symbol '")
                 .append(symbol.name)
                 .append("' outside an 'unsafe' block")
@@ -11315,7 +11485,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         if (symbol.node != null && symbol.node.isPrivate()) {
             let parent = symbol.parent();
             if (parent != null && context.enclosingClass != parent) {
-                context.log.error(range, stringbuilder_12.StringBuilder_new()
+                context.log.error(range, stringbuilder_11.StringBuilder_new()
                     .append("Cannot access private symbol '")
                     .append(symbol.name)
                     .append("' here")
@@ -11325,14 +11495,14 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
         if (symbol_8.isFunction(symbol.kind) && (symbol.isSetter() ? !node.isAssignTarget() : !node.isCallValue())) {
             if (symbol.isSetter()) {
-                context.log.error(range, stringbuilder_12.StringBuilder_new()
+                context.log.error(range, stringbuilder_11.StringBuilder_new()
                     .append("Cannot use setter '")
                     .append(symbol.name)
                     .append("' here")
                     .finish());
             }
             else {
-                context.log.error(range, stringbuilder_12.StringBuilder_new()
+                context.log.error(range, stringbuilder_11.StringBuilder_new()
                     .append("Must call function '")
                     .append(symbol.name)
                     .appendChar('\'')
@@ -11484,7 +11654,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             if (type != context.errorType) {
                 let symbol = type.hasInstanceMembers() ? type.findMember("[]", scope_2.ScopeHint.NORMAL) : null;
                 if (symbol == null) {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot index into type '")
                         .append(target.resolvedType.toString())
                         .appendChar('\'')
@@ -11533,7 +11703,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let name = node.stringValue;
             let symbol = parentScope.findNested(name, scope_2.ScopeHint.NORMAL, scope_2.FindNested.NORMAL);
             if (symbol == null) {
-                let builder = stringbuilder_12.StringBuilder_new()
+                let builder = stringbuilder_11.StringBuilder_new()
                     .append("No symbol named '")
                     .append(name)
                     .append("' here");
@@ -11552,7 +11722,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 context.log.error(node.range, builder.finish());
             }
             else if (symbol.state == symbol_8.SymbolState.INITIALIZING) {
-                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
+                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
                     .append("Cyclic reference to symbol '")
                     .append(name)
                     .append("' here")
@@ -11637,7 +11807,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     if (name.length > 0) {
                         let symbol = target.resolvedType.findMember(name, node.isAssignTarget() ? scope_2.ScopeHint.PREFER_SETTER : scope_2.ScopeHint.PREFER_GETTER);
                         if (symbol == null) {
-                            context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                                 .append("No member named '")
                                 .append(name)
                                 .append("' on type '")
@@ -11664,7 +11834,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("The type '")
                         .append(target.resolvedType.toString())
                         .append("' has no members")
@@ -11679,7 +11849,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 let symbol = value.symbol;
                 // Only functions are callable
                 if (symbol == null || !symbol_8.isFunction(symbol.kind)) {
-                    context.log.error(value.range, stringbuilder_12.StringBuilder_new()
+                    context.log.error(value.range, stringbuilder_11.StringBuilder_new()
                         .append("Cannot call value of type '")
                         .append(value.resolvedType.toString())
                         .appendChar('\'')
@@ -11707,7 +11877,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     // Not enough arguments?
                     if (returnType.resolvedType != context.anyType) {
                         if (argumentVariable != returnType && !argumentVariable.hasVariableValue()) {
-                            context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                                 .append("Not enough arguments for function '")
                                 .append(symbol.name)
                                 .appendChar('\'')
@@ -11718,7 +11888,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                                 resolveAsExpression(context, argumentValue, parentScope);
                                 argumentValue = argumentValue.nextSibling;
                             }
-                            context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                            context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                                 .append("Too many arguments for function '")
                                 .append(symbol.name)
                                 .appendChar('\'')
@@ -11745,7 +11915,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else {
-                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
+                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
                     .append("Expected delete value '")
                     .append(context.currentReturnType.toString())
                     .appendChar('\'')
@@ -11766,7 +11936,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 }
             }
             else if (context.currentReturnType != null && context.currentReturnType != context.voidType) {
-                context.log.error(node.range, stringbuilder_12.StringBuilder_new()
+                context.log.error(node.range, stringbuilder_11.StringBuilder_new()
                     .append("Expected return value in function returning '")
                     .append(context.currentReturnType.toString())
                     .appendChar('\'')
@@ -11821,7 +11991,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let commonType = (yes.resolvedType == context.nullType ? no : yes).resolvedType;
             if (yes.resolvedType != commonType && (yes.resolvedType != context.nullType || !commonType.isReference()) &&
                 no.resolvedType != commonType && (no.resolvedType != context.nullType || !commonType.isReference())) {
-                context.log.error(log_5.spanRanges(yes.range, no.range), stringbuilder_12.StringBuilder_new()
+                context.log.error(log_5.spanRanges(yes.range, no.range), stringbuilder_11.StringBuilder_new()
                     .append("Type '")
                     .append(yes.resolvedType.toString())
                     .append("' is not the same as type '")
@@ -11841,7 +12011,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 if (type != context.errorType) {
                     let symbol = type.hasInstanceMembers() ? type.findMember("[]=", scope_2.ScopeHint.NORMAL) : null;
                     if (symbol == null) {
-                        context.log.error(left.internalRange, stringbuilder_12.StringBuilder_new()
+                        context.log.error(left.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("Cannot index into type '")
                             .append(target.resolvedType.toString())
                             .appendChar('\'')
@@ -11887,7 +12057,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             //}
             if (type.resolvedType != context.errorType) {
                 if (!type.resolvedType.isClass()) {
-                    context.log.error(type.range, stringbuilder_12.StringBuilder_new()
+                    context.log.error(type.range, stringbuilder_11.StringBuilder_new()
                         .append("Cannot construct type '")
                         .append(type.resolvedType.toString())
                         .appendChar('\'')
@@ -11936,7 +12106,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             let type = value.resolvedType;
             if (type != context.errorType) {
                 if (type.pointerTo == null) {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot dereference type '")
                         .append(type.toString())
                         .appendChar('\'')
@@ -12016,7 +12186,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     resolveAsExpression(context, node, parentScope);
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot use unary operator '")
                         .append(name)
                         .append("' with type '")
@@ -12051,7 +12221,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 node.resolvedType = context.booleanType;
                 // Both pointer types must be exactly the same
                 if (leftType != rightType) {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot compare type '")
                         .append(leftType.toString())
                         .append("' with type '")
@@ -12232,7 +12402,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                 else if (kind == node_9.NodeKind.EQUAL || kind == node_9.NodeKind.NOT_EQUAL) {
                     node.resolvedType = context.booleanType;
                     if (leftType != context.errorType && rightType != context.errorType && leftType != rightType && !canConvert(context, right, leftType, type_2.ConversionKind.IMPLICIT) && !canConvert(context, left, rightType, type_2.ConversionKind.IMPLICIT)) {
-                        context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                        context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                             .append("Cannot compare type '")
                             .append(leftType.toString())
                             .append("' with type '")
@@ -12242,7 +12412,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
                     }
                 }
                 else {
-                    context.log.error(node.internalRange, stringbuilder_12.StringBuilder_new()
+                    context.log.error(node.internalRange, stringbuilder_11.StringBuilder_new()
                         .append("Cannot use binary operator '")
                         .append(name)
                         .append("' with type '")
@@ -12260,7 +12430,7 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
         }
     }
     exports_20("resolve", resolve);
-    var symbol_8, type_2, node_9, compiler_3, log_5, scope_2, stringbuilder_12, imports_3, const_1, CheckContext, CheckMode;
+    var symbol_8, type_2, node_9, compiler_3, log_5, scope_2, stringbuilder_11, imports_3, const_1, CheckContext, CheckMode;
     return {
         setters: [
             function (symbol_8_1) {
@@ -12281,8 +12451,8 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             function (scope_2_1) {
                 scope_2 = scope_2_1;
             },
-            function (stringbuilder_12_1) {
-                stringbuilder_12 = stringbuilder_12_1;
+            function (stringbuilder_11_1) {
+                stringbuilder_11 = stringbuilder_11_1;
             },
             function (imports_3_1) {
                 imports_3 = imports_3_1;
@@ -12471,14 +12641,14 @@ System.register("symbol", ["node", "imports"], function (exports_21, context_21)
 System.register("type", ["symbol", "stringbuilder"], function (exports_22, context_22) {
     "use strict";
     var __moduleName = context_22 && context_22.id;
-    var symbol_9, stringbuilder_13, ConversionKind, Type;
+    var symbol_9, stringbuilder_12, ConversionKind, Type;
     return {
         setters: [
             function (symbol_9_1) {
                 symbol_9 = symbol_9_1;
             },
-            function (stringbuilder_13_1) {
-                stringbuilder_13 = stringbuilder_13_1;
+            function (stringbuilder_12_1) {
+                stringbuilder_12 = stringbuilder_12_1;
             }
         ],
         execute: function () {
@@ -12558,7 +12728,7 @@ System.register("type", ["symbol", "stringbuilder"], function (exports_22, conte
                 toString() {
                     if (this.cachedToString == null) {
                         this.cachedToString =
-                            this.pointerTo != null ? stringbuilder_13.StringBuilder_new().appendChar('*').append(this.pointerTo.toString()).finish() :
+                            this.pointerTo != null ? stringbuilder_12.StringBuilder_new().appendChar('*').append(this.pointerTo.toString()).finish() :
                                 this.symbol.name;
                     }
                     return this.cachedToString;
@@ -13843,11 +14013,11 @@ System.register("log", ["stringbuilder"], function (exports_24, context_24) {
         return createRange(left.source, left.start, right.end);
     }
     exports_24("spanRanges", spanRanges);
-    var stringbuilder_14, LineColumn, Source, Range, DiagnosticKind, Diagnostic, Log;
+    var stringbuilder_13, LineColumn, Source, Range, DiagnosticKind, Diagnostic, Log;
     return {
         setters: [
-            function (stringbuilder_14_1) {
-                stringbuilder_14 = stringbuilder_14_1;
+            function (stringbuilder_13_1) {
+                stringbuilder_13 = stringbuilder_13_1;
             }
         ],
         execute: function () {
@@ -13972,7 +14142,7 @@ System.register("log", ["stringbuilder"], function (exports_24, context_24) {
                     this.last = diagnostic;
                 }
                 toString() {
-                    var builder = stringbuilder_14.StringBuilder_new();
+                    var builder = stringbuilder_13.StringBuilder_new();
                     var diagnostic = this.first;
                     while (diagnostic != null) {
                         var location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
@@ -14008,27 +14178,27 @@ System.register("main", ["log", "stringbuilder", "compiler"], function (exports_
         while (diagnostic != null) {
             var location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
             // Source
-            var builder = stringbuilder_15.StringBuilder_new();
+            var builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendSourceName(builder, location);
             stdlib.Terminal_setColor(Color.BOLD);
             stdlib.Terminal_write(builder.finish());
             // Kind
-            builder = stringbuilder_15.StringBuilder_new();
+            builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendKind(builder);
             stdlib.Terminal_setColor(diagnostic.kind == log_6.DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
             stdlib.Terminal_write(builder.finish());
             // Message
-            builder = stringbuilder_15.StringBuilder_new();
+            builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendMessage(builder);
             stdlib.Terminal_setColor(Color.BOLD);
             stdlib.Terminal_write(builder.finish());
             // Line contents
-            builder = stringbuilder_15.StringBuilder_new();
+            builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendLineContents(builder, location);
             stdlib.Terminal_setColor(Color.DEFAULT);
             stdlib.Terminal_write(builder.finish());
             // Range
-            builder = stringbuilder_15.StringBuilder_new();
+            builder = stringbuilder_14.StringBuilder_new();
             diagnostic.appendRange(builder, location);
             stdlib.Terminal_setColor(Color.GREEN);
             stdlib.Terminal_write(builder.finish());
@@ -14119,7 +14289,7 @@ Examples:
                     output = argument.text;
                 }
                 else {
-                    printError(stringbuilder_15.StringBuilder_new().append("Invalid flag: ").append(text).finish());
+                    printError(stringbuilder_14.StringBuilder_new().append("Invalid flag: ").append(text).finish());
                     return 1;
                 }
             }
@@ -14170,7 +14340,7 @@ Examples:
             else if (!text.startsWith("-")) {
                 var contents = stdlib.IO_readTextFile(text);
                 if (contents == null) {
-                    printError(stringbuilder_15.StringBuilder_new().append("Cannot read from ").append(text).finish());
+                    printError(stringbuilder_14.StringBuilder_new().append("Cannot read from ").append(text).finish());
                     return 1;
                 }
                 compiler.addInput(text, contents);
@@ -14191,19 +14361,19 @@ Examples:
                     stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {
                 return 0;
             }
-            printError(stringbuilder_15.StringBuilder_new().append("Cannot write to ").append(output).finish());
+            printError(stringbuilder_14.StringBuilder_new().append("Cannot write to ").append(output).finish());
         }
         return 1;
     }
     exports_25("main_entry", main_entry);
-    var log_6, stringbuilder_15, compiler_4, Color, CommandLineArgument, firstArgument, lastArgument, main;
+    var log_6, stringbuilder_14, compiler_4, Color, CommandLineArgument, firstArgument, lastArgument, main;
     return {
         setters: [
             function (log_6_1) {
                 log_6 = log_6_1;
             },
-            function (stringbuilder_15_1) {
-                stringbuilder_15 = stringbuilder_15_1;
+            function (stringbuilder_14_1) {
+                stringbuilder_14 = stringbuilder_14_1;
             },
             function (compiler_4_1) {
                 compiler_4 = compiler_4_1;
