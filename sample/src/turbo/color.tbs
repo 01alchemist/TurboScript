@@ -3,7 +3,7 @@ export class Color {
     g: float64;
     b: float64;
 
-    constructor(r: float64=0.0, g: float64=0.0, b: float64=0.0): Color {
+    constructor(r: float64=0.0d, g: float64=0.0d, b: float64=0.0d): Color {
         this.r = r;
         this.g = g;
         this.b = b;
@@ -26,7 +26,7 @@ export class Color {
             g as float64,
             b as float64
         );
-        return c.pow(2.2);
+        return c.pow(2.2d, c);
     }
 
     // static kelvin(K: int32): Color {
@@ -122,42 +122,42 @@ export class Color {
     //     };
     // }
 
-    add(b:Color, c:Color=null): Color {
+    add(b:Color, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(this.r + b.r, this.g + b.g, this.b + b.b);
     }
 
-    sub(b:Color, c:Color=null): Color {
+    sub(b:Color, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(this.r - b.r, this.g - b.g, this.b - b.b);
     }
 
-    mul(b:Color, c:Color=null): Color {
+    mul(b:Color, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(this.r * b.r, this.g * b.g, this.b * b.b);
     }
 
-    mulScalar(f:float64, c:Color=null): Color {
+    mulScalar(f:float64, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(this.r * f, this.g * f, this.b * f);
     }
 
-    div(b:Color, c:Color=null): Color {
+    div(b:Color, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(this.r / b.r, this.g / b.g, this.b / b.b);
     }
 
-    divScalar(f:float64, c:Color=null): Color {
+    divScalar(f:float64, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(this.r / f, this.g / f, this.b / f);
     }
 
-    min(b: Color, c:Color=null): Color {
+    min(b: Color, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(Math.min(this.r, b.r), Math.min(this.g, b.g), Math.min(this.b, b.b));
     }
 
-    max(b: Color, c:Color=null): Color {
+    max(b: Color, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(Math.max(this.r, b.r), Math.max(this.g, b.g), Math.max(this.b, b.b));
     }
@@ -170,14 +170,14 @@ export class Color {
         return Math.max(Math.max(this.r, this.g), this.b);
     }
 
-    pow(f: float64, c:Color=null): Color {
+    pow(f: float64, c:Color): Color {
         c = c != null ? c : new Color();
         return c.set(Math.pow(this.r, f), Math.pow(this.g, f), Math.pow(this.b, f));
     }
 
-    mix(b: Color, pct: float64, c:Color=null): Color {
-        c = this.mulScalar(1.0 - pct, c);
-        let _b = b.mulScalar(pct);
+    mix(b: Color, pct: float64, c:Color): Color {
+        c = this.mulScalar(1.0d - pct, c);
+        let _b = b.mulScalar(pct, null);
         c = c.add(_b, c);
         delete _b;
         return c;

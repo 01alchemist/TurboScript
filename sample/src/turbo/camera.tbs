@@ -7,7 +7,7 @@ class Camera {
 	focalDistance :float32;
 	apertureRadius:float32;
 
-    constructor(p:Vector3=null, u:Vector3=null, v:Vector3=null, w:Vector3=null, m:float32=0.0, focalDistance:float32=0.0,
+    constructor(p:Vector3, u:Vector3, v:Vector3, w:Vector3, m:float32=0.0, focalDistance:float32=0.0,
                 apertureRadius:float32=0.0):Camera {
         this.p = p == null ? new Vector3() : p;
         this.u = u == null ? new Vector3() : u;
@@ -45,7 +45,7 @@ class Camera {
     //         this.apertureRadius = data.apertureRadius;
     // }
 
-    static LookAt(eye:Vector3, center:Vector3, up:Vector3, fovy:float32, c:Camera=null):Camera {
+    static LookAt(eye:Vector3, center:Vector3, up:Vector3, fovy:float32, c:Camera):Camera {
         c = c == null ? new Camera() : c;
         c.p = eye;
         let w:Vector3 = center.sub(eye);

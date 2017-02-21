@@ -77,74 +77,74 @@ export class Vector3 {
         return (this.x * b.x) + (this.y * b.y) + (this.z * b.z);
     }
 
-    cross(b: Vector3, c:Vector3=null): Vector3 {
+    cross(b: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set((this.y * b.z) - (this.z * b.y), (this.z * b.x) - (this.x * b.z), (this.x * b.y) - (this.y * b.x));
     }
 
-    normalize(c:Vector3=null): Vector3 {
+    normalize(c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         let d: float32 = this.length();
         return c.set(this.x / d, this.y / d, this.z / d);
     }
 
-    // negate(c:Vector3=null): Vector3 {
+    // negate(c:Vector3): Vector3 {
     //     c = c != null ? c : new Vector3(0.0,0.0,0.0);
     //     return c.set(-this.x, -this.y, -this.z);
     // }
 
-    abs(c:Vector3=null): Vector3 {
+    abs(c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(absf32(this.x), absf32(this.y), absf32(this.z));
     }
 
-    add(b: Vector3, c:Vector3=null): Vector3 {
+    add(b: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x + b.x, this.y + b.y, this.z + b.z);
     }
 
-    sub(b: Vector3, c:Vector3=null): Vector3 {
+    sub(b: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x - b.x, this.y - b.y, this.z - b.z);
     }
 
-    mul(b: Vector3, c:Vector3=null): Vector3 {
+    mul(b: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set((this.x * b.x) as float32, (this.y * b.y) as float32, (this.z * b.z) as float32);
     }
 
-    div(b: Vector3, c:Vector3=null): Vector3 {
+    div(b: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x / b.x, this.y / b.y, this.z / b.z);
     }
 
     // as implemented in GLSL
-    mod(b: Vector3, c:Vector3=null): Vector3 {
+    mod(b: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x - b.x * Math.floor(this.x / b.x), this.y - b.y * Math.floor(this.y / b.y), this.z - b.z * Math.floor(this.z / b.z));
     }
 
-    addScalar(f: float32, c:Vector3=null): Vector3 {
+    addScalar(f: float32, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x + f, this.y + f, this.z + f);
     }
 
-    subScalar(f: float32, c:Vector3=null): Vector3 {
+    subScalar(f: float32, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x - f, this.y - f, this.z - f);
     }
 
-    mulScalar(f: float32, c:Vector3=null): Vector3 {
+    mulScalar(f: float32, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set((this.x * f) as float32, (this.y * f) as float32, (this.z * f) as float32);
     }
 
-    divScalar(f: float32, c:Vector3=null): Vector3 {
+    divScalar(f: float32, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(this.x / f, this.y / f, this.z / f);
     }
 
-    min(b: Vector3, c:Vector3=null): Vector3 {
+    min(b: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(
             minf32(this.x, b.x) as float32,
@@ -153,7 +153,7 @@ export class Vector3 {
         );
     }
 
-    max(b: Vector3, c:Vector3=null): Vector3 {
+    max(b: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(
             maxf32(this.x, b.x) as float32,
@@ -162,7 +162,7 @@ export class Vector3 {
         );
     }
 
-    minAxis(a: Vector3, c:Vector3=null): Vector3 {
+    minAxis(a: Vector3, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
 
         let x: float32 = absf32(this.x);
@@ -184,12 +184,12 @@ export class Vector3 {
         return maxf32(maxf32(this.x, this.y), this.z) as float32;
     }
 
-    reflect(b: Vector3, c:Vector3=null): Vector3 {
+    reflect(b: Vector3, c:Vector3): Vector3 {
         c = this.mulScalar((2.0 * this.dot(b)) as float32, c);
         return b.sub(c, c);
     }
 
-    refract(b: Vector3, n1: float32, n2: float32, c:Vector3=null): Vector3 {
+    refract(b: Vector3, n1: float32, n2: float32, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         let nr: float32 = n1 / n2;
         let cosI: float32 = -this.dot(b);
@@ -199,7 +199,7 @@ export class Vector3 {
         }
         let cosT: float32 = sqrtf32(1.0 - sinT2);
         b.mulScalar(nr, c);
-        let tmp1 = this.mulScalar(nr * (cosI - cosT));
+        let tmp1 = this.mulScalar(nr * (cosI - cosT), null);
         c.add(tmp1, c);
 
         delete tmp1;
@@ -220,7 +220,7 @@ export class Vector3 {
         return (rOrth * rOrth + rPar * rPar) / 2.0;
     }
 
-    pow(f: float32, c:Vector3=null): Vector3 {
+    pow(f: float32, c:Vector3): Vector3 {
         c = c != null ? c : new Vector3(0.0,0.0,0.0);
         return c.set(
             powf32(this.x, f) as float32,

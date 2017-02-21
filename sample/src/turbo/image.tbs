@@ -39,19 +39,19 @@ export class Image {
 
     setPixel32(x: int32, y: int32, c: Color): void {
         let i = this.pixOffset(x, y);
-        this.data[i] = c.r * 255.0;
-        this.data[i + 1] = c.g * 255.0;
-        this.data[i + 2] = c.b * 255.0;
-        this.data[i + 3] = 255.0;
+        this.data[i] = (c.r * 255.0d) as uint8;
+        this.data[i + 1] = (c.g * 255.0d) as uint8;
+        this.data[i + 2] = (c.b * 255.0d) as uint8;
+        this.data[i + 3] = 255;
     }
 
-    setPixel64(x: int32, y: int32, c: Color): void {
-        let i = this.pixOffset(x, y);
-        this.data[i] = c.r * 65535.0;
-        this.data[i + 1] = c.g * 65535.0;
-        this.data[i + 2] = c.b * 65535.0;
-        this.data[i + 3] = 65535.0;
-    }
+    // setPixel64(x: int32, y: int32, c: Color): void {
+    //     let i = this.pixOffset(x, y);
+    //     this.data[i] = c.r * 65535.0;
+    //     this.data[i + 1] = c.g * 65535.0;
+    //     this.data[i + 2] = c.b * 65535.0;
+    //     this.data[i + 3] = 65535.0;
+    // }
 
     setRaw(data:Array<uint8>): void {
         let i: int32 = 0;

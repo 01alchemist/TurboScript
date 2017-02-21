@@ -4,7 +4,7 @@ export class Cube extends Shape{
 	material:Material;
 	box:Box;
 
-	constructor(min:Vector3, max:Vector3, material:Material=null, box:Box=null):Cube {
+	constructor(min:Vector3, max:Vector3, material:Material, box:Box):Cube {
 	    super();
         this.min = min;
         this.max = max;

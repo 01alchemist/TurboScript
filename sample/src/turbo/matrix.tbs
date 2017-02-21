@@ -71,7 +71,7 @@ export class Matrix{
         return this;
     }
 
-    static newIdentity(c:Matrix=null):Matrix {
+    static newIdentity(c:Matrix):Matrix {
         c = c != null ? c :  new Matrix();
         return c.set(
             1.0, 0.0, 0.0, 0.0,
@@ -95,7 +95,7 @@ export class Matrix{
                 this.x30 == 0.0 && this.x31 == 0.0 && this.x32 == 0.0 && this.x33 == 1.0;
     }
 
-    static translateUnitMatrix(v:Vector3, c:Matrix=null):Matrix{
+    static translateUnitMatrix(v:Vector3, c:Matrix):Matrix{
         c = c != null ? c : new Matrix();
         return c.set(
             1.0, 0.0, 0.0, v.x,
@@ -105,7 +105,7 @@ export class Matrix{
         )
     }
 
-    static scaleUnitMatrix(v:Vector3, c:Matrix=null):Matrix{
+    static scaleUnitMatrix(v:Vector3, c:Matrix):Matrix{
         c = c != null ? c : new Matrix();
         return c.set(
             v.x, 0.0, 0.0, 0.0,
@@ -115,7 +115,7 @@ export class Matrix{
         );
     }
 
-    static rotateUnitMatrix(v:Vector3, a:float32, c:Matrix=null):Matrix{
+    static rotateUnitMatrix(v:Vector3, a:float32, c:Matrix):Matrix{
         v.normalize(v);
         let s:float32 = Math.sin(a);
         let _c:float32 = Math.cos(a);
@@ -130,7 +130,7 @@ export class Matrix{
         );
     }
 
-    static frustumUnitMatrix(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix{
+    static frustumUnitMatrix(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix):Matrix{
 
         let t1:float32 = 2.0 * n;
         let t2:float32 = r - l;
@@ -146,7 +146,7 @@ export class Matrix{
         );
     }
 
-    static orthographicUnitMatrix(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix{
+    static orthographicUnitMatrix(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix):Matrix{
         c = c != null ? c : new Matrix();
         return c.set(
             2.0 / (r - l), 0.0, 0.0, -(r + l) / (r - l),
@@ -156,13 +156,13 @@ export class Matrix{
         );
     }
 
-    static perspectiveUnitMatrix(fovy:float32, aspect:float32, near:float32, far:float32, c:Matrix=null):Matrix {
+    static perspectiveUnitMatrix(fovy:float32, aspect:float32, near:float32, far:float32, c:Matrix):Matrix {
         let ymax:float32 = near * Math.tan(fovy * PI/360);
         let xmax:float32 = ymax * aspect;
         return Matrix.frustumUnitMatrix(-xmax, xmax, -ymax, ymax, near, far, c);
     }
 
-    static LookAtMatrix(eye:Vector3, center:Vector3, up:Vector3, c:Matrix=null):Matrix{
+    static LookAtMatrix(eye:Vector3, center:Vector3, up:Vector3, c:Matrix):Matrix{
             c = c != null ? c : new Matrix();
         up.normalize(up);
         let f:Vector3 = center.sub(eye).normalize();
@@ -178,31 +178,31 @@ export class Matrix{
         return c.transpose(c).inverse(c).translate(eye, c);
     }
     
-    translate(v:Vector3, c:Matrix=null):Matrix {
+    translate(v:Vector3, c:Matrix):Matrix {
         return this.mul(Matrix.translateUnitMatrix(v), c);
     }
 
-    scale(v:Vector3, c:Matrix=null):Matrix{
+    scale(v:Vector3, c:Matrix):Matrix{
         return this.mul(Matrix.scaleUnitMatrix(v), c);
     }
 
-    rotate(v:Vector3, a:Vector3, c:Matrix=null):Matrix {
+    rotate(v:Vector3, a:Vector3, c:Matrix):Matrix {
         return this.mul(Matrix.rotateUnitMatrix(v, a), c);
     }
 
-    frustum(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix {
+    frustum(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix):Matrix {
         return this.mul(Matrix.frustumUnitMatrix(l, r, b, t, n, f, c), c);
     }
 
-    orthographic(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix=null):Matrix {
+    orthographic(l:float32, r:float32, b:float32, t:float32, n:float32, f:float32, c:Matrix):Matrix {
         return this.mul(Matrix.orthographicUnitMatrix(l, r, b, t, n, f, c), c);
     }
 
-    perspective(fovy:float32, aspect:float32, near:float32, far:float32, c:Matrix=null):Matrix {
+    perspective(fovy:float32, aspect:float32, near:float32, far:float32, c:Matrix):Matrix {
         return this.mul(Matrix.perspectiveUnitMatrix(fovy, aspect, near, far, c), c);
     }
 
-    mul(b:Matrix, m:Matrix=null):Matrix {
+    mul(b:Matrix, m:Matrix):Matrix {
         m = m != null ? m : new Matrix();
         m.x00 = this.x00 * b.x00 + this.x01 * b.x10 + this.x02 * b.x20 + this.x03 * b.x30;
         m.x10 =this.x10 * b.x00 + this.x11 * b.x10 + this.x12 * b.x20 + this.x13 * b.x30;
@@ -223,7 +223,7 @@ export class Matrix{
         return m;
     }
 
-    mulPosition(b:Vector3, c:Vector3=null):Vector3 {
+    mulPosition(b:Vector3, c:Vector3):Vector3 {
         c = c != null? c : new Vector3();
         let x:float32 = this.x00 * b.x + this.x01 * b.y + this.x02 * b.z + this.x03;
         let y:float32 = this.x10 * b.x + this.x11 * b.y + this.x12 * b.z + this.x13;
@@ -231,7 +231,7 @@ export class Matrix{
         return c.set(x, y, z);
     }
 
-    mulDirection(b:Vector3, c:Vector3=null):Vector3 {
+    mulDirection(b:Vector3, c:Vector3):Vector3 {
         c = c != null? c : new Vector3();
         let x:float32 = this.x00 * b.x + this.x01 * b.y + this.x02 * b.z;
         let y:float32 =this.x10 * b.x + this.x11 * b.y + this.x12 * b.z;
@@ -239,14 +239,14 @@ export class Matrix{
         return c.set(x, y, z).normalize(c);
     }
 
-    mulRay(ray:Ray, c:Ray=null):Ray {
+    mulRay(ray:Ray, c:Ray):Ray {
         c = c != null? c : new Ray();
         this.mulPosition(ray.origin, c.origin);
         this.mulDirection(ray.direction, c.direction);
         return c;
     }
 
-    mulBox(box:Box, c:Box=null):Box {
+    mulBox(box:Box, c:Box):Box {
         // http://dev.theomader.com/transform-bounding-boxes/
         let r:Vector3 = new Vector3(this.x00,this.x10, this.x20);
         let u:Vector3 = new Vector3(this.x01, this.x11, this.x21);
@@ -282,7 +282,7 @@ export class Matrix{
         return c.set(r, xb);
     }
 
-    transpose(c:Matrix=null):Matrix {
+    transpose(c:Matrix):Matrix {
         c = c != null ? c : new Matrix();
         return c.set(
             this.x00,this.x10, this.x20, this.x30,
@@ -307,7 +307,7 @@ export class Matrix{
         this.x03*this.x12*this.x20*this.x31 + this.x03*this.x12*this.x21*this.x30
     }
 
-    inverse(c:Matrix=null):Matrix {
+    inverse(c:Matrix):Matrix {
         c = c != null ? c : new Matrix();
         let d:float32 = this.determinant();
         c.x00 = (this.x12*this.x23*this.x31 - this.x13*this.x22*this.x31 + this.x13*this.x21*this.x32 - this.x11*this.x23*this.x32 - this.x12*this.x21*this.x33 + this.x11*this.x22*this.x33) / d;

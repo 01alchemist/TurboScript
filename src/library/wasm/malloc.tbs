@@ -135,7 +135,7 @@ export function free(ptr:*uint8):void{
     }
     return null;
 }
-/*export*/function getHeapPtr(): uint32 {
+export function getHeapPtr(): uint32 {
     return currentHeapPointer as uint32;
 }
 /*export*/function getFreeMemory(): uint32 {

@@ -12,7 +12,7 @@ import {
     NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
     createDelete, createImports, NODE_FLAG_INTERNAL_IMPORT, createExternalImport, NODE_FLAG_ANYFUNC, createType,
     createAny, createArray,
-    NODE_FLAG_JAVASCRIPT, NODE_FLAG_EXTERNAL_IMPORT, createInternalImport, createInternalImportFrom
+    NODE_FLAG_JAVASCRIPT, NODE_FLAG_EXTERNAL_IMPORT, createInternalImport, createInternalImportFrom, createDouble
 } from "./node";
 
 export enum Precedence {
@@ -268,6 +268,15 @@ class ParserContext {
             if (this.peek(TokenKind.FLOAT32)) {
                 let value = createFloat(0);
                 if (!this.parseFloat(token.range, value)) {
+                    value = createParseError();
+                }
+                this.advance();
+                return value.withRange(token.range);
+            }
+
+            if (this.peek(TokenKind.FLOAT64)) {
+                let value = createDouble(0);
+                if (!this.parseDouble(token.range, value)) {
                     value = createParseError();
                 }
                 this.advance();
@@ -1644,6 +1653,15 @@ class ParserContext {
         let contents = source.contents;
 
         node.floatValue = parseFloat(contents.substring(range.start, range.end));
+        node.flags = NODE_FLAG_POSITIVE;
+        return true;
+    }
+
+    parseDouble(range: Range, node: Node): boolean {
+        let source = range.source;
+        let contents = source.contents;
+
+        node.doubleValue = parseFloat(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;
     }

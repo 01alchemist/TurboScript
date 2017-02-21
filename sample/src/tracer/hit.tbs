@@ -37,7 +37,7 @@ export class Hit{
 	T:float32;
 	hitInfo:hitInfo;
 
-	constructor(shape:Shape, T:float32, hitInfo:HitInfo=null):Hit {
+	constructor(shape:Shape, T:float32, hitInfo:HitInfo):Hit {
         this.shape = shape;
         this.T = T;
         this.hitInfo = hitInfo;

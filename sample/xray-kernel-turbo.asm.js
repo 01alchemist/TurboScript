@@ -19,24 +19,12 @@ function TurboModule(stdlib, foreign, buffer) {
     //#            IMPORTS             #
     //##################################
     var foreign_random = foreign.random;
-    var foreign_sort = foreign.sort;
     var Math_abs = stdlib.Math.abs;
-    var Math_acos = stdlib.Math.acos;
-    var Math_asin = stdlib.Math.asin;
-    var Math_atan = stdlib.Math.atan;
-    var Math_atan2 = stdlib.Math.atan2;
-    var Math_ceil = stdlib.Math.ceil;
-    var Math_cos = stdlib.Math.cos;
-    var Math_exp = stdlib.Math.exp;
     var Math_floor = stdlib.Math.floor;
-    var Math_log = stdlib.Math.log;
     var Math_max = stdlib.Math.max;
     var Math_min = stdlib.Math.min;
     var Math_pow = stdlib.Math.pow;
-    var Math_sin = stdlib.Math.sin;
     var Math_sqrt = stdlib.Math.sqrt;
-    var Math_tan = stdlib.Math.tan;
-    var Math_imul = stdlib.Math.imul;
     
     //##################################
     //#       MEMORY INITIALIZER       #
@@ -59,6 +47,18 @@ function TurboModule(stdlib, foreign, buffer) {
     //##################################
     //#             CODE               #
     //##################################
+    
+    function absf32(x) {
+        x = fround(x);
+        return fround(fround(fround(Math_abs(fround(x)))));
+    }
+    
+    
+    function sqrtf32(x) {
+        x = fround(x);
+        return fround(Math_sqrt(fround(x)));
+    }
+    
     
     function powf32(x, y) {
         x = fround(x);
@@ -400,7 +400,7 @@ function TurboModule(stdlib, foreign, buffer) {
     
     function Vector3_length(ptr) {
         ptr = ptr|0;
-        return fround(fround(fround(Math_sqrt(fround(fround(fround(fround(fround(HEAPF32[(ptr ) >> 2]) * fround(HEAPF32[(ptr ) >> 2])) + fround(fround(HEAPF32[(ptr + (4|0) ) >> 2]) * fround(HEAPF32[(ptr + (4|0) ) >> 2])))) + fround(fround(HEAPF32[(ptr + (8|0) ) >> 2]) * fround(HEAPF32[(ptr + (8|0) ) >> 2])))))));
+        return fround(fround(fround(sqrtf32(fround(fround(fround(fround(fround(HEAPF32[(ptr ) >> 2]) * fround(HEAPF32[(ptr ) >> 2])) + fround(fround(HEAPF32[(ptr + (4|0) ) >> 2]) * fround(HEAPF32[(ptr + (4|0) ) >> 2])))) + fround(fround(HEAPF32[(ptr + (8|0) ) >> 2]) * fround(HEAPF32[(ptr + (8|0) ) >> 2])))))));
     }
     
     
@@ -458,7 +458,7 @@ function TurboModule(stdlib, foreign, buffer) {
         ptr = ptr|0;
         c = c|0;
         c = (((c|0) != 0)|0 ? c : Vector3_new((fround(0)), (fround(0)), (fround(0)))|0)|0;
-        return (Vector3_set(c , fround(Math_abs(fround(HEAPF32[(ptr ) >> 2]))), fround(Math_abs(fround(HEAPF32[(ptr + (4|0) ) >> 2]))), fround(Math_abs(fround(HEAPF32[(ptr + (8|0) ) >> 2]))))|0);
+        return (Vector3_set(c , fround(absf32(fround(HEAPF32[(ptr ) >> 2]))), fround(absf32(fround(HEAPF32[(ptr + (4|0) ) >> 2]))), fround(absf32(fround(HEAPF32[(ptr + (8|0) ) >> 2]))))|0);
     }
     
     
@@ -569,9 +569,9 @@ function TurboModule(stdlib, foreign, buffer) {
         var y = fround(0);
         var z = fround(0);
         c = (((c|0) != 0)|0 ? c : Vector3_new((fround(0)), (fround(0)), (fround(0)))|0)|0;
-        x = fround(Math_abs(fround(HEAPF32[(ptr ) >> 2])));
-        y = fround(Math_abs(fround(HEAPF32[(ptr + (4|0) ) >> 2])));
-        z = fround(Math_abs(fround(HEAPF32[(ptr + (8|0) ) >> 2])));
+        x = fround(absf32(fround(HEAPF32[(ptr ) >> 2])));
+        y = fround(absf32(fround(HEAPF32[(ptr + (4|0) ) >> 2])));
+        z = fround(absf32(fround(HEAPF32[(ptr + (8|0) ) >> 2])));
         
         if (((((fround(x) <= fround(y))|0)|0 & ((fround(x) <= fround(z))|0)|0)|0)) {
             return (Vector3_set(c , fround(1), fround(0), fround(0))|0);
@@ -620,16 +620,16 @@ function TurboModule(stdlib, foreign, buffer) {
         var tmp1 = 0;
         c = (((c|0) != 0)|0 ? c : Vector3_new((fround(0)), (fround(0)), (fround(0)))|0)|0;
         nr = fround(fround(n1) / fround(n2));
-        cosI = fround(Vector3_dot(ptr , (b|0)));
-        sinT2 = fround(powf32(fround(nr), fround(2)) * (fround(1) - powf32(fround(cosI),fround(2))));
+        cosI = -fround(Vector3_dot(ptr , (b|0)));
+        sinT2 = nr * nr * (fround(1) - fround(cosI * cosI));
         
         if ((fround(sinT2) > fround(1))|0) {
             return (Vector3_set(c , fround(0), fround(0), fround(0))|0);
         }
         
-        cosT = fround(Math_sqrt(fround(fround(1) - fround(sinT2))));
+        cosT = fround(sqrtf32(fround(fround(1) - fround(sinT2))));
         (Vector3_mulScalar(b , fround(nr), (c|0))|0);
-        tmp1 = (Vector3_mulScalar(ptr , nr * (cosI - cosT))|0);
+        tmp1 = (Vector3_mulScalar(ptr , nr * (cosI - cosT), 0)|0);
         (Vector3_add(c , (tmp1|0), (c|0))|0);
         free((tmp1)|0);
         return (c)|0;
@@ -655,7 +655,7 @@ function TurboModule(stdlib, foreign, buffer) {
             return fround(fround(1));
         }
         
-        cosT = fround(Math_sqrt(fround(fround(1) - fround(sinT2))));
+        cosT = fround(sqrtf32(fround(fround(1) - fround(sinT2))));
         rOrth = fround(fround((fround(fround(n1 * cosI) - fround(n2 * cosT)))) / fround((fround(fround(n1 * cosI) + fround(n2 * cosT)))));
         rPar = fround(fround((fround(fround(n2 * cosI) - fround(n1 * cosT)))) / fround((fround(fround(n2 * cosI) + fround(n1 * cosT)))));
         return fround(fround(fround((fround(fround(rOrth * rOrth) + fround(rPar * rPar)))) / fround(2)));
@@ -729,7 +729,7 @@ function TurboModule(stdlib, foreign, buffer) {
         g = (((((hex >> 8)|0 & 255)|0))|0 / 255)|0;
         b = (((((hex|0) & 255)|0))|0 / 255)|0;
         c = Color_new((+(r|0)), (+(g|0)), (+(b|0)))|0;
-        return (Color_pow(c , 2.2)|0);
+        return (Color_pow(c , 2.2, (c|0))|0);
     }
     
     
@@ -832,8 +832,8 @@ function TurboModule(stdlib, foreign, buffer) {
         pct = +pct;
         c = c|0;
         var _b = 0;
-        c = ((Color_mulScalar(ptr , +(+(1.0) - (+pct)), (c|0))|0))|0;
-        _b = (Color_mulScalar(b , (+pct))|0);
+        c = ((Color_mulScalar(ptr , +(1.0 - (+pct)), (c|0))|0))|0;
+        _b = (Color_mulScalar(b , (+pct), 0)|0);
         c = ((Color_add(c , (_b|0), (c|0))|0))|0;
         free((_b)|0);
         return (c)|0;
@@ -891,24 +891,10 @@ function TurboModule(stdlib, foreign, buffer) {
         c = c|0;
         var i = 0;
         i = (Image_pixOffset(ptr , (x|0), (y|0))|0);
-        Array_op_set(data , (i|0), HEAPF64[(c ) >> 3] * 255.0);
-        Array_op_set(data , ((i|0) + 1)|0, HEAPF64[(c + (8|0) ) >> 3] * 255.0);
-        Array_op_set(data , ((i|0) + 2)|0, HEAPF64[(c + (16|0) ) >> 3] * 255.0);
-        Array_op_set(data , ((i|0) + 3)|0, fround(255));
-    }
-    
-    
-    function Image_setPixel64(ptr, x, y, c) {
-        ptr = ptr|0;
-        x = x|0;
-        y = y|0;
-        c = c|0;
-        var i = 0;
-        i = (Image_pixOffset(ptr , (x|0), (y|0))|0);
-        Array_op_set(data , (i|0), HEAPF64[(c ) >> 3] * 65535.0);
-        Array_op_set(data , ((i|0) + 1)|0, HEAPF64[(c + (8|0) ) >> 3] * 65535.0);
-        Array_op_set(data , ((i|0) + 2)|0, HEAPF64[(c + (16|0) ) >> 3] * 65535.0);
-        Array_op_set(data , ((i|0) + 3)|0, fround(65535));
+        Array_op_set(data , (i|0), HEAPF64[(c ) >> 3] * 255.0 & -1);
+        Array_op_set(data , ((i|0) + 1)|0, HEAPF64[(c + (8|0) ) >> 3] * 255.0 & -1);
+        Array_op_set(data , ((i|0) + 2)|0, HEAPF64[(c + (16|0) ) >> 3] * 255.0 & -1);
+        Array_op_set(data , ((i|0) + 3)|0, 255);
     }
     
     
@@ -991,7 +977,6 @@ function TurboModule(stdlib, foreign, buffer) {
        Image_getPixel32:Image_getPixel32,
        Image_getPixel64:Image_getPixel64,
        Image_setPixel32:Image_setPixel32,
-       Image_setPixel64:Image_setPixel64,
        Image_setRaw:Image_setRaw
     }
 }

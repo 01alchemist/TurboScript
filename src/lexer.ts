@@ -251,7 +251,7 @@ export function isNumber(c: string): boolean {
 }
 
 export function isDigit(c: any, base: uint8): boolean {
-    if(c.trim() == "") return false;
+    if (c.trim() == "") return false;
     if (base == 16) {
         return isNumber(c) || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f';
     }
@@ -368,6 +368,7 @@ export function tokenize(source: Source, log: Log): Token {
         else if (isNumber(c)) {
 
             let isFloat: boolean = false;
+            let isDouble: boolean = false;
 
             //kind = TokenKind.INT32;
 
@@ -386,16 +387,21 @@ export function tokenize(source: Source, log: Log): Token {
                     }
                 }
 
-                let floatFound:boolean = false;
+                let floatFound: boolean = false;
                 // Scan the payload
                 while (i < limit && (isDigit(contents[i], base) || (floatFound = contents[i] === "."))) {
                     i = i + 1;
-                    if(floatFound){
+                    if (floatFound) {
                         isFloat = true;
                     }
                 }
 
-                kind = isFloat ? TokenKind.FLOAT32 : TokenKind.INT32;
+                if (contents[i] === "d") {
+                    kind = TokenKind.FLOAT64;
+                    i = i + 1;
+                } else {
+                    kind = isFloat ? TokenKind.FLOAT32 : TokenKind.INT32;
+                }
 
                 // Extra letters after the end is an error
                 if (i < limit && (isAlpha(contents[i]) || isNumber(contents[i]))) {

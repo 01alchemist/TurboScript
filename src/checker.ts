@@ -772,6 +772,14 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         //TODO Allow only lossless conversions implicitly
         return true;
     }
+
+    else if (from.isDouble() && to.isInteger()) {
+        if (kind == ConversionKind.IMPLICIT) {
+            return false;
+        }
+        //TODO Allow only lossless conversions implicitly
+        return true;
+    }
     else if (from.isFloat() && to.isFloat()) {
         return true;
     }

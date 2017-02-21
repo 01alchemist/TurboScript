@@ -55,7 +55,7 @@ export class Buffer{
     height:int32;
     pixels:Array<Pixel>;
 
-	constructor(width:int32, height:int32, pixels:Array<Pixel>=null):Buffer {
+	constructor(width:int32, height:int32, pixels:Array<Pixel>):Buffer {
         this.width = width;
         this.height = height;
         this.pixels = pixels != null ? pixels : new Array<Pixel>(width * height);

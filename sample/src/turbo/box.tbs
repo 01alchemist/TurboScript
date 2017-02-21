@@ -12,7 +12,7 @@ export class Box{
 	min:Vector3;
 	max:Vector3;
 
-	constructor(min:Vector3=null, max:Vector3=null):Box {
+	constructor(min:Vector3, max:Vector3):Box {
         this.min = Vector.NewVector(min);
         this.max = Vector.NewVector(max);
         return this;

@@ -1704,6 +1704,7 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
             }
             else if (isNumber(c)) {
                 let isFloat = false;
+                let isDouble = false;
                 //kind = TokenKind.INT32;
                 if (i < limit) {
                     var next = contents[i];
@@ -1731,7 +1732,13 @@ System.register("lexer", ["log", "stringbuilder"], function (exports_3, context_
                             isFloat = true;
                         }
                     }
-                    kind = isFloat ? TokenKind.FLOAT32 : TokenKind.INT32;
+                    if (contents[i] === "d") {
+                        kind = TokenKind.FLOAT64;
+                        i = i + 1;
+                    }
+                    else {
+                        kind = isFloat ? TokenKind.FLOAT32 : TokenKind.INT32;
+                    }
                     // Extra letters after the end is an error
                     if (i < limit && (isAlpha(contents[i]) || isNumber(contents[i]))) {
                         i = i + 1;
@@ -2382,6 +2389,14 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                         if (this.peek(lexer_1.TokenKind.FLOAT32)) {
                             let value = node_1.createFloat(0);
                             if (!this.parseFloat(token.range, value)) {
+                                value = node_1.createParseError();
+                            }
+                            this.advance();
+                            return value.withRange(token.range);
+                        }
+                        if (this.peek(lexer_1.TokenKind.FLOAT64)) {
+                            let value = node_1.createDouble(0);
+                            if (!this.parseDouble(token.range, value)) {
                                 value = node_1.createParseError();
                             }
                             this.advance();
@@ -3553,6 +3568,13 @@ System.register("parser", ["lexer", "log", "stringbuilder", "node"], function (e
                     node.flags = node_1.NODE_FLAG_POSITIVE;
                     return true;
                 }
+                parseDouble(range, node) {
+                    let source = range.source;
+                    let contents = source.contents;
+                    node.doubleValue = parseFloat(contents.substring(range.start, range.end));
+                    node.flags = node_1.NODE_FLAG_POSITIVE;
+                    return true;
+                }
             };
         }
     };
@@ -4024,7 +4046,7 @@ System.register("shaking", ["symbol", "node"], function (exports_7, context_7) {
     }
     exports_7("treeShakingMarkAllUsed", treeShakingMarkAllUsed);
     function treeShakingSearchForUsed(node) {
-        if (node.kind == node_2.NodeKind.FUNCTION && (node.isExternalImport() || node.isExport() || node.isStart())) {
+        if (node.kind == node_2.NodeKind.FUNCTION && (node.isExport() || node.isStart())) {
             treeShakingMarkAllUsed(node);
         }
         else if (node.kind == node_2.NodeKind.GLOBAL || node.kind == node_2.NodeKind.CLASS) {
@@ -7159,6 +7181,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                     let section = wasmStartSection(array, WasmSection.Type, "signatures");
                     section.data.writeUnsignedLEB128(this.signatureCount);
                     let signature = this.firstSignature;
+                    let sigCount = 0;
                     while (signature != null) {
                         let count = 0;
                         let type = signature.argumentTypes;
@@ -7166,7 +7189,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             count = count + 1;
                             type = type.next;
                         }
-                        log(section.data, array.position, WasmType.func, "func");
+                        log(section.data, array.position, WasmType.func, "func sig " + sigCount++);
                         section.data.writeUnsignedLEB128(WasmType.func); //form, the value for the func type constructor
                         log(section.data, array.position, count, "num params");
                         section.data.writeUnsignedLEB128(count); //param_count, the number of parameters to the function
@@ -7608,7 +7631,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                         log(array, byteOffset, 1, "alignment");
                         array.writeUnsignedLEB128(1);
                     }
-                    else if (sizeOf == 4) {
+                    else if (sizeOf == 4 || type.isClass()) {
                         if (type.isFloat()) {
                             appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_LOAD);
                         }
@@ -7657,7 +7680,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                         log(array, byteOffset, 1, "alignment");
                         array.writeUnsignedLEB128(1);
                     }
-                    else if (sizeOf == 4) {
+                    else if (sizeOf == 4 || type.isClass()) {
                         if (type.isFloat()) {
                             appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_STORE);
                         }
@@ -7671,7 +7694,7 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                         if (type.isDouble()) {
                             appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_STORE);
                         }
-                        else {
+                        else if (type.isLong()) {
                             appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_STORE);
                         }
                         log(array, byteOffset, 3, "alignment");
@@ -7957,11 +7980,35 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                         this.emitNode(array, byteOffset, node.unaryValue());
                     }
                     else if (node.kind == node_6.NodeKind.NEGATIVE) {
-                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                        log(array, byteOffset, 0, "i32 literal");
-                        array.writeLEB128(0);
-                        this.emitNode(array, byteOffset, node.unaryValue());
-                        appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SUB);
+                        let resolvedType = node.unaryValue().resolvedType;
+                        if (resolvedType.isFloat()) {
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
+                            log(array, byteOffset, 0, "f32 literal");
+                            array.writeDouble(0);
+                            this.emitNode(array, byteOffset, node.unaryValue());
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_SUB);
+                        }
+                        else if (resolvedType.isDouble()) {
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
+                            log(array, byteOffset, 0, "f64 literal");
+                            array.writeDouble(0);
+                            this.emitNode(array, byteOffset, node.unaryValue());
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_SUB);
+                        }
+                        else if (resolvedType.isInteger()) {
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
+                            log(array, byteOffset, 0, "i32 literal");
+                            array.writeLEB128(0);
+                            this.emitNode(array, byteOffset, node.unaryValue());
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SUB);
+                        }
+                        else if (resolvedType.isLong()) {
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
+                            log(array, byteOffset, 0, "i64 literal");
+                            array.writeLEB128(0);
+                            this.emitNode(array, byteOffset, node.unaryValue());
+                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_SUB);
+                        }
                     }
                     else if (node.kind == node_6.NodeKind.COMPLEMENT) {
                         appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
@@ -7988,32 +8035,35 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                         //
                         // else {
                         // Sign-extend
-                        if (type == context.int8Type || type == context.int16Type) {
-                            let shift = 32 - typeSize * 8;
-                            this.emitNode(array, byteOffset, value);
-                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                            log(array, byteOffset, shift, "i32 literal");
-                            array.writeLEB128(shift);
-                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHR_S);
-                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                            log(array, byteOffset, shift, "i32 literal");
-                            array.writeLEB128(shift);
-                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_SHL);
-                        }
-                        else if (type == context.uint8Type || type == context.uint16Type) {
-                            this.emitNode(array, byteOffset, value);
-                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                            let _value = type.integerBitMask(this.context);
-                            log(array, byteOffset, _value, "i32 literal");
-                            array.writeLEB128(_value);
-                            appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_AND);
-                        }
-                        else if ((from == context.int32Type || from == context.uint32Type) &&
+                        // if (from == context.int32Type && type == context.int8Type || type == context.int16Type) {
+                        //     let shift = 32 - typeSize * 8;
+                        //     this.emitNode(array, byteOffset, value);
+                        //     appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                        //     log(array, byteOffset, shift, "i32 literal");
+                        //     array.writeLEB128(shift);
+                        //     appendOpcode(array, byteOffset, WasmOpcode.I32_SHR_S);
+                        //     appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                        //     log(array, byteOffset, shift, "i32 literal");
+                        //     array.writeLEB128(shift);
+                        //     appendOpcode(array, byteOffset, WasmOpcode.I32_SHL);
+                        // }
+                        //
+                        // // Mask
+                        // else if (type == context.uint8Type || type == context.uint16Type) {
+                        //     this.emitNode(array, byteOffset, value);
+                        //     appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                        //     let _value = type.integerBitMask(this.context);
+                        //     log(array, byteOffset, _value, "i32 literal");
+                        //     array.writeLEB128(_value);
+                        //     appendOpcode(array, byteOffset, WasmOpcode.I32_AND);
+                        // }
+                        // i32 > i64
+                        if ((from == context.int32Type || from == context.uint32Type) &&
                             (type == context.int64Type || type == context.uint64Type)) {
                             if (value.kind == node_6.NodeKind.INT32) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
-                                log(array, byteOffset, node.longValue, "i64 literal");
-                                array.writeLEB128(node.longValue || 0); //TODO: implement i64 write
+                                log(array, byteOffset, value.longValue, "i64 literal");
+                                array.writeLEB128(value.longValue || 0); //TODO: implement i64 write
                             }
                             else {
                                 let isUnsigned = value.resolvedType.isUnsigned();
@@ -8025,8 +8075,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             type == context.float32Type) {
                             if (value.kind == node_6.NodeKind.INT32) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
-                                log(array, byteOffset, node.floatValue, "f32 literal");
-                                array.writeFloat(node.floatValue || 0);
+                                log(array, byteOffset, value.floatValue, "f32 literal");
+                                array.writeFloat(value.floatValue || 0);
                             }
                             else {
                                 let isUnsigned = value.resolvedType.isUnsigned();
@@ -8038,8 +8088,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             type == context.float64Type) {
                             if (value.kind == node_6.NodeKind.INT32) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
-                                log(array, byteOffset, node.doubleValue, "f64 literal");
-                                array.writeDouble(node.doubleValue || 0);
+                                log(array, byteOffset, value.doubleValue, "f64 literal");
+                                array.writeDouble(value.doubleValue || 0);
                             }
                             else {
                                 let isUnsigned = value.resolvedType.isUnsigned();
@@ -8051,8 +8101,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             (type == context.int32Type || type == context.uint32Type)) {
                             if (value.kind == node_6.NodeKind.INT64) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                log(array, byteOffset, node.intValue, "i32 literal");
-                                array.writeLEB128(node.intValue || 0);
+                                log(array, byteOffset, value.intValue, "i32 literal");
+                                array.writeLEB128(value.intValue || 0);
                             }
                             else {
                                 this.emitNode(array, byteOffset, value);
@@ -8063,8 +8113,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             type == context.float32Type) {
                             if (value.kind == node_6.NodeKind.INT32) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
-                                log(array, byteOffset, node.floatValue, "f32 literal");
-                                array.writeFloat(node.floatValue || 0);
+                                log(array, byteOffset, value.floatValue, "f32 literal");
+                                array.writeFloat(value.floatValue || 0);
                             }
                             else {
                                 let isUnsigned = value.resolvedType.isUnsigned();
@@ -8075,8 +8125,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                         else if (from == context.int64Type && type == context.float64Type) {
                             if (value.kind == node_6.NodeKind.INT64) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
-                                log(array, byteOffset, node.doubleValue, "f64 literal");
-                                array.writeDouble(node.doubleValue || 0);
+                                log(array, byteOffset, value.doubleValue, "f64 literal");
+                                array.writeDouble(value.doubleValue || 0);
                             }
                             else {
                                 let isUnsigned = value.resolvedType.isUnsigned();
@@ -8085,11 +8135,13 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             }
                         }
                         else if (from == context.float32Type &&
-                            (type == context.int32Type || type == context.uint32Type)) {
+                            (type == context.uint8Type || type == context.int8Type ||
+                                type == context.uint16Type || type == context.int16Type ||
+                                type == context.uint32Type || type == context.int32Type)) {
                             if (value.kind == node_6.NodeKind.FLOAT32) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                log(array, byteOffset, node.intValue, "i32 literal");
-                                array.writeLEB128(node.intValue || 0);
+                                log(array, byteOffset, value.intValue, "i32 literal");
+                                array.writeLEB128(value.intValue || 0);
                             }
                             else {
                                 let isUnsigned = type.isUnsigned();
@@ -8101,8 +8153,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             (type == context.int64Type || type == context.uint64Type)) {
                             if (value.kind == node_6.NodeKind.FLOAT32) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
-                                log(array, byteOffset, node.longValue, "i64 literal");
-                                array.writeLEB128(node.longValue || 0);
+                                log(array, byteOffset, value.longValue, "i64 literal");
+                                array.writeLEB128(value.longValue || 0);
                             }
                             else {
                                 let isUnsigned = type.isUnsigned();
@@ -8113,8 +8165,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                         else if (from == context.float32Type && type == context.float64Type) {
                             if (value.kind == node_6.NodeKind.FLOAT32) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F64_CONST);
-                                log(array, byteOffset, node.doubleValue, "f64 literal");
-                                array.writeDouble(node.doubleValue || 0);
+                                log(array, byteOffset, value.doubleValue, "f64 literal");
+                                array.writeDouble(value.doubleValue || 0);
                             }
                             else {
                                 this.emitNode(array, byteOffset, value);
@@ -8122,11 +8174,13 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             }
                         }
                         else if (from == context.float64Type &&
-                            (type == context.int32Type || type == context.uint32Type)) {
+                            (type == context.uint8Type || type == context.int8Type ||
+                                type == context.uint16Type || type == context.int16Type ||
+                                type == context.uint32Type || type == context.int32Type)) {
                             if (value.kind == node_6.NodeKind.FLOAT64) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I32_CONST);
-                                log(array, byteOffset, node.intValue, "i32 literal");
-                                array.writeLEB128(node.intValue || 0);
+                                log(array, byteOffset, value.intValue, "i32 literal");
+                                array.writeLEB128(value.intValue || 0);
                             }
                             else {
                                 let isUnsigned = type.isUnsigned();
@@ -8138,8 +8192,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                             (type == context.int64Type || type == context.uint64Type)) {
                             if (value.kind == node_6.NodeKind.FLOAT64) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.I64_CONST);
-                                log(array, byteOffset, node.longValue, "i64 literal");
-                                array.writeLEB128(node.longValue || 0);
+                                log(array, byteOffset, value.longValue, "i64 literal");
+                                array.writeLEB128(value.longValue || 0);
                             }
                             else {
                                 let isUnsigned = type.isUnsigned();
@@ -8150,8 +8204,8 @@ System.register("wasm", ["symbol", "bytearray", "imports", "node", "wasm/opcode"
                         else if (from == context.float64Type && type == context.float32Type) {
                             if (value.kind == node_6.NodeKind.FLOAT64) {
                                 appendOpcode(array, byteOffset, opcode_1.WasmOpcode.F32_CONST);
-                                log(array, byteOffset, node.floatValue, "f32 literal");
-                                array.writeFloat(node.floatValue || 0);
+                                log(array, byteOffset, value.floatValue, "f32 literal");
+                                array.writeFloat(value.floatValue || 0);
                             }
                             else {
                                 this.emitNode(array, byteOffset, value);
@@ -11340,6 +11394,13 @@ System.register("checker", ["symbol", "type", "node", "compiler", "log", "scope"
             return true;
         }
         else if (from.isDouble() && to.isFloat()) {
+            if (kind == type_2.ConversionKind.IMPLICIT) {
+                return false;
+            }
+            //TODO Allow only lossless conversions implicitly
+            return true;
+        }
+        else if (from.isDouble() && to.isInteger()) {
             if (kind == type_2.ConversionKind.IMPLICIT) {
                 return false;
             }

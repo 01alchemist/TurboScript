@@ -90,7 +90,7 @@ export class Texture {
         return c;
     }
 
-    sample(u: float32, v: float32, c:Color=null): Color {
+    sample(u: float32, v: float32, c:Color): Color {
         u = Utils.fract(Utils.fract(u) + 1);
         v = Utils.fract(Utils.fract(v) + 1);
         return this.bilinearSample(u, 1 - v, c);
@@ -113,7 +113,7 @@ export class Texture {
         return n;
     }
 
-    bumpSample(u: float32, v: float32, b: Vector3=null): Vector3 {
+    bumpSample(u: float32, v: float32, b: Vector3): Vector3 {
         b = b != null ? b : new Vector3();
         u = Utils.fractAddOne(u);
         v = Utils.fractAddOne(v);

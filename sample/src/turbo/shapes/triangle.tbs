@@ -11,10 +11,10 @@ export class Triangle extends Shape{
     material:Material;
     box:Box;
 
-    constructor(v1:Vector3=null, v2:Vector3=null, v3:Vector3=null,
-                n1:Vector3=null, n2:Vector3=null, n3:Vector3=null,
-                t1:Vector3=null, t2:Vector3=null, t3:Vector3=null,
-                material:Material=null):Triangle {
+    constructor(v1:Vector3, v2:Vector3, v3:Vector3,
+                n1:Vector3, n2:Vector3, n3:Vector3,
+                t1:Vector3, t2:Vector3, t3:Vector3,
+                material:Material):Triangle {
         super();
         this.V1 = v1 == null? new Vector3():v1;
         this.V2 = v2 == null? new Vector3():v2;
