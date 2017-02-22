@@ -11,7 +11,7 @@ export class Vector3 {
     }
 
     length(): float32 {
-        return Math.sqrt(
+        return sqrtf32(
             (this.x * this.x) + (this.y * this.y) + (this.z * this.z)
         );
     }
@@ -21,11 +21,11 @@ export class Vector3 {
             return this.length();
         }
         let a = this.abs();
-        let p1 = Math.pow(a.x, n);
-        let p2 = Math.pow(a.y, n);
-        let p3 = Math.pow(a.z, n);
+        let p1 = powf32(a.x, n);
+        let p2 = powf32(a.y, n);
+        let p3 = powf32(a.z, n);
         let xyz = p1 + p2 + p3;
-        let length: float32 = Math.pow(xyz, 1.0/ n) as float32;
+        let length: float32 = powf32(xyz, 1.0/ n) as float32;
         delete a;
         return length;
     }
@@ -48,7 +48,7 @@ export class Vector3 {
     }
 
     abs(): Vector3 {
-        return new Vector3(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
+        return new Vector3(absf32(this.x), absf32(this.y), absf32(this.z));
     }
 
     add(b: Vector3): Vector3 {
@@ -89,24 +89,24 @@ export class Vector3 {
 
     min(b: Vector3): Vector3 {
         return new Vector3(
-            Math.min(this.x, b.x) as float32,
-            Math.min(this.y, b.y) as float32,
-            Math.min(this.z, b.z) as float32
+            minf32(this.x, b.x) as float32,
+            minf32(this.y, b.y) as float32,
+            minf32(this.z, b.z) as float32
         );
     }
 
     max(b: Vector3): Vector3 {
         return new Vector3(
-            Math.max(this.x, b.x) as float32,
-            Math.max(this.y, b.y) as float32,
-            Math.max(this.z, b.z) as float32
+            maxf32(this.x, b.x) as float32,
+            maxf32(this.y, b.y) as float32,
+            maxf32(this.z, b.z) as float32
         );
     }
 
     minAxis(a: Vector3): Vector3 {
-        let x: float32 = Math.abs(this.x);
-        let y: float32 = Math.abs(this.y);
-        let z: float32 = Math.abs(this.z);
+        let x: float32 = absf32(this.x);
+        let y: float32 = absf32(this.y);
+        let z: float32 = absf32(this.z);
         if (x <= y && x <= z) {
             return new Vector3(1.0, 0.0, 0.0);
         } else if (y <= x && y <= z) {
@@ -116,11 +116,11 @@ export class Vector3 {
     }
 
     minComponent(a: Vector3): float32 {
-        return Math.min(Math.min(this.x, this.y), this.z) as float32;
+        return minf32(minf32(this.x, this.y), this.z) as float32;
     }
 
     maxComponent(a: Vector3): float32 {
-        return Math.max(Math.max(this.x, this.y), this.z) as float32;
+        return maxf32(maxf32(this.x, this.y), this.z) as float32;
     }
 
     reflect(b: Vector3): Vector3 {
@@ -138,7 +138,7 @@ export class Vector3 {
         if (sinT2 > 1.0) {
             return new Vector3(0.0, 0.0, 0.0);
         }
-        let cosT: float32 = Math.sqrt(1.0 - sinT2);
+        let cosT: float32 = sqrtf32(1.0 - sinT2);
         let tmp1 = b.mulScalar(nr);
         let tmp2 = this.mulScalar(nr * (cosI - cosT));
         let tmp3 = tmp1.add(tmp2);
@@ -157,16 +157,16 @@ export class Vector3 {
         if (sinT2 > 1.0) {
             return 1.0;
         }
-        let cosT: float32 = Math.sqrt(1.0 - sinT2);
+        let cosT: float32 = sqrtf32(1.0 - sinT2);
         let rOrth: float32 = (n1 * cosI - n2 * cosT) / (n1 * cosI + n2 * cosT);
         let rPar: float32 = (n2 * cosI - n1 * cosT) / (n2 * cosI + n1 * cosT);
         return (rOrth * rOrth + rPar * rPar) / 2.0;
     } //-------------------------------- // x x x x x x x x x x x x x x x x //--------------------------------
     pow(f: float32): Vector3 {
         return new Vector3(
-            Math.pow(this.x, f) as float32,
-            Math.pow(this.y, f) as float32,
-            Math.pow(this.z, f) as float32
+            powf32(this.x, f) as float32,
+            powf32(this.y, f) as float32,
+            powf32(this.z, f) as float32
         );
     }
 

@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WASM Array test</title>
+    <title>Empty test</title>
 </head>
 <body>
 <script>
 
-    var importObject = {
+   var importObject = {
         memory: new WebAssembly.Memory({initial: 10}),
         Math: Math,
         foreign: {
@@ -18,7 +18,7 @@
     };
 
     async function init() {
-        let data = await fetch("array.wasm");
+        let data = await fetch("empty.wasm");
         let wasmBytes = await data.arrayBuffer();
         try {
             WebAssembly.compile(wasmBytes).then(function (compiled) {
@@ -28,40 +28,12 @@
                 window.HEAP32 = new Int32Array(exports.memory.buffer);
                 window.HEAPF32 = new Float32Array(exports.memory.buffer);
                 console.log("WASM Compiled!");
-                test();
             })
 
         } catch (e) {
             console.error(e);
         }
     }
-
-    function test() {
-        var num = 1000;
-        var dataArray = exports.test(num);
-
-        for (var i = 0; i < num; i++) {
-            var d1 = exports.getData(dataArray, i);
-            exports.Data_set(d1, 1.1, 1.2, 1.3);
-        }
-
-        function data_to_json(ptr) {
-            return {
-                v1: HEAPF32[(ptr + 4) >> 2],
-                v2: HEAPF32[(ptr + 8) >> 2],
-                v3: HEAPF32[(ptr + 12) >> 2]
-            }
-        }
-
-//        var f64a = exports.Float64Array_new(10);
-//        exports.Float64Array_op_set(f64a, 0, 1.1);
-//        exports.Float64Array_op_set(f64a, 1, 1.2);
-//        exports.Float64Array_op_set(f64a, 2, 1.3);
-//        log(exports.Float64Array_op_get(f64a, 0));
-//        log(exports.Float64Array_op_get(f64a, 1));
-//        log(exports.Float64Array_op_get(f64a, 2));
-    }
-
     init();
 </script>
 </body>

@@ -5,7 +5,7 @@ export class Image {
     depth: uint8;
     data: Array<uint8>;
 
-    constructor(width: int32, height: int32, depth: int32 = 8): Image {
+    constructor(width: int32, height: int32, depth: int32): Image {
 
         this.width = width;
         this.height = height;
@@ -19,31 +19,31 @@ export class Image {
         return (y * (this.width * 4)) + (x * 4);
     }
 
-    getPixel32(x: int32, y: int32): Color {
-        let i = this.pixOffset(x, y);
-        return new Color(
-            (this.data[i] / 255) as float64,
-            (this.data[i + 1] / 255) as float64,
-            (this.data[i + 2] / 255) as float64
-        );
-    }
+    // getPixel32(x: int32, y: int32): Color {
+    //     let i = this.pixOffset(x, y);
+    //     return new Color(
+    //         (this.data[i] / 255) as float64,
+    //         (this.data[i + 1] / 255) as float64,
+    //         (this.data[i + 2] / 255) as float64
+    //     );
+    // }
+    //
+    // getPixel64(x: int32, y: int32): Color {
+    //     let i = this.pixOffset(x, y);
+    //     return new Color(
+    //         (this.data[i] / 65535) as float64,
+    //         (this.data[i + 1] / 65535) as float64,
+    //         (this.data[i + 2] / 65535) as float64
+    //     );
+    // }
 
-    getPixel64(x: int32, y: int32): Color {
-        let i = this.pixOffset(x, y);
-        return new Color(
-            (this.data[i] / 65535) as float64,
-            (this.data[i + 1] / 65535) as float64,
-            (this.data[i + 2] / 65535) as float64
-        );
-    }
-
-    setPixel32(x: int32, y: int32, c: Color): void {
-        let i = this.pixOffset(x, y);
-        this.data[i] = (c.r * 255.0d) as uint8;
-        this.data[i + 1] = (c.g * 255.0d) as uint8;
-        this.data[i + 2] = (c.b * 255.0d) as uint8;
-        this.data[i + 3] = 255;
-    }
+    // setPixel32(x: int32, y: int32, c: Color): void {
+    //     let i = this.pixOffset(x, y);
+    //     this.data[i] = (c.r * 255.0d) as uint8;
+    //     this.data[i + 1] = (c.g * 255.0d) as uint8;
+    //     this.data[i + 2] = (c.b * 255.0d) as uint8;
+    //     this.data[i + 3] = 255;
+    // }
 
     // setPixel64(x: int32, y: int32, c: Color): void {
     //     let i = this.pixOffset(x, y);

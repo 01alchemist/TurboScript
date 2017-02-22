@@ -9,3 +9,4 @@ var HEAPF64 = new stdlib.Float64Array(buffer);
 
 var NULL = 0;
 var fround = stdlib.Math.fround;
+var imul = stdlib.Math.imul;

@@ -131,6 +131,7 @@ class WasmFunction {
     symbol: Symbol;
     signatureIndex: int32;
     isExported: boolean;
+    isConstructor: boolean;
     firstLocal: WasmLocal;
     lastLocal: WasmLocal;
     localCount: int32 = 0;
@@ -293,7 +294,7 @@ class WasmModule {
                 type = type.next;
             }
 
-            log(section.data, array.position, WasmType.func, "func sig "+ sigCount++);
+            log(section.data, array.position, WasmType.func, "func sig " + sigCount++);
             section.data.writeUnsignedLEB128(WasmType.func); //form, the value for the func type constructor
             log(section.data, array.position, count, "num params");
             section.data.writeUnsignedLEB128(count); //param_count, the number of parameters to the function
@@ -355,7 +356,7 @@ class WasmModule {
         let fn = this.firstFunction;
         let count = this.importCount;
         while (fn != null) {
-            log(section.data, array.position, fn.signatureIndex, `func ${count} sig ${getWasmFunctionName(fn.symbol)}`);
+            log(section.data, array.position, fn.signatureIndex, `func ${count} sig ${getWasmFunctionName(fn)}`);
             section.data.writeUnsignedLEB128(fn.signatureIndex);
             fn = fn.next;
             count++;
@@ -461,7 +462,7 @@ class WasmModule {
         fn = this.firstFunction;
         while (fn != null) {
             if (fn.isExported) {
-                let fnName: string = getWasmFunctionName(fn.symbol);
+                let fnName: string = getWasmFunctionName(fn);
                 log(section.data, array.position, fnName.length, "export name length");
                 log(section.data, null, null, `${toHex(section.data.position + array.position + 4)}: ${fnName} // export name`);
                 section.data.writeWasmString(fnName);
@@ -522,17 +523,21 @@ class WasmModule {
                 bodyData.writeUnsignedLEB128(0);
             }
 
-            let child = fn.symbol.node.functionBody().firstChild;
-            while (child != null) {
-                this.emitNode(bodyData, sectionOffset, child);
-                child = child.nextSibling;
+            if (fn.isConstructor) {
+                this.emitInstantiator(bodyData, sectionOffset, fn.symbol.node)
+            } else {
+                let child = fn.symbol.node.functionBody().firstChild;
+                while (child != null) {
+                    this.emitNode(bodyData, sectionOffset, child);
+                    child = child.nextSibling;
+                }
             }
 
             appendOpcode(bodyData, sectionOffset, WasmOpcode.END); //end, 0x0b, indicating the end of the body
 
             //Copy and finish body
             section.data.writeUnsignedLEB128(bodyData.length);
-            log(section.data, offset, null, ` - func body ${count++} (${getWasmFunctionName(fn.symbol)})`);
+            log(section.data, offset, null, ` - func body ${count++} (${getWasmFunctionName(fn)})`);
             log(section.data, offset, bodyData.length, "func body size");
             section.data.log += bodyData.log;
             section.data.copy(bodyData);
@@ -602,7 +607,7 @@ class WasmModule {
 
         let fn = this.firstFunction;
         while (fn != null) {
-            let name = getWasmFunctionName(fn.symbol);
+            let name = getWasmFunctionName(fn);
             array.writeWasmString(name);
             array.writeUnsignedLEB128(0); // No local variables for now
             fn = fn.next;
@@ -699,6 +704,8 @@ class WasmModule {
             let shared = new WasmSharedOffset();
             let argumentTypesFirst: WasmWrappedType = null;
             let argumentTypesLast: WasmWrappedType = null;
+            let symbol = node.symbol;
+            let isConstructor: boolean = symbol.name == "constructor";
 
             // Make sure to include the implicit "this" variable as a normal argument
             let argument = node.isExternalImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
@@ -712,9 +719,10 @@ class WasmModule {
                 shared.nextLocalOffset = shared.nextLocalOffset + 1;
                 argument = argument.nextSibling;
             }
+
             let signatureIndex = this.allocateSignature(argumentTypesFirst, wasmWrapType(this.getWasmType(returnType.resolvedType)));
+
             let body = node.functionBody();
-            let symbol = node.symbol;
 
             // Functions without bodies are imports
             if (body == null) {
@@ -726,7 +734,6 @@ class WasmModule {
             } else {
                 symbol.offset = this.functionCount;
             }
-
 
             let fn = this.allocateFunction(symbol, signatureIndex);
 
@@ -753,6 +760,16 @@ class WasmModule {
             // Assign local variable offsets
             wasmAssignLocalVariableOffsets(fn, body, shared);
             fn.localCount = shared.localCount;
+
+            if (isConstructor) {
+                let ctrSignatureIndex = this.allocateSignature(argumentTypesFirst.next, wasmWrapType(this.getWasmType(returnType.resolvedType)));
+                let fn = this.allocateFunction(symbol, ctrSignatureIndex);
+                fn.isExported = true;
+                fn.isConstructor = true;
+                wasmAssignLocalVariableOffsets(fn, body, shared);
+                fn.localCount = shared.localCount;
+            }
+
         }
 
         let child = node.firstChild;
@@ -903,6 +920,74 @@ class WasmModule {
         let child = node.firstChild.nextSibling;
         while (child != null) {
             this.emitNode(array, byteOffset, child);
+            child = child.nextSibling;
+        }
+
+        let type = node.newType();
+        let size;
+
+        if (type.resolvedType.isArray()) {
+            let elementType = type.firstChild.resolvedType;
+            //ignore 64 bit pointer
+            size = elementType.isClass() ? 4 : elementType.allocationSizeOf(this.context);
+            assert(size > 0);
+            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+            array.writeLEB128(size);
+        }
+
+        let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol);
+        appendOpcode(array, byteOffset, WasmOpcode.CALL);
+        log(array, byteOffset, callIndex, `call func index (${callIndex})`);
+        array.writeUnsignedLEB128(callIndex);
+    }
+
+    //emit constructor function for javascript
+    emitInstantiator(array: ByteArray, byteOffset: int32, constructorNode: Node): void {
+        let callSymbol = constructorNode.symbol;
+        let type = constructorNode.parent.symbol;
+        let size = type.resolvedType.allocationSizeOf(this.context);
+        assert(size > 0);
+
+        if (type.resolvedType.isArray()) {
+            appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
+            array.writeUnsignedLEB128(0);
+            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+            array.writeLEB128(size);
+            appendOpcode(array, byteOffset, WasmOpcode.I32_ADD);
+
+        } else if (type.resolvedType.isTypedArray()) {
+            let elementSize = getTypedArrayElementSize(type.resolvedType.symbol.name);
+            appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
+            array.writeUnsignedLEB128(0);
+            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+            array.writeLEB128(elementSize);
+            appendOpcode(array, byteOffset, WasmOpcode.I32_SHL);
+            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+            array.writeLEB128(size);
+            appendOpcode(array, byteOffset, WasmOpcode.I32_ADD);
+        } else {
+
+            // Pass the object size as the first argument
+            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+            log(array, byteOffset, size, "i32 literal");
+            array.writeLEB128(size);
+        }
+
+        appendOpcode(array, byteOffset, WasmOpcode.CALL);
+        log(array, byteOffset, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
+        array.writeUnsignedLEB128(this.mallocFunctionIndex);
+
+        let child = constructorNode.firstChild.nextSibling;//ignore this pointer argument
+        while (child != null) {
+            if (child.kind == NodeKind.VARIABLE) {
+                let symbol = child.symbol;
+                let offset = symbol.offset - 1;//ignore this pointer argument
+                if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT) {
+                    appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
+                    log(array, byteOffset, offset, "local index");
+                    array.writeUnsignedLEB128(offset);
+                }
+            }
             child = child.nextSibling;
         }
 
@@ -1202,12 +1287,40 @@ class WasmModule {
 
         else if (node.kind == NodeKind.NEW) {
             let type = node.newType();
-            let size = type.resolvedType.allocationSizeOf(this.context);
-            assert(size > 0);
-            // Pass the object size as the first argument
-            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
-            log(array, byteOffset, size, "i32 literal");
-            array.writeLEB128(size);
+            let size;
+            if (type.resolvedType.isArray()) {
+                let elementType = type.firstChild.resolvedType;
+                //ignore 64 bit pointer
+                size = elementType.isClass() ? 4 : elementType.allocationSizeOf(this.context);
+                assert(size > 0);
+                let lengthNode = node.arrayLength();
+                if (lengthNode.kind == NodeKind.INT32) {
+                    appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                    array.writeLEB128(size * lengthNode.intValue);
+                } else {
+                    this.emitNode(array, byteOffset, lengthNode);
+                    array.writeLEB128(size);
+                    appendOpcode(array, byteOffset, WasmOpcode.I32_MUL);
+                }
+            } else if (type.resolvedType.isTypedArray()) {
+                // let elementSize = getTypedArrayElementSize(type.resolvedType.symbol.name);
+                // appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
+                // array.writeLEB128(0);
+                // appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                // array.writeLEB128(elementSize);
+                // appendOpcode(array, byteOffset, WasmOpcode.I32_SHL);
+                // appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                // array.writeLEB128(size);
+                // appendOpcode(array, byteOffset, WasmOpcode.I32_ADD);
+            } else {
+
+                let size = type.resolvedType.allocationSizeOf(this.context);
+                assert(size > 0);
+                // Pass the object size as the first argument
+                appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                log(array, byteOffset, size, "i32 literal");
+                array.writeLEB128(size);
+            }
 
             appendOpcode(array, byteOffset, WasmOpcode.CALL);
             log(array, byteOffset, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
@@ -1866,9 +1979,10 @@ class WasmModule {
     }
 }
 
-function getWasmFunctionName(symbol: Symbol): string {
+function getWasmFunctionName(fn: WasmFunction): string {
+    let symbol: Symbol = fn.symbol;
     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "";
-    return (moduleName == "" ? "" : moduleName + "_") + (symbol.rename ? symbol.rename : symbol.name);
+    return (moduleName == "" ? "" : moduleName + "_") + (symbol.rename ? (fn.isConstructor ? "new" : symbol.rename) : symbol.name);
 }
 
 function wasmStartSection(array: ByteArray, id: int32, name: string): SectionBuffer {
@@ -1920,6 +2034,26 @@ function typeToDataType(type: Type, bitness?: Bitness): string {
     }
     else {
         return "I32";
+    }
+}
+
+function getTypedArrayElementSize(name: string): int32 {
+    switch (name) {
+        case "Uint8ClampedArray":
+        case "Uint8Array":
+        case "Int8Array":
+            return 1;
+        case "Uint16Array":
+        case "Int16Array":
+            return 2;
+        case "Uint32Array":
+        case "Int32Array":
+        case "Float32Array":
+            return 4;
+        case "Float64Array":
+            return 8;
+        default :
+            throw "unknown typed array";
     }
 }
 

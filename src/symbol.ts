@@ -73,7 +73,7 @@ export class Symbol {
     rename: string;
 
     generics: string[];
-    genericMaps: Map<string, Map<string, Node>>;
+    genericMaps: Map<string, Map<Node, Type>>;
 
     // The "offset" variable is used to store kind-specific information
     //

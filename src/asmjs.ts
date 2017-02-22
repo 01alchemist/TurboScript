@@ -1395,14 +1395,19 @@ export class AsmJsModule {
             let elementType = type.firstChild.resolvedType;
             //ignore 64 bit pointer
             size = elementType.isClass() ? 4 : elementType.allocationSizeOf(this.context);
-
+            assert(size > 0);
             let constructorNode = node.constructorNode();
-            let args = constructorNode.functionFirstArgumentIgnoringThis();
             let callSymbol = constructorNode.symbol;
-            let child = node.firstChild.nextSibling;
+            let lengthNode = node.arrayLength();
             this.code.append(`${callSymbol.parent().name}_new(`);
-            assert(child.resolvedType.isInteger());
-            this.code.append(`${size * child.intValue}|0, ${size}|0`);
+            assert(lengthNode.resolvedType.isInteger());
+            if (lengthNode.kind == NodeKind.INT32) {
+                this.code.append(`${size * lengthNode.intValue}|0, ${size}|0`);
+            }else{
+                this.code.append(`imul(${size},`);
+                this.emitExpression(lengthNode, Precedence.LOWEST, false, null);
+                this.code.append(`)|0, ${size}|0`);
+            }
         }
 
         else {

@@ -840,7 +840,7 @@ function TurboModule(stdlib, foreign, buffer) {
     }
     
     
-    function Image_new(width, height, depth = 8) {
+    function Image_new(width, height, depth) {
         width = width|0;
         height = height|0;
         depth = depth|0;
@@ -861,40 +861,6 @@ function TurboModule(stdlib, foreign, buffer) {
         x = x|0;
         y = y|0;
         return (((Math_imul(y, ((HEAP32[(ptr ) >> 2]|0) << 2)|0)|0))|0 + ((x << 2))|0)|0;
-    }
-    
-    
-    function Image_getPixel32(ptr, x, y) {
-        ptr = ptr|0;
-        x = x|0;
-        y = y|0;
-        var i = 0;
-        i = (Image_pixOffset(ptr , (x|0), (y|0))|0);
-        return Color_new((+((Array_op_get(data , (i|0))|0) / 255)|0), (+((Array_op_get(data , ((i|0) + 1)|0)|0) / 255)|0), (+((Array_op_get(data , ((i|0) + 2)|0)|0) / 255)|0))|0;
-    }
-    
-    
-    function Image_getPixel64(ptr, x, y) {
-        ptr = ptr|0;
-        x = x|0;
-        y = y|0;
-        var i = 0;
-        i = (Image_pixOffset(ptr , (x|0), (y|0))|0);
-        return Color_new((+((Array_op_get(data , (i|0))|0) / 65535)|0), (+((Array_op_get(data , ((i|0) + 1)|0)|0) / 65535)|0), (+((Array_op_get(data , ((i|0) + 2)|0)|0) / 65535)|0))|0;
-    }
-    
-    
-    function Image_setPixel32(ptr, x, y, c) {
-        ptr = ptr|0;
-        x = x|0;
-        y = y|0;
-        c = c|0;
-        var i = 0;
-        i = (Image_pixOffset(ptr , (x|0), (y|0))|0);
-        Array_op_set(data , (i|0), HEAPF64[(c ) >> 3] * 255.0 & -1);
-        Array_op_set(data , ((i|0) + 1)|0, HEAPF64[(c + (8|0) ) >> 3] * 255.0 & -1);
-        Array_op_set(data , ((i|0) + 2)|0, HEAPF64[(c + (16|0) ) >> 3] * 255.0 & -1);
-        Array_op_set(data , ((i|0) + 3)|0, 255);
     }
     
     
@@ -974,9 +940,6 @@ function TurboModule(stdlib, foreign, buffer) {
        Color_mix:Color_mix,
        Image_new:Image_new,
        Image_pixOffset:Image_pixOffset,
-       Image_getPixel32:Image_getPixel32,
-       Image_getPixel64:Image_getPixel64,
-       Image_setPixel32:Image_setPixel32,
        Image_setRaw:Image_setRaw
     }
 }

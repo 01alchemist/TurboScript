@@ -139,8 +139,8 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
             parentScope.define(context.log, genericSymbol, ScopeHint.NORMAL);
 
             symbol.generics = [];
-            symbol.genericMaps = new Map<string, Map<string, Node>>();
-            let genericMap = new Map<string, Node>();
+            symbol.genericMaps = new Map<string, Map<Node, Type>>();
+            let genericMap = new Map<Node, Type>();
             symbol.genericMaps.set(genericSymbol.name, genericMap);
             symbol.generics.push(genericSymbol.name);
         }
@@ -187,8 +187,8 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
             }
         }
 
-        if(symbol.name == "constructor"){
-            symbol.rename = "new";
+        if (symbol.name == "constructor") {
+            symbol.rename = "_set";
         }
 
         addScopeToSymbol(symbol, parentScope);
@@ -1223,8 +1223,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
 
             // People may try to use types from TypeScript
-            else if (name == "number") builder.append(", did you mean 'int32'?");
-            else if (name == "booleanean") builder.append(", did you mean 'boolean'?");
+            else if (name == "number") builder.append(", you cannot use generic number type from TypeScript!");
+
+            else if (name == "bool") builder.append(", did you mean 'boolean'?");
 
             context.log.error(node.range, builder.finish());
         }
@@ -1241,42 +1242,31 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             initializeSymbol(context, symbol);
             if (symbol.resolvedType.isArray() && node.firstChild && node.firstChild.kind != NodeKind.PARAMETERS) {
                 resolveAsType(context, node.firstChild, symbol.scope);
-                let arrayType = node.firstChild;
-
-                // let arrayTypeName = symbol.name + `<${arrayType.symbol.name}>`;
-                // let arraySymbol = parentScope.findNested(arrayTypeName, ScopeHint.NORMAL, FindNested.NORMAL);
-                //
-                // if(arraySymbol ==  null) {
-                //     let arraySymbolType = new Type();
-                //     arraySymbol = symbol.clone();
-                //     arraySymbol.name = symbol.name + `<${arrayType.symbol.name}>`;
-                //     arraySymbol.resolvedType = arraySymbolType;
-                //     arraySymbol.node = node;
-                //     arraySymbolType.symbol = arraySymbol;
-                //     parentScope.define(context.log, arraySymbol, ScopeHint.NORMAL);
-                // }
-
-                // node.symbol = arraySymbol;
-                // node.resolvedType = arraySymbol.resolvedType;
-                //
-                let genericName = symbol.generics[0];
-                let genericMap = symbol.genericMaps.get(genericName);
-                let dataTypeName: string = node.parent.symbol ? node.parent.symbol.name : node.parent.previousSibling.symbol.name;
-                genericMap.set(dataTypeName, arrayType);
-
-                node.symbol = symbol;
-                node.resolvedType = symbol.resolvedType;
-
-            } else {
-                node.symbol = symbol;
-                node.resolvedType = symbol.resolvedType;
             }
+
+            node.symbol = symbol;
+            node.resolvedType = symbol.resolvedType;
 
             // Inline constants
             if (symbol.kind == SymbolKind.VARIABLE_CONSTANT) {
+
                 if (symbol.resolvedType == context.booleanType) {
                     node.becomebooleaneanConstant(symbol.offset != 0);
-                } else {
+                }
+
+                else if (symbol.resolvedType == context.float32Type) {
+                    node.becomeFloatConstant(symbol.offset);
+                }
+
+                else if (symbol.resolvedType == context.float64Type) {
+                    node.becomeDoubleConstant(symbol.offset);
+                }
+
+                else if (symbol.resolvedType == context.int64Type) {
+                    node.becomeLongConstant(symbol.offset);
+                }
+
+                else {
                     node.becomeIntegerConstant(symbol.offset);
                 }
             }
@@ -1433,12 +1423,12 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     }
                 }
 
-                if (returnType.resolvedType.isGeneric()) {
-                    let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
-                    if (mappedType) {
-                        returnType = mappedType;
-                    }
-                }
+                // if (returnType.resolvedType.isGeneric()) {
+                //     let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
+                //     if (mappedType) {
+                //         returnType = mappedType;
+                //     }
+                // }
                 // Pass the return type along
                 node.resolvedType = returnType.resolvedType;
             }
@@ -1622,10 +1612,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let type = node.newType();
         resolveAsType(context, type, parentScope);
 
-        //if (type.resolvedType.isArray()) {
-        //resolveAsType(context, type.firstChild, parentScope);
-        // node.resolvedType = type.resolvedType;
-        //}
+        if (type.resolvedType.isArray()) {
+            let symbol = type.resolvedType.symbol;
+            let genericMap = symbol.genericMaps.get(symbol.generics[0]);
+            genericMap.set(type, type.resolvedType);
+        }
 
         if (type.resolvedType != context.errorType) {
             if (!type.resolvedType.isClass()) {

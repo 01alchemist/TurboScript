@@ -182,12 +182,22 @@ System.import("main").then(function (mod) {
     console.log(`wasm compilation ${main(["--wasm", "--out", outFile + ".wasm"]) == 0 ? "success" : "failed"} \n`);
     turboMain.reset();
 
-    childProcess.exec(`wasm2wast ${outFile + ".wasm"} -o ${outFile + ".wast"} -v`).code;
+    let wasm2wast = childProcess.spawn("wasm2wast", [`${outFile + ".wasm"}`, "-o", `${outFile + ".wast"}`, "-v"]);
+    wasm2wast.stdout.on('data', (data) => {
+        console.log(`${data}`);
+    });
+
+    wasm2wast.stderr.on('data', (data) => {
+        console.log(`Error: ${data}`);
+    });
+
+    wasm2wast.on('close', (code) => {
+        console.log(`child process exited with code ${code}`);
+        process.exit();
+    });
 
     console.log("=====================");
     console.log(" Compiling to asm.js");
     console.log("=====================");
     console.log(`asm.js compilation ${main(["--asmjs", "--out", outFile + ".asm.js"]) == 0 ? "success" : "failed"}`);
-
-    process.exit();
 });

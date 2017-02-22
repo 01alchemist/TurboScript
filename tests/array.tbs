@@ -1,7 +1,6 @@
 
 export function test_1():void {
-    var a:int32 = 1;
-    var b:int32 = a + 4;
+    var a = new Array<uint8>(100);
 }
 
 export class Data {
@@ -43,6 +42,9 @@ export function getArrayElementSize(value:Array<Data>):int32 {
     return value.elementSize;
 }
 
+export function getArray(): Array<Data> {
+    return a;
+}
 export function getData(index:int32):Data {
     return a[index];
 }

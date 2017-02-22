@@ -385,6 +385,13 @@ export class Node {
         this.removeChildren();
     }
 
+    becomeLongConstant(value: int64): void {
+        this.kind = NodeKind.INT64;
+        this.symbol = null;
+        this.longValue = value;
+        this.removeChildren();
+    }
+
     becomeFloatConstant(value: float32): void {
         this.kind = NodeKind.FLOAT32;
         this.symbol = null;
@@ -946,6 +953,14 @@ export class Node {
         }
 
         return false;
+    }
+
+    arrayLength(): Node {
+        assert(this.kind == NodeKind.NEW);
+        assert(this.childCount() >= 1);
+        assert(isExpression(this.firstChild));
+        assert(this.firstChild.resolvedType.isArray());
+        return this.firstChild.nextSibling;
     }
 }
 

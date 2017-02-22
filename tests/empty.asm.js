@@ -14,6 +14,7 @@ function TurboModule(stdlib, foreign, buffer) {
     
     var NULL = 0;
     var fround = stdlib.Math.fround;
+    var imul = stdlib.Math.imul;
     
     //##################################
     //#            IMPORTS             #
@@ -24,16 +25,13 @@ function TurboModule(stdlib, foreign, buffer) {
     //##################################
     function initMemory() {
         HEAPU8[8] = 219; HEAPU8[9] = 15; HEAPU8[10] = 73; HEAPU8[11] = 64; 
-        HEAPU8[12] = 56; HEAPU8[13] = 0; HEAPU8[14] = 0; HEAPU8[15] = 0; 
-        HEAPU8[16] = 56; HEAPU8[17] = 0; HEAPU8[18] = 0; HEAPU8[19] = 0; 
+        HEAPU8[12] = 40; HEAPU8[13] = 0; HEAPU8[14] = 0; HEAPU8[15] = 0; 
+        HEAPU8[16] = 40; HEAPU8[17] = 0; HEAPU8[18] = 0; HEAPU8[19] = 0; 
         HEAPU8[20] = 0; HEAPU8[21] = 0; HEAPU8[22] = 0; HEAPU8[23] = 0; 
         HEAPU8[24] = 0; HEAPU8[25] = 0; HEAPU8[26] = 0; HEAPU8[27] = 0; 
         HEAPU8[28] = 0; HEAPU8[29] = 0; HEAPU8[30] = 0; HEAPU8[31] = 0; 
         HEAPU8[32] = 0; HEAPU8[33] = 0; HEAPU8[34] = 0; HEAPU8[35] = 0; 
         HEAPU8[36] = 0; HEAPU8[37] = 0; HEAPU8[38] = 0; HEAPU8[39] = 0; 
-        HEAPU8[40] = 0; HEAPU8[41] = 0; HEAPU8[42] = 0; HEAPU8[43] = 0; 
-        HEAPU8[44] = 0; HEAPU8[45] = 0; HEAPU8[46] = 0; HEAPU8[47] = 0; 
-        HEAPU8[48] = 0; HEAPU8[49] = 0; HEAPU8[50] = 0; HEAPU8[51] = 0; 
     }
     
     //##################################
@@ -261,95 +259,10 @@ function TurboModule(stdlib, foreign, buffer) {
     }
     
     
-    function Float64Array_new(elementSize) {
-        elementSize = elementSize|0;
-        var ptr = 0;
-        ptr = malloc((8 + elementSize << 8)|0)|0;
-        HEAP32[(ptr ) >> 2] = (elementSize|0);
-        HEAP32[(ptr + (4|0)) >> 2] = elementSize << 3;
-        return (ptr)|0;
-    }
-    
-    
-    function Float64Array_op_get(ptr, index) {
-        ptr = ptr|0;
-        index = index|0;
-        if (((index|0) < (HEAP32[(ptr ) >> 2]|0))|0) {
-            return +((+HEAPF64[((ptr + 8)|0 + ((index << 3))|0 ) >> 3]));
-        }
-        return +((+fround(0)));
-    }
-    
-    
-    function Float64Array_op_set(ptr, index, value) {
-        ptr = ptr|0;
-        index = index|0;
-        value = +value;
-        HEAPF64[((ptr + 8)|0 + ((index << 3))|0 ) >> 3] = (+value);
-    }
-    
-    
     function test_1() {
-        var a = 1;
-        var b = 0;
-        b = ((a|0) + 4)|0;
-    }
-    
-    
-    function Data_new(id) {
-        id = id|0;
-        var ptr = 0;
-        ptr = malloc(16)|0;
-        HEAP32[(ptr ) >> 2] = (id|0);
-        return (ptr)|0;
-    }
-    
-    
-    function Data_set(ptr, v1, v2, v3) {
-        ptr = ptr|0;
-        v1 = fround(v1);
-        v2 = fround(v2);
-        v3 = fround(v3);
-        HEAPF32[(ptr + (4|0)) >> 2] = fround(v1);
-        HEAPF32[(ptr + (8|0)) >> 2] = fround(v2);
-        HEAPF32[(ptr + (12|0)) >> 2] = fround(v3);
-    }
-    
-    
-    
-    function test(num) {
-        num = num|0;
-        var i = 0;
-        HEAP32[(40) >> 2] = Array_new(0|0, 4|0)|0;
-        
-        while (((i|0) < 10)|0) {
-            Array_op_set((HEAP32[(40) >> 2]|0) , (i|0), Data_new((i|0))|0);
-            i = ((((i|0) + 1)|0)|0)|0;
-        }
-        return ((HEAP32[(40) >> 2]|0))|0;
-    }
-    
-    
-    function getArrayByteLength(value) {
-        value = value|0;
-        return ((HEAP32[(value ) >> 2]|0))|0;
-    }
-    
-    
-    function getArrayElementSize(value) {
-        value = value|0;
-        return ((HEAP32[(value + (4|0) ) >> 2]|0))|0;
-    }
-    
-    
-    function getArray() {
-        return ((HEAP32[(40) >> 2]|0))|0;
-    }
-    
-    
-    function getData(index) {
-        index = index|0;
-        return (Array_op_get((HEAP32[(40) >> 2]|0) , (index|0))|0);
+        var b = 100;
+        var a = 0;
+        a = Array_new(imul(4,b)|0, 4|0)|0;
     }
     
     
@@ -364,17 +277,7 @@ function TurboModule(stdlib, foreign, buffer) {
        Array_length:Array_length,
        Array_op_get:Array_op_get,
        Array_op_set:Array_op_set,
-       Float64Array_new:Float64Array_new,
-       Float64Array_op_get:Float64Array_op_get,
-       Float64Array_op_set:Float64Array_op_set,
-       test_1:test_1,
-       Data_new:Data_new,
-       Data_set:Data_set,
-       test:test,
-       getArrayByteLength:getArrayByteLength,
-       getArrayElementSize:getArrayElementSize,
-       getArray:getArray,
-       getData:getData
+       test_1:test_1
     }
 }
 function TurboWrapper(exports, buffer) {

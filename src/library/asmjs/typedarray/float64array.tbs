@@ -1,4 +1,4 @@
-export class Float64Array {
+class Float64Array {
 
     length: int32;
     bytesLength: int32;
@@ -72,7 +72,7 @@ export class Float64Array {
         if (index < this.length) {
             return *((this as *int32 + 8 + index * 8) as *float64) as float64;
         }
-        return 0.0;
+        return 0.0 as float64;
     }
     operator []= (index: int32, value:float64):void {
         *((this as *int32 + 8 + index * 8) as *float64) = value;

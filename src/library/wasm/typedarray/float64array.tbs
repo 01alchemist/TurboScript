@@ -1,12 +1,16 @@
 export class Float64Array {
 
-    length: int32;
+    elementSize: int32;
     bytesLength: int32;
 
     constructor(elementSize: int32): Float64Array {
-        this.length = elementSize;
+        this.elementSize = elementSize;
         this.bytesLength = elementSize * 8;
         return this;
+    }
+
+    get length(): int32 {
+        return this.elementSize;
     }
 
     // sort():void {
