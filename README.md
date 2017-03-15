@@ -28,8 +28,8 @@ TurboScript is forked from ThinScript and changed a lot, so there will be no goi
 * Parallel WebAssembly (post-MVP)
 
 # Useful links
-* [Future WebHPC & Parallel Programming with JavaScript] (https://dump.01alchemist.com/2016/12/31/future-webhpc-parallel-programming-with-javascript-the-new-era-about-to-begin/)
-* [TurboScript playground] (https://01alchemist.com/projects/turboscript/playground/)
+* [Future WebHPC & Parallel Programming with JavaScript](https://dump.01alchemist.com/2016/12/31/future-webhpc-parallel-programming-with-javascript-the-new-era-about-to-begin/)
+* [TurboScript playground](https://01alchemist.com/projects/turboscript/playground/)
 
 
 # Credit
