@@ -112,9 +112,11 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Class
     if (kind == NodeKind.CLASS || kind == NodeKind.ENUM) {
         assert(node.symbol == null);
+
         let symbol = new Symbol();
         symbol.kind = kind == NodeKind.CLASS ? SymbolKind.TYPE_CLASS : SymbolKind.TYPE_ENUM;
         symbol.name = node.stringValue;
+
         symbol.resolvedType = new Type();
         symbol.resolvedType.symbol = symbol;
         symbol.flags = SYMBOL_FLAG_IS_REFERENCE;
@@ -202,8 +204,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         parentScope = symbol.scope;
 
         // All instance functions have a special "this" type
-        if (symbol.kind != SymbolKind.FUNCTION_INSTANCE) {
-        } else {
+        if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
             let parent = symbol.parent();
             initializeSymbol(context, parent);
             node.insertChildBefore(node.functionFirstArgument(), createVariable("this", createType(parent.resolvedType), null));
@@ -369,15 +370,19 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     // Function
     else if (isFunction(symbol.kind)) {
-        if (node.firstChild.kind == NodeKind.PARAMETERS) {
-            resolve(context, node.firstChild, symbol.scope);
-        }
+        // if (node.firstChild.kind == NodeKind.PARAMETERS) {
+        //     resolve(context, node.firstChild, symbol.scope);
+        // }
 
         let body = node.functionBody();
         let returnType = node.functionReturnType();
         let oldUnsafeAllowed = context.isUnsafeAllowed;
         context.isUnsafeAllowed = node.isUnsafe();
         resolveAsType(context, returnType, symbol.scope.parent);
+
+        if (returnType.resolvedType.isArray() && returnType.hasParameters() && node.parent != returnType.resolvedType.symbol.node) {
+            deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], returnType.resolvedType.symbol.scope);
+        }
 
         let argumentCount = 0;
         let child = node.functionFirstArgument();
@@ -536,9 +541,11 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
         if (type != null) {
             resolveAsType(context, type, symbol.scope);
-            // if(type.resolvedType.isArray() && type.firstChild){
-            //     resolveAsType(context, type.firstChild, symbol.scope);
-            // }
+            //TODO: Migrate isArray to generic
+            if (type.resolvedType.isArray() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
+                deriveConcreteClass(context, type, [type.firstChild.firstChild], type.resolvedType.symbol.scope);
+            }
+
             symbol.resolvedType = type.resolvedType;
         }
 
@@ -630,6 +637,117 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     assert(symbol.resolvedType != null);
     symbol.state = SymbolState.INITIALIZED;
+}
+
+/**
+ * Derive a concrete class from class template type
+ * @param context
+ * @param type
+ * @param parameters
+ * @param parentScope
+ * @returns {Symbol}
+ */
+function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[], scope: Scope) {
+
+    let templateNode: Node = type.resolvedType.pointerTo ? type.resolvedType.pointerTo.symbol.node : type.resolvedType.symbol.node;
+    let typeName = templateNode.stringValue + `<${parameters[0].stringValue}>`;
+    let symbol = scope.parent.findNested(typeName, ScopeHint.NORMAL, FindNested.NORMAL);
+
+    if (symbol) {
+        type.symbol = symbol;
+        type.resolvedType = symbol.resolvedType;
+        return symbol;
+    }
+
+    let node: Node = templateNode.clone();
+    node.parent = templateNode.parent;
+    node.stringValue = typeName;
+
+    // symbol = new Symbol();
+    // symbol.kind = SymbolKind.TYPE_CLASS;
+    // symbol.name = typeName;
+    //
+    // symbol.resolvedType = new Type();
+    // symbol.resolvedType.symbol = symbol;
+    // symbol.flags = SYMBOL_FLAG_IS_REFERENCE;
+    //
+    // addScopeToSymbol(symbol, scope.parent);
+    // linkSymbolToNode(symbol, node);
+    // scope.parent.define(context.log, symbol, ScopeHint.NORMAL);
+
+    cloneChildren(templateNode.firstChild, node, parameters);
+
+    initialize(context, node, scope.parent, CheckMode.NORMAL);
+
+    resolve(context, node, scope.parent);
+
+    // Children
+    // let child = node.firstChild;
+    // while (child != null) {
+    //     initialize(context, child, symbol.scope, CheckMode.NORMAL);
+    //     child = child.nextSibling;
+    // }
+
+    // resolveChildren(context, node, symbol.scope);
+
+    node.offset = null;//FIXME: we cannot take offset from class template node
+
+    if (type.resolvedType.pointerTo) {
+        type.resolvedType = symbol.resolvedType.pointerType();
+    } else {
+        type.resolvedType = symbol.resolvedType;
+    }
+
+    return symbol;
+}
+
+function cloneChildren(child: Node, parentNode: Node, parameters: any[]): void {
+
+    let firstChildNode: Node = null;
+    let lastChildNode: Node = null;
+
+    while (child) {
+
+
+        if (child.stringValue == "this") {
+            child = child.nextSibling;
+            continue;
+        }
+
+        let childNode: Node;
+
+        if (child.isGeneric() || child.kind == NodeKind.PARAMETER) {
+            childNode = parameters[child.offset];
+        } else {
+            if (child.stringValue == "T") {
+                console.log(child);
+            } else {
+                childNode = child.clone();
+            }
+        }
+
+        childNode.parent = parentNode;
+
+        if (!firstChildNode) {
+            firstChildNode = childNode;
+        }
+
+        if (lastChildNode) {
+            lastChildNode.nextSibling = childNode;
+            childNode.previousSibling = lastChildNode;
+        }
+
+        if (child.firstChild) {
+            cloneChildren(child.firstChild, childNode, parameters);
+        }
+
+        lastChildNode = childNode;
+
+        child = child.nextSibling;
+    }
+
+    parentNode.firstChild = firstChildNode;
+    parentNode.lastChild = lastChildNode;
 }
 
 export function resolveChildren(context: CheckContext, node: Node, parentScope: Scope): void {
@@ -1029,9 +1147,24 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         if (body != null) {
             let oldReturnType = context.currentReturnType;
             let oldUnsafeAllowed = context.isUnsafeAllowed;
-            context.currentReturnType = node.functionReturnType().resolvedType;
+            let returnType = node.functionReturnType();
+
+            if (returnType.resolvedType.isArray() && returnType.hasParameters() && node.parent != returnType.resolvedType.symbol.node) {
+                deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], returnType.resolvedType.symbol.scope);
+            }
+
+            context.currentReturnType = returnType.resolvedType;
             context.isUnsafeAllowed = node.isUnsafe();
             resolveChildren(context, body, node.scope);
+
+            if (oldReturnType && oldReturnType.isArray() && returnType.hasParameters() && node.parent != oldReturnType.symbol.node) {
+                deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], oldReturnType.symbol.scope);
+            }
+
+            // if (oldReturnType && oldReturnType.isArray() && !oldReturnType.symbol.node.hasParameters()) {
+            //     deriveConcreteClass(context, oldReturnType.symbol.node, [oldReturnType.symbol.node.firstChild], oldReturnType.symbol.scope);
+            // }
+
             context.currentReturnType = oldReturnType;
             context.isUnsafeAllowed = oldUnsafeAllowed;
         }
@@ -1239,10 +1372,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         else if (isSymbolAccessAllowed(context, symbol, node, node.range)) {
+
             initializeSymbol(context, symbol);
-            if (symbol.resolvedType.isArray() && node.firstChild && node.firstChild.kind != NodeKind.PARAMETERS) {
-                resolveAsType(context, node.firstChild, symbol.scope);
-            }
 
             node.symbol = symbol;
             node.resolvedType = symbol.resolvedType;
@@ -1423,12 +1554,13 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     }
                 }
 
-                // if (returnType.resolvedType.isGeneric()) {
-                //     let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
-                //     if (mappedType) {
-                //         returnType = mappedType;
-                //     }
-                // }
+                if (returnType.resolvedType.isArray()) {
+                    console.log(returnType);
+                    //let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
+                    //if (mappedType) {
+                    //returnType = mappedType;
+                    //}
+                }
                 // Pass the return type along
                 node.resolvedType = returnType.resolvedType;
             }
@@ -1463,6 +1595,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             if (context.currentReturnType != null) {
                 if (context.currentReturnType != context.voidType) {
+
+                    if (value.resolvedType.isArray() && value.hasParameters() && node.parent != value.resolvedType.symbol.node) {
+                        deriveConcreteClass(context, value, [value.firstChild.firstChild], value.resolvedType.symbol.scope);
+                    }
+
                     checkConversion(context, value, context.currentReturnType, ConversionKind.IMPLICIT);
                 }
 
@@ -1486,7 +1623,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
     else if (kind == NodeKind.PARAMETERS) {
         // resolveAsType(context, node.genericType(), parentScope);
-        //resolveAsExpression(context, node.expressionValue(), parentScope);
+        // resolveAsExpression(context, node.expressionValue(), parentScope);
         // context.log.error(node.range, "Generics are not implemented yet");
     }
 
@@ -1612,10 +1749,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let type = node.newType();
         resolveAsType(context, type, parentScope);
 
-        if (type.resolvedType.isArray()) {
-            let symbol = type.resolvedType.symbol;
-            let genericMap = symbol.genericMaps.get(symbol.generics[0]);
-            genericMap.set(type, type.resolvedType);
+        if (type.resolvedType.isArray() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
+            deriveConcreteClass(context, type, [type.firstChild.firstChild], type.resolvedType.symbol.scope);
         }
 
         if (type.resolvedType != context.errorType) {

@@ -81,6 +81,7 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
                     // End the string with a matching quote character
                     if (next == c) {
                         let text = contents.slice(start + 1, i - 1);
+                        //FIXME: If the import already resolved don't add it again.
                         let importContent = resolveImport(basePath + pathSeparator + text);
                         if (importContent) {
                             compiler.addInputBefore(text, importContent, source);

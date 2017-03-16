@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Block test</title>
+</head>
+<body>
+<script>
+
+   var importObject = {
+        memory: new WebAssembly.Memory({initial: 10}),
+        Math: Math,
+        foreign: {
+            random: () => {
+                return Math.random() / Number.MAX_SAFE_INTEGER;
+            }
+        }
+    };
+
+    async function init() {
+        let data = await fetch("block.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                window.exports = new WebAssembly.Instance(compiled, importObject).exports;
+                window.HEAPU8 = new Uint8Array(exports.memory.buffer);
+                window.HEAPU32 = new Uint32Array(exports.memory.buffer);
+                window.HEAP32 = new Int32Array(exports.memory.buffer);
+                window.HEAPF32 = new Float32Array(exports.memory.buffer);
+                console.log("WASM Compiled!");
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    init();
+</script>
+</body>
+</html>

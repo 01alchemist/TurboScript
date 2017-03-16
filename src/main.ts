@@ -86,7 +86,7 @@ export function main_reset(): void {
 
 export function printUsage(): void {
     stdlib.Terminal_write(`
-Usage: thinc [FLAGS] [INPUTS]
+Usage: tc [FLAGS] [INPUTS]
 
   --help           Print this message.
   --out [PATH]     Emit code to PATH (the target format is the file extension).
@@ -94,9 +94,9 @@ Usage: thinc [FLAGS] [INPUTS]
 
 Examples:
 
-  thinc main.tbs --out main.js
-  thinc src/*.tbs --out main.wasm
-  thinc native.tbs --out main.c --define ENABLE_TESTS
+  tc main.tbs --out main.js
+  tc src/*.tbs --out main.wasm
+  tc native.tbs --out main.c --define ENABLE_TESTS
 
 `);
 }

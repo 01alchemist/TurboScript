@@ -17,9 +17,6 @@ bin-release/
 # information for Eclipse / Flash Builder.
 /.idea/
 /node_modules/
-!lib/common.js
-lib/*.js
-lib/*.js.map
 src/**/*.js
 src/**/*.js.map
 /TurboScript.iml

@@ -10,7 +10,7 @@ import {WasmOpcode} from "./wasm/opcode";
 import {toHex} from "./utils";
 
 const WASM_MAGIC = 0x6d736100; //'\0' | 'a' << 8 | 's' << 16 | 'm' << 24;
-const WASM_VERSION = 0x0d;
+const WASM_VERSION = 0x1;
 const WASM_SIZE_IN_PAGES = 1;
 const WASM_SET_MAX_MEMORY = false;
 const WASM_MAX_MEMORY = 1024 * 1024 * 1024;
@@ -258,7 +258,7 @@ class WasmModule {
         array.writeUnsignedInt(WASM_MAGIC);
         array.writeUnsignedInt(WASM_VERSION);
         array.log += '0000000: 0061 736d             ; WASM_BINARY_MAGIC\n';
-        array.log += '0000004: 0d00 0000             ; WASM_BINARY_VERSION\n';
+        array.log += '0000004: 0100 0000             ; WASM_BINARY_VERSION\n';
 
         this.emitSignatures(array);
         this.emitImportTable(array);

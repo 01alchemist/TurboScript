@@ -1,5 +1,0 @@
-export function test_1(b:int32):Array<int32> {
-    var a = new Array<int32>(b);
-    var c = a[0];
-    return a;
-}

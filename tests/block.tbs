@@ -1,0 +1,7 @@
+export function block_test():int32 {
+    if(true){
+        //this is a block
+        return 0;
+    }
+    return 1;
+}

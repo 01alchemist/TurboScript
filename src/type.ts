@@ -53,7 +53,8 @@ export class Type {
     }
 
     isArray(): boolean {
-        return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_ARRAY) != 0;
+        // return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_ARRAY) != 0;
+        return this.symbol != null && this.symbol.name == "Array";
     }
 
     isTypedArray(): boolean {
@@ -123,13 +124,4 @@ export class Type {
         var symbol = this.symbol;
         return symbol != null && (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE);
     }
-
-    // become(type: Type): void {
-    //     this.symbol.flags = type.symbol.flags;
-    //     this.symbol.name = type.symbol.name;
-    //     this.symbol.byteSize = type.symbol.byteSize;
-    //     this.symbol.kind = type.symbol.kind;
-    //     this.symbol.maxAlignment = type.symbol.maxAlignment;
-    //     this.symbol.node = type.symbol.node;
-    // }
 }

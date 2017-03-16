@@ -8,7 +8,7 @@
     "types": [
       "node"
     ],
-    "outFile": "../bin/turbo.js"
+    "outFile": "../lib/turbo.js"
   },
   "files": [
     "main.ts"

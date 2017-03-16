@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ASM Generic test</title>
+</head>
+<body>
+<script src="generic.asm.js"></script>
+<script>
+
+    log = console.log;
+
+    let turbo = initTurbo(0x10000);
+
+    let num = 10;
+    let intArray = turbo.exports.Array_new(num*4,4);
+
+    for (let i = 0; i < num; i++) {
+        turbo.exports.Array_op_set(intArray, i, i);
+    }
+    for (let i = 0; i < num; i++) {
+        console.log(i, i << 2, turbo.exports.Array_op_get(intArray, i));
+    }
+
+</script>
+</body>
+</html>

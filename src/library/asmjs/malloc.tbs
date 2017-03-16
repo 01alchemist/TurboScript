@@ -54,13 +54,13 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //     currentHeapPointer  = 40 as *uint8;//this will override by compiler
 // }
 
-export function malloc(nbytes: int32): *uint8 {
+export function malloc(size: int32): *uint8 {
 
     //All loc variable should declare here before assigning named value
     var alignment:int32 = 8;
 
-    nbytes = (nbytes + (alignment - 1)) & ~(alignment - 1) as int32;
-    var chunkSize = nbytes + 8;
+    size = (size + (alignment - 1)) & ~(alignment - 1) as int32;
+    var chunkSize = size + 8;
 
     var freeChunk = getFreeChunk(chunkSize);
      if(freeChunk as int32 > 0){
@@ -119,7 +119,7 @@ export function free(ptr:*uint8):void{
     lastFree = ptr as int32;
     numFreeChunks = numFreeChunks + 1;
 }
-/*export*/function getFreeChunk(nbytes: int32):*uint8{
+/*export*/function getFreeChunk(size: int32):*uint8{
 
     var freeChunk:*uint8 = null;
     var tmp1:int32 = 0;
@@ -132,7 +132,7 @@ export function free(ptr:*uint8):void{
     tmp3 = freeMemory;
 
     if(numFreeChunks > 0){
-        freeChunk = findChunk(nbytes);
+        freeChunk = findChunk(size);
         if(freeChunk as int32 > 0){
             if(freeChunk as int32 == tmp1){
                 firstFree = nextFree(freeChunk) as int32;
@@ -150,14 +150,14 @@ export function free(ptr:*uint8):void{
     }
     return null;
 }
-/*export*/function findChunk(nbytes: int32):*uint8{
+/*export*/function findChunk(size: int32):*uint8{
     var chunk:*uint8 = null;
     var tmp1:int32 = 0;
 
     chunk = firstFree as *uint8;
     while(chunk != null){
         tmp1= getChunkSize(chunk);
-        if(tmp1 == nbytes){
+        if(tmp1 == size){
             return chunk;
         }
         chunk = *(chunk as *int32) as *uint8;

@@ -3,7 +3,7 @@ declare var PI:float32 = 3.141592653589793;
 @import
 declare class Math {
 
-    static abs(x: float32 | float64): float32 | float64;
+    static abs(x: float32): float32;
     static acos(x: float64): float64;
     static asin(x: float64): float64;
     static atan(x: float64): float64;

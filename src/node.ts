@@ -237,6 +237,10 @@ export class Node {
         }
     }
 
+    get __internal_rawValue(): any {
+        return this._rawValue;
+    }
+
     set rawValue(newValue: any) {
         this._hasValue = true;
         this._rawValue = newValue;
@@ -354,20 +358,17 @@ export class Node {
         }
     }
 
-    become(node: Node): void {
-        assert(node != this);
-        assert(node.parent == null);
-
-        this.kind = node.kind;
-        this.flags = node.flags;
-        this.firstFlag = node.firstFlag;
-        this.range = node.range;
-        this.internalRange = node.internalRange;
-        this.intValue = node.intValue;
-        this.stringValue = node.stringValue;
-        this.resolvedType = node.resolvedType;
-        this.symbol = node.symbol;
-        this.scope = node.scope;
+    clone(): Node {
+        let node: Node = new Node();
+        node.kind = this.kind;
+        node.offset = this.offset;
+        if(this.flags) node.flags = this.flags;
+        if(this.firstFlag) node.firstFlag = this.firstFlag;
+        // if(this.constructorFunctionNode) node.constructorFunctionNode = this.constructorFunctionNode;
+        if(this.range) node.range = this.range;
+        if(this.internalRange) node.internalRange = this.internalRange;
+        if(this.hasValue) node.rawValue = this.__internal_rawValue;
+        return node;
     }
 
     becomeSymbolReference(symbol: Symbol): void {
@@ -517,10 +518,11 @@ export class Node {
     }
 
     hasParameters(): boolean {
-        let count = 0;
-        let child = this.firstChild;
-        if (child.kind == NodeKind.PARAMETERS) {
-            return child.childCount() > 0;
+        if (this.firstChild) {
+            let child = this.firstChild;
+            if (child.kind == NodeKind.PARAMETERS) {
+                return child.childCount() > 0;
+            }
         }
         return false;
     }
@@ -686,7 +688,8 @@ export class Node {
         return this.lastChild.previousSibling;
     }
 
-    getMappedGenericType(name: string): Node {
+    //FIXME : java style generic should be changed to C++ style
+    getMappedGenericType(name: Node): Type {
         let symbol = this.parent.parent.symbol;
         if (symbol.generics && symbol.generics.length > 0) {
             let genericMaps = symbol.genericMaps;
@@ -697,7 +700,7 @@ export class Node {
                 return genericMaps.get(type.symbol.name).get(name);
             }
         } else {
-            return this.lastChild;
+            return this.lastChild.resolvedType;
         }
     }
 
@@ -794,7 +797,6 @@ export class Node {
     }
 
     firstGenericType(): Node {
-        assert(this.kind == NodeKind.CLASS);
         assert(this.firstChild.kind == NodeKind.PARAMETERS);
         assert(this.firstChild.childCount() > 0);
         return this.firstChild.firstChild;

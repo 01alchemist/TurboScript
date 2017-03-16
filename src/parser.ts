@@ -762,7 +762,7 @@ class ParserContext {
 
         if (this.peek(TokenKind.MULTIPLY)) { //check for wildcard '*' import
 
-             this.log.error(this.current.range, "wildcard '*' import not supported");
+            this.log.error(this.current.range, "wildcard '*' import not supported");
 
             assert(this.eat(TokenKind.MULTIPLY));
             assert(this.eat(TokenKind.AS));
@@ -1414,10 +1414,11 @@ class ParserContext {
                 type = this.parseType();
 
                 if (this.peek(TokenKind.LESS_THAN)) {
-                    this.advance();
-                    let arrayType = this.parseType();
-                    this.expect(TokenKind.GREATER_THAN);
-                    type.appendChild(arrayType);
+                    let parameters = this.parseParameters();
+                    if (parameters == null) {
+                        return null;
+                    }
+                    type.appendChild(parameters);
                 }
 
                 if (type == null) {
@@ -1629,7 +1630,7 @@ class ParserContext {
             let digit: number = (
                 c >= 'A' && c <= 'F' ? c.charCodeAt(0) + (10 - 'A'.charCodeAt(0)) :
                     c >= 'a' && c <= 'f' ? c.charCodeAt(0) + (10 - 'a'.charCodeAt(0)) :
-                        c.charCodeAt(0) - '0'.charCodeAt(0)
+                    c.charCodeAt(0) - '0'.charCodeAt(0)
             );
             let baseValue = Math.imul(value, base) >>> 0;
 

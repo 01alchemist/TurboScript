@@ -232,6 +232,7 @@ export class AsmJsModule {
         let forceCastLeft: boolean = false;
         let forceCastRight: boolean = false;
         let casted: boolean = false;
+
         if (leftNode.resolvedType != rightNode.resolvedType && (leftNode.resolvedType.isDouble() || rightNode.resolvedType.isDouble())) {
             childForceCastType = AsmType.DOUBLE;
             if (!leftNode.resolvedType.isDouble()) {
@@ -1403,7 +1404,7 @@ export class AsmJsModule {
             assert(lengthNode.resolvedType.isInteger());
             if (lengthNode.kind == NodeKind.INT32) {
                 this.code.append(`${size * lengthNode.intValue}|0, ${size}|0`);
-            }else{
+            } else {
                 this.code.append(`imul(${size},`);
                 this.emitExpression(lengthNode, Precedence.LOWEST, false, null);
                 this.code.append(`)|0, ${size}|0`);
@@ -1963,6 +1964,7 @@ function getIdentifier(node: Node, forceCastToType: AsmType = null, outerBracket
     let int: boolean = false;
     let float: boolean = false;
     let double: boolean = false;
+    let _isBinary = isBinary(node.kind);
 
     if (forceCastToType) {
         return asmTypeToIdentifier(forceCastToType);
@@ -1978,13 +1980,9 @@ function getIdentifier(node: Node, forceCastToType: AsmType = null, outerBracket
         identifier_2 = ")";
         float = true;
     }
-    else if (resolvedType.isInteger()) {
-        identifier_1 = "(";
-        identifier_2 = outerBracket ? "|0)" : ")|0";
-        int = true;
-    } else {
-        identifier_1 = "(";
-        identifier_2 = outerBracket ? "|0)" : ")|0";
+    else {
+        identifier_1 = _isBinary ? "((" : "(";
+        identifier_2 = _isBinary ? ")|0)" : ")|0";
         int = true;
     }
     return {
