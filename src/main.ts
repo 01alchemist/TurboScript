@@ -90,14 +90,14 @@ Usage: tc [FLAGS] [INPUTS]
 
   --help           Print this message.
   --out [PATH]     Emit code to PATH (the target format is the file extension).
+    --asmjs        Explicit asmjs output
+    --wasm         Explicit webassembly output 
   --define [NAME]  Define the flag NAME in all input files.
 
 Examples:
 
-  tc main.tbs --out main.js
+  tc main.tbs --out main.asm.js
   tc src/*.tbs --out main.wasm
-  tc native.tbs --out main.c --define ENABLE_TESTS
-
 `);
 }
 

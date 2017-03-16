@@ -57,7 +57,7 @@ global["TURBO_PATH"] = process.env.TURBO_PATH;
 console.log("TURBO_PATH:"+global["TURBO_PATH"]);
 
 //Import compiler
-require(path.resolve("./turbo.js"));
+require("./turbo.js");
 
 SystemJS.import("main").then(function (mod) {
     var Color = mod.Color;

@@ -175,7 +175,7 @@ export class CResult {
             var i = 0;
             if (!this.hasStrings) {
                 codePrefix.append(`
-#ifdef THINSCRIPT_BIG_ENDIAN
+#ifdef TURBOSCRIPT_BIG_ENDIAN
   #define S(a, b) (((a) << 16) | (b))
 #else
   #define S(a, b) ((a) | ((b) << 16))
