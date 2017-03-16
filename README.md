@@ -17,7 +17,7 @@ This is still an experiment and isn't intended for real use yet. ~~The biggest i
 
 TurboScript is forked from ThinScript and changed a lot, so there will be no going back.
 
-#Roadmap
+# Roadmap
 
 * ~~Parallel JavaScript~~
 * ~~WebAssembly Emitter~~
@@ -27,10 +27,22 @@ TurboScript is forked from ThinScript and changed a lot, so there will be no goi
 * Array Data Type
 * Parallel WebAssembly (post-MVP)
 
-#Useful links
-* [Future WebHPC & Parallel Programming with JavaScript] (https://dump.01alchemist.com/2016/12/31/future-webhpc-parallel-programming-with-javascript-the-new-era-about-to-begin/)
-* [TurboScript playground] (https://01alchemist.com/projects/turboscript/playground/)
+# Wiki
+Documentations can be found at [wiki](../../wiki) (under construction :construction:)
+
+# Github Project 
+[TurboScript Project](https://github.com/orgs/01alchemist/projects/1)
+
+# Useful links
+* [Future WebHPC & Parallel Programming with JavaScript](https://dump.01alchemist.com/2016/12/31/future-webhpc-parallel-programming-with-javascript-the-new-era-about-to-begin/)
+* [TurboScript playground](https://01alchemist.com/projects/turboscript/playground/)
 
 
-#Credit
+# Credit
 Lexical analysis, Parsing, Checking codes are borrowed from Evan Wallace's thinscript
+
+# Now enjoy - Wow! this snail is fast
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=w-SDeBoDLTg
+" target="_blank"><img src="https://01alchemist.com/images/Turbo-630x354.jpg" 
+alt="Wow! this snail is fast" width="630" height="354" border="10" /></a>
+
