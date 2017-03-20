@@ -244,6 +244,8 @@ export class Compiler {
 
         stdlib.Profiler_end("emitting");
 
+        console.log("Done!");
+
         return true;
     }
 }

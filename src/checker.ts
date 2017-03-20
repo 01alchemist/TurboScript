@@ -87,9 +87,19 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         let parentKind = node.parent.kind;
 
         // Validate node placement
-        if (kind != NodeKind.IMPORTS && kind != NodeKind.VARIABLE && kind != NodeKind.VARIABLES &&
+        if (kind != NodeKind.IMPORTS &&
+            kind != NodeKind.VARIABLE &&
+            kind != NodeKind.VARIABLES &&
             (kind != NodeKind.FUNCTION || parentKind != NodeKind.CLASS) &&
-            (parentKind == NodeKind.FILE) != (parentKind == NodeKind.MODULE || kind == NodeKind.MODULE || kind == NodeKind.CLASS || kind == NodeKind.ENUM || kind == NodeKind.FUNCTION || kind == NodeKind.CONSTANTS)) {
+            (parentKind == NodeKind.FILE || parentKind == NodeKind.GLOBAL) != (
+                parentKind == NodeKind.MODULE ||
+                kind == NodeKind.MODULE ||
+                kind == NodeKind.CLASS ||
+                kind == NodeKind.ENUM ||
+                kind == NodeKind.FUNCTION ||
+                kind == NodeKind.CONSTANTS
+            )
+        ) {
             context.log.error(node.range, "This statement is not allowed here");
         }
     }
@@ -655,50 +665,37 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
 
     if (symbol) {
         type.symbol = symbol;
-        type.resolvedType = symbol.resolvedType;
-        return symbol;
+
+        if (type.resolvedType.pointerTo) {
+            type.resolvedType = symbol.resolvedType.pointerType();
+        } else {
+            type.resolvedType = symbol.resolvedType;
+        }
+
+        return;
     }
 
     let node: Node = templateNode.clone();
     node.parent = templateNode.parent;
     node.stringValue = typeName;
 
-    // symbol = new Symbol();
-    // symbol.kind = SymbolKind.TYPE_CLASS;
-    // symbol.name = typeName;
-    //
-    // symbol.resolvedType = new Type();
-    // symbol.resolvedType.symbol = symbol;
-    // symbol.flags = SYMBOL_FLAG_IS_REFERENCE;
-    //
-    // addScopeToSymbol(symbol, scope.parent);
-    // linkSymbolToNode(symbol, node);
-    // scope.parent.define(context.log, symbol, ScopeHint.NORMAL);
-
     cloneChildren(templateNode.firstChild, node, parameters);
+
+    node.offset = null;//FIXME: we cannot take offset from class template node
 
     initialize(context, node, scope.parent, CheckMode.NORMAL);
 
     resolve(context, node, scope.parent);
 
-    // Children
-    // let child = node.firstChild;
-    // while (child != null) {
-    //     initialize(context, child, symbol.scope, CheckMode.NORMAL);
-    //     child = child.nextSibling;
-    // }
-
-    // resolveChildren(context, node, symbol.scope);
-
-    node.offset = null;//FIXME: we cannot take offset from class template node
+    type.symbol = node.symbol;
 
     if (type.resolvedType.pointerTo) {
-        type.resolvedType = symbol.resolvedType.pointerType();
+        type.resolvedType = node.symbol.resolvedType.pointerType();
     } else {
-        type.resolvedType = symbol.resolvedType;
+        type.resolvedType = node.symbol.resolvedType;
     }
 
-    return symbol;
+    return;
 }
 
 function cloneChildren(child: Node, parentNode: Node, parameters: any[]): void {
@@ -709,7 +706,8 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[]): void {
     while (child) {
 
 
-        if (child.stringValue == "this") {
+        // if (child.stringValue == "this") {
+        if (child.stringValue == "this" && child.parent.symbol && child.parent.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
             child = child.nextSibling;
             continue;
         }
@@ -717,7 +715,16 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[]): void {
         let childNode: Node;
 
         if (child.isGeneric() || child.kind == NodeKind.PARAMETER) {
-            childNode = parameters[child.offset];
+            if (child.kind == NodeKind.PARAMETERS) {
+                childNode = child.clone();
+            } else {
+                let offset = child.offset;
+                if (child.resolvedType) {
+                    offset = child.resolvedType.pointerTo ? child.resolvedType.pointerTo.symbol.node.offset : child.resolvedType.symbol.node.offset;
+                }
+                childNode = parameters[offset];
+                childNode.kind = NodeKind.NAME;
+            }
         } else {
             if (child.stringValue == "T") {
                 console.log(child);
@@ -1377,6 +1384,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             node.symbol = symbol;
             node.resolvedType = symbol.resolvedType;
+
+            if (node.resolvedType.isGeneric()) {
+                node.flags |= NODE_FLAG_GENERIC;
+            }
 
             // Inline constants
             if (symbol.kind == SymbolKind.VARIABLE_CONSTANT) {
