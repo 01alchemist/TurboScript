@@ -30,9 +30,6 @@ TurboScript is forked from ThinScript and changed a lot, so there will be no goi
 # Wiki
 Documentations can be found at [wiki](../../wiki) (under construction :construction:)
 
-# Github Project 
-[TurboScript Project](https://github.com/orgs/01alchemist/projects/1)
-
 # Useful links
 * [Future WebHPC & Parallel Programming with JavaScript](https://dump.01alchemist.com/2016/12/31/future-webhpc-parallel-programming-with-javascript-the-new-era-about-to-begin/)
 * [TurboScript playground](https://01alchemist.com/projects/turboscript/playground/)
