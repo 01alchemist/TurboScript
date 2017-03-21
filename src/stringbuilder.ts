@@ -1,8 +1,8 @@
-var stringBuilderPool: StringBuilder = null;
+let stringBuilderPool: StringBuilder = null;
 
 // Remove an object from the pool or allocate a new object if the pool is empty
 export function StringBuilder_new(): StringBuilder {
-    var sb = stringBuilderPool;
+    let sb = stringBuilderPool;
     if (sb != null) stringBuilderPool = sb.next;
     else sb = new StringBuilder();
     sb.clear();
@@ -10,14 +10,14 @@ export function StringBuilder_new(): StringBuilder {
 }
 
 export function StringBuilder_appendQuoted(sb: StringBuilder, text: string): void {
-    var end = 0;
-    var limit = text.length;
-    var start = end;
+    let end = 0;
+    let limit = text.length;
+    let start = end;
 
     sb.appendChar('"');
 
     while (end < limit) {
-        var c = text[end];
+        let c = text[end];
 
         if (c == '"') sb.appendSlice(text, start, end).append("\\\"");
         else if (c == '\0') sb.appendSlice(text, start, end).append("\\0");
@@ -59,7 +59,7 @@ export class StringBuilder {
             this._text = this._text.substr(0, this._text.length + (delta * 4));
         }
         this.indent += delta;
-        var i = this.indent;
+        let i = this.indent;
         while (i > 0) {
             this._text += "    ";
             i = i - 1;
