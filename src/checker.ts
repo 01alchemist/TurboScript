@@ -2060,8 +2060,56 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        // Operators for float and double are hard-coded
-        else if ((leftType.isFloat() || leftType.isDouble()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
+        // Support custom operators
+        else if (leftType != context.errorType) {
+            let name = node.internalRange.toString();
+            let symbol = leftType.findMember(
+                kind == NodeKind.NOT_EQUAL ? "==" :
+                    kind == NodeKind.LESS_THAN_EQUAL ? ">" :
+                        kind == NodeKind.GREATER_THAN_EQUAL ? "<" :
+                            name,
+                ScopeHint.NOT_UNARY);
+
+            // Automatically call the function
+            if (symbol != null) {
+                left = createMemberReference(left.remove(), symbol).withRange(node.range).withInternalRange(node.internalRange);
+                right.remove();
+
+                if (kind == NodeKind.NOT_EQUAL ||
+                    kind == NodeKind.LESS_THAN_EQUAL ||
+                    kind == NodeKind.GREATER_THAN_EQUAL) {
+                    let call = createCall(left);
+                    call.appendChild(right);
+                    node.kind = NodeKind.NOT;
+                    node.appendChild(call.withRange(node.range).withInternalRange(node.range));
+                }
+
+                else {
+                    node.appendChild(left);
+                    node.appendChild(right);
+                    node.kind = NodeKind.CALL;
+                }
+
+                node.resolvedType = null;
+                resolveAsExpression(context, node, parentScope);
+            }
+
+            // Automatically implement equality operators
+            else if (kind == NodeKind.EQUAL || kind == NodeKind.NOT_EQUAL) {
+                node.resolvedType = context.booleanType;
+
+                if (leftType != context.errorType && rightType != context.errorType && leftType != rightType && !canConvert(context, right, leftType, ConversionKind.IMPLICIT) && !canConvert(context, left, rightType, ConversionKind.IMPLICIT)) {
+                    context.log.error(node.internalRange, StringBuilder_new()
+                        .append("Cannot compare type '")
+                        .append(leftType.toString())
+                        .append("' with type '")
+                        .append(rightType.toString())
+                        .appendChar('\'')
+                        .finish());
+                }
+            }
+
+            else if ((leftType.isFloat() || leftType.isDouble()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
             // Arithmetic operators
             if (kind == NodeKind.ADD ||
                 kind == NodeKind.SUBTRACT ||
@@ -2130,59 +2178,6 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
 
         }
-
-        // Support custom operators
-        else if (leftType != context.errorType) {
-            let name = node.internalRange.toString();
-            let symbol = leftType.findMember(
-                kind == NodeKind.NOT_EQUAL ? "==" :
-                    kind == NodeKind.LESS_THAN_EQUAL ? ">" :
-                        kind == NodeKind.GREATER_THAN_EQUAL ? "<" :
-                            name,
-                ScopeHint.NOT_UNARY);
-
-            // Automatically call the function
-            if (symbol != null) {
-                left = createMemberReference(left.remove(), symbol).withRange(node.range).withInternalRange(node.internalRange);
-                right.remove();
-
-                if (kind == NodeKind.NOT_EQUAL ||
-                    kind == NodeKind.LESS_THAN_EQUAL ||
-                    kind == NodeKind.GREATER_THAN_EQUAL) {
-                    let call = createCall(left);
-                    call.appendChild(right);
-                    node.kind = NodeKind.NOT;
-                    node.appendChild(call.withRange(node.range).withInternalRange(node.range));
-                }
-
-                else {
-                    node.appendChild(left);
-                    node.appendChild(right);
-                    node.kind = NodeKind.CALL;
-                }
-
-                node.resolvedType = null;
-                resolveAsExpression(context, node, parentScope);
-            }
-
-            // Automatically implement equality operators
-            else if (kind == NodeKind.EQUAL || kind == NodeKind.NOT_EQUAL) {
-                node.resolvedType = context.booleanType;
-
-                if (leftType != context.errorType && rightType != context.errorType && leftType != rightType && !canConvert(context, right, leftType, ConversionKind.IMPLICIT) && !canConvert(context, left, rightType, ConversionKind.IMPLICIT)) {
-                    context.log.error(node.internalRange, StringBuilder_new()
-                        .append("Cannot compare type '")
-                        .append(leftType.toString())
-                        .append("' with type '")
-                        .append(rightType.toString())
-                        .appendChar('\'')
-                        .finish());
-                }
-            }
-
-            // else if(){
-            //
-            // }
 
             else {
                 context.log.error(node.internalRange, StringBuilder_new()
