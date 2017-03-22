@@ -205,12 +205,14 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
 
         addScopeToSymbol(symbol, parentScope);
         linkSymbolToNode(symbol, node);
+
         parentScope.define(context.log, symbol,
             symbol.isSetter() ? ScopeHint.NOT_GETTER :
                 symbol.isGetter() ? ScopeHint.NOT_SETTER :
                     symbol.isBinaryOperator() ? ScopeHint.NOT_UNARY :
                         symbol.isUnaryOperator() ? ScopeHint.NOT_BINARY :
                             ScopeHint.NORMAL);
+
         parentScope = symbol.scope;
 
         // All instance functions have a special "this" type
