@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WASM Vector3</title>
+</head>
+<body>
+<script>
+
+    var importObject = {
+        Math: Math,
+        foreign: {
+            random: () => {
+                return Math.random() / Number.MAX_SAFE_INTEGER;
+            },
+
+            sort: (ptr) => {
+
+            }
+        }
+    };
+
+    async function init() {
+        let data = await fetch("imports.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                window.exports = new WebAssembly.Instance(compiled, importObject).exports;
+                console.log("WASM Compiled!");
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

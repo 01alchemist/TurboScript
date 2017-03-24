@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "noEmitOnError": false,
+    "removeComments": true,
+    "sourceMap": true,
+    "listFiles": true,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "target": "es5",
+    "module": "commonjs"
+  },
+  "files": [
+    "xray-kernel-turbo.spec.ts",
+    "./src/worker/xray-tracer.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "bin",
+    ".git",
+    ".vs"
+  ]
+}

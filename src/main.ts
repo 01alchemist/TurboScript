@@ -1,8 +1,13 @@
 ///<reference path="declarations.d.ts" />
-import {ByteArray} from "./bytearray";
 import {Log, DiagnosticKind} from "./log";
 import {StringBuilder_new} from "./stringbuilder";
 import {CompileTarget, Compiler, replaceFileExtension} from "./compiler";
+
+/**
+ * TurboScript compiler main entry
+ *
+ */
+
 export enum Color {
     DEFAULT,
     BOLD,
@@ -12,13 +17,13 @@ export enum Color {
 }
 
 export function writeLogToTerminal(log: Log): void {
-    var diagnostic = log.first;
+    let diagnostic = log.first;
 
     while (diagnostic != null) {
-        var location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
+        let location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
 
         // Source
-        var builder = StringBuilder_new();
+        let builder = StringBuilder_new();
         diagnostic.appendSourceName(builder, location);
         stdlib.Terminal_setColor(Color.BOLD);
         stdlib.Terminal_write(builder.finish());
@@ -67,11 +72,11 @@ export class CommandLineArgument {
     next: CommandLineArgument;
 }
 
-var firstArgument: CommandLineArgument;
-var lastArgument: CommandLineArgument;
+let firstArgument: CommandLineArgument;
+let lastArgument: CommandLineArgument;
 
 export function main_addArgument(text: string): void {
-    var argument = new CommandLineArgument();
+    let argument = new CommandLineArgument();
     argument.text = text;
 
     if (firstArgument == null) firstArgument = argument;
@@ -86,26 +91,26 @@ export function main_reset(): void {
 
 export function printUsage(): void {
     stdlib.Terminal_write(`
-Usage: thinc [FLAGS] [INPUTS]
+Usage: tc [FLAGS] [INPUTS]
 
   --help           Print this message.
   --out [PATH]     Emit code to PATH (the target format is the file extension).
+    --asmjs        Explicit asmjs output
+    --wasm         Explicit webassembly output 
   --define [NAME]  Define the flag NAME in all input files.
 
 Examples:
 
-  thinc main.thin --out main.js
-  thinc src/*.thin --out main.wasm
-  thinc native.thin --out main.c --define ENABLE_TESTS
-
+  tc main.tbs --out main.asm.js
+  tc src/*.tbs --out main.wasm
 `);
 }
 
 export function main_entry(): int32 {
-    var target = CompileTarget.NONE;
-    var argument = firstArgument;
-    var inputCount = 0;
-    var output: string;
+    let target = CompileTarget.NONE;
+    let argument = firstArgument;
+    let inputCount = 0;
+    let output: string;
 
     // Print usage by default
     if (firstArgument == null) {
@@ -115,7 +120,7 @@ export function main_entry(): int32 {
 
     // Initial pass over the argument list
     while (argument != null) {
-        var text = argument.text;
+        let text = argument.text;
         if (text.startsWith("-")) {
             if (text == "-h" || text == "-help" || text == "--help" || text == "/?") {
                 printUsage();
@@ -158,32 +163,34 @@ export function main_entry(): int32 {
     }
 
     // Automatically set the target based on the file extension
+    //C emitter and vanilla javascript emitter is disabled due to outdated code base.
     if (target == CompileTarget.NONE) {
-        if (output.endsWith(".c")) target = CompileTarget.C;
+        if (output.endsWith(".wasm")) target = CompileTarget.WEBASSEMBLY;
         else if (output.endsWith(".asm.js")) target = CompileTarget.ASMJS;
-        else if (output.endsWith(".js")) target = CompileTarget.TURBO_JAVASCRIPT;
-        else if (output.endsWith(".wasm")) target = CompileTarget.WEBASSEMBLY;
+        // else if (output.endsWith(".c")) target = CompileTarget.C;
+        // else if (output.endsWith(".js")) target = CompileTarget.TURBO_JAVASCRIPT;
         else {
-            printError("Missing a target (use either --c, --js, --asmjs or --wasm)");
+            // printError("Missing a target (use either --c, --js, --asmjs or --wasm)");
+            printError("Missing a target (use either --asmjs or --wasm)");
             return 1;
         }
     }
 
     // Start the compilation
-    var compiler = new Compiler();
+    let compiler = new Compiler();
     compiler.initialize(target, output);
 
     // Second pass over the argument list
     argument = firstArgument;
     while (argument != null) {
-        var text = argument.text;
+        let text = argument.text;
         if (text == "--define") {
             argument = argument.next;
             compiler.preprocessor.define(argument.text, true);
         } else if (text == "--out") {
             argument = argument.next;
         } else if (!text.startsWith("-")) {
-            var contents = stdlib.IO_readTextFile(text);
+            let contents = stdlib.IO_readTextFile(text);
             if (contents == null) {
                 printError(StringBuilder_new().append("Cannot read from ").append(text).finish());
                 return 1;

@@ -2,14 +2,15 @@ import {
     Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
     SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
     SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE,
-    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC
+    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, SYMBOL_FLAG_IS_TEMPLATE
 } from "./symbol";
 import {Type, ConversionKind} from "./type";
 import {
     Node, NodeKind, createVariable, createType, rangeForFlag, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE,
     NODE_FLAG_PUBLIC, NODE_FLAG_GET, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_PROTECTED,
     NODE_FLAG_DECLARE, isExpression, createInt, createboolean, createNull, createMemberReference, createSymbolReference,
-    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat, NODE_FLAG_IMPORT
+    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat,
+    NODE_FLAG_EXTERNAL_IMPORT, NODE_FLAG_GENERIC, createReturn, createThis
 } from "./node";
 import {CompileTarget} from "./compiler";
 import {Log, Range, spanRanges} from "./log";
@@ -36,7 +37,7 @@ export class CheckContext {
 
     // Native types
     booleanType: Type;
-    sbyteType: Type;
+    int8Type: Type;
     errorType: Type;
     int32Type: Type;
     int64Type: Type;
@@ -44,12 +45,12 @@ export class CheckContext {
     float64Type: Type;
     nullType: Type;
     undefinedType: Type;
-    shortType: Type;
+    int16Type: Type;
     stringType: Type;
-    byteType: Type;
+    uint8Type: Type;
     uint32Type: Type;
     uint64Type: Type;
-    ushortType: Type;
+    uint16Type: Type;
     voidType: Type;
     arrayType: Type;
 
@@ -86,9 +87,19 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         let parentKind = node.parent.kind;
 
         // Validate node placement
-        if (kind != NodeKind.IMPORTS && kind != NodeKind.VARIABLE && kind != NodeKind.VARIABLES &&
+        if (kind != NodeKind.IMPORTS &&
+            kind != NodeKind.VARIABLE &&
+            kind != NodeKind.VARIABLES &&
             (kind != NodeKind.FUNCTION || parentKind != NodeKind.CLASS) &&
-            (parentKind == NodeKind.FILE) != (parentKind == NodeKind.MODULE || kind == NodeKind.MODULE || kind == NodeKind.CLASS || kind == NodeKind.ENUM || kind == NodeKind.FUNCTION || kind == NodeKind.CONSTANTS)) {
+            (parentKind == NodeKind.FILE || parentKind == NodeKind.GLOBAL) != (
+                parentKind == NodeKind.MODULE ||
+                kind == NodeKind.MODULE ||
+                kind == NodeKind.CLASS ||
+                kind == NodeKind.ENUM ||
+                kind == NodeKind.FUNCTION ||
+                kind == NodeKind.CONSTANTS
+            )
+        ) {
             context.log.error(node.range, "This statement is not allowed here");
         }
     }
@@ -111,9 +122,11 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Class
     if (kind == NodeKind.CLASS || kind == NodeKind.ENUM) {
         assert(node.symbol == null);
+
         let symbol = new Symbol();
         symbol.kind = kind == NodeKind.CLASS ? SymbolKind.TYPE_CLASS : SymbolKind.TYPE_ENUM;
         symbol.name = node.stringValue;
+
         symbol.resolvedType = new Type();
         symbol.resolvedType.symbol = symbol;
         symbol.flags = SYMBOL_FLAG_IS_REFERENCE;
@@ -123,17 +136,21 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         parentScope = symbol.scope;
 
         if (node.parameterCount() > 0) {
-            //Class has generic parameters
+            //Class has generic parameters. convert it to class template
+            symbol.kind = SymbolKind.TYPE_TEMPLATE;
+            symbol.flags |= SYMBOL_FLAG_IS_TEMPLATE;
+            //TODO: Lift generic parameter limit from 1 to many
             let genericType = node.firstGenericType();
-            let symbol = new Symbol();
-            symbol.kind = SymbolKind.TYPE_GENERIC;
-            symbol.name = genericType.stringValue;
-            symbol.resolvedType = new Type();
-            symbol.resolvedType.symbol = symbol;
-            symbol.flags = SYMBOL_FLAG_IS_GENERIC;
-            addScopeToSymbol(symbol, parentScope);
-            linkSymbolToNode(symbol, genericType);
-            parentScope.define(context.log, symbol, ScopeHint.NORMAL);
+            let genericSymbol = new Symbol();
+            genericSymbol.kind = SymbolKind.TYPE_GENERIC;
+            genericSymbol.name = genericType.stringValue;
+            genericSymbol.resolvedType = new Type();
+            genericSymbol.resolvedType.symbol = genericSymbol;
+            genericSymbol.flags = SYMBOL_FLAG_IS_GENERIC;
+            genericType.flags = NODE_FLAG_GENERIC;
+            addScopeToSymbol(genericSymbol, parentScope);
+            linkSymbolToNode(genericSymbol, genericType);
+            parentScope.define(context.log, genericSymbol, ScopeHint.NORMAL);
         }
 
     }
@@ -177,22 +194,34 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
                                                                                         null;
             }
         }
+
+        if (symbol.name == "constructor") {
+            symbol.rename = "_set";
+        }
+
         addScopeToSymbol(symbol, parentScope);
         linkSymbolToNode(symbol, node);
+
         parentScope.define(context.log, symbol,
             symbol.isSetter() ? ScopeHint.NOT_GETTER :
                 symbol.isGetter() ? ScopeHint.NOT_SETTER :
                     symbol.isBinaryOperator() ? ScopeHint.NOT_UNARY :
                         symbol.isUnaryOperator() ? ScopeHint.NOT_BINARY :
                             ScopeHint.NORMAL);
+
         parentScope = symbol.scope;
 
         // All instance functions have a special "this" type
-        if (symbol.kind != SymbolKind.FUNCTION_INSTANCE) {
-        } else {
+        if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
             let parent = symbol.parent();
             initializeSymbol(context, parent);
             node.insertChildBefore(node.functionFirstArgument(), createVariable("this", createType(parent.resolvedType), null));
+
+            //All constructors have special return "this" type
+            if(symbol.name == "constructor") {
+                let returnNode:Node = createReturn(createThis());
+                node.lastChild.appendChild(returnNode);
+            }
         }
     }
 
@@ -231,24 +260,24 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
 
     if (kind == NodeKind.FILE && mode == CheckMode.INITIALIZE) {
         context.booleanType = parentScope.findLocal("boolean", ScopeHint.NORMAL).resolvedType;
-        context.byteType = parentScope.findLocal("byte", ScopeHint.NORMAL).resolvedType;
+        context.uint8Type = parentScope.findLocal("uint8", ScopeHint.NORMAL).resolvedType;
         context.int32Type = parentScope.findLocal("int32", ScopeHint.NORMAL).resolvedType;
         context.int64Type = parentScope.findLocal("int64", ScopeHint.NORMAL).resolvedType;
-        context.sbyteType = parentScope.findLocal("sbyte", ScopeHint.NORMAL).resolvedType;
-        context.shortType = parentScope.findLocal("short", ScopeHint.NORMAL).resolvedType;
+        context.int8Type = parentScope.findLocal("int8", ScopeHint.NORMAL).resolvedType;
+        context.int16Type = parentScope.findLocal("int16", ScopeHint.NORMAL).resolvedType;
         context.stringType = parentScope.findLocal("string", ScopeHint.NORMAL).resolvedType;
         context.uint32Type = parentScope.findLocal("uint32", ScopeHint.NORMAL).resolvedType;
         context.uint64Type = parentScope.findLocal("uint64", ScopeHint.NORMAL).resolvedType;
-        context.ushortType = parentScope.findLocal("ushort", ScopeHint.NORMAL).resolvedType;
+        context.uint16Type = parentScope.findLocal("uint16", ScopeHint.NORMAL).resolvedType;
 
         context.float32Type = parentScope.findLocal("float32", ScopeHint.NORMAL).resolvedType;
         context.float64Type = parentScope.findLocal("float64", ScopeHint.NORMAL).resolvedType;
 
         prepareNativeType(context.booleanType, 1, 0);
-        prepareNativeType(context.byteType, 1, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
-        prepareNativeType(context.sbyteType, 1, SYMBOL_FLAG_NATIVE_INTEGER);
-        prepareNativeType(context.shortType, 2, SYMBOL_FLAG_NATIVE_INTEGER);
-        prepareNativeType(context.ushortType, 2, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
+        prepareNativeType(context.uint8Type, 1, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
+        prepareNativeType(context.int8Type, 1, SYMBOL_FLAG_NATIVE_INTEGER);
+        prepareNativeType(context.int16Type, 2, SYMBOL_FLAG_NATIVE_INTEGER);
+        prepareNativeType(context.uint16Type, 2, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
         prepareNativeType(context.int32Type, 4, SYMBOL_FLAG_NATIVE_INTEGER);
         prepareNativeType(context.int64Type, 8, SYMBOL_FLAG_NATIVE_LONG);
         prepareNativeType(context.uint32Type, 4, SYMBOL_FLAG_NATIVE_INTEGER | SYMBOL_FLAG_IS_UNSIGNED);
@@ -324,7 +353,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     // Class
     else if (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE ||
-        symbol.kind == SymbolKind.TYPE_GENERIC) {
+        symbol.kind == SymbolKind.TYPE_GENERIC || symbol.kind == SymbolKind.TYPE_TEMPLATE) {
         forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a class");
         forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a class");
         forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a class");
@@ -355,15 +384,19 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     // Function
     else if (isFunction(symbol.kind)) {
-        if (node.firstChild.kind == NodeKind.PARAMETERS) {
-            resolve(context, node.firstChild, symbol.scope);
-        }
+        // if (node.firstChild.kind == NodeKind.PARAMETERS) {
+        //     resolve(context, node.firstChild, symbol.scope);
+        // }
 
         let body = node.functionBody();
         let returnType = node.functionReturnType();
         let oldUnsafeAllowed = context.isUnsafeAllowed;
         context.isUnsafeAllowed = node.isUnsafe();
         resolveAsType(context, returnType, symbol.scope.parent);
+
+        if (returnType.resolvedType.isClass() && returnType.hasParameters() && node.parent != returnType.resolvedType.symbol.node) {
+            deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], returnType.resolvedType.symbol.scope);
+        }
 
         let argumentCount = 0;
         let child = node.functionFirstArgument();
@@ -455,8 +488,8 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             if (parent.node.isDeclare()) {
                 if (body == null) {
                     node.flags = node.flags | NODE_FLAG_DECLARE;
-                    if (parent.node.isImport()) {
-                        node.flags = node.flags | NODE_FLAG_IMPORT;
+                    if (parent.node.isExternalImport()) {
+                        node.flags = node.flags | NODE_FLAG_EXTERNAL_IMPORT;
                     }
                 } else {
                     shouldConvertInstanceToGlobal = true;
@@ -522,6 +555,11 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
         if (type != null) {
             resolveAsType(context, type, symbol.scope);
+            //TODO: Migrate isArray to generic
+            if (type.resolvedType.isClass() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
+                deriveConcreteClass(context, type, [type.firstChild.firstChild], type.resolvedType.symbol.scope);
+            }
+
             symbol.resolvedType = type.resolvedType;
         }
 
@@ -551,6 +589,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                 resolveAsExpression(context, value, symbol.scope);
                 checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), ConversionKind.IMPLICIT);
 
+                //FIXME: Why we need to set offset like this?
                 if (value.kind == NodeKind.INT32 || value.kind == NodeKind.INT64 || value.kind == NodeKind.BOOLEAN) {
                     symbol.offset = value.intValue;
                 }
@@ -612,6 +651,119 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     assert(symbol.resolvedType != null);
     symbol.state = SymbolState.INITIALIZED;
+}
+
+/**
+ * Derive a concrete class from class template type
+ * @param context
+ * @param type
+ * @param parameters
+ * @param parentScope
+ * @returns {Symbol}
+ */
+function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[], scope: Scope) {
+
+    let templateNode: Node = type.resolvedType.pointerTo ? type.resolvedType.pointerTo.symbol.node : type.resolvedType.symbol.node;
+    let templateName = templateNode.stringValue;
+    let typeName = templateNode.stringValue + `<${parameters[0].stringValue}>`;
+    let symbol = scope.parent.findNested(typeName, ScopeHint.NORMAL, FindNested.NORMAL);
+
+    if (symbol) {
+        type.symbol = symbol;
+
+        if (type.resolvedType.pointerTo) {
+            type.resolvedType = symbol.resolvedType.pointerType();
+        } else {
+            type.resolvedType = symbol.resolvedType;
+        }
+
+        return;
+    }
+
+    let node: Node = templateNode.clone();
+    node.parent = templateNode.parent;
+    node.stringValue = typeName;
+
+    cloneChildren(templateNode.firstChild.nextSibling, node, parameters, templateName, typeName);
+
+    node.offset = null;//FIXME: we cannot take offset from class template node
+
+    initialize(context, node, scope.parent, CheckMode.NORMAL);
+
+    resolve(context, node, scope.parent);
+
+    type.symbol = node.symbol;
+
+    if (type.resolvedType.pointerTo) {
+        type.resolvedType = node.symbol.resolvedType.pointerType();
+    } else {
+        type.resolvedType = node.symbol.resolvedType;
+    }
+
+    return;
+}
+
+function cloneChildren(child: Node, parentNode: Node, parameters: any[], templateName: string, typeName: string): void {
+
+    let firstChildNode: Node = null;
+    let lastChildNode: Node = null;
+
+    while (child) {
+
+
+        // if (child.stringValue == "this") {
+        if (child.stringValue == "this" && child.parent.symbol && child.parent.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+            child = child.nextSibling;
+            continue;
+        }
+
+        let childNode: Node;
+
+        if (child.kind == NodeKind.PARAMETERS || child.kind == NodeKind.PARAMETER) {
+            child = child.nextSibling;
+            continue;
+        }
+
+        if (child.isGeneric()) {
+            let offset = child.offset;
+            if (child.resolvedType) {
+                offset = child.resolvedType.pointerTo ? child.resolvedType.pointerTo.symbol.node.offset : child.resolvedType.symbol.node.offset;
+            }
+            childNode = parameters[offset];
+            childNode.kind = NodeKind.NAME;
+        } else {
+            if (child.stringValue == "T") {
+                console.log(child);
+            } else {
+                childNode = child.clone();
+                if (childNode.stringValue == templateName) {
+                    childNode.stringValue = typeName;
+                }
+            }
+        }
+
+        childNode.parent = parentNode;
+
+        if (!firstChildNode) {
+            firstChildNode = childNode;
+        }
+
+        if (lastChildNode) {
+            lastChildNode.nextSibling = childNode;
+            childNode.previousSibling = lastChildNode;
+        }
+
+        if (child.firstChild) {
+            cloneChildren(child.firstChild, childNode, parameters, templateName, typeName);
+        }
+
+        lastChildNode = childNode;
+
+        child = child.nextSibling;
+    }
+
+    parentNode.firstChild = firstChildNode;
+    parentNode.lastChild = lastChildNode;
 }
 
 export function resolveChildren(context: CheckContext, node: Node, parentScope: Scope): void {
@@ -754,6 +906,14 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         //TODO Allow only lossless conversions implicitly
         return true;
     }
+
+    else if (from.isDouble() && to.isInteger()) {
+        if (kind == ConversionKind.IMPLICIT) {
+            return false;
+        }
+        //TODO Allow only lossless conversions implicitly
+        return true;
+    }
     else if (from.isFloat() && to.isFloat()) {
         return true;
     }
@@ -803,6 +963,10 @@ export function createDefaultValueForType(context: CheckContext, type: Type): No
 
     if (type == context.booleanType) {
         return createboolean(false);
+    }
+
+    if (type.isClass()) {
+        return createNull();
     }
 
     assert(type.isReference());
@@ -968,7 +1132,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         context.enclosingModule = oldEnclosingModule;
     }
 
-    else if (kind == NodeKind.IMPORT) {
+    else if (kind == NodeKind.EXTERNAL_IMPORT) {
         let symbol = node.symbol;
     }
 
@@ -999,9 +1163,24 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         if (body != null) {
             let oldReturnType = context.currentReturnType;
             let oldUnsafeAllowed = context.isUnsafeAllowed;
-            context.currentReturnType = node.functionReturnType().resolvedType;
+            let returnType = node.functionReturnType();
+
+            if (returnType.resolvedType.isTemplate() && returnType.hasParameters() && node.parent != returnType.resolvedType.symbol.node) {
+                deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], returnType.resolvedType.symbol.scope);
+            }
+
+            context.currentReturnType = returnType.resolvedType;
             context.isUnsafeAllowed = node.isUnsafe();
             resolveChildren(context, body, node.scope);
+
+            if (oldReturnType && oldReturnType.isTemplate() && returnType.hasParameters() && node.parent != oldReturnType.symbol.node) {
+                deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], oldReturnType.symbol.scope);
+            }
+
+            // if (oldReturnType && oldReturnType.isTemplate() && !oldReturnType.symbol.node.hasParameters()) {
+            //     deriveConcreteClass(context, oldReturnType.symbol.node, [oldReturnType.symbol.node.firstChild], oldReturnType.symbol.scope);
+            // }
+
             context.currentReturnType = oldReturnType;
             context.isUnsafeAllowed = oldUnsafeAllowed;
         }
@@ -1193,8 +1372,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
 
             // People may try to use types from TypeScript
-            else if (name == "number") builder.append(", did you mean 'int32'?");
-            else if (name == "booleanean") builder.append(", did you mean 'boolean'?");
+            else if (name == "number") builder.append(", you cannot use generic number type from TypeScript!");
+
+            else if (name == "bool") builder.append(", did you mean 'boolean'?");
 
             context.log.error(node.range, builder.finish());
         }
@@ -1208,15 +1388,36 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         else if (isSymbolAccessAllowed(context, symbol, node, node.range)) {
+
             initializeSymbol(context, symbol);
+
             node.symbol = symbol;
             node.resolvedType = symbol.resolvedType;
 
+            if (node.resolvedType.isGeneric()) {
+                node.flags |= NODE_FLAG_GENERIC;
+            }
+
             // Inline constants
             if (symbol.kind == SymbolKind.VARIABLE_CONSTANT) {
+
                 if (symbol.resolvedType == context.booleanType) {
                     node.becomebooleaneanConstant(symbol.offset != 0);
-                } else {
+                }
+
+                else if (symbol.resolvedType == context.float32Type) {
+                    node.becomeFloatConstant(symbol.offset);
+                }
+
+                else if (symbol.resolvedType == context.float64Type) {
+                    node.becomeDoubleConstant(symbol.offset);
+                }
+
+                else if (symbol.resolvedType == context.int64Type) {
+                    node.becomeLongConstant(symbol.offset);
+                }
+
+                else {
                     node.becomeIntegerConstant(symbol.offset);
                 }
             }
@@ -1351,7 +1552,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 // Not enough arguments?
                 if (returnType.resolvedType != context.anyType) {
 
-                    if (argumentVariable != returnType) {
+                    if (argumentVariable != returnType && !argumentVariable.hasVariableValue()) {
                         context.log.error(node.internalRange, StringBuilder_new()
                             .append("Not enough arguments for function '")
                             .append(symbol.name)
@@ -1373,6 +1574,13 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     }
                 }
 
+                if (returnType.resolvedType.isArray()) {
+                    console.log(returnType);
+                    //let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
+                    //if (mappedType) {
+                    //returnType = mappedType;
+                    //}
+                }
                 // Pass the return type along
                 node.resolvedType = returnType.resolvedType;
             }
@@ -1407,6 +1615,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             if (context.currentReturnType != null) {
                 if (context.currentReturnType != context.voidType) {
+
+                    if (value.resolvedType.isTemplate() && value.hasParameters() && node.parent != value.resolvedType.symbol.node) {
+                        deriveConcreteClass(context, value, [value.firstChild.firstChild], value.resolvedType.symbol.scope);
+                    }
+
                     checkConversion(context, value, context.currentReturnType, ConversionKind.IMPLICIT);
                 }
 
@@ -1430,7 +1643,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
     else if (kind == NodeKind.PARAMETERS) {
         // resolveAsType(context, node.genericType(), parentScope);
-        //resolveAsExpression(context, node.expressionValue(), parentScope);
+        // resolveAsExpression(context, node.expressionValue(), parentScope);
         // context.log.error(node.range, "Generics are not implemented yet");
     }
 
@@ -1556,9 +1769,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let type = node.newType();
         resolveAsType(context, type, parentScope);
 
-        if (type.resolvedType.isArray()) {
-            resolveAsType(context, type.firstChild, parentScope);
-            // node.resolvedType = type.resolvedType;
+        if (type.resolvedType.isTemplate() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
+            deriveConcreteClass(context, type, [type.firstChild.firstChild], type.resolvedType.symbol.scope);
         }
 
         if (type.resolvedType != context.errorType) {
@@ -1781,8 +1993,26 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        // Operators for integers are hard-coded
-        else if ((leftType.isInteger() || leftType.isLong()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
+        // Operators for integers and floats are hard-coded
+        else if (
+            (
+                leftType.isInteger() || leftType.isLong() ||
+                leftType.isFloat() || leftType.isDouble() ||
+                (leftType.isGeneric() && rightType.isGeneric())
+            ) &&
+
+            kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
+
+            let isFloat: boolean = false;
+            let isFloat64: boolean = false;
+
+            if (leftType.isFloat() || leftType.isDouble()) {
+                isFloat = true;
+                isFloat64 = leftType.isDouble();
+            }
+
+            let isUnsigned = binaryHasUnsignedArguments(node);
+
             // Arithmetic operators
             if (kind == NodeKind.ADD ||
                 kind == NodeKind.SUBTRACT ||
@@ -1794,18 +2024,27 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 kind == NodeKind.BITWISE_XOR ||
                 kind == NodeKind.SHIFT_LEFT ||
                 kind == NodeKind.SHIFT_RIGHT) {
-                let isUnsigned = binaryHasUnsignedArguments(node);
+
                 let isLong = isBinaryLong(node);
-                let commonType = isUnsigned ? (isLong ? context.uint64Type : context.uint32Type) : (isLong ? context.int64Type : context.int32Type);
+                let commonType;
+
+                if (isFloat) {
+                    commonType = isBinaryDouble(node) ? context.float64Type : context.float32Type;
+                } else {
+                    commonType = isUnsigned ? (isLong ? context.uint64Type : context.uint32Type) : (isLong ? context.int64Type : context.int32Type);
+                }
+
                 if (isUnsigned) {
                     node.flags = node.flags | NODE_FLAG_UNSIGNED_OPERATOR;
                 }
+
                 checkConversion(context, left, commonType, ConversionKind.IMPLICIT);
                 checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
                 node.resolvedType = commonType;
 
                 // Automatically fold constants
-                if (left.kind == NodeKind.INT32 && right.kind == NodeKind.INT32) {
+                if ((left.kind == NodeKind.INT32 || left.kind == NodeKind.INT64) &&
+                    (right.kind == NodeKind.INT32 || right.kind == NodeKind.INT64)) {
                     let inputLeft = left.intValue;
                     let inputRight = right.intValue;
                     let output = 0;
@@ -1820,62 +2059,15 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     else if (kind == NodeKind.SHIFT_RIGHT) output = isUnsigned ? ((inputLeft) >> (inputRight)) : inputLeft >> inputRight;
                     else if (kind == NodeKind.SUBTRACT) output = inputLeft - inputRight;
                     else return;
-                    node.becomeIntegerConstant(output);
+
+                    if (left.kind == NodeKind.INT32) {
+                        node.becomeIntegerConstant(output);
+                    } else {
+                        node.becomeLongConstant(output);
+                    }
                 }
 
-                else {
-                    simplifyBinary(node);
-                }
-            }
-
-            // Comparison operators
-            else if (
-                kind == NodeKind.LESS_THAN ||
-                kind == NodeKind.LESS_THAN_EQUAL ||
-                kind == NodeKind.GREATER_THAN ||
-                kind == NodeKind.GREATER_THAN_EQUAL) {
-                let expectedType =
-                    binaryHasUnsignedArguments(node) ? context.uint32Type :
-                        context.int32Type;
-
-                if (expectedType == context.uint32Type) {
-                    node.flags = node.flags | NODE_FLAG_UNSIGNED_OPERATOR;
-                }
-
-                if (leftType != rightType) {
-                    checkConversion(context, left, expectedType, ConversionKind.IMPLICIT);
-                    checkConversion(context, right, expectedType, ConversionKind.IMPLICIT);
-                }
-
-                node.resolvedType = context.booleanType;
-            }
-
-            else {
-                context.log.error(node.internalRange, "This operator is not currently supported");
-            }
-        }
-
-        // Operators for float and double are hard-coded
-        else if ((leftType.isFloat() || leftType.isDouble()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
-            // Arithmetic operators
-            if (kind == NodeKind.ADD ||
-                kind == NodeKind.SUBTRACT ||
-                kind == NodeKind.MULTIPLY ||
-                kind == NodeKind.DIVIDE ||
-                kind == NodeKind.REMAINDER ||
-                kind == NodeKind.BITWISE_AND ||
-                kind == NodeKind.BITWISE_OR ||
-                kind == NodeKind.BITWISE_XOR ||
-                kind == NodeKind.SHIFT_LEFT ||
-                kind == NodeKind.SHIFT_RIGHT) {
-
-                let commonType = isBinaryDouble(node) ? context.float64Type : context.float32Type;
-                checkConversion(context, left, commonType, ConversionKind.IMPLICIT);
-                checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
-                node.resolvedType = commonType;
-
-                // Automatically fold constants
-                if ((left.kind == NodeKind.FLOAT32 || left.kind == NodeKind.FLOAT64) &&
+                else if ((left.kind == NodeKind.FLOAT32 || left.kind == NodeKind.FLOAT64) &&
                     (right.kind == NodeKind.FLOAT32 || right.kind == NodeKind.FLOAT64)) {
                     let inputLeft = left.floatValue;
                     let inputRight = right.floatValue;
@@ -1910,7 +2102,12 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 kind == NodeKind.LESS_THAN_EQUAL ||
                 kind == NodeKind.GREATER_THAN ||
                 kind == NodeKind.GREATER_THAN_EQUAL) {
-                let expectedType = context.float32Type;
+
+                let expectedType = isFloat ? (isFloat64 ? context.float64Type : context.float32Type) : (isUnsigned ? context.uint32Type : context.int32Type);
+
+                if (isUnsigned) {
+                    node.flags = node.flags | NODE_FLAG_UNSIGNED_OPERATOR;
+                }
 
                 if (leftType != rightType) {
                     checkConversion(context, left, expectedType, ConversionKind.IMPLICIT);
@@ -1923,7 +2120,6 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             else {
                 context.log.error(node.internalRange, "This operator is not currently supported");
             }
-
         }
 
         // Support custom operators
@@ -1985,6 +2181,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     .finish());
             }
         }
+    }
+
+    else if (kind == NodeKind.INTERNAL_IMPORT || kind == NodeKind.INTERNAL_IMPORT_FROM) {
+        //ignore imports
     }
 
     else {

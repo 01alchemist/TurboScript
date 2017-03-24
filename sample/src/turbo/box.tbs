@@ -1,0 +1,165 @@
+class Partition{
+	left:boolean;
+	right:boolean;
+
+	constructor(left:boolean, right:boolean):Partition {
+		this.left = left;
+		this.right = right;
+		return this;
+	}
+}
+export class Box{
+	min:Vector3;
+	max:Vector3;
+
+	constructor(min:Vector3, max:Vector3):Box {
+        this.min = Vector.NewVector(min);
+        this.max = Vector.NewVector(max);
+        return this;
+	}
+
+    set(min:Vector3, max:Vector3):Box {
+        this.min = min;
+        this.max = max;
+        return this;
+	}
+
+    //@JS
+    // static ToJSON(this){
+     //    return {
+     //        min:Vector.ToJSON(this.min),
+     //        max:Vector.ToJSON(this.max)
+     //    };
+	// }
+
+	static boxForObjects(firstObject:Object3D):Box{
+		let box = new Box();
+		if(firstObject == null) {
+			return box;
+		}
+        let next = firstObject;
+		while(next != null){
+			box.extend(next.shape.boundingBox());
+			next = next.nextObject;
+		}
+		return box;
+	}
+	static boxForShapes(shapes:Array<Shape>):Box{
+		let box = new Box();
+		if(shapes.length == 0) {
+			return box;
+		}
+        let i:number = 0;
+		while(i < shapes.length){
+			let shape:number = shapes[i];
+			box.extend(shape.boundingBox());
+			i = i + 1;
+		}
+		return box;
+	}
+
+	extend(b:Box):Box {
+		this.min.min(b.min, this.min.min);
+		this.max.max(b.max, this.min.min);
+		return this;
+	}
+
+	size():Vector3 {
+		return this.max.sub(this.min);
+	}
+
+	anchor(point:Vector3, c:Vector3 = null):Vector3 {
+        let size = this.size();
+        c = size.mul(point, c);
+        delete size;
+		return this.min.add(c, c);
+    }
+
+	center(c:Vector3 = null):Vector3 {
+        let point = new Vector3(0.5, 0.5, 0.5);
+		let center = this.anchor(point, c);
+		delete point;
+		return center;
+	}
+
+	outerRadius():float64 {
+        let center = this.center();
+        center = this.min.sub(center, center);
+        let radius = center.length();
+        delete center;
+        return radius;
+	}
+
+	innerRadius():float64 {
+        let center = this.center();
+        center  = center.sub(this.min, center);
+        let radius = center.maxComponent();
+        delete center;
+        return radius;
+    }
+
+	contains(b:Vector3):boolean{
+        return this.min.x <= b.x && this.max.x >= b.x &&
+                this.min.y <= b.y && this.max.y >= b.y &&
+                this.min.z <= b.z && this.max.z >= b.z;
+	}
+
+	intersects(b:Box):boolean {
+		return !(this.min.x > b.max.x || this.max.x < b.min.x || this.min.y > b.max.y ||
+		            this.max.y < b.min.y || this.min.z > b.max.z || this.max.z < b.min.z);
+	}
+
+	intersect(r:Ray):Intersection {
+		let x1 = (this.min.x - r.origin.x) / r.direction.x;
+        let y1 = (this.min.y - r.origin.y) / r.direction.y;
+        let z1 = (this.min.z - r.origin.z) / r.direction.z;
+        let x2 = (this.max.x - r.origin.x) / r.direction.x;
+        let y2 = (this.max.y - r.origin.y) / r.direction.y;
+        let z2 = (this.max.z - r.origin.z) / r.direction.z;
+        let tmp;
+
+		if (x1 > x2) {
+            tmp = x1;
+			x1 = x2;
+            x2 = tmp;
+		}
+		if (y1 > y2) {
+			tmp = y1;
+			y1 = y2;
+            y2 = tmp
+		}
+		if (z1 > z2) {
+            tmp = z1;
+            z1 = z2;
+            z2 = tmp
+		}
+		return new Intersection(
+            Math.max(Math.max(x1, y1), z1),
+		    Math.min(Math.min(x2, y2), z2)
+        );
+	}
+
+	partition(axis:Axis, point:number):Partition {
+        let min = this.min;
+        let max = this.max;
+        let left;
+        let right;
+		switch (axis) {
+			case Axis.AxisX:
+				left = this.min.x <= point;
+				right = this.max.x >= point;
+                break;
+			case Axis.AxisY:
+				left = this.min.y <= point;
+				right = this.max.y >= point;
+                break;
+            case Axis.AxisZ:
+				left = this.min.z <= point;
+				right = this.max.z >= point;// EPIC Bug :depth it was min and got weird triangle intersection
+                break;
+		}
+		return new Partition(left, right);
+	}
+
+}
+

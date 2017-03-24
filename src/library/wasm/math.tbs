@@ -1,3 +1,5 @@
+declare var PI:float32 = 3.141592653589793;
+
 @import
 declare class Math {
 
@@ -9,7 +11,7 @@ declare class Math {
     static ceil(x: float64): float64;
     static cos(x: float64): float64;
     static exp(x: float64): float64;
-    static floor(x: float64): float64;
+    static floor(x: float32): float32;
     static log(x: float64): float64;
     // static max(...values: float64[]): float64;
     static max(a: float64, b:float64): float64;
@@ -23,4 +25,23 @@ declare class Math {
     static tan(x: float64): float64;
     static imul(a: int32, b:int32): int32;
 
+}
+
+function absf32(x:float32):float32{
+    return Math.abs(x as float64) as float32;
+}
+
+function sqrtf32(x:float32):float32{
+    return Math.sqrt(x as float64) as float32;
+}
+
+function powf32(x:float32, y:float32):float32{
+    return Math.pow(x as float64, y as float64) as float32;
+}
+
+function minf32(x:float32, y:float32):float32{
+    return Math.min(x as float64, y as float64) as float32;
+}
+function maxf32(x:float32, y:float32):float32{
+    return Math.max(x as float64, y as float64) as float32;
 }

@@ -1,3 +1,8 @@
+
+export function test_1():void {
+    var a = new Array<uint8>(100);
+}
+
 export class Data {
 
     id: int32;
@@ -19,8 +24,8 @@ export class Data {
 
 var a: Array<Data> = null;
 
-export function test(): Array<Data> {
-    a = new Array<Data>(10);
+export function test(num:int32): Array<Data> {
+    a = new Array<Data>(num);
     let i:int32 = 0;
     while (i < 10) {
         a[i] = new Data(i);
@@ -37,12 +42,15 @@ export function getArrayElementSize(value:Array<Data>):int32 {
     return value.elementSize;
 }
 
+export function getArray(): Array<Data> {
+    return a;
+}
 export function getData(index:int32):Data {
     return a[index];
 }
 
 // @JS
-// anyfunc function data_to_json(data:Data) {
+// anyfunc function data_to_json(data:data) {
 //     return {
 //         v1:data.v1,
 //         v2:data.v2,

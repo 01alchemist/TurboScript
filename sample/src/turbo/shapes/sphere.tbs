@@ -1,0 +1,92 @@
+import {Material} from "../material.tbs";
+import {Shape, ShapeType} from "./shape.tbs";
+import {Vector3} from "../../../../tests/vector3.tbs";
+import {Box} from "../box.tbs";
+import {Ray} from "../../tracer/ray.tbs";
+import {Hit} from "../../tracer/hit.tbs";
+
+export class Sphere extends Shape{
+
+	center:Vector3;
+	radius:float32;
+	material:Material;
+	box:Box;
+
+	constructor(center:Vector3, radius:float32, material:Material):Sphere{
+		super();
+		this.center = center;
+		this.radius = radius;
+		this.material = material;
+		let min = new Vector3(center.x - radius, center.y - radius, center.z - radius);
+		let max = new Vector3(center.x + radius, center.y + radius, center.z + radius);
+		this.box = new Box(min, max);
+		return this;
+	}
+
+	@virtual
+    type():ShapeType{
+		return ShapeType.SPHERE;
+	}
+
+	// @virtual ToJSON(SELF){
+	// 	return {
+	// 		center:Vector3.ToJSON(this.Center),
+	// 		radius:this.Radius,
+	// 		material:Material.ToJSON(this.material),
+	// 		box:box.ToJSON(this.box),
+	// 	}
+	// }
+
+	@virtual
+    compile():void {
+	}
+
+	@virtual
+    boundingBox():Box {
+		return this.Box;
+	}
+
+	@virtual
+    intersect(r:Ray):Hit {
+
+		let to:Vector3 = r.origin.sub(this.center);
+		let b:float32 = to.dot(r.direction);
+		let c:float32 = to.dot(to) - this.radius * this.radius;
+		let d = b * b - c;
+        delete to;
+		if (d > 0.0) {
+			d = Math.sqrt(d);
+			let t1 = -b - d;
+			if (t1 > EPS) {
+				return new Hit(t1, null)
+			}
+			let t2 = -b + d;
+			if (t2 > EPS) {
+				return new Hit(t2, null);
+			}
+		}
+		return Hit.NoHit;
+	}
+
+	@virtual
+    uv(p:Vector3):Vector3 {
+        p.sub(this.center, p);
+	    let tmp1 = new Vector3(p.x, 0.0, p.z);
+        let u:float64 = Math.atan2(p.z, p.x);
+        let v:float64 = Math.atan2(p.y, tmp1.length());
+        u = 1.0 - (u + Math.PI) / (2.0 * Math.PI);
+        v = (v + Math.PI/2.0) / Math.PI;
+        return new Vector3(u, v, 0.0);
+	}
+
+	@virtual
+    materialAt(p:Vector3):Material {
+		return this.material;
+	}
+
+	@virtual
+    normalAt(p:Vector3):Vector3 {
+        return p.sub(this.center, p).normalize(p);
+	}
+
+}

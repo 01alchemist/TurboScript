@@ -71,7 +71,8 @@ export enum TokenKind {
     ANYFUNC,
     IF,
     IMPLEMENTS,
-    IMPORT,
+    INTERNAL_IMPORT,
+    EXTERNAL_IMPORT,
     LET,
     NEW,
     DELETE,
@@ -199,8 +200,8 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.ANYFUNC) return "'anyfunc'";
     if (token == TokenKind.IF) return "'if'";
     if (token == TokenKind.IMPLEMENTS) return "'implements'";
-    // if (token == TokenKind.IMPORT) return "'import'"; //TODO: Standardize import
-    if (token == TokenKind.IMPORT) return "'@import'";
+    if (token == TokenKind.INTERNAL_IMPORT) return "'import'";
+    if (token == TokenKind.EXTERNAL_IMPORT) return "'@import'";
     if (token == TokenKind.LET) return "'let'";
     if (token == TokenKind.NEW) return "'new'";
     if (token == TokenKind.DELETE) return "'delete'";
@@ -241,7 +242,7 @@ export function isAlpha(c: string): boolean {
     return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_';
 }
 
-export function isASCII(c: ushort): boolean {
+export function isASCII(c: uint16): boolean {
     return c >= 0x20 && c <= 0x7E;
 }
 
@@ -249,8 +250,8 @@ export function isNumber(c: string): boolean {
     return c >= '0' && c <= '9';
 }
 
-export function isDigit(c: any, base: byte): boolean {
-    if(c.trim() == "") return false;
+export function isDigit(c: any, base: uint8): boolean {
+    if (c.trim() == "") return false;
     if (base == 16) {
         return isNumber(c) || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f';
     }
@@ -334,7 +335,7 @@ export function tokenize(source: Source, log: Log): Token {
                 else if (length == 6) {
                     if (text == "export") kind = TokenKind.EXPORT;
                     else if (text == "module") kind = TokenKind.MODULE;
-                    // else if (text == "import") kind = TokenKind.IMPORT;
+                    else if (text == "import") kind = TokenKind.INTERNAL_IMPORT;
                     else if (text == "public") kind = TokenKind.PUBLIC;
                     else if (text == "return") kind = TokenKind.RETURN;
                     else if (text == "sizeof") kind = TokenKind.SIZEOF;
@@ -349,7 +350,7 @@ export function tokenize(source: Source, log: Log): Token {
                     else if (text == "declare") kind = TokenKind.DECLARE;
                     else if (text == "extends") kind = TokenKind.EXTENDS;
                     else if (text == "private") kind = TokenKind.PRIVATE;
-                    else if (text == "@import") kind = TokenKind.IMPORT;
+                    else if (text == "@import") kind = TokenKind.EXTERNAL_IMPORT;
                     else if (text == "anyfunc") kind = TokenKind.ANYFUNC;
                 }
 
@@ -367,12 +368,13 @@ export function tokenize(source: Source, log: Log): Token {
         else if (isNumber(c)) {
 
             let isFloat: boolean = false;
+            let isDouble: boolean = false;
 
             //kind = TokenKind.INT32;
 
             if (i < limit) {
                 var next = contents[i];
-                var base: byte = 10;
+                var base: uint8 = 10;
 
                 // Handle binary, octal, and hexadecimal prefixes
                 if (c == '0' && i + 1 < limit) {
@@ -385,16 +387,21 @@ export function tokenize(source: Source, log: Log): Token {
                     }
                 }
 
-                let floatFound:boolean = false;
+                let floatFound: boolean = false;
                 // Scan the payload
                 while (i < limit && (isDigit(contents[i], base) || (floatFound = contents[i] === "."))) {
                     i = i + 1;
-                    if(floatFound){
+                    if (floatFound) {
                         isFloat = true;
                     }
                 }
 
-                kind = isFloat ? TokenKind.FLOAT32 : TokenKind.INT32;
+                if (contents[i] === "d") {
+                    kind = TokenKind.FLOAT64;
+                    i = i + 1;
+                } else {
+                    kind = isFloat ? TokenKind.FLOAT32 : TokenKind.INT32;
+                }
 
                 // Extra letters after the end is an error
                 if (i < limit && (isAlpha(contents[i]) || isNumber(contents[i]))) {

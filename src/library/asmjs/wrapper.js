@@ -22,6 +22,16 @@ function TurboWrapper(exports, buffer) {
 
     }
 }
+
+//##################################
+//#           FOREIGN Fn           #
+//##################################
+
+function sort(ptr, length) {
+
+}
+
+
 function initTurbo(bytes) {
     var buffer = new ArrayBuffer(bytes);
 
@@ -30,11 +40,12 @@ function initTurbo(bytes) {
     }
 
     return TurboWrapper(TurboModule(
-        typeof global !== 'undefined' ? global : window,
-        typeof env !== 'undefined' ? env : {
-            STACKTOP: 8,
-            STACK_MAX: 8
-        },
+        typeof stdlib !== 'undefined' ? stdlib : window,
+        typeof foreign !== 'undefined' ? foreign : {
+                random: () => {
+                    return Math.random() / Number.MAX_SAFE_INTEGER;
+                }
+            },
         buffer
     ), buffer);
 }

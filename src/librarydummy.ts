@@ -9,25 +9,25 @@ declare class boolean {
     }
   }
 
-  declare class sbyte {
+  declare class int8 {
     toString(): string {
       return (this as int32).toString();
     }
   }
 
-  declare class byte {
+  declare class uint8 {
     toString(): string {
       return (this as uint32).toString();
     }
   }
 
-  declare class short {
+  declare class int16 {
     toString(): string {
       return (this as int32).toString();
     }
   }
 
-  declare class ushort {
+  declare class uint16 {
     toString(): string {
       return (this as uint32).toString();
     }

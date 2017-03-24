@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WASM Test</title>
+</head>
+<body>
+<script>
+
+    async function init() {
+        let data = await fetch("test.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                window.exports = new WebAssembly.Instance(compiled).exports;
+                let foo = exports.newFoo(1.1);
+                console.log(exports.getA(foo));
+                exports.destroyFoo(foo);
+                console.log("WASM Compiled!");
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

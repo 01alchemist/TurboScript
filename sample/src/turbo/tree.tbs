@@ -1,0 +1,277 @@
+import {Axis} from "./axis.tts";
+import {Box} from "./box.tbs";
+
+class Split {
+    left: Object3D;
+    right: Object3D;
+    numLeft: int32;
+    numRight: int32;
+
+    constructor(left: Object3D, right: Object3D, numLeft: int32, numRight: int32): Split {
+        this.left = left;
+        this.right = right;
+        this.numLeft = numLeft;
+        this.numRight = numRight;
+        return this;
+    }
+
+}
+
+export class Node {
+    axis: Axis;
+    point: float32;
+    firstObject: Object3D;
+    numObjects: int32;
+    left: Node;
+    right: Node;
+
+    constructor(firstObject: Object3D, numObjects: int32, axis: Axis = Axis.AxisNone, point: float32 = 0, left: Node = null, right: Node = null): Node {
+        this.firstObject = firstObject;
+        this.axis = axis;
+        this.point = point;
+        this.left = left;
+        this.right = right;
+        return this;
+    }
+
+    // static ToJSON(SELF){
+    //     return{
+    //         axis:Axis[this.axis],
+    //         point:this.point,
+    //         numShapes:this.numObjects,
+    //         left:this.left,
+    //         right:this.right
+    //     }
+    // }
+
+    intersect(r: Ray, tmin: float32, tmax: float32): Hit {
+        let tsplit: float32;
+        let leftFirst: boolean;
+
+        switch (this.axis) {
+            case Axis.AxisNone:
+                return this.intersectShapes(r);
+            case Axis.AxisX:
+                tsplit = (this.point - r.origin.x) / r.direction.x;
+                leftFirst = (r.origin.x < this.point) || (r.origin.x == this.point && r.direction.x <= 0);
+                break;
+            case Axis.AxisY:
+                tsplit = (this.point - r.origin.y) / r.direction.y;
+                leftFirst = (r.origin.y < this.point) || (r.origin.y == this.point && r.direction.y <= 0);
+                break;
+            case Axis.AxisZ:
+                tsplit = (this.point - r.origin.z) / r.direction.z;
+                leftFirst = (r.origin.z < this.point) || (r.origin.z == this.point && r.direction.z <= 0);
+                break;
+        }
+
+        let first: Node;
+        let second: Node;
+
+        if (leftFirst) {
+            first = this.left;
+            second = this.right;
+        } else {
+            first = this.right;
+            second = this.left;
+        }
+
+        if (tsplit > tmax || tsplit <= 0) {
+            return first.intersect(r, tmin, tmax);
+        } else if (tsplit < tmin) {
+            return second.intersect(r, tmin, tmax);
+        } else {
+            let h1 = first.intersect(r, tmin, tsplit);
+            if (h1.T <= tsplit) {
+                return h1;
+            }
+            let h2 = second.intersect(r, tsplit, Math.min(tmax, h1.T));
+            if (h1.T <= h2.T) {
+                return h1;
+            } else {
+                return h2;
+            }
+        }
+    }
+
+    intersectShapes(r: Ray): Hit {
+        let hit = Hit.NoHit;
+        let next = this.firstObject;
+        while (next != null) {
+            let h: Hit = next.shape.intersect(r);
+            if (h.T < hit.T) {
+                hit = h;
+            }
+            next = next.nextObject;
+        }
+        return hit;
+    }
+
+    partitionScore(axis: Axis, point: float32): float32 {
+        let left: float32 = 0.0;
+        let right: float32 = 0.0;
+        let next = this.firstObject;
+        while (next != null) {
+            let box = next.shape.boundingBox();
+            // let box = Triangle.box(shape);
+            let lr: Partition = box.partition(axis, point);
+            if (lr.left) {
+                left++
+            }
+            if (lr.right) {
+                right++
+            }
+            next = next.nextObject;
+        }
+        if (left >= right) {
+            return left;
+        } else {
+            return right;
+        }
+    }
+
+    partition(size: number, axis: Axis, point: number): Split {
+        let firstLeft = null;
+        let firstRight = null;
+        let lastLeft = null;
+        let lastRight = null;
+        let numLeft: int32 = 0;
+        let numRight: int32 = 0;
+
+        let next = this.firstObject;
+        while (next != null) {
+            let box: Box = next.shape.boundingBox();
+            let lr = box.partition(axis, point);
+            if (lr.left) {
+                let left = next;
+                if (firstLeft == null) {
+                    firstLeft = left;
+                }
+                if (lastLeft != null) {
+                    lastLeft.nextObject = left;
+                }
+                lastLeft = left;
+                numLeft = numLeft + 1;
+            }
+            if (lr.right) {
+                let right = next;
+                if (firstRight == null) {
+                    firstRight = right;
+                }
+                if (lastRight != null) {
+                    lastRight.nextObject = right;
+                }
+                lastRight = right;
+                numRight = numRight + 1;
+            }
+            next = next.nextObject;
+        }
+
+        return new Split(firstLeft, firstRight, numLeft, numRight);
+    }
+
+    split(depth: number) {
+        if (this.numObjects < 8) {
+            return;
+        }
+
+        let size: int32 = this.numObjects * 2;
+
+        let _xs = new Array<float32>(size);
+        let _ys = new Array<float32>(size);
+        let _zs = new Array<float32>(size);
+
+        let count = 0;
+        let next = this.firstObject;
+
+        while (next != null) {
+            let box = next.shape.boundingBox();
+
+            _xs[count] = box.min.x;
+            _ys[count] = box.min.y;
+            _zs[count] = box.min.z;
+            count++;
+
+            _xs[count] = box.max.x;
+            _ys[count] = box.max.y;
+            _zs[count] = box.max.z;
+            count++;
+            next = next.nextObject;
+        }
+
+        _xs.sort();
+        _ys.sort();
+        _zs.sort();
+
+        let mx = Utils.median(_xs);
+        let my = Utils.median(_ys);
+        let mz = Utils.median(_zs);
+        let best = Math.round(this.numObjects * 0.85);
+        let bestaxis = Axis.AxisNone;
+        let bestpoint = 0.0;
+
+        let sx = this.partitionScore(Axis.AxisX, mx);
+
+        if (sx < best) {
+            best = sx;
+            bestaxis = Axis.AxisX;
+            bestpoint = mx;
+        }
+
+        let sy = this.partitionScore(Axis.AxisY, my);
+        if (sy < best) {
+            best = sy;
+            bestaxis = Axis.AxisY;
+            bestpoint = my;
+        }
+        let sz = this.partitionScore(Axis.AxisZ, mz);
+        if (sz < best) {
+            best = sz;
+            bestaxis = Axis.AxisZ;
+            bestpoint = mz;
+        }
+        if (bestaxis == Axis.AxisNone) {
+            return;
+        }
+        let lr = this.partition(best, bestaxis, bestpoint);
+        this.axis = bestaxis;
+        this.point = bestpoint;
+        this.left = new Node(lr.left, lr.numLeft);
+        this.right = new Node(lr.right, lr.numRight);
+        this.left.split(depth + 1);
+        this.right.split(depth + 1);
+        //delete this.shapes; // only needed at leaf nodes
+    }
+}
+
+export class Tree {
+    box: Box;
+    root: Node;
+
+    constructor(box: Box, root: Node): Tree {
+        this.box = box;
+        this.root = root;
+        return this;
+    }
+
+    static create(firstObject: Object3D, numShapes: int32): Tree {
+        //console.log(`Building k-d tree (${numShapes} shapes)... `);
+        // console.time("Tree:BuildingBox");
+        let box = Box.boxForObjects(firstObject);
+        // console.timeEnd("Tree:BuildingBox");
+        let node = new Node(firstObject, numShapes);
+        // console.time("Node:Split");
+        node.split(0);
+        // console.timeEnd("Node:Split");
+        return new Tree(box, node);
+    }
+
+    intersect(ray: Ray): Hit {
+        let hit = this.box.intersect(ray);
+        if (hit.tmax < hit.tmin || hit.tmax <= 0) {
+            return Hit.NoHit;
+        }
+        return this.root.intersect(ray, hit.tmin, hit.tmax);
+    }
+}
+

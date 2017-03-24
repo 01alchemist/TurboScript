@@ -145,8 +145,19 @@ function loadLibrary(callback) {
     window.assert = stdlib.assert;
 
     let libs = [
-        {path: '../src/library/wasm/types.tbs', code: ""},
-        {path: '../src/library/wasm/malloc.tbs', code: ""},
+        //wasm
+        {path: TURBO_PATH + '/src/library/wasm/types.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/wasm/malloc.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/wasm/array.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/wasm/math.tbs', code: ""},
+
+        //asmjs
+        {path: TURBO_PATH + '/src/library/asmjs/types.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/asmjs/malloc.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/asmjs/array.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/asmjs/math.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/asmjs/runtime.js', code: ""},
+        {path: TURBO_PATH + '/src/library/asmjs/wrapper.js', code: ""},
     ];
     let count = 0;
     libs.forEach(async(lib) => {
@@ -154,8 +165,8 @@ function loadLibrary(callback) {
         lib.code = await response.text();
         stdlib.IO_writeTextFile(lib.path, lib.code);
         count++;
-        if(count == libs.length){
-           callback(libs);
+        if (count == libs.length) {
+            callback(libs);
         }
     });
 }
@@ -184,8 +195,8 @@ function compileWebAssembly(code) {
     return function (sources, target, name) {
         var output = name;
         switch (target) {
-            case 'C':
-                output += '.c';
+            case 'asmjs':
+                output += '.asm.js';
                 break;
             case 'JavaScript':
                 output += '.js';
@@ -197,7 +208,7 @@ function compileWebAssembly(code) {
                 throw new Error('Invalid target: ' + target);
         }
 
-        console.log('compiling to ' + target + ' using WebAssembly');
+        console.log('Compiling to ' + target + ' using WebAssembly');
         var before = now();
 
         stdlib.reset();
@@ -231,8 +242,8 @@ function compileJavaScript(exports, libs) {
     return function (sources, target, name) {
         var output = name;
         switch (target) {
-            case 'C':
-                output += '.c';
+            case 'asmjs':
+                output += '.asm.js';
                 break;
             case 'JavaScript':
                 output += '.js';
@@ -244,7 +255,7 @@ function compileJavaScript(exports, libs) {
                 throw new Error('Invalid target: ' + target);
         }
 
-        console.log('compiling to ' + target + ' using JavaScript');
+        console.log('Compiling to ' + target + ' using JavaScript');
         var before = now();
 
         stdlib.reset();

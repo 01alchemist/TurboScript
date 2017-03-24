@@ -1,5 +1,5 @@
 import {Type} from "./type";
-import {Symbol, SymbolKind, isType} from "./symbol";
+import {Symbol, SymbolKind, isType, SYMBOL_FLAG_IS_TEMPLATE} from "./symbol";
 import {Range} from "./log";
 import {Scope} from "./scope";
 import {CheckContext} from "./checker";
@@ -17,7 +17,9 @@ export enum NodeKind {
     PARAMETER,
     PARAMETERS,
     VARIABLE,
-    IMPORT,
+    INTERNAL_IMPORT,
+    INTERNAL_IMPORT_FROM,
+    EXTERNAL_IMPORT,
 
         // Statements
     BLOCK,
@@ -100,7 +102,7 @@ export enum NodeKind {
     SHIFT_RIGHT,
     SUBTRACT,
 
-    //JavaScript
+        //JavaScript
     JS_NUMBER,
     JS_OBJECT,
     JS_STRING,
@@ -139,21 +141,23 @@ export function isCompactNodeKind(kind: NodeKind): boolean {
 
 export const NODE_FLAG_DECLARE = 1 << 0;
 export const NODE_FLAG_EXPORT = 1 << 1;
-export const NODE_FLAG_IMPORT = 1 << 2;
-export const NODE_FLAG_GET = 1 << 3;
-export const NODE_FLAG_OPERATOR = 1 << 4;
-export const NODE_FLAG_POSITIVE = 1 << 5;
-export const NODE_FLAG_PRIVATE = 1 << 6;
-export const NODE_FLAG_PROTECTED = 1 << 7;
-export const NODE_FLAG_PUBLIC = 1 << 8;
-export const NODE_FLAG_SET = 1 << 9;
-export const NODE_FLAG_STATIC = 1 << 10;
-export const NODE_FLAG_UNSAFE = 1 << 11;
-export const NODE_FLAG_JAVASCRIPT = 1 << 12;
-export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 13;
-export const NODE_FLAG_VIRTUAL = 1 << 14;
-export const NODE_FLAG_START = 1 << 15;
-export const NODE_FLAG_ANYFUNC = 1 << 16;
+export const NODE_FLAG_INTERNAL_IMPORT = 1 << 2;
+export const NODE_FLAG_EXTERNAL_IMPORT = 1 << 3;
+export const NODE_FLAG_GET = 1 << 4;
+export const NODE_FLAG_OPERATOR = 1 << 5;
+export const NODE_FLAG_POSITIVE = 1 << 6;
+export const NODE_FLAG_PRIVATE = 1 << 7;
+export const NODE_FLAG_PROTECTED = 1 << 8;
+export const NODE_FLAG_PUBLIC = 1 << 9;
+export const NODE_FLAG_SET = 1 << 10;
+export const NODE_FLAG_STATIC = 1 << 11;
+export const NODE_FLAG_UNSAFE = 1 << 12;
+export const NODE_FLAG_JAVASCRIPT = 1 << 13;
+export const NODE_FLAG_UNSIGNED_OPERATOR = 1 << 14;
+export const NODE_FLAG_VIRTUAL = 1 << 15;
+export const NODE_FLAG_START = 1 << 16;
+export const NODE_FLAG_ANYFUNC = 1 << 17;
+export const NODE_FLAG_GENERIC = 1 << 18;
 
 export class NodeFlag {
     flag: int32;
@@ -233,6 +237,15 @@ export class Node {
         }
     }
 
+    get __internal_rawValue(): any {
+        return this._rawValue;
+    }
+
+    set rawValue(newValue: any) {
+        this._hasValue = true;
+        this._rawValue = newValue;
+    }
+
     get intValue(): int32 {
         let n = this._rawValue;
         if (Number(n) === n && n % 1 === 0) {
@@ -298,13 +311,13 @@ export class Node {
 
         switch (node.resolvedType) {
             case context.int64Type:
-                if(this.kind != NodeKind.NAME){
+                if (this.kind != NodeKind.NAME) {
                     this.kind = NodeKind.INT64;
                 }
                 this.resolvedType = context.int64Type;
                 break;
             case context.float64Type:
-                if(this.kind != NodeKind.NAME){
+                if (this.kind != NodeKind.NAME) {
                     this.kind = NodeKind.FLOAT64;
                 }
                 this.resolvedType = context.float64Type;
@@ -328,7 +341,7 @@ export class Node {
                     if (this.kind == NodeKind.NULL) {
                         this.longValue = 0;
                     }
-                    if(this.kind != NodeKind.NAME) {
+                    if (this.kind != NodeKind.NAME) {
                         this.kind = NodeKind.INT64;
                     }
                     break;
@@ -337,7 +350,7 @@ export class Node {
                     if (this.kind == NodeKind.NULL) {
                         this.doubleValue = 0.0;
                     }
-                    if(this.kind != NodeKind.NAME) {
+                    if (this.kind != NodeKind.NAME) {
                         this.kind = NodeKind.FLOAT64;
                     }
                     break;
@@ -345,20 +358,17 @@ export class Node {
         }
     }
 
-    become(node: Node): void {
-        assert(node != this);
-        assert(node.parent == null);
-
-        this.kind = node.kind;
-        this.flags = node.flags;
-        this.firstFlag = node.firstFlag;
-        this.range = node.range;
-        this.internalRange = node.internalRange;
-        this.intValue = node.intValue;
-        this.stringValue = node.stringValue;
-        this.resolvedType = node.resolvedType;
-        this.symbol = node.symbol;
-        this.scope = node.scope;
+    clone(): Node {
+        let node: Node = new Node();
+        node.kind = this.kind;
+        node.offset = this.offset;
+        if(this.flags) node.flags = this.flags;
+        if(this.firstFlag) node.firstFlag = this.firstFlag;
+        // if(this.constructorFunctionNode) node.constructorFunctionNode = this.constructorFunctionNode;
+        if(this.range) node.range = this.range;
+        if(this.internalRange) node.internalRange = this.internalRange;
+        if(this.hasValue) node.rawValue = this.__internal_rawValue;
+        return node;
     }
 
     becomeSymbolReference(symbol: Symbol): void {
@@ -373,6 +383,13 @@ export class Node {
         this.kind = NodeKind.INT32;
         this.symbol = null;
         this.intValue = value;
+        this.removeChildren();
+    }
+
+    becomeLongConstant(value: int64): void {
+        this.kind = NodeKind.INT64;
+        this.symbol = null;
+        this.longValue = value;
         this.removeChildren();
     }
 
@@ -417,8 +434,8 @@ export class Node {
         return (this.flags & NODE_FLAG_EXPORT) != 0;
     }
 
-    isImport(): boolean {
-        return (this.flags & NODE_FLAG_IMPORT) != 0;
+    isExternalImport(): boolean {
+        return (this.flags & NODE_FLAG_EXTERNAL_IMPORT) != 0;
     }
 
     isStart(): boolean {
@@ -469,6 +486,14 @@ export class Node {
         return (this.flags & NODE_FLAG_UNSAFE) != 0;
     }
 
+    isGeneric(): boolean {
+        return (this.flags & NODE_FLAG_GENERIC) != 0;
+    }
+
+    isTemplate(): boolean {
+        return this.symbol && (this.symbol.flags & SYMBOL_FLAG_IS_TEMPLATE) != 0;
+    }
+
     isUnsignedOperator(): boolean {
         return (this.flags & NODE_FLAG_UNSIGNED_OPERATOR) != 0;
     }
@@ -486,7 +511,7 @@ export class Node {
     parameterCount(): int32 {
         let count = 0;
         let child = this.firstChild;
-        if(child.kind == NodeKind.PARAMETERS) {
+        if (child.kind == NodeKind.PARAMETERS) {
             child = child.firstChild;
             while (child != null) {
                 count = count + 1;
@@ -497,10 +522,11 @@ export class Node {
     }
 
     hasParameters(): boolean {
-        let count = 0;
-        let child = this.firstChild;
-        if(child.kind == NodeKind.PARAMETERS) {
-            return child.childCount() > 0;
+        if (this.firstChild) {
+            let child = this.firstChild;
+            if (child.kind == NodeKind.PARAMETERS) {
+                return child.childCount() > 0;
+            }
         }
         return false;
     }
@@ -666,6 +692,22 @@ export class Node {
         return this.lastChild.previousSibling;
     }
 
+    //FIXME : java style generic should be changed to C++ style
+    getMappedGenericType(name: Node): Type {
+        let symbol = this.parent.parent.symbol;
+        if (symbol.generics && symbol.generics.length > 0) {
+            let genericMaps = symbol.genericMaps;
+            let type = this.lastChild.resolvedType;
+            if (type.pointerTo) {
+                return genericMaps.get(type.pointerTo.symbol.name).get(name);
+            } else {
+                return genericMaps.get(type.symbol.name).get(name);
+            }
+        } else {
+            return this.lastChild.resolvedType;
+        }
+    }
+
     constructorNode(): Node {
         assert(this.kind == NodeKind.NEW);
         assert(this.childCount() > 0);
@@ -759,7 +801,6 @@ export class Node {
     }
 
     firstGenericType(): Node {
-        assert(this.kind == NodeKind.CLASS);
         assert(this.firstChild.kind == NodeKind.PARAMETERS);
         assert(this.firstChild.childCount() > 0);
         return this.firstChild.firstChild;
@@ -778,6 +819,11 @@ export class Node {
         assert(this.childCount() <= 2);
         assert(this.firstChild.nextSibling == null || isExpression(this.firstChild.nextSibling));
         return this.firstChild.nextSibling;
+    }
+
+    hasVariableValue(): boolean {
+        assert(this.kind == NodeKind.VARIABLE);
+        return this.firstChild != undefined && this.firstChild.nextSibling != undefined;
     }
 
     expressionValue(): Node {
@@ -913,6 +959,14 @@ export class Node {
         }
 
         return false;
+    }
+
+    arrayLength(): Node {
+        assert(this.kind == NodeKind.NEW);
+        assert(this.childCount() >= 1);
+        assert(isExpression(this.firstChild));
+        assert(this.firstChild.resolvedType.isArray());
+        return this.firstChild.nextSibling;
     }
 }
 
@@ -1155,9 +1209,23 @@ export function createImports(): Node {
     return node;
 }
 
-export function createImport(name: string): Node {
+export function createInternalImport(name: string): Node {
     let node = new Node();
-    node.kind = NodeKind.IMPORT;
+    node.kind = NodeKind.INTERNAL_IMPORT;
+    node.stringValue = name;
+    return node;
+}
+
+export function createInternalImportFrom(name: string): Node {
+    let node = new Node();
+    node.kind = NodeKind.INTERNAL_IMPORT_FROM;
+    node.stringValue = name;
+    return node;
+}
+
+export function createExternalImport(name: string): Node {
+    let node = new Node();
+    node.kind = NodeKind.EXTERNAL_IMPORT;
     node.stringValue = name;
     return node;
 }

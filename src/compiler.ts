@@ -15,6 +15,7 @@ import {turboJsEmit} from "./turbojs";
 import {wasmEmit} from "./wasm";
 import {Library} from "./library/library";
 import {asmJsEmit} from "./asmjs";
+import {preparse} from "./preparser";
 /**
  * Author: Nidin Vinayakan
  */
@@ -79,15 +80,15 @@ export class Compiler {
     }
 
     createGlobals(): void {
-        var context = new CheckContext();
+        let context = new CheckContext();
         context.log = this.log;
         context.target = this.target;
         context.pointerByteSize = 4; // Assume 32-bit code generation for now
 
-        var global = new Node();
+        let global = new Node();
         global.kind = NodeKind.GLOBAL;
 
-        var scope = new Scope();
+        let scope = new Scope();
         global.scope = scope;
 
         // Hard-coded types
@@ -102,21 +103,48 @@ export class Compiler {
     }
 
     addInput(name: string, contents: string): Source {
-        var source = new Source();
+        let source = new Source();
         source.name = name;
         source.contents = contents;
 
         if (this.firstSource == null) this.firstSource = source;
-        else this.lastSource.next = source;
+        else {
+            source.prev = this.lastSource;
+            this.lastSource.next = source;
+        }
         this.lastSource = source;
 
         return source;
     }
 
+    addInputBefore(name: string, contents: string, nextSource:Source): Source {
+        let source = new Source();
+        source.name = name;
+        source.contents = contents;
+
+        nextSource.prev.next = source;
+        source.prev = nextSource.prev;
+        nextSource.prev = source;
+        source.next = nextSource;
+
+        return source;
+    }
+
     finish(): boolean {
+        stdlib.Profiler_begin("pre-parsing");
+
+        let source = this.firstSource;
+        while (source != null) {
+            if(!preparse(source, this, this.log)){
+                 return false;
+            }
+            source = source.next;
+        }
+        stdlib.Profiler_end("pre-parsing");
+
         stdlib.Profiler_begin("lexing");
 
-        var source = this.firstSource;
+        source = this.firstSource;
         while (source != null) {
             source.firstToken = tokenize(source, this.log);
             source = source.next;
@@ -145,13 +173,13 @@ export class Compiler {
         stdlib.Profiler_end("parsing");
         stdlib.Profiler_begin("checking");
 
-        var global = this.global;
-        var context = this.context;
-        var fullResolve = true;
+        let global = this.global;
+        let context = this.context;
+        let fullResolve = true;
 
         source = this.firstSource;
         while (source != null) {
-            var file = source.file;
+            let file = source.file;
 
             if (file != null) {
                 if (source.isLibrary) {
@@ -162,7 +190,7 @@ export class Compiler {
                 }
 
                 while (file.firstChild != null) {
-                    var child = file.firstChild;
+                    let child = file.firstChild;
                     child.remove();
                     global.appendChild(child);
                 }
@@ -207,26 +235,26 @@ export class Compiler {
         // }
 
         if (this.target == CompileTarget.ASMJS) {
-            stdlib.Terminal_write(" -- asm.js --\n");
             asmJsEmit(this);
         }
 
         else if (this.target == CompileTarget.WEBASSEMBLY) {
-            stdlib.Terminal_write(" -- wasm --\n");
             wasmEmit(this);
         }
 
         stdlib.Profiler_end("emitting");
+
+        console.log("Done!");
 
         return true;
     }
 }
 
 export function replaceFileExtension(path: string, extension: string): string {
-    var builder = StringBuilder_new();
-    var dot = path.lastIndexOf(".");
-    var forward = path.lastIndexOf("/");
-    var backward = path.lastIndexOf("\\");
+    let builder = StringBuilder_new();
+    let dot = path.lastIndexOf(".");
+    let forward = path.lastIndexOf("/");
+    let backward = path.lastIndexOf("\\");
 
     // Make sure that there's a non-empty file name that the dot is a part of
     if (dot > 0 && dot > forward && dot > backward) {

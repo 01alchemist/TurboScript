@@ -1,0 +1,4 @@
+var a1 = 1;
+export function binary_test():void {
+    var a = a1 + 2;
+}

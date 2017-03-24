@@ -10,6 +10,7 @@ export enum SymbolKind {
     TYPE_INTERFACE,
     TYPE_CLASS,
     TYPE_GENERIC,
+    TYPE_TEMPLATE,
     TYPE_ENUM,
     TYPE_GLOBAL,
     TYPE_NATIVE,
@@ -57,6 +58,7 @@ export const SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8;
 export const SYMBOL_FLAG_USED = 1 << 9;
 export const SYMBOL_FLAG_IS_ARRAY = 1 << 10;
 export const SYMBOL_FLAG_IS_GENERIC = 1 << 11;
+export const SYMBOL_FLAG_IS_TEMPLATE = 1 << 12;
 
 export class Symbol {
     kind: SymbolKind;
@@ -89,6 +91,22 @@ export class Symbol {
     //   VARIABLE_LOCAL: N/A
     //
     offset: int32;
+
+    clone(): Symbol {
+        let symbol = new Symbol();
+        symbol.kind = this.kind;
+        symbol.name = this.name;
+        symbol.node = this.node;
+        symbol.range = this.range;
+        symbol.scope = this.scope;
+        symbol.resolvedType = this.resolvedType;
+        symbol.byteSize = this.byteSize;
+        symbol.state = this.state;
+        symbol.maxAlignment = this.maxAlignment;
+        symbol.flags = this.flags;
+        symbol.rename = this.rename;
+        return symbol;
+    }
 
     isEnumValue(): boolean {
         return this.node.parent.kind == NodeKind.ENUM;

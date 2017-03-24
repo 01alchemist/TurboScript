@@ -1,6 +1,6 @@
 // These will be filled in by the WebAssembly code generator
-var originalHeapPointer: *byte = null;
-var currentHeapPointer: *byte = null;
+var originalHeapPointer: *uint8 = null;
+var currentHeapPointer: *uint8 = null;
 
 var freeMemory: uint32 = 0;
 var numFreeChunks: uint32 = 0;
@@ -51,11 +51,11 @@ export function init_malloc():void{
     numFreeChunks = 0;
     firstFree = 0;
     lastFree = 0;
-    originalHeapPointer = 40 as *byte;
-    currentHeapPointer  = 40 as *byte;
+    originalHeapPointer = 40 as *uint8;
+    currentHeapPointer  = 40 as *uint8;
 }
 
-export function malloc(nbytes: uint32): *byte {
+export function malloc(nbytes: uint32): *uint8 {
 
     var alignment:uint32 = 8;
     nbytes = (nbytes + (alignment - 1)) & ~(alignment - 1) as uint32;
@@ -66,7 +66,7 @@ export function malloc(nbytes: uint32): *byte {
         return freeChunk;
     }
 
-    var offset = ((currentHeapPointer as uint32 + (alignment - 1)) & ~(alignment - 1) as uint32) as *byte;
+    var offset = ((currentHeapPointer as uint32 + (alignment - 1)) & ~(alignment - 1) as uint32) as *uint8;
 
     var top = offset + chunkSize;
 
@@ -88,7 +88,7 @@ export function malloc(nbytes: uint32): *byte {
 
     return offset;
 }
-export function free(ptr:*byte):void{
+export function free(ptr:*uint8):void{
     clearInuse(ptr);
     if(firstFree == 0){
         firstFree = ptr as uint32;
@@ -109,7 +109,7 @@ export function free(ptr:*byte):void{
     lastFree = ptr as uint32;
     numFreeChunks = numFreeChunks + 1;
 }
-export function getFreeChunk(nbytes: uint32):*byte{
+export function getFreeChunk(nbytes: uint32):*uint8{
     if(numFreeChunks > 0){
         var freeChunk = findChunk(nbytes);
         if(freeChunk as int32 > 0){
@@ -127,13 +127,13 @@ export function getFreeChunk(nbytes: uint32):*byte{
     }
     return null;
 }
-export function findChunk(nbytes: uint32):*byte{
-    var chunk = firstFree as *byte;
+export function findChunk(nbytes: uint32):*uint8{
+    var chunk = firstFree as *uint8;
     while(chunk != null){
         if(getChunkSize(chunk) == nbytes){
             return chunk;
         }
-        chunk = *(chunk as *uint32) as *byte;
+        chunk = *(chunk as *uint32) as *uint8;
     }
     return null;
 }
@@ -155,46 +155,46 @@ export function getFirstFree():uint32{
 export function getLastFree():uint32{
     return lastFree;
 }
-export function prevFree(ptr:*byte):int32{
+export function prevFree(ptr:*uint8):int32{
     return  *(ptr as *int32 + 4) as int32;
 }
-export function nextFree(ptr:*byte):int32{
+export function nextFree(ptr:*uint8):int32{
     return *(ptr as *int32) as int32;
 }
 /* Set size at head, without disturbing its use bit */
-function setHeadSize(ptr:*byte, s:uint32):void  {
+function setHeadSize(ptr:*uint8, s:uint32):void  {
     *(ptr as *uint32) = (*(ptr as *uint32) & SIZE_BITS) | s;
 }
 
 /* Set size/use field */
-function setHead(ptr:*byte, s:uint32):void {
+function setHead(ptr:*uint8, s:uint32):void {
    *(ptr as *uint32) = s;
 }
 
 /* Set size at footer (only when chunk is not in use) */
-function setFoot(ptr:*byte, s:uint32):void {
+function setFoot(ptr:*uint8, s:uint32):void {
     var size = *(ptr as *uint32);
     var chunkptr = (ptr as uint32) + size;
     *(chunkptr as *uint32) = s;
 }
 
-export function getPrevInuse(ptr:*byte):uint32 {
+export function getPrevInuse(ptr:*uint8):uint32 {
     var chunkptr = (ptr as uint32) - 8;
     return *(chunkptr as *uint32) & (PREV_INUSE);
 }
-export function setInuse(ptr:*byte):void{
+export function setInuse(ptr:*uint8):void{
     var chunkptr = (ptr as uint32) - 4;
     *(chunkptr as *uint32) =  *(chunkptr as *uint32) | PREV_INUSE;
 }
-export function getInuse(ptr:*byte):uint32{
+export function getInuse(ptr:*uint8):uint32{
     var chunkptr = (ptr as uint32) - 4;
     return *(chunkptr as *uint32) & (PREV_INUSE);
 }
-export function clearInuse(ptr:*byte):void{
+export function clearInuse(ptr:*uint8):void{
     var chunkptr = (ptr as uint32) - 4;
     *(chunkptr as *uint32) = *(chunkptr as *uint32) & ~(PREV_INUSE);
 }
-export function getChunkSize(ptr:*byte):uint32{
+export function getChunkSize(ptr:*uint8):uint32{
     var chunkptr = (ptr as uint32) - 4;
     return *(chunkptr as *uint32) & ~(PREV_INUSE) as uint32;
 }
@@ -251,7 +251,7 @@ export function getChunkSize(ptr:*byte):uint32{
 //  return ((*p as uint32) + (((p as chunk).size & ~SIZE_BITS) as chunk).size) = ((*p as uint32) + (((p as chunk).size & ~SIZE_BITS) as chunk).size) & ~(PREV_INUSE);
 // }
 
-function memcpy(target: *byte, source: *byte, length: uint32): void {
+function memcpy(target: *uint8, source: *uint8, length: uint32): void {
     // No-op if either of the inputs are null
     if (source == null || target == null) {
       return;
@@ -293,7 +293,7 @@ function memcpy(target: *byte, source: *byte, length: uint32): void {
     }
 }
 
-function memcmp(a: *byte, b: *byte, length: uint32): int32 {
+function memcmp(a: *uint8, b: *uint8, length: uint32): int32 {
     // No-op if either of the inputs are null
     if (a == null || b == null) {
       return 0;

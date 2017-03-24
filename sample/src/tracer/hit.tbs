@@ -1,0 +1,76 @@
+export class Intersection{
+	tmin:float64;
+	tmax:float64;
+
+	constructor(tmin:float64, tmax:float64):Intersection{
+		this.tmin = tmin;
+		this.tmax = tmax;
+	}
+
+}
+
+export class HitInfo{
+
+    shape:Shape;
+    position:Vector3;
+    normal:Vector3;
+    ray:Ray;
+    material:Material;
+    inside:boolean;
+
+	constructor(shape:Shape, position:Vector3, normal:Vector3, ray:Ray, material:Material, inside:boolean):HitInfo {
+        this.shape = shape;
+        this.position = position;
+        this.normal = normal;
+        this.ray = ray;
+        this.material = material;
+        this.inside = inside;
+        return this;
+	}
+}
+
+export class Hit{
+
+	static NoHit:Hit = new Hit(null, Number.POSITIVE_INFINITY, null);
+
+	shape:Shape;
+	T:float32;
+	hitInfo:hitInfo;
+
+	constructor(shape:Shape, T:float32, hitInfo:HitInfo):Hit {
+        this.shape = shape;
+        this.T = T;
+        this.hitInfo = hitInfo;
+        return this;
+	}
+
+	ok():boolean{
+		return this.T < Number.POSITIVE_INFINITY;
+	}
+
+	info(r:Ray):HitInfo {
+		if(this.hitInfo != null){
+			return this.hitInfo;
+		}
+
+		let position:Vector3 = r.position(this.T);
+		let normal:Vector3 = this.shape.normalAt(position);
+		let material:Material = this.shape.materialAt(position);
+		let inside:boolean = false;
+
+		if(normal.dot(r.direction) > 0.0){
+			normal.negate(normal);
+			inside = true;
+			switch (this.shape.type()) {
+				case ShapeType.Volume:
+				case ShapeType.SDFShape:
+					inside = false;
+					break;
+			}
+		}
+
+		let ray = new Ray(position, normal);
+		this.hitInfo = new HitInfo(this.shape, position, normal, ray, material, inside);
+		return this.hitInfo;
+	}
+}

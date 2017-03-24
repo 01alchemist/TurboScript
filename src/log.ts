@@ -12,6 +12,7 @@ export class Source {
     contents: string;
 
     // These are for internal use by the compiler
+    prev: Source;
     next: Source;
     isLibrary: boolean;
     firstToken: Token;

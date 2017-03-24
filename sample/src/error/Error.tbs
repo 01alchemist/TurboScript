@@ -1,0 +1,6 @@
+enum ErrorCode{
+    UNKNOWN,
+
+    //Shape error
+
+}

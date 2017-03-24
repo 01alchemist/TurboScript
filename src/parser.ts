@@ -10,8 +10,9 @@ import {
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
     NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
-    createDelete, createImports, NODE_FLAG_IMPORT, createImport, NODE_FLAG_ANYFUNC, createType, createAny, createArray,
-    NODE_FLAG_JAVASCRIPT
+    createDelete, createImports, NODE_FLAG_INTERNAL_IMPORT, createExternalImport, NODE_FLAG_ANYFUNC, createType,
+    createAny, createArray,
+    NODE_FLAG_JAVASCRIPT, NODE_FLAG_EXTERNAL_IMPORT, createInternalImport, createInternalImportFrom, createDouble
 } from "./node";
 
 export enum Precedence {
@@ -273,6 +274,15 @@ class ParserContext {
                 return value.withRange(token.range);
             }
 
+            if (this.peek(TokenKind.FLOAT64)) {
+                let value = createDouble(0);
+                if (!this.parseDouble(token.range, value)) {
+                    value = createParseError();
+                }
+                this.advance();
+                return value.withRange(token.range);
+            }
+
             if (this.eat(TokenKind.TRUE)) {
                 return createboolean(true).withRange(token.range);
             }
@@ -341,7 +351,7 @@ class ParserContext {
         }
 
 
-        if(this.peek(TokenKind.LEFT_BRACE)){
+        if (this.peek(TokenKind.LEFT_BRACE)) {
             console.log("Check if its JS");
 
         }
@@ -435,13 +445,6 @@ class ParserContext {
                 return createHook(node, middle, right).withRange(spanRanges(node.range, right.range));
             }
         }
-
-        // if(mode == ParseKind.TYPE && node.rawValue && node.rawValue == "Array"){
-        //     this.expect(TokenKind.LESS_THAN);
-        //     let type = this.parseType();
-        //     this.expect(TokenKind.GREATER_THAN);
-        //     node.appendChild(type);
-        // }
 
         return node;
     }
@@ -633,9 +636,9 @@ class ParserContext {
         return block.withRange(spanRanges(open.range, close.range));
     }
 
-    parseObject():Node {
-
-    }
+    // parseObject():Node {
+    //
+    // }
 
     parseReturn(): Node {
         let token = this.current;
@@ -749,54 +752,57 @@ class ParserContext {
         return node.withRange(spanRanges(open.range, close.range));
     }
 
-    //TODO: finalize import method
-    /*parseImports(): Node {
-     let token = this.current;
-     assert(token.kind == TokenKind.IMPORT);
-     this.advance();
+    parseInternalImports(): Node {
+        let token = this.current;
+        assert(token.kind == TokenKind.INTERNAL_IMPORT);
+        this.advance();
 
-     let node = createImports();
-     node.flags = node.flags | NODE_FLAG_IMPORT;
+        let node = createImports();
+        node.flags = node.flags | NODE_FLAG_INTERNAL_IMPORT;
 
-     if (this.peek(TokenKind.MULTIPLY)) { //check for wildcard '*' import
-     assert(this.eat(TokenKind.MULTIPLY));
-     assert(this.eat(TokenKind.AS));
+        if (this.peek(TokenKind.MULTIPLY)) { //check for wildcard '*' import
 
-     let importName = this.current;
-     let range = importName.range;
-     let _import = createImport(importName.range.toString());
-     node.appendChild(_import.withRange(range).withInternalRange(importName.range));
-     this.advance();
-     }
-     else {
+            this.log.error(this.current.range, "wildcard '*' import not supported");
 
-     if (!this.expect(TokenKind.LEFT_BRACE)) {
-     return null;
-     }
-     while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
+            assert(this.eat(TokenKind.MULTIPLY));
+            assert(this.eat(TokenKind.AS));
 
-     let importName = this.current;
-     let range = importName.range;
-     let _import = createImport(importName.range.toString());
-     node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+            let importName = this.current;
+            let range = importName.range;
+            let _import = createInternalImport(importName.range.toString());
+            node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+            this.advance();
+        }
+        else {
 
-     if (!this.eat(TokenKind.COMMA)) {
-     break;
-     }
-     }
+            if (!this.expect(TokenKind.LEFT_BRACE)) {
+                return null;
+            }
+            while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
 
-     this.advance();
-     assert(this.expect(TokenKind.RIGHT_BRACE));
-     }
+                let importName = this.current;
+                let range = importName.range;
+                let _import = createInternalImport(importName.range.toString());
+                node.appendChild(_import.withRange(range).withInternalRange(importName.range));
 
-     let importFrom = this.current;
-     this.expect(TokenKind.FROM);
-     node.stringValue = importFrom.range.toString();
-     this.advance();
-     let semicolon = this.current;
-     this.expect(TokenKind.SEMICOLON);
-     return node.withRange(spanRanges(token.range, semicolon.range));
-     }*/
+                if (!this.eat(TokenKind.COMMA)) {
+                    break;
+                }
+            }
+
+            this.advance();
+            assert(this.expect(TokenKind.RIGHT_BRACE));
+        }
+
+        this.expect(TokenKind.FROM);
+        let importFrom = this.current;
+        let _from = createInternalImportFrom(importFrom.range.toString());
+        node.appendChild(_from.withRange(importFrom.range).withInternalRange(importFrom.range));
+        this.advance();
+        let semicolon = this.current;
+        this.expect(TokenKind.SEMICOLON);
+        return node.withRange(spanRanges(token.range, semicolon.range));
+    }
 
     parseModule(firstFlag: NodeFlag): Node {
         let token = this.current;
@@ -1198,6 +1204,7 @@ class ParserContext {
                 let firstArgumentFlag = this.parseFlags();
 
                 let argument = this.current;
+                ;
                 if (!this.expect(TokenKind.IDENTIFIER)) {
                     return null;
                 }
@@ -1236,11 +1243,43 @@ class ParserContext {
                     type = createParseError();
                 }
 
+                let firstType = type;
+
+                //Type alias
+                while (this.eat(TokenKind.BITWISE_OR)) {
+                    let aliasType = this.parseType();
+
+                    if (this.peek(TokenKind.LESS_THAN)) {
+                        let parameters = this.parseParameters();
+                        if (parameters == null) {
+                            return null;
+                        }
+                        aliasType.appendChild(parameters);
+                    }
+
+                    if (aliasType != null) {
+                        range = spanRanges(range, aliasType.range);
+                    }
+
+                    // Recover from a missing type
+                    else if (this.peek(TokenKind.COMMA) || this.peek(TokenKind.RIGHT_PARENTHESIS)) {
+                        aliasType = createParseError();
+                    }
+
+                    else {
+                        return null;
+                    }
+
+                    type.appendChild(aliasType);
+                    type = aliasType;
+
+                }
+
                 if (this.eat(TokenKind.ASSIGN)) {
                     value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
                 }
 
-                let variable = createVariable(argument.range.toString(), type, value);
+                let variable = createVariable(argument.range.toString(), firstType, value);
                 variable.firstFlag = firstArgumentFlag;
                 variable.flags = allFlags(firstArgumentFlag);
                 node.appendChild(variable.withRange(range).withInternalRange(argument.range));
@@ -1261,7 +1300,11 @@ class ParserContext {
         }
         else {
 
-            if (this.expect(TokenKind.COLON)) {
+            if (node.stringValue == "constructor"){
+                returnType = new Node();
+                returnType.kind = NodeKind.NAME;
+                returnType.stringValue = parent.stringValue;
+            } else if(this.expect(TokenKind.COLON)) {
                 returnType = this.parseType();
 
                 if (this.peek(TokenKind.LESS_THAN)) {
@@ -1282,6 +1325,37 @@ class ParserContext {
                         return null;
                     }
                 }
+
+                let firstType = returnType;
+
+                //Type alias
+                while (this.eat(TokenKind.BITWISE_OR)) {
+                    let aliasType = this.parseType();
+
+                    if (this.peek(TokenKind.LESS_THAN)) {
+                        let parameters = this.parseParameters();
+                        if (parameters == null) {
+                            return null;
+                        }
+                        aliasType.appendChild(parameters);
+                    }
+
+                    if (aliasType == null) {
+                        // Recover from a missing return type
+                        if (this.peek(TokenKind.SEMICOLON) || this.peek(TokenKind.LEFT_BRACE)) {
+                            aliasType = createParseError();
+                        }
+
+                        else {
+                            return null;
+                        }
+                    }
+
+                    firstType.appendChild(aliasType);
+                    firstType = aliasType;
+
+                }
+
             }
 
             // Recover from a missing colon
@@ -1344,10 +1418,11 @@ class ParserContext {
                 type = this.parseType();
 
                 if (this.peek(TokenKind.LESS_THAN)) {
-                    this.advance();
-                    let arrayType = this.parseType();
-                    this.expect(TokenKind.GREATER_THAN);
-                    node.appendChild(arrayType);
+                    let parameters = this.parseParameters();
+                    if (parameters == null) {
+                        return null;
+                    }
+                    type.appendChild(parameters);
                 }
 
                 if (type == null) {
@@ -1405,7 +1480,7 @@ class ParserContext {
             let token = this.current;
             let flag: int32;
 
-            if (this.eat(TokenKind.IMPORT)) flag = NODE_FLAG_IMPORT;
+            if (this.eat(TokenKind.EXTERNAL_IMPORT)) flag = NODE_FLAG_EXTERNAL_IMPORT;
             else if (this.eat(TokenKind.DECLARE)) flag = NODE_FLAG_DECLARE;
             else if (this.eat(TokenKind.EXPORT)) flag = NODE_FLAG_EXPORT;
             else if (this.eat(TokenKind.PRIVATE)) flag = NODE_FLAG_PRIVATE;
@@ -1439,19 +1514,6 @@ class ParserContext {
         }
 
         node.flags = node.flags | NODE_FLAG_UNSAFE;
-        return node.withRange(spanRanges(token.range, node.range));
-    }
-
-    parseImport(): Node {
-        let token = this.current;
-        this.advance();
-
-        let node = this.parseBlock();
-        if (node == null) {
-            return null;
-        }
-
-        node.flags = node.flags | NODE_FLAG_IMPORT;
         return node.withRange(spanRanges(token.range, node.range));
     }
 
@@ -1497,8 +1559,8 @@ class ParserContext {
     parseStatement(mode: StatementMode): Node {
         let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
 
-        // if (this.peek(TokenKind.IMPORT) && firstFlag == null) return this.parseImport(); //disabled or now
         // if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe(); //disabled for now
+        if (this.peek(TokenKind.INTERNAL_IMPORT) && firstFlag == null) return this.parseInternalImports(); // This should handle before parsing
         if (this.peek(TokenKind.JAVASCRIPT) && firstFlag == null) return this.parseJavaScript();
         if (this.peek(TokenKind.START) && firstFlag == null) return this.parseStart();
         if (this.peek(TokenKind.CONST) || this.peek(TokenKind.LET) || this.peek(TokenKind.VAR)) return this.parseVariables(firstFlag, null);
@@ -1596,6 +1658,15 @@ class ParserContext {
         let contents = source.contents;
 
         node.floatValue = parseFloat(contents.substring(range.start, range.end));
+        node.flags = NODE_FLAG_POSITIVE;
+        return true;
+    }
+
+    parseDouble(range: Range, node: Node): boolean {
+        let source = range.source;
+        let contents = source.contents;
+
+        node.doubleValue = parseFloat(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;
     }

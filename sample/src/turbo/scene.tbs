@@ -1,0 +1,117 @@
+class Object3D{
+    shape:Shape;
+    isLight:boolean;
+    nextObject:Object3D;
+
+    constructor(shape:Shape):Object3D{
+        this.shape = shape;
+        this.isLight = false;
+        return this;
+    }
+}
+export class Scene {
+	color:Color;
+	texture:Texture;
+	textureAngle:float32;
+	shapes:Array<Shape>;
+	lights:Array<Shape>;
+	tree:Tree;
+	rays:int32;
+    numShapes:int32;
+    numLights:int32;
+    firstShape:Object3D = null;
+    lastShape:Object3D = null;
+
+	constructor(color):Scene {
+        this.color = color;
+        this.texture = 0;
+        this.textureAngle = 0;
+        this.rays = 0;
+        this.numShapes = 0;
+        this.numLights = 0;
+		return this;
+	}
+
+	setClearColor(color):void {
+	    Color.HexColor(color, this.color);
+    }
+	clear():void{
+	    delete this.shapes;
+	    delete this.lights;
+	    delete this.tree;
+        this.rays = 0;
+        this.numShapes = 0;
+        this.numLights = 0;
+	}
+    addDebugScene():void{
+        let wall = Material.newGlossyMaterial(Color.HexColor(0xFCFAE1), 1.5, Utils.radians(10));
+        this.add(new Cube(new Vector3(-10.0, -1.0, -10.0), new Vector3(-2.0, 10.0, 10.0), wall));
+        this.add(new Cube(new Vector3(-10.0, -1.0, -10.0), new Vector3(10.0, 0.0, 10.0), wall));
+    }
+	addDefaultLights():void {
+		let light = Material.LightMaterial(Color.WHITE, 50);
+        this.add(new Sphere(new Vector3(0, 8, 0), 0.5, light));
+	}
+	add(shape):void {
+	    let object3D = new Object3D(shape);
+	    if(this.firstShape == null){
+	       this.firstShape = object3D;
+        }
+
+        if(this.lastShape != null){
+	        this.lastShape.nextObject = object3D;
+        }
+
+        if (shape.materialAt(Vector.ZERO).emittance > 0) {
+            object3D.isLight = true;
+			this.numLights = this.numLights + 1;
+		}
+
+        this.lastShape = object3D;
+        this.numShapes = this.numShapes + 1;
+	}
+	commit():void{
+
+	    this.shapes = new Array<Shape>(this.numShapes);
+	    this.lights = new Array<Shape>(this.numLights);
+	    let child = this.firstShape;
+	    let i:int32 = 0;
+	    let j:int32 = 0;
+	    while(child != null){
+            let shape = child.shape;
+	        this.shapes[i] = shape;
+
+	        if(child.isLight){
+                this.shapes[j] = shape;
+                j = j + 1;
+            }
+
+	        child = child.nextObject;
+	        i = i + 1;
+        }
+	}
+
+	compile():Tree {
+	    let i=0;
+		while(i < this.shapes.length) {
+			let shape = this.shapes[i];
+			shape.compile();
+			i = i + 1;
+		}
+		if (!this.tree) {
+			this.tree = new Tree(this.shapes);
+		}
+		return this.tree;
+	}
+
+	rayCount():int32 {
+		// return Atomics.load(turbo.Runtime._mem_int32, this.rays);
+        return this.rays;
+	}
+
+	intersect(r:Ray):Hit {
+		// Atomics.add(turbo.Runtime._mem_int32, this.rays, 1);
+        this.rays = this.rays + 1;
+		return this.tree.intersect(r);
+	}
+}

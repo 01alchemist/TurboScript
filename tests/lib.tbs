@@ -1,12 +1,12 @@
 // #if WASM
 
   // These will be filled in by the WebAssembly code generator
-  unsafe var currentHeapPointer: *byte = null;
-  unsafe var originalHeapPointer: *byte = null;
+  unsafe var currentHeapPointer: *uint8 = null;
+  unsafe var originalHeapPointer: *uint8 = null;
 
-  export unsafe function malloc(sizeOf: uint32): *byte {
+  export unsafe function malloc(sizeOf: uint32): *uint8 {
     // Align all allocations to 8 bytes
-    var offset = ((currentHeapPointer as uint32 + 7) & ~7 as uint32) as *byte;
+    var offset = ((currentHeapPointer as uint32 + 7) & ~7 as uint32) as *uint8;
     sizeOf = (sizeOf + 7) & ~7 as uint32;
 
     // Use a simple bump allocator for now
@@ -23,7 +23,7 @@
     return offset;
   }
 
-  unsafe function memcpy(target: *byte, source: *byte, length: uint32): void {
+  unsafe function memcpy(target: *uint8, source: *uint8, length: uint32): void {
     // No-op if either of the inputs are null
     if (source == null || target == null) {
       return;
@@ -65,7 +65,7 @@
     }
   }
 
-  unsafe function memcmp(a: *byte, b: *byte, length: uint32): int32 {
+  unsafe function memcmp(a: *uint8, b: *uint8, length: uint32): int32 {
     // No-op if either of the inputs are null
     if (a == null || b == null) {
       return 0;
@@ -88,9 +88,9 @@
 
 // #elif C
 //
-//   declare unsafe function malloc(sizeOf: uint32): *byte;
-//   declare unsafe function memcpy(target: *byte, source: *byte, length: uint32): void;
-//   declare unsafe function memcmp(a: *byte, b: *byte, length: uint32): int32;
+//   declare unsafe function malloc(sizeOf: uint32): *uint8;
+//   declare unsafe function memcpy(target: *uint8, source: *uint8, length: uint32): void;
+//   declare unsafe function memcmp(a: *uint8, b: *uint8, length: uint32): int32;
 //
 // #endif
 //
@@ -114,16 +114,16 @@
             value >= 1000 ? 4 : 3 :
             value >= 10 ? 2 : 1)) as uint32;
 
-      var ptr = string_new(length) as *byte;
+      var ptr = string_new(length) as *uint8;
       var end = ptr + 4 + length * 2;
 
       if (sign) {
-        *((ptr + 4) as *ushort) = '-';
+        *((ptr + 4) as *uint16) = '-';
       }
 
       while (value != 0) {
         end = end + -2;
-        *(end as *ushort) = (value % 10 + '0') as ushort;
+        *(end as *uint16) = (value % 10 + '0') as uint16;
         value = value / 10;
       }
 
@@ -142,13 +142,13 @@
 //
 // #if C
 //
-//   export unsafe function cstring_to_utf16(utf8: *byte): string {
+//   export unsafe function cstring_to_utf16(utf8: *uint8): string {
 //     if (utf8 == null) {
 //       return null;
 //     }
 //
 //     var utf16_length: uint32 = 0;
-//     var a: byte, b: byte, c: byte, d: byte;
+//     var a: uint8, b: uint8, c: uint8, d: uint8;
 //
 //     // Measure text
 //     var i: uint32 = 0;
@@ -179,7 +179,7 @@
 //     }
 //
 //     var output = string_new(utf16_length);
-//     var utf16 = output as *ushort + 2;
+//     var utf16 = output as *uint16 + 2;
 //
 //     // Convert text
 //     i = 0;
@@ -207,11 +207,11 @@
 //
 //       // Encode UTF-16
 //       if (codePoint < 0x10000) {
-//         *utf16 = codePoint as ushort;
+//         *utf16 = codePoint as uint16;
 //       } else {
-//         *utf16 = ((codePoint >> 10) + (0xD800 - (0x10000 >> 10))) as ushort;
+//         *utf16 = ((codePoint >> 10) + (0xD800 - (0x10000 >> 10))) as uint16;
 //         utf16 = utf16 + 1;
-//         *utf16 = ((codePoint & 0x3FF) + 0xDC00) as ushort;
+//         *utf16 = ((codePoint & 0x3FF) + 0xDC00) as uint16;
 //       }
 //       utf16 = utf16 + 1;
 //     }
@@ -219,14 +219,14 @@
 //     return output;
 //   }
 //
-//   export unsafe function utf16_to_cstring(input: string): *byte {
+//   export unsafe function utf16_to_cstring(input: string): *uint8 {
 //     if (input as *uint32 == null) {
 //       return null;
 //     }
 //
 //     var utf16_length = *(input as *uint32);
 //     var utf8_length: uint32 = 0;
-//     var utf16 = input as *ushort + 2;
+//     var utf16 = input as *uint16 + 2;
 //
 //     // Measure text
 //     var i: uint32 = 0;
@@ -273,23 +273,23 @@
 //
 //       // Encode UTF-8
 //       if (codePoint < 0x80) {
-//         *next = codePoint as byte;
+//         *next = codePoint as uint8;
 //       } else {
 //         if (codePoint < 0x800) {
-//           *next = (((codePoint >> 6) & 0x1F) | 0xC0) as byte;
+//           *next = (((codePoint >> 6) & 0x1F) | 0xC0) as uint8;
 //         } else {
 //           if (codePoint < 0x10000) {
-//             *next = (((codePoint >> 12) & 0x0F) | 0xE0) as byte;
+//             *next = (((codePoint >> 12) & 0x0F) | 0xE0) as uint8;
 //           } else {
-//             *next = (((codePoint >> 18) & 0x07) | 0xF0) as byte;
+//             *next = (((codePoint >> 18) & 0x07) | 0xF0) as uint8;
 //             next = next + 1;
-//             *next = (((codePoint >> 12) & 0x3F) | 0x80) as byte;
+//             *next = (((codePoint >> 12) & 0x3F) | 0x80) as uint8;
 //           }
 //           next = next + 1;
-//           *next = (((codePoint >> 6) & 0x3F) | 0x80) as byte;
+//           *next = (((codePoint >> 6) & 0x3F) | 0x80) as uint8;
 //         }
 //         next = next + 1;
-//         *next = ((codePoint & 0x3F) | 0x80) as byte;
+//         *next = ((codePoint & 0x3F) | 0x80) as uint8;
 //       }
 //       next = next + 1;
 //     }

@@ -1,36 +1,36 @@
 export class Vector3 {
-    x: float64;
-    y: float64;
-    z: float64;
+    x: float32;
+    y: float32;
+    z: float32;
 
-    constructor(x: float64, y: float64, z: float64): Vector3 {
+    constructor(x: float32, y: float32, z: float32): Vector3 {
         this.x = x;
         this.y = y;
         this.z = z;
         return this;
     }
 
-    length(): float64 {
-        return Math.sqrt(
+    length(): float32 {
+        return sqrtf32(
             (this.x * this.x) + (this.y * this.y) + (this.z * this.z)
         );
     }
 
-    lengthN(n: float64): float64 {
+    lengthN(n: float32): float32 {
         if (n == 2.0) {
             return this.length();
         }
         let a = this.abs();
-        let p1 = Math.pow(a.x, n);
-        let p2 = Math.pow(a.y, n);
-        let p3 = Math.pow(a.z, n);
+        let p1 = powf32(a.x, n);
+        let p2 = powf32(a.y, n);
+        let p3 = powf32(a.z, n);
         let xyz = p1 + p2 + p3;
-        let length: float64 = Math.pow(xyz, (1.0 as float64) / n);
+        let length: float32 = powf32(xyz, 1.0/ n) as float32;
         delete a;
         return length;
     }
 
-    dot(b: Vector3): float64 {
+    dot(b: Vector3): float32 {
         return (this.x * b.x) + (this.y * b.y) + (this.z * b.z);
     }
 
@@ -39,7 +39,7 @@ export class Vector3 {
     }
 
     normalize(): Vector3 {
-        let d: float64 = this.length();
+        let d: float32 = this.length();
         return new Vector3(this.x / d, this.y / d, this.z / d);
     }
 
@@ -48,7 +48,7 @@ export class Vector3 {
     }
 
     abs(): Vector3 {
-        return new Vector3(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
+        return new Vector3(absf32(this.x), absf32(this.y), absf32(this.z));
     }
 
     add(b: Vector3): Vector3 {
@@ -71,34 +71,42 @@ export class Vector3 {
         return new Vector3(this.x - b.x * Math.floor(this.x / b.x), this.y - b.y * Math.floor(this.y / b.y), this.z - b.z * Math.floor(this.z / b.z));
     }
 
-    addScalar(f: float64): Vector3 {
+    addScalar(f: float32): Vector3 {
         return new Vector3(this.x + f, this.y + f, this.z + f);
     }
 
-    subScalar(f: float64): Vector3 {
+    subScalar(f: float32): Vector3 {
         return new Vector3(this.x - f, this.y - f, this.z - f);
     }
 
-    mulScalar(f: float64): Vector3 {
+    mulScalar(f: float32): Vector3 {
         return new Vector3(this.x * f, this.y * f, this.z * f);
     }
 
-    divScalar(f: float64): Vector3 {
+    divScalar(f: float32): Vector3 {
         return new Vector3(this.x / f, this.y / f, this.z / f);
     }
 
     min(b: Vector3): Vector3 {
-        return new Vector3(Math.min(this.x, b.x), Math.min(this.y, b.y), Math.min(this.z, b.z));
+        return new Vector3(
+            minf32(this.x, b.x) as float32,
+            minf32(this.y, b.y) as float32,
+            minf32(this.z, b.z) as float32
+        );
     }
 
     max(b: Vector3): Vector3 {
-        return new Vector3(Math.max(this.x, b.x), Math.max(this.y, b.y), Math.max(this.z, b.z));
+        return new Vector3(
+            maxf32(this.x, b.x) as float32,
+            maxf32(this.y, b.y) as float32,
+            maxf32(this.z, b.z) as float32
+        );
     }
 
     minAxis(a: Vector3): Vector3 {
-        let x: float64 = Math.abs(this.x);
-        let y: float64 = Math.abs(this.y);
-        let z: float64 = Math.abs(this.z);
+        let x: float32 = absf32(this.x);
+        let y: float32 = absf32(this.y);
+        let z: float32 = absf32(this.z);
         if (x <= y && x <= z) {
             return new Vector3(1.0, 0.0, 0.0);
         } else if (y <= x && y <= z) {
@@ -107,12 +115,12 @@ export class Vector3 {
         return new Vector3(0.0, 0.0, 1.0);
     }
 
-    minComponent(a: Vector3): float64 {
-        return Math.min(Math.min(this.x, this.y), this.z);
+    minComponent(a: Vector3): float32 {
+        return minf32(minf32(this.x, this.y), this.z) as float32;
     }
 
-    maxComponent(a: Vector3): float64 {
-        return Math.max(Math.max(this.x, this.y), this.z);
+    maxComponent(a: Vector3): float32 {
+        return maxf32(maxf32(this.x, this.y), this.z) as float32;
     }
 
     reflect(b: Vector3): Vector3 {
@@ -123,14 +131,14 @@ export class Vector3 {
         //return Vector3.Sub(b, Vector3.MulScalar(a, 2 * Vector3.Dot(a,b)));
     }
 
-    refract(b: Vector3, n1: float64, n2: float64): Vector3 {
-        let nr: float64 = n1 / n2;
-        let cosI: float64 = -this.dot(b);
-        let sinT2: float64 = nr * nr * (1.0 - cosI * cosI);
+    refract(b: Vector3, n1: float32, n2: float32): Vector3 {
+        let nr: float32 = n1 / n2;
+        let cosI: float32 = -this.dot(b);
+        let sinT2: float32 = nr * nr * (1.0 - cosI * cosI);
         if (sinT2 > 1.0) {
             return new Vector3(0.0, 0.0, 0.0);
         }
-        let cosT: float64 = Math.sqrt(1.0 - sinT2);
+        let cosT: float32 = sqrtf32(1.0 - sinT2);
         let tmp1 = b.mulScalar(nr);
         let tmp2 = this.mulScalar(nr * (cosI - cosT));
         let tmp3 = tmp1.add(tmp2);
@@ -142,20 +150,24 @@ export class Vector3 {
 // return Vector3.Add(Vector3.MulScalar(b, nr), Vector3.MulScalar(a, nr * cosI - cosT));
     }
 
-    reflectance(b: Vector3, n1: float64, n2: float64): float64 {
-        let nr: float64 = n1 / n2;
-        let cosI: float64 = -this.dot(b);
-        let sinT2: float64 = nr * nr * (1.0 - cosI * cosI);
+    reflectance(b: Vector3, n1: float32, n2: float32): float32 {
+        let nr: float32 = n1 / n2;
+        let cosI: float32 = -this.dot(b);
+        let sinT2: float32 = nr * nr * (1.0 - cosI * cosI);
         if (sinT2 > 1.0) {
             return 1.0;
         }
-        let cosT: float64 = Math.sqrt(1.0 - sinT2);
-        let rOrth: float64 = (n1 * cosI - n2 * cosT) / (n1 * cosI + n2 * cosT);
-        let rPar: float64 = (n2 * cosI - n1 * cosT) / (n2 * cosI + n1 * cosT);
+        let cosT: float32 = sqrtf32(1.0 - sinT2);
+        let rOrth: float32 = (n1 * cosI - n2 * cosT) / (n1 * cosI + n2 * cosT);
+        let rPar: float32 = (n2 * cosI - n1 * cosT) / (n2 * cosI + n1 * cosT);
         return (rOrth * rOrth + rPar * rPar) / 2.0;
     } //-------------------------------- // x x x x x x x x x x x x x x x x //--------------------------------
-    pow(f: float64): Vector3 {
-        return new Vector3(Math.pow(this.x, f), Math.pow(this.y, f), Math.pow(this.z, f));
+    pow(f: float32): Vector3 {
+        return new Vector3(
+            powf32(this.x, f) as float32,
+            powf32(this.y, f) as float32,
+            powf32(this.z, f) as float32
+        );
     }
 
     isEqual(b: Vector3): boolean {
@@ -167,7 +179,7 @@ export class Vector3 {
         return r;
     }
 
-    set(x: float64, y: float64, z: float64): Vector3 {
+    set(x: float32, y: float32, z: float32): Vector3 {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -189,7 +201,7 @@ export class Vector3 {
         return new Vector3(this.x, this.y, this.z);
     }
 
-    // setFromArray(d:float64[]) {
+    // setFromArray(d:float32[]) {
     // this.x = d[0];
     // this.y = d[1];
     // this.z = d[2];
@@ -215,3 +227,13 @@ export class Vector3 {
 var ZERO: Vector3 = new Vector3(0.0, 0.0, 0.0);
 var ONE: Vector3 = new Vector3(1.0, 1.0, 1.0);
 var NegativeONE: Vector3 = new Vector3(-1.0, -1.0, -1.0);
+
+
+// @JS
+// class Vector3{
+//
+//     constructor(x,y,z){
+//         this.ref = new turbo::Vector3(x,y,z);
+//     }
+//
+// }

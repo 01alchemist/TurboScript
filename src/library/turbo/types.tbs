@@ -2,19 +2,19 @@ declare class boolean {
     toString(): string;
 }
 
-declare class sbyte {
+declare class int8 {
     toString(): string;
 }
 
-declare class byte {
+declare class uint8 {
     toString(): string;
 }
 
-declare class short {
+declare class int16 {
     toString(): string;
 }
 
-declare class ushort {
+declare class uint16 {
     toString(): string;
 }
 
@@ -44,12 +44,12 @@ declare class float64 {
 
 declare class string {
     charAt(index: int32): string;
-    charCodeAt(index: int32): ushort;
+    charCodeAt(index: int32): uint16;
     get length(): int32;
     indexOf(text: string): int32;
     lastIndexOf(text: string): int32;
     operator == (other: string): boolean;
-    operator [] (index: int32): ushort { return this.charCodeAt(index); }
+    operator [] (index: int32): uint16 { return this.charCodeAt(index); }
     slice(start: int32, end: int32): string;
 
     startsWith(text: string): boolean { return this.slice(0, text.length) == text; }

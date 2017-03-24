@@ -5,19 +5,19 @@ declare class boolean {
     toString(): string;
 }
 
-declare class sbyte {
+declare class int8 {
     toString(): string;
 }
 
-declare class byte {
+declare class uint8 {
     toString(): string;
 }
 
-declare class short {
+declare class int16 {
     toString(): string;
 }
 
-declare class ushort {
+declare class uint16 {
     toString(): string;
 }
 
@@ -47,12 +47,12 @@ declare class float64 {
 
 declare class string {
     charAt(index: int32): string;
-    charCodeAt(index: int32): ushort;
+    charCodeAt(index: int32): uint16;
     get length(): int32;
     indexOf(text: string): int32;
     lastIndexOf(text: string): int32;
     operator == (other: string): boolean;
-    operator [] (index: int32): ushort { return this.charCodeAt(index); }
+    operator [] (index: int32): uint16 { return this.charCodeAt(index); }
     slice(start: int32, end: int32): string;
 
     startsWith(text: string): boolean { return this.slice(0, text.length) == text; }
@@ -68,25 +68,25 @@ declare class string {
     }
   }
 
-  declare class sbyte {
+  declare class int8 {
     toString(): string {
       return (this).toString();
     }
   }
 
-  declare class byte {
+  declare class uint8 {
     toString(): string {
       return (this).toString();
     }
   }
 
-  declare class short {
+  declare class int16 {
     toString(): string {
       return (this).toString();
     }
   }
 
-  declare class ushort {
+  declare class uint16 {
     toString(): string {
       return (this).toString();
     }
@@ -158,16 +158,16 @@ declare class string {
             value >= 1000 ? 4 : 3 :
             value >= 10 ? 2 : 1));
 
-      var ptr = string_new(length) as *byte;
+      var ptr = string_new(length) as *uint8;
       var end = ptr + 4 + length * 2;
 
       if (sign) {
-        *((ptr + 4) as *ushort) = '-';
+        *((ptr + 4) as *uint16) = '-';
       }
 
       while (value != 0) {
         end = end + -2;
-        *(end as *ushort) = (value % 10 + '0') as ushort;
+        *(end as *uint16) = (value % 10 + '0') as uint16;
         value = value / 10;
       }
 
@@ -188,7 +188,7 @@ declare class string {
       return this.slice(index, index + 1);
     }
 
-    charCodeAt(index: int32): ushort {
+    charCodeAt(index: int32): uint16 {
       return this[index];
     }
 
@@ -198,10 +198,10 @@ declare class string {
       }
     }
 
-    operator [] (index: int32): ushort {
+    operator [] (index: int32): uint16 {
       if (index < this.length) {
         unsafe {
-          return *((this as *byte + 4 + index * 2) as *ushort);
+          return *((this as *uint8 + 4 + index * 2) as *uint16);
         }
       }
       return 0;
@@ -209,11 +209,11 @@ declare class string {
 
     operator == (other: string): boolean {
       unsafe {
-        if (this as *byte == other as *byte) return true;
-        if (this as *byte == null || other as *byte == null) return false;
+        if (this as *uint8 == other as *uint8) return true;
+        if (this as *uint8 == null || other as *uint8 == null) return false;
         var length = this.length;
         if (length != other.length) return false;
-        return memcmp(this as *byte + 4, other as *byte + 4, length * 2) == 0;
+        return memcmp(this as *uint8 + 4, other as *uint8 + 4, length * 2) == 0;
       }
     }
 
@@ -232,7 +232,7 @@ declare class string {
       unsafe {
         var range = (end - start);
         var ptr = string_new(range);
-        memcpy(ptr as *byte + 4, this as *byte + 4 + start * 2, range * 2);
+        memcpy(ptr as *uint8 + 4, this as *uint8 + 4 + start * 2, range * 2);
         return ptr;
       }
     }
@@ -241,7 +241,7 @@ declare class string {
       var textLength = text.length;
       if (this.length < textLength) return false;
       unsafe {
-        return memcmp(this as *byte + 4, text as *byte + 4, textLength * 2) == 0;
+        return memcmp(this as *uint8 + 4, text as *uint8 + 4, textLength * 2) == 0;
       }
     }
 
@@ -250,7 +250,7 @@ declare class string {
       var textLength = text.length;
       if (thisLength < textLength) return false;
       unsafe {
-        return memcmp(this as *byte + 4 + (thisLength - textLength) * 2, text as *byte + 4, textLength * 2) == 0;
+        return memcmp(this as *uint8 + 4 + (thisLength - textLength) * 2, text as *uint8 + 4, textLength * 2) == 0;
       }
     }
 
@@ -261,7 +261,7 @@ declare class string {
         var i = 0;
         while (i < thisLength - textLength) {
           unsafe {
-            if (memcmp(this as *byte + 4 + i * 2, text as *byte + 4, textLength * 2) == 0) {
+            if (memcmp(this as *uint8 + 4 + i * 2, text as *uint8 + 4, textLength * 2) == 0) {
               return i;
             }
           }
@@ -278,7 +278,7 @@ declare class string {
         var i = thisLength - textLength;
         while (i >= 0) {
           unsafe {
-            if (memcmp(this as *byte + 4 + i * 2, text as *byte + 4, textLength * 2) == 0) {
+            if (memcmp(this as *uint8 + 4 + i * 2, text as *uint8 + 4, textLength * 2) == 0) {
               return i;
             }
           }

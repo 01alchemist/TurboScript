@@ -28,6 +28,11 @@ export class Type {
         return symbol != null && symbol.kind == SymbolKind.TYPE_GENERIC;
     }
 
+    isTemplate() {
+        let symbol = this.symbol || this.pointerTo.symbol;
+        return symbol != null && symbol.kind == SymbolKind.TYPE_TEMPLATE;
+    }
+
     isEnum(): boolean {
         return this.symbol != null && this.symbol.kind == SymbolKind.TYPE_ENUM;
     }
@@ -53,7 +58,15 @@ export class Type {
     }
 
     isArray(): boolean {
-        return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_ARRAY) != 0;
+        // return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_ARRAY) != 0;
+        return this.symbol != null && this.symbol.name == "Array";
+    }
+
+    isTypedArray(): boolean {
+        return this.symbol != null &&
+            (this.symbol.name == "Float32Array" || this.symbol.name == "Float64Array" ||
+            this.symbol.name == "Int8Array" || this.symbol.name == "Int16Array"|| this.symbol.name == "Int32Array" ||
+            this.symbol.name == "Uint8Array" || this.symbol.name == "Uint16Array"|| this.symbol.name == "Uint32Array");
     }
 
     isReference(): boolean {
@@ -116,13 +129,4 @@ export class Type {
         var symbol = this.symbol;
         return symbol != null && (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE);
     }
-
-    // become(type: Type): void {
-    //     this.symbol.flags = type.symbol.flags;
-    //     this.symbol.name = type.symbol.name;
-    //     this.symbol.byteSize = type.symbol.byteSize;
-    //     this.symbol.kind = type.symbol.kind;
-    //     this.symbol.maxAlignment = type.symbol.maxAlignment;
-    //     this.symbol.node = type.symbol.node;
-    // }
 }

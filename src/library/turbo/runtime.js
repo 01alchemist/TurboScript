@@ -165,7 +165,7 @@ function _synchronicExpectUpdate(self, mem, idx, value, timeout) {
     }
 }
 function _waitForUpdate(self, tag, timeout) {
-    // Spin for a short time before going into the futexWait.
+    // Spin for a int16 time before going into the futexWait.
     //
     // Hard to know what a good count should be - it is machine
     // dependent, for sure, and "typical" applications should
@@ -174,7 +174,7 @@ function _waitForUpdate(self, tag, timeout) {
     // decrease performance.  If the count is low it is pointless.
     // (This is why Synchronic really wants a native implementation.)
     //
-    // Data points from a 2.6GHz i7 MacBook Pro:
+    // data points from a 2.6GHz i7 MacBook Pro:
     //
     // - the simple send-integer benchmark (test-sendint.html),
     //   which is the very simplest case we can really imagine,
