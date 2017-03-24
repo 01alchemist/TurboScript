@@ -2,7 +2,7 @@ import {
     Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
     SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
     SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE,
-    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC
+    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, SYMBOL_FLAG_IS_TEMPLATE
 } from "./symbol";
 import {Type, ConversionKind} from "./type";
 import {
@@ -136,7 +136,9 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         parentScope = symbol.scope;
 
         if (node.parameterCount() > 0) {
-            //Class has generic parameters
+            //Class has generic parameters. convert it to class template
+            symbol.kind = SymbolKind.TYPE_TEMPLATE;
+            symbol.flags |= SYMBOL_FLAG_IS_TEMPLATE;
             //TODO: Lift generic parameter limit from 1 to many
             let genericType = node.firstGenericType();
             let genericSymbol = new Symbol();
@@ -149,12 +151,6 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
             addScopeToSymbol(genericSymbol, parentScope);
             linkSymbolToNode(genericSymbol, genericType);
             parentScope.define(context.log, genericSymbol, ScopeHint.NORMAL);
-
-            symbol.generics = [];
-            symbol.genericMaps = new Map<string, Map<Node, Type>>();
-            let genericMap = new Map<Node, Type>();
-            symbol.genericMaps.set(genericSymbol.name, genericMap);
-            symbol.generics.push(genericSymbol.name);
         }
 
     }
@@ -351,7 +347,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     // Class
     else if (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE ||
-        symbol.kind == SymbolKind.TYPE_GENERIC) {
+        symbol.kind == SymbolKind.TYPE_GENERIC || symbol.kind == SymbolKind.TYPE_TEMPLATE) {
         forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a class");
         forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a class");
         forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a class");
@@ -392,7 +388,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         context.isUnsafeAllowed = node.isUnsafe();
         resolveAsType(context, returnType, symbol.scope.parent);
 
-        if (returnType.resolvedType.isArray() && returnType.hasParameters() && node.parent != returnType.resolvedType.symbol.node) {
+        if (returnType.resolvedType.isClass() && returnType.hasParameters() && node.parent != returnType.resolvedType.symbol.node) {
             deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], returnType.resolvedType.symbol.scope);
         }
 
@@ -554,7 +550,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         if (type != null) {
             resolveAsType(context, type, symbol.scope);
             //TODO: Migrate isArray to generic
-            if (type.resolvedType.isArray() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
+            if (type.resolvedType.isClass() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
                 deriveConcreteClass(context, type, [type.firstChild.firstChild], type.resolvedType.symbol.scope);
             }
 
@@ -662,6 +658,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[], scope: Scope) {
 
     let templateNode: Node = type.resolvedType.pointerTo ? type.resolvedType.pointerTo.symbol.node : type.resolvedType.symbol.node;
+    let templateName = templateNode.stringValue;
     let typeName = templateNode.stringValue + `<${parameters[0].stringValue}>`;
     let symbol = scope.parent.findNested(typeName, ScopeHint.NORMAL, FindNested.NORMAL);
 
@@ -681,7 +678,7 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
     node.parent = templateNode.parent;
     node.stringValue = typeName;
 
-    cloneChildren(templateNode.firstChild, node, parameters);
+    cloneChildren(templateNode.firstChild.nextSibling, node, parameters, templateName, typeName);
 
     node.offset = null;//FIXME: we cannot take offset from class template node
 
@@ -700,7 +697,7 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
     return;
 }
 
-function cloneChildren(child: Node, parentNode: Node, parameters: any[]): void {
+function cloneChildren(child: Node, parentNode: Node, parameters: any[], templateName: string, typeName: string): void {
 
     let firstChildNode: Node = null;
     let lastChildNode: Node = null;
@@ -716,22 +713,26 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[]): void {
 
         let childNode: Node;
 
-        if (child.isGeneric() || child.kind == NodeKind.PARAMETER) {
-            if (child.kind == NodeKind.PARAMETERS) {
-                childNode = child.clone();
-            } else {
-                let offset = child.offset;
-                if (child.resolvedType) {
-                    offset = child.resolvedType.pointerTo ? child.resolvedType.pointerTo.symbol.node.offset : child.resolvedType.symbol.node.offset;
-                }
-                childNode = parameters[offset];
-                childNode.kind = NodeKind.NAME;
+        if (child.kind == NodeKind.PARAMETERS || child.kind == NodeKind.PARAMETER) {
+            child = child.nextSibling;
+            continue;
+        }
+
+        if (child.isGeneric()) {
+            let offset = child.offset;
+            if (child.resolvedType) {
+                offset = child.resolvedType.pointerTo ? child.resolvedType.pointerTo.symbol.node.offset : child.resolvedType.symbol.node.offset;
             }
+            childNode = parameters[offset];
+            childNode.kind = NodeKind.NAME;
         } else {
             if (child.stringValue == "T") {
                 console.log(child);
             } else {
                 childNode = child.clone();
+                if (childNode.stringValue == templateName) {
+                    childNode.stringValue = typeName;
+                }
             }
         }
 
@@ -747,7 +748,7 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[]): void {
         }
 
         if (child.firstChild) {
-            cloneChildren(child.firstChild, childNode, parameters);
+            cloneChildren(child.firstChild, childNode, parameters, templateName, typeName);
         }
 
         lastChildNode = childNode;
@@ -1158,7 +1159,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             let oldUnsafeAllowed = context.isUnsafeAllowed;
             let returnType = node.functionReturnType();
 
-            if (returnType.resolvedType.isArray() && returnType.hasParameters() && node.parent != returnType.resolvedType.symbol.node) {
+            if (returnType.resolvedType.isTemplate() && returnType.hasParameters() && node.parent != returnType.resolvedType.symbol.node) {
                 deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], returnType.resolvedType.symbol.scope);
             }
 
@@ -1166,11 +1167,11 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             context.isUnsafeAllowed = node.isUnsafe();
             resolveChildren(context, body, node.scope);
 
-            if (oldReturnType && oldReturnType.isArray() && returnType.hasParameters() && node.parent != oldReturnType.symbol.node) {
+            if (oldReturnType && oldReturnType.isTemplate() && returnType.hasParameters() && node.parent != oldReturnType.symbol.node) {
                 deriveConcreteClass(context, returnType, [returnType.firstChild.firstChild], oldReturnType.symbol.scope);
             }
 
-            // if (oldReturnType && oldReturnType.isArray() && !oldReturnType.symbol.node.hasParameters()) {
+            // if (oldReturnType && oldReturnType.isTemplate() && !oldReturnType.symbol.node.hasParameters()) {
             //     deriveConcreteClass(context, oldReturnType.symbol.node, [oldReturnType.symbol.node.firstChild], oldReturnType.symbol.scope);
             // }
 
@@ -1609,7 +1610,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             if (context.currentReturnType != null) {
                 if (context.currentReturnType != context.voidType) {
 
-                    if (value.resolvedType.isArray() && value.hasParameters() && node.parent != value.resolvedType.symbol.node) {
+                    if (value.resolvedType.isTemplate() && value.hasParameters() && node.parent != value.resolvedType.symbol.node) {
                         deriveConcreteClass(context, value, [value.firstChild.firstChild], value.resolvedType.symbol.scope);
                     }
 
@@ -1762,7 +1763,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let type = node.newType();
         resolveAsType(context, type, parentScope);
 
-        if (type.resolvedType.isArray() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
+        if (type.resolvedType.isTemplate() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
             deriveConcreteClass(context, type, [type.firstChild.firstChild], type.resolvedType.symbol.scope);
         }
 
@@ -1986,8 +1987,26 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        // Operators for integers are hard-coded
-        else if ((leftType.isInteger() || leftType.isLong()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
+        // Operators for integers and floats are hard-coded
+        else if (
+            (
+                leftType.isInteger() || leftType.isLong() ||
+                leftType.isFloat() || leftType.isDouble() ||
+                (leftType.isGeneric() && rightType.isGeneric())
+            ) &&
+
+            kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
+
+            let isFloat: boolean = false;
+            let isFloat64: boolean = false;
+
+            if (leftType.isFloat() || leftType.isDouble()) {
+                isFloat = true;
+                isFloat64 = leftType.isDouble();
+            }
+
+            let isUnsigned = binaryHasUnsignedArguments(node);
+
             // Arithmetic operators
             if (kind == NodeKind.ADD ||
                 kind == NodeKind.SUBTRACT ||
@@ -1999,18 +2018,27 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 kind == NodeKind.BITWISE_XOR ||
                 kind == NodeKind.SHIFT_LEFT ||
                 kind == NodeKind.SHIFT_RIGHT) {
-                let isUnsigned = binaryHasUnsignedArguments(node);
+
                 let isLong = isBinaryLong(node);
-                let commonType = isUnsigned ? (isLong ? context.uint64Type : context.uint32Type) : (isLong ? context.int64Type : context.int32Type);
+                let commonType;
+
+                if (isFloat) {
+                    commonType = isBinaryDouble(node) ? context.float64Type : context.float32Type;
+                } else {
+                    commonType = isUnsigned ? (isLong ? context.uint64Type : context.uint32Type) : (isLong ? context.int64Type : context.int32Type);
+                }
+
                 if (isUnsigned) {
                     node.flags = node.flags | NODE_FLAG_UNSIGNED_OPERATOR;
                 }
+
                 checkConversion(context, left, commonType, ConversionKind.IMPLICIT);
                 checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
                 node.resolvedType = commonType;
 
                 // Automatically fold constants
-                if (left.kind == NodeKind.INT32 && right.kind == NodeKind.INT32) {
+                if ((left.kind == NodeKind.INT32 || left.kind == NodeKind.INT64) &&
+                    (right.kind == NodeKind.INT32 || right.kind == NodeKind.INT64)) {
                     let inputLeft = left.intValue;
                     let inputRight = right.intValue;
                     let output = 0;
@@ -2025,7 +2053,36 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     else if (kind == NodeKind.SHIFT_RIGHT) output = isUnsigned ? ((inputLeft) >> (inputRight)) : inputLeft >> inputRight;
                     else if (kind == NodeKind.SUBTRACT) output = inputLeft - inputRight;
                     else return;
-                    node.becomeIntegerConstant(output);
+
+                    if (left.kind == NodeKind.INT32) {
+                        node.becomeIntegerConstant(output);
+                    } else {
+                        node.becomeLongConstant(output);
+                    }
+                }
+
+                else if ((left.kind == NodeKind.FLOAT32 || left.kind == NodeKind.FLOAT64) &&
+                    (right.kind == NodeKind.FLOAT32 || right.kind == NodeKind.FLOAT64)) {
+                    let inputLeft = left.floatValue;
+                    let inputRight = right.floatValue;
+                    let output = 0;
+                    if (kind == NodeKind.ADD) output = inputLeft + inputRight;
+                    else if (kind == NodeKind.BITWISE_AND) output = inputLeft & inputRight;
+                    else if (kind == NodeKind.BITWISE_OR) output = inputLeft | inputRight;
+                    else if (kind == NodeKind.BITWISE_XOR) output = inputLeft ^ inputRight;
+                    else if (kind == NodeKind.DIVIDE) output = inputLeft / inputRight;
+                    else if (kind == NodeKind.MULTIPLY) output = inputLeft * inputRight;
+                    else if (kind == NodeKind.REMAINDER) output = inputLeft % inputRight;
+                    else if (kind == NodeKind.SHIFT_LEFT) output = inputLeft << inputRight;
+                    else if (kind == NodeKind.SHIFT_RIGHT) output = inputLeft >> inputRight;
+                    else if (kind == NodeKind.SUBTRACT) output = inputLeft - inputRight;
+                    else return;
+
+                    if (left.kind == NodeKind.FLOAT32) {
+                        node.becomeFloatConstant(output);
+                    } else {
+                        node.becomeDoubleConstant(output);
+                    }
                 }
 
                 else {
@@ -2039,11 +2096,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 kind == NodeKind.LESS_THAN_EQUAL ||
                 kind == NodeKind.GREATER_THAN ||
                 kind == NodeKind.GREATER_THAN_EQUAL) {
-                let expectedType =
-                    binaryHasUnsignedArguments(node) ? context.uint32Type :
-                        context.int32Type;
 
-                if (expectedType == context.uint32Type) {
+                let expectedType = isFloat ? (isFloat64 ? context.float64Type : context.float32Type) : (isUnsigned ? context.uint32Type : context.int32Type);
+
+                if (isUnsigned) {
                     node.flags = node.flags | NODE_FLAG_UNSIGNED_OPERATOR;
                 }
 
@@ -2108,76 +2164,6 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                         .finish());
                 }
             }
-
-            else if ((leftType.isFloat() || leftType.isDouble()) && kind != NodeKind.EQUAL && kind != NodeKind.NOT_EQUAL) {
-            // Arithmetic operators
-            if (kind == NodeKind.ADD ||
-                kind == NodeKind.SUBTRACT ||
-                kind == NodeKind.MULTIPLY ||
-                kind == NodeKind.DIVIDE ||
-                kind == NodeKind.REMAINDER ||
-                kind == NodeKind.BITWISE_AND ||
-                kind == NodeKind.BITWISE_OR ||
-                kind == NodeKind.BITWISE_XOR ||
-                kind == NodeKind.SHIFT_LEFT ||
-                kind == NodeKind.SHIFT_RIGHT) {
-
-                let commonType = isBinaryDouble(node) ? context.float64Type : context.float32Type;
-                checkConversion(context, left, commonType, ConversionKind.IMPLICIT);
-                checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
-                node.resolvedType = commonType;
-
-                // Automatically fold constants
-                if ((left.kind == NodeKind.FLOAT32 || left.kind == NodeKind.FLOAT64) &&
-                    (right.kind == NodeKind.FLOAT32 || right.kind == NodeKind.FLOAT64)) {
-                    let inputLeft = left.floatValue;
-                    let inputRight = right.floatValue;
-                    let output = 0;
-                    if (kind == NodeKind.ADD) output = inputLeft + inputRight;
-                    else if (kind == NodeKind.BITWISE_AND) output = inputLeft & inputRight;
-                    else if (kind == NodeKind.BITWISE_OR) output = inputLeft | inputRight;
-                    else if (kind == NodeKind.BITWISE_XOR) output = inputLeft ^ inputRight;
-                    else if (kind == NodeKind.DIVIDE) output = inputLeft / inputRight;
-                    else if (kind == NodeKind.MULTIPLY) output = inputLeft * inputRight;
-                    else if (kind == NodeKind.REMAINDER) output = inputLeft % inputRight;
-                    else if (kind == NodeKind.SHIFT_LEFT) output = inputLeft << inputRight;
-                    else if (kind == NodeKind.SHIFT_RIGHT) output = inputLeft >> inputRight;
-                    else if (kind == NodeKind.SUBTRACT) output = inputLeft - inputRight;
-                    else return;
-
-                    if (left.kind == NodeKind.FLOAT32) {
-                        node.becomeFloatConstant(output);
-                    } else {
-                        node.becomeDoubleConstant(output);
-                    }
-                }
-
-                else {
-                    simplifyBinary(node);
-                }
-            }
-
-            // Comparison operators
-            else if (
-                kind == NodeKind.LESS_THAN ||
-                kind == NodeKind.LESS_THAN_EQUAL ||
-                kind == NodeKind.GREATER_THAN ||
-                kind == NodeKind.GREATER_THAN_EQUAL) {
-                let expectedType = context.float32Type;
-
-                if (leftType != rightType) {
-                    checkConversion(context, left, expectedType, ConversionKind.IMPLICIT);
-                    checkConversion(context, right, expectedType, ConversionKind.IMPLICIT);
-                }
-
-                node.resolvedType = context.booleanType;
-            }
-
-            else {
-                context.log.error(node.internalRange, "This operator is not currently supported");
-            }
-
-        }
 
             else {
                 context.log.error(node.internalRange, StringBuilder_new()

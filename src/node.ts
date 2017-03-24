@@ -1,5 +1,5 @@
 import {Type} from "./type";
-import {Symbol, SymbolKind, isType} from "./symbol";
+import {Symbol, SymbolKind, isType, SYMBOL_FLAG_IS_TEMPLATE} from "./symbol";
 import {Range} from "./log";
 import {Scope} from "./scope";
 import {CheckContext} from "./checker";
@@ -488,6 +488,10 @@ export class Node {
 
     isGeneric(): boolean {
         return (this.flags & NODE_FLAG_GENERIC) != 0;
+    }
+
+    isTemplate(): boolean {
+        return this.symbol && (this.symbol.flags & SYMBOL_FLAG_IS_TEMPLATE) != 0;
     }
 
     isUnsignedOperator(): boolean {

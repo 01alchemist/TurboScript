@@ -10,6 +10,7 @@ export enum SymbolKind {
     TYPE_INTERFACE,
     TYPE_CLASS,
     TYPE_GENERIC,
+    TYPE_TEMPLATE,
     TYPE_ENUM,
     TYPE_GLOBAL,
     TYPE_NATIVE,
@@ -57,6 +58,7 @@ export const SYMBOL_FLAG_NATIVE_DOUBLE = 1 << 8;
 export const SYMBOL_FLAG_USED = 1 << 9;
 export const SYMBOL_FLAG_IS_ARRAY = 1 << 10;
 export const SYMBOL_FLAG_IS_GENERIC = 1 << 11;
+export const SYMBOL_FLAG_IS_TEMPLATE = 1 << 12;
 
 export class Symbol {
     kind: SymbolKind;
@@ -71,9 +73,6 @@ export class Symbol {
     byteSize: int32 = 0;
     maxAlignment: int32 = 0;
     rename: string;
-
-    generics: string[];
-    genericMaps: Map<string, Map<Node, Type>>;
 
     // The "offset" variable is used to store kind-specific information
     //

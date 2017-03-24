@@ -2,8 +2,9 @@ class List<T>{
     constructor(length:int32):List<T> {
         return this;
     }
-    add(a:T, b:T):T {
-        return a + b;
+
+    reflect(a:T):T {
+        return a;
     }
 }
 class M {

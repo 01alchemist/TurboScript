@@ -2,9 +2,9 @@
 
 int main()
 {
-   int a = 1;
-   float b = 3.9;
-   long c = a + b;
+   int a = 260;
+   float b = 1;
+   unsigned char c = a + b;
 
    printf("%ld", c);
 

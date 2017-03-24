@@ -28,6 +28,11 @@ export class Type {
         return symbol != null && symbol.kind == SymbolKind.TYPE_GENERIC;
     }
 
+    isTemplate() {
+        let symbol = this.symbol || this.pointerTo.symbol;
+        return symbol != null && symbol.kind == SymbolKind.TYPE_TEMPLATE;
+    }
+
     isEnum(): boolean {
         return this.symbol != null && this.symbol.kind == SymbolKind.TYPE_ENUM;
     }
