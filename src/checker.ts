@@ -10,7 +10,7 @@ import {
     NODE_FLAG_PUBLIC, NODE_FLAG_GET, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_PROTECTED,
     NODE_FLAG_DECLARE, isExpression, createInt, createboolean, createNull, createMemberReference, createSymbolReference,
     isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat,
-    NODE_FLAG_EXTERNAL_IMPORT, NODE_FLAG_GENERIC
+    NODE_FLAG_EXTERNAL_IMPORT, NODE_FLAG_GENERIC, createReturn, createThis
 } from "./node";
 import {CompileTarget} from "./compiler";
 import {Log, Range, spanRanges} from "./log";
@@ -216,6 +216,12 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
             let parent = symbol.parent();
             initializeSymbol(context, parent);
             node.insertChildBefore(node.functionFirstArgument(), createVariable("this", createType(parent.resolvedType), null));
+
+            //All constructors have special return "this" type
+            if(symbol.name == "constructor") {
+                let returnNode:Node = createReturn(createThis());
+                node.lastChild.appendChild(returnNode);
+            }
         }
     }
 

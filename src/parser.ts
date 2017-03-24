@@ -1300,7 +1300,11 @@ class ParserContext {
         }
         else {
 
-            if (this.expect(TokenKind.COLON)) {
+            if (node.stringValue == "constructor"){
+                returnType = new Node();
+                returnType.kind = NodeKind.NAME;
+                returnType.stringValue = parent.stringValue;
+            } else if(this.expect(TokenKind.COLON)) {
                 returnType = this.parseType();
 
                 if (this.peek(TokenKind.LESS_THAN)) {

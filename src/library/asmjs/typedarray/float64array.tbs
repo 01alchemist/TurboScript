@@ -3,10 +3,9 @@ class Float64Array {
     length: int32;
     bytesLength: int32;
 
-    constructor(elementSize: int32): Float64Array {
+    constructor(elementSize: int32) {
         this.length = elementSize;
         this.bytesLength = elementSize * 8;
-        return this;
     }
 
     // sort():void {

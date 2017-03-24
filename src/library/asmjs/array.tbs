@@ -3,10 +3,9 @@ class Array<T> {
     bytesLength: int32;
     elementSize: int32;
 
-    constructor(bytesLength: int32, elementSize: int32): Array<T> {
+    constructor(bytesLength: int32, elementSize: int32) {
         this.bytesLength = bytesLength;
         this.elementSize = elementSize;
-        return this;
     }
 
     get length(): int32 {
