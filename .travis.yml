@@ -1,0 +1,34 @@
+language: node_js
+
+node_js:
+  - 'stable'
+  - '6'
+
+sudo: false
+
+env:
+  - workerCount=3
+
+matrix:
+  fast_finish: true
+
+branches:
+  only:
+  - master
+  - release-2.1
+  - release-2.2
+
+install:
+  - npm uninstall turboscript
+  - npm install
+  - npm update
+
+script:
+  - npm run build
+
+cache:
+  directories:
+    - node_modules
+
+git:
+  depth: 1
