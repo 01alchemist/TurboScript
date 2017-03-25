@@ -1,4 +1,4 @@
-# TurboScript
+# TurboScript [![Build Status](https://travis-ci.org/01alchemist/TurboScript.svg?branch=master)](https://travis-ci.org/01alchemist/TurboScript)
 Super charged JavaScript for parallel programming and WebAssembly 
 <pre>
     @             _________
