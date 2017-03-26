@@ -232,7 +232,7 @@ WasmOpcode[WasmOpcode.SELECT] = "select";
 WasmOpcode[WasmOpcode.GET_LOCAL] = "get_local";
 WasmOpcode[WasmOpcode.SET_LOCAL] = "set_local";
 WasmOpcode[WasmOpcode.TEE_LOCAL] = "tee_local";
-WasmOpcode[WasmOpcode.GET_GLOBAL] = "get_local";
+WasmOpcode[WasmOpcode.GET_GLOBAL] = "get_global";
 WasmOpcode[WasmOpcode.SET_GLOBAL] = "set_global";
 
     // Memory-related operators
@@ -263,8 +263,8 @@ WasmOpcode[WasmOpcode.I32_STORE16] = "i32.store16";
 WasmOpcode[WasmOpcode.I64_STORE8] = "i64.store8";
 WasmOpcode[WasmOpcode.I64_STORE16] = "i64.store16";
 WasmOpcode[WasmOpcode.I64_STORE32] = "i64.store32";
-WasmOpcode[WasmOpcode.MEMORY_SIZE] = "memory.size"; //query the size of memory
-WasmOpcode[WasmOpcode.GROW_MEMORY] = "memory.grow";
+WasmOpcode[WasmOpcode.MEMORY_SIZE] = "current_memory";
+WasmOpcode[WasmOpcode.GROW_MEMORY] = "grow_memory";
 
     // Constants
 WasmOpcode[WasmOpcode.I32_CONST] = "i32.const";
@@ -388,7 +388,7 @@ WasmOpcode[WasmOpcode.I32_TRUNC_S_F64] = "i32.trunc_s/f64";
 WasmOpcode[WasmOpcode.I32_TRUNC_U_F64] = "i32.trunc_u/f64";
 
 WasmOpcode[WasmOpcode.I64_EXTEND_S_I32] = "i64.extend_s/i32";
-WasmOpcode[WasmOpcode.I64_EXTEND_U_I32] = "i64.extends_u/i32";
+WasmOpcode[WasmOpcode.I64_EXTEND_U_I32] = "i64.extend_u/i32";
 WasmOpcode[WasmOpcode.I64_TRUNC_S_F32] = "i64.trunc_s/f32";
 WasmOpcode[WasmOpcode.I64_TRUNC_U_F32] = "i64.trunc_u/f32";
 WasmOpcode[WasmOpcode.I64_TRUNC_S_F64] = "i64.trunc_s/f64";
