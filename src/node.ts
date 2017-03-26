@@ -220,6 +220,7 @@ export class Node {
     offset: int32;
 
     constructorFunctionNode: Node;
+    derivedNodes: Node[];
 
     private _rawValue: any;
     private _hasValue: boolean;
@@ -577,6 +578,34 @@ export class Node {
         }
 
         after.previousSibling = before;
+    }
+
+    insertChildAfter(before: Node, after: Node): void {
+        if (after == null) {
+            return;
+        }
+
+        assert(before != after);
+        assert(after.parent == null);
+        assert(after.previousSibling == null);
+        assert(after.nextSibling == null);
+        assert(before == null || before.parent == this);
+
+        if (before == null) {
+            this.appendChild(after);
+            return;
+        }
+
+        after.parent = this;
+        after.previousSibling = before;
+        after.nextSibling = before.nextSibling;
+
+        if (before.nextSibling != null) {
+            assert(before == before.nextSibling.previousSibling);
+            before.nextSibling.previousSibling = after;
+        }
+
+        before.nextSibling = after;
     }
 
     remove(): Node {

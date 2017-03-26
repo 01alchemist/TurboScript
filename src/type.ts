@@ -127,6 +127,6 @@ export class Type {
 
     hasInstanceMembers(): boolean {
         var symbol = this.symbol;
-        return symbol != null && (symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE);
+        return symbol != null && (symbol.kind == SymbolKind.TYPE_TEMPLATE || symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE);
     }
 }

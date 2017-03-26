@@ -298,10 +298,11 @@ class ParserContext {
                 }
 
                 if (this.peek(TokenKind.LESS_THAN)) {
-                    this.advance();
-                    let arrayType = this.parseType();
-                    this.expect(TokenKind.GREATER_THAN);
-                    type.appendChild(arrayType);
+                    let parameters = this.parseParameters();
+                    if (parameters == null) {
+                        return null;
+                    }
+                    type.appendChild(parameters);
                 }
 
                 return this.parseArgumentList(token.range, createNew(type));
@@ -1300,11 +1301,11 @@ class ParserContext {
         }
         else {
 
-            if (node.stringValue == "constructor"){
+            if (node.stringValue == "constructor") {
                 returnType = new Node();
                 returnType.kind = NodeKind.NAME;
                 returnType.stringValue = parent.stringValue;
-            } else if(this.expect(TokenKind.COLON)) {
+            } else if (this.expect(TokenKind.COLON)) {
                 returnType = this.parseType();
 
                 if (this.peek(TokenKind.LESS_THAN)) {
@@ -1634,7 +1635,7 @@ class ParserContext {
             let digit: number = (
                 c >= 'A' && c <= 'F' ? c.charCodeAt(0) + (10 - 'A'.charCodeAt(0)) :
                     c >= 'a' && c <= 'f' ? c.charCodeAt(0) + (10 - 'a'.charCodeAt(0)) :
-                    c.charCodeAt(0) - '0'.charCodeAt(0)
+                        c.charCodeAt(0) - '0'.charCodeAt(0)
             );
             let baseValue = Math.imul(value, base) >>> 0;
 
