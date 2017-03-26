@@ -2,7 +2,7 @@ import {
     Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
     SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
     SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE,
-    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, SYMBOL_FLAG_IS_TEMPLATE
+    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, SYMBOL_FLAG_IS_TEMPLATE, SYMBOL_FLAG_USED
 } from "./symbol";
 import {Type, ConversionKind} from "./type";
 import {
@@ -218,8 +218,11 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
             node.insertChildBefore(node.functionFirstArgument(), createVariable("this", createType(parent.resolvedType), null));
 
             //All constructors have special return "this" type
-            if(symbol.name == "constructor") {
-                let returnNode:Node = createReturn(createThis());
+            if (symbol.name == "constructor") {
+                let returnNode: Node = createReturn(createThis());
+                if(node.lastChild.lastChild && node.lastChild.lastChild.kind == NodeKind.RETURN){
+                    node.lastChild.lastChild.remove();
+                }
                 node.lastChild.appendChild(returnNode);
             }
         }
@@ -666,6 +669,7 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
     let templateNode: Node = type.resolvedType.pointerTo ? type.resolvedType.pointerTo.symbol.node : type.resolvedType.symbol.node;
     let templateName = templateNode.stringValue;
     let typeName = templateNode.stringValue + `<${parameters[0].stringValue}>`;
+    let rename = templateNode.stringValue + `_${parameters[0].stringValue}`;
     let symbol = scope.parent.findNested(typeName, ScopeHint.NORMAL, FindNested.NORMAL);
 
     if (symbol) {
@@ -681,7 +685,7 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
     }
 
     let node: Node = templateNode.clone();
-    node.parent = templateNode.parent;
+    // node.parent = templateNode.parent;
     node.stringValue = typeName;
 
     cloneChildren(templateNode.firstChild.nextSibling, node, parameters, templateName, typeName);
@@ -693,12 +697,25 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
     resolve(context, node, scope.parent);
 
     type.symbol = node.symbol;
+    node.symbol.rename =  rename;
 
     if (type.resolvedType.pointerTo) {
         type.resolvedType = node.symbol.resolvedType.pointerType();
     } else {
         type.resolvedType = node.symbol.resolvedType;
     }
+
+    if(templateNode.parent) {
+        templateNode.replaceWith(node);
+    } else {
+        let prevNode = templateNode.derivedNodes[templateNode.derivedNodes.length - 1];
+        prevNode.parent.insertChildAfter(prevNode, node);
+    }
+
+    if(templateNode.derivedNodes === undefined){
+        templateNode.derivedNodes = [];
+    }
+    templateNode.derivedNodes.push(node);
 
     return;
 }
@@ -710,8 +727,6 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
 
     while (child) {
 
-
-        // if (child.stringValue == "this") {
         if (child.stringValue == "this" && child.parent.symbol && child.parent.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
             child = child.nextSibling;
             continue;
@@ -729,16 +744,20 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
             if (child.resolvedType) {
                 offset = child.resolvedType.pointerTo ? child.resolvedType.pointerTo.symbol.node.offset : child.resolvedType.symbol.node.offset;
             }
-            childNode = parameters[offset];
+            if(child.symbol && isVariable(child.symbol.kind)){
+                childNode = child.clone();
+            } else {
+                childNode = parameters[offset].clone();
+            }
             childNode.kind = NodeKind.NAME;
         } else {
             if (child.stringValue == "T") {
                 console.log(child);
-            } else {
-                childNode = child.clone();
-                if (childNode.stringValue == templateName) {
-                    childNode.stringValue = typeName;
-                }
+            }
+
+            childNode = child.clone();
+            if (childNode.stringValue == templateName) {
+                childNode.stringValue = typeName;
             }
         }
 
