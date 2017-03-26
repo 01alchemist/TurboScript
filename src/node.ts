@@ -721,22 +721,6 @@ export class Node {
         return this.lastChild.previousSibling;
     }
 
-    //FIXME : java style generic should be changed to C++ style
-    getMappedGenericType(name: Node): Type {
-        let symbol = this.parent.parent.symbol;
-        if (symbol.generics && symbol.generics.length > 0) {
-            let genericMaps = symbol.genericMaps;
-            let type = this.lastChild.resolvedType;
-            if (type.pointerTo) {
-                return genericMaps.get(type.pointerTo.symbol.name).get(name);
-            } else {
-                return genericMaps.get(type.symbol.name).get(name);
-            }
-        } else {
-            return this.lastChild.resolvedType;
-        }
-    }
-
     constructorNode(): Node {
         assert(this.kind == NodeKind.NEW);
         assert(this.childCount() > 0);
