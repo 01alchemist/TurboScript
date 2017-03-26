@@ -17,6 +17,8 @@ This is still an experiment and isn't intended for real use yet. ~~The biggest i
 
 TurboScript is forked from ThinScript and changed a lot, so there will be no going back.
 
+## [Join ![Slack](https://01alchemist.com/images/slack-logo-small.png)](https://turboscript.slack.com/x-160566557623-159912532868/signup)
+
 # Roadmap
 
 * ~~Parallel JavaScript~~
