@@ -18,17 +18,18 @@
     };
 
     async function init() {
-        let data = await fetch("array.wasm");
+        let data = await fetch("./bin/array.wasm");
         let wasmBytes = await data.arrayBuffer();
         try {
             WebAssembly.compile(wasmBytes).then(function (compiled) {
-                window.exports = new WebAssembly.Instance(compiled, importObject).exports;
-                window.HEAPU8 = new Uint8Array(exports.memory.buffer);
-                window.HEAPU32 = new Uint32Array(exports.memory.buffer);
-                window.HEAP32 = new Int32Array(exports.memory.buffer);
-                window.HEAPF32 = new Float32Array(exports.memory.buffer);
+                window.turbo = {};
+                turbo.exports = new WebAssembly.Instance(compiled, importObject).exports;
+                turbo.HEAPU8 = new Uint8Array(turbo.exports.memory.buffer);
+                turbo.HEAPU32 = new Uint32Array(turbo.exports.memory.buffer);
+                turbo.HEAP32 = new Int32Array(turbo.exports.memory.buffer);
+                turbo.HEAPF32 = new Float32Array(turbo.exports.memory.buffer);
                 console.log("WASM Compiled!");
-                test();
+                //test();
             })
 
         } catch (e) {
@@ -37,29 +38,53 @@
     }
 
     function test() {
-        var num = 1000;
-        var dataArray = exports.test(num);
+        let testData = [];
+        for (let i = 0; i < 1; i++) {
+            testData.push({
+                v1: Math.fround(Math.random()),
+                v2: Math.fround(Math.random()),
+                v3: Math.fround(Math.random())
+            });
+        }
 
-        for (var i = 0; i < num; i++) {
-            var d1 = exports.getData(dataArray, i);
-            exports.Data_set(d1, 1.1, 1.2, 1.3);
+        let dataArray = turbo.exports.test(testData.length);
+        console.log(turbo.exports.getArrayByteLength(dataArray));
+        console.log(turbo.exports.getArrayElementSize(dataArray));
+
+        for (let i = 0; i < testData.length; i++) {
+            let data = testData[i];
+            let d1 = turbo.exports.getData(i);
+            turbo.exports.Data_set(d1, data.v1, data.v2, data.v3);
+        }
+
+        let hasError = false;
+
+        for (let i = 0; i < testData.length; i++) {
+            let d1 = turbo.exports.getData(i);
+            if (!check(d1, testData[i])) {
+                hasError = true;
+                console.error("Error! Data mismatch");
+            }
+            if (i == testData.length - 1 && !hasError) {
+                console.log("Test passed!")
+            }
+        }
+
+        function check(d1_ptr, d2) {
+            let d1 = data_to_json(d1_ptr);
+            console.log(d1);
+            console.log(d2);
+            return d1.v1 === d2.v1 && d1.v2 === d2.v2 && d1.v3 === d2.v3;
         }
 
         function data_to_json(ptr) {
             return {
-                v1: HEAPF32[(ptr + 4) >> 2],
-                v2: HEAPF32[(ptr + 8) >> 2],
-                v3: HEAPF32[(ptr + 12) >> 2]
+                v1: turbo.HEAPF32[(ptr + 4) >> 2],
+                v2: turbo.HEAPF32[(ptr + 8) >> 2],
+                v3: turbo.HEAPF32[(ptr + 12) >> 2],
+                ptr: ptr
             }
         }
-
-//        var f64a = exports.Float64Array_new(10);
-//        exports.Float64Array_op_set(f64a, 0, 1.1);
-//        exports.Float64Array_op_set(f64a, 1, 1.2);
-//        exports.Float64Array_op_set(f64a, 2, 1.3);
-//        log(exports.Float64Array_op_get(f64a, 0));
-//        log(exports.Float64Array_op_get(f64a, 1));
-//        log(exports.Float64Array_op_get(f64a, 2));
     }
 
     init();

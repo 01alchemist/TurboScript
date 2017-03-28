@@ -18,7 +18,7 @@
     };
 
     async function init() {
-        let data = await fetch("block.wasm");
+        let data = await fetch("./bin/block.wasm");
         let wasmBytes = await data.arrayBuffer();
         try {
             WebAssembly.compile(wasmBytes).then(function (compiled) {

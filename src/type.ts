@@ -59,7 +59,7 @@ export class Type {
 
     isArray(): boolean {
         // return this.symbol != null && (this.symbol.flags & SYMBOL_FLAG_IS_ARRAY) != 0;
-        return this.symbol != null && this.symbol.name == "Array";
+        return this.symbol != null && this.symbol.name.indexOf("Array<") >= 0;
     }
 
     isTypedArray(): boolean {

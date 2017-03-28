@@ -1,4 +1,4 @@
-import {isFunction, SYMBOL_FLAG_USED} from "./symbol";
+import {isFunction, SYMBOL_FLAG_USED, SymbolKind} from "./symbol";
 import {NodeKind, Node} from "./node";
 
 export function treeShakingMarkAllUsed(node: Node): void {
@@ -12,7 +12,8 @@ export function treeShakingMarkAllUsed(node: Node): void {
     if (node.kind == NodeKind.NEW) {
         var type = node.newType().resolvedType;
         if (type.symbol != null) {
-            type.symbol.flags = type.symbol.flags | SYMBOL_FLAG_USED;
+            type.symbol.flags |= SYMBOL_FLAG_USED;
+            type.symbol.node.constructorFunctionNode.symbol.flags = SYMBOL_FLAG_USED;
         }
     }
 
@@ -24,7 +25,7 @@ export function treeShakingMarkAllUsed(node: Node): void {
 }
 
 export function treeShakingSearchForUsed(node: Node): void {
-    if (node.kind == NodeKind.FUNCTION && (/*node.isExternalImport() || */node.isExport() || node.isStart())) {
+    if (node.kind == NodeKind.FUNCTION && (node.isExport() || node.isStart())) {
         treeShakingMarkAllUsed(node);
     }
 
@@ -43,7 +44,13 @@ export function treeShakingSearchForUsed(node: Node): void {
 
 export function treeShakingRemoveUnused(node: Node): void {
     if (node.kind == NodeKind.FUNCTION && !node.symbol.isUsed() && node.range.source.isLibrary) {
-        node.remove();
+        // if (node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+        //     if (!node.parent.symbol.isUsed()) {
+        //         node.remove();
+        //     }
+        // } else {
+            node.remove();
+        // }
     }
 
     else if (node.kind == NodeKind.GLOBAL || node.kind == NodeKind.CLASS) {

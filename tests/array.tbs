@@ -1,8 +1,3 @@
-
-export function test_1():void {
-    var a = new Array<uint8>(100);
-}
-
 export class Data {
 
     id: int32;
@@ -11,9 +6,8 @@ export class Data {
     v2: float32;
     v3: float32;
 
-    constructor(id: int32): Data {
+    constructor(id: int32) {
         this.id = id;
-        return this;
     }
     set(v1:float32, v2:float32, v3:float32):void{
         this.v1 = v1;
@@ -27,11 +21,12 @@ var a: Array<Data> = null;
 export function test(num:int32): Array<Data> {
     a = new Array<Data>(num);
     let i:int32 = 0;
-    while (i < 10) {
-        a[i] = new Data(i);
+    while (i < num) {
+        let d = new Data(i);
+        d.set(0.5, 0.5, 0.5);
+        a[i] = d;
         i = i + 1;
     }
-
     return a;
 }
 
