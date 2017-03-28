@@ -29,7 +29,7 @@
                 turbo.HEAP32 = new Int32Array(turbo.exports.memory.buffer);
                 turbo.HEAPF32 = new Float32Array(turbo.exports.memory.buffer);
                 console.log("WASM Compiled!");
-                //test();
+                test();
             })
 
         } catch (e) {
@@ -39,7 +39,7 @@
 
     function test() {
         let testData = [];
-        for (let i = 0; i < 1; i++) {
+        for (let i = 0; i < 10; i++) {
             testData.push({
                 v1: Math.fround(Math.random()),
                 v2: Math.fround(Math.random()),
@@ -48,8 +48,6 @@
         }
 
         let dataArray = turbo.exports.test(testData.length);
-        console.log(turbo.exports.getArrayByteLength(dataArray));
-        console.log(turbo.exports.getArrayElementSize(dataArray));
 
         for (let i = 0; i < testData.length; i++) {
             let data = testData[i];
@@ -69,21 +67,21 @@
                 console.log("Test passed!")
             }
         }
+    }
+    function check(d1_ptr, d2) {
+        let d1 = data_to_json(d1_ptr);
+        console.log(d1);
+        console.log(d2);
+        return d1.v1 === d2.v1 && d1.v2 === d2.v2 && d1.v3 === d2.v3;
+    }
 
-        function check(d1_ptr, d2) {
-            let d1 = data_to_json(d1_ptr);
-            console.log(d1);
-            console.log(d2);
-            return d1.v1 === d2.v1 && d1.v2 === d2.v2 && d1.v3 === d2.v3;
-        }
-
-        function data_to_json(ptr) {
-            return {
-                v1: turbo.HEAPF32[(ptr + 4) >> 2],
-                v2: turbo.HEAPF32[(ptr + 8) >> 2],
-                v3: turbo.HEAPF32[(ptr + 12) >> 2],
-                ptr: ptr
-            }
+    function data_to_json(ptr) {
+        return {
+            id: turbo.HEAPU32[(ptr) >> 2],
+            v1: turbo.HEAPF32[(ptr + 4) >> 2],
+            v2: turbo.HEAPF32[(ptr + 8) >> 2],
+            v3: turbo.HEAPF32[(ptr + 12) >> 2],
+            ptr: ptr
         }
     }
 

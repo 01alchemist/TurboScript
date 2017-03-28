@@ -23,7 +23,7 @@ export function test(num:int32): Array<Data> {
     let i:int32 = 0;
     while (i < num) {
         let d = new Data(i);
-        d.set(0.5, 0.5, 0.5);
+        // d.set(0.5, 0.5, 0.5);
         a[i] = d;
         i = i + 1;
     }
