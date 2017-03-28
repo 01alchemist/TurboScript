@@ -12,17 +12,14 @@ class Array<T> {
         return this.bytesLength / this.elementSize;
     }
 
-    operator [] (index: int32): *T {
+    operator [] (index: int32): T {
         let length = this.bytesLength / this.elementSize;
-        let headerSize = 8;
-        let blockSize = 8;
-
         if (index < length) {
-            return *(((this as *int32 + headerSize) + index * 4) as *T) as T;
+            return *((this as *int32 + 8) + index * 4) as T;
         }
         return null;
     }
-    operator []= (index: int32, value:*T):void {
-        *(((this as *int32 + 8) + index * 4) as *int32) = value;
+    operator []= (index: int32, value:T):void {
+        *(((this as *int32 + 8) + index * 4) as *int32) = value as int32;
     }
 }

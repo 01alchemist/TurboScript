@@ -11,7 +11,7 @@
     var modRef;
 
     async function init() {
-        let data = await fetch("addTwo.wasm");
+        let data = await fetch("./bin/addTwo.wasm");
         let wasmBytes = await data.arrayBuffer();
         try{
             WebAssembly.compile(wasmBytes).then(function (compiled) {
@@ -27,25 +27,7 @@
             console.error(e);
         }
     }
-
-    async function initRef() {
-        let data = await fetch("reference/addTwo.wasm");
-        let wasmBytes = await data.arrayBuffer();
-        try{
-            WebAssembly.compile(wasmBytes).then(function (compiled) {
-                modRef = new WebAssembly.Instance(compiled);
-                console.log("Reference WASM");
-                console.log("----------------");
-                console.log(`modRef.exports.addTwo(1,1) => ${modRef.exports.addTwo(1,1)}`);
-                console.log("\n");
-            })
-
-        }catch (e){
-            console.error(e);
-        }
-    }
     init();
-    initRef();
 </script>
 </body>
 </html>

@@ -18,7 +18,7 @@
     };
 
     function init() {
-        fetch("generic.wasm").then((responds) => {
+        fetch("./bin/generic.wasm").then((responds) => {
             responds.arrayBuffer().then((wasmBytes) => {
                 try {
                     WebAssembly.compile(wasmBytes).then(function (compiled) {

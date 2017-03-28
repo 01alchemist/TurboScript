@@ -31,21 +31,22 @@ function sort(ptr, length) {
 
 }
 
+const Turbo = {
+    Instance: function (bytes, shared) {
+        var buffer = shared ? new SharedArrayBuffer(bytes) : new ArrayBuffer(bytes);
 
-function initTurbo(bytes) {
-    var buffer = new ArrayBuffer(bytes);
+        if (buffer.byteLength < 16) {
+            throw new Error("The memory is too small even for metadata");
+        }
 
-    if (buffer.byteLength < 16) {
-        throw new Error("The memory is too small even for metadata");
+        return TurboWrapper(TurboModule(
+            typeof stdlib !== 'undefined' ? stdlib : window,
+            typeof foreign !== 'undefined' ? foreign : {
+                    random: () => {
+                        return Math.random() / Number.MAX_SAFE_INTEGER;
+                    }
+                },
+            buffer
+        ), buffer);
     }
-
-    return TurboWrapper(TurboModule(
-        typeof stdlib !== 'undefined' ? stdlib : window,
-        typeof foreign !== 'undefined' ? foreign : {
-                random: () => {
-                    return Math.random() / Number.MAX_SAFE_INTEGER;
-                }
-            },
-        buffer
-    ), buffer);
-}
+};

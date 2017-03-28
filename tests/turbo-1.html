@@ -5,8 +5,7 @@
     <title>Turbo test</title>
 </head>
 <body>
-<!--<script src="../src/turbo-lib.js"></script>-->
-<script src="turbo-1.js"></script>
+<script src="./bin/turbo-1.js"></script>
 <script>
     var turbo = initTurbo(1024);
     log = console.log;
@@ -15,19 +14,6 @@
     let v3 = turbo.exports.Vec3.add_vec3(v1,v2);
 
     console.log(JSON.parse(turbo.exports.Vec3.toString(v3)));
-
-    //WebAssembly
-    /*async function init() {
-        let data = await fetch("turbo.wasm");
-        let wasmBytes = await data.arrayBuffer();
-        console.log(wasmBytes);
-        try{
-            WebAssembly.compile(wasmBytes);
-        }catch (e){
-            console.error(e);
-        }
-    }
-    init();*/
 </script>
 </body>
 </html>

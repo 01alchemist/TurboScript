@@ -52,7 +52,6 @@ export class CheckContext {
     uint64Type: Type;
     uint16Type: Type;
     voidType: Type;
-    arrayType: Type;
 
     allocateGlobalVariableOffset(sizeOf: int32, alignmentOf: int32): int32 {
         let offset = alignToNextMultipleOf(this.nextGlobalVariableOffset, alignmentOf);
@@ -292,8 +291,8 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_DOUBLE);
 
         //Prepare builtin types
-        context.arrayType = parentScope.findLocal("Array", ScopeHint.NORMAL).resolvedType;
-        prepareBuiltinType(context.arrayType, 0, SYMBOL_FLAG_IS_ARRAY); //byteSize will calculate later
+        //context.arrayType = parentScope.findLocal("Array", ScopeHint.NORMAL).resolvedType;
+        //prepareBuiltinType(context.arrayType, 0, SYMBOL_FLAG_IS_ARRAY); //byteSize will calculate later
     }
 }
 
@@ -558,8 +557,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
         if (type != null) {
             resolveAsType(context, type, symbol.scope);
-            //TODO: Migrate isArray to generic
-            if (type.resolvedType.isClass() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
+            if (type.resolvedType.isTemplate() && type.hasParameters() && node.parent != type.resolvedType.symbol.node) {
                 deriveConcreteClass(context, type, [type.firstChild.firstChild], type.resolvedType.symbol.scope);
             }
 
@@ -568,6 +566,9 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
         else if (value != null) {
             resolveAsExpression(context, value, symbol.scope);
+            if (value.resolvedType.isTemplate() && value.hasParameters() && node.parent != value.resolvedType.symbol.node) {
+                deriveConcreteClass(context, value, [value.firstChild.firstChild], value.resolvedType.symbol.scope);
+            }
             symbol.resolvedType = value.resolvedType;
         }
 
@@ -696,6 +697,7 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
 
     resolve(context, node, scope.parent);
 
+    node.symbol.flags = SYMBOL_FLAG_USED;
     type.symbol = node.symbol;
     node.symbol.rename =  rename;
 
@@ -716,6 +718,11 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
         templateNode.derivedNodes = [];
     }
     templateNode.derivedNodes.push(node);
+
+    //Leave the parameter for the emitter to identify the type
+    type.firstChild.firstChild.kind = NodeKind.NAME;
+    resolve(context, type.firstChild.firstChild, scope.parent);
+    type.stringValue = node.symbol.name;
 
     return;
 }
@@ -762,6 +769,10 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
         }
 
         childNode.parent = parentNode;
+
+        if (childNode.stringValue == "constructor" && childNode.parent.kind == NodeKind.CLASS) {
+            childNode.parent.constructorFunctionNode = childNode;
+        }
 
         if (!firstChildNode) {
             firstChildNode = childNode;

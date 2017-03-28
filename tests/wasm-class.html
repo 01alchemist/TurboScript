@@ -8,7 +8,7 @@
 <script>
 
     async function init() {
-        let data = await fetch("wasm-class.wasm");
+        let data = await fetch("./bin/wasm-class.wasm");
         let wasmBytes = await data.arrayBuffer();
         try {
             WebAssembly.compile(wasmBytes).then(function (compiled) {

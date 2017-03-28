@@ -1,7 +1,7 @@
-export function block_test():int32 {
-    if(true){
+export function block_test(value: boolean): int32 {
+    if (value) {
         //this is a block
-        return 0;
+        return 1;
     }
-    return 1;
+    return 0;
 }
