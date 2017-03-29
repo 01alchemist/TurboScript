@@ -1,3 +1,6 @@
+notifications:
+  slack: turboscript:9IeY6sX0PuLan9Q4Ad1Ggylp
+  
 language: node_js
 
 node_js:

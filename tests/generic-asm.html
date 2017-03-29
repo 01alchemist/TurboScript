@@ -12,15 +12,7 @@
 
     let turbo = initTurbo(0x10000);
 
-    let num = 10;
-    let intArray = turbo.exports.test_1(num);
-
-    for (let i = 0; i < num; i++) {
-        turbo.exports.set(intArray, i, i+0.1);
-    }
-    for (let i = 0; i < num; i++) {
-        console.log(i, turbo.exports.get(intArray, i));
-    }
+    let intArray = turbo.exports.test();
 
 </script>
 </body>

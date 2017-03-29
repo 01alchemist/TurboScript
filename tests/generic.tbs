@@ -1,28 +1,33 @@
 class List<T>{
-    constructor(length:int32):List<T> {
-        return this;
+
+    length:int32;
+
+    constructor(len:int32) {
+        this.length = len;
     }
 
     reflect(a:T):T {
-        return a;
+        return a * (this.length as T);
     }
 }
 class M {
-    id:int32;
-    constructor():M {
-        return this;
+    value:float64;
+    constructor(value:float64) {
+        this.value = value;
     }
+
+    operator * (other:M):M { return new M(this.value * other.value); }
 }
 export function test():List<float32>{
     let a = new List<M>(10);
     return new List<float32>(10);
 }
 
-// export function test_1(b:int32):Array<float32> {
-//     var __float32array:Array<float32>;
-//     __float32array = new Array<float32>(b);
-//     return __float32array;
-// }
+export function test_1(b:int32):Array<float32> {
+    var __float32array:Array<float32>;
+    __float32array = new Array<float32>(b);
+    return __float32array;
+}
 
 // export function set(index:int32, value:float32):void {
 //     __float32array[index] = value;

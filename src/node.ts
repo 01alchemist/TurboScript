@@ -220,6 +220,7 @@ export class Node {
     offset: int32;
 
     constructorFunctionNode: Node;
+    derivedNodes: Node[];
 
     private _rawValue: any;
     private _hasValue: boolean;
@@ -579,6 +580,34 @@ export class Node {
         after.previousSibling = before;
     }
 
+    insertChildAfter(before: Node, after: Node): void {
+        if (after == null) {
+            return;
+        }
+
+        assert(before != after);
+        assert(after.parent == null);
+        assert(after.previousSibling == null);
+        assert(after.nextSibling == null);
+        assert(before == null || before.parent == this);
+
+        if (before == null) {
+            this.appendChild(after);
+            return;
+        }
+
+        after.parent = this;
+        after.previousSibling = before;
+        after.nextSibling = before.nextSibling;
+
+        if (before.nextSibling != null) {
+            assert(before == before.nextSibling.previousSibling);
+            before.nextSibling.previousSibling = after;
+        }
+
+        before.nextSibling = after;
+    }
+
     remove(): Node {
         assert(this.parent != null);
 
@@ -690,22 +719,6 @@ export class Node {
         assert(this.childCount() >= 2);
         assert(isExpression(this.lastChild.previousSibling));
         return this.lastChild.previousSibling;
-    }
-
-    //FIXME : java style generic should be changed to C++ style
-    getMappedGenericType(name: Node): Type {
-        let symbol = this.parent.parent.symbol;
-        if (symbol.generics && symbol.generics.length > 0) {
-            let genericMaps = symbol.genericMaps;
-            let type = this.lastChild.resolvedType;
-            if (type.pointerTo) {
-                return genericMaps.get(type.pointerTo.symbol.name).get(name);
-            } else {
-                return genericMaps.get(type.symbol.name).get(name);
-            }
-        } else {
-            return this.lastChild.resolvedType;
-        }
     }
 
     constructorNode(): Node {

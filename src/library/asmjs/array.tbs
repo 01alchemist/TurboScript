@@ -12,65 +12,6 @@ class Array<T> {
         return this.bytesLength / this.elementSize;
     }
 
-    /*sort():void {
-        foreign.sort(this as *int32, this.length, typeof T);
-    }
-
-    sort(items:Array<T>, left:int32, right:int32):Array<T> {
-
-        let index:int32;
-
-        if (items.length > 1) {
-
-            right = right == -1 ? items.length - 1 : right;
-
-            index = this.partition(items, left, right);
-
-            if (left < index - 1) {
-                this.sort(items, left, index - 1);
-            }
-
-            if (index < right) {
-                this.sort(items, index, right);
-            }
-
-        }
-
-        return items;
-    }
-
-    swap(items:Array<T>, firstIndex:int32, secondIndex:int32):void{
-        let temp = items[firstIndex];
-        items[firstIndex] = items[secondIndex];
-        items[secondIndex] = temp;
-    }
-
-    partition(items:Array<T>, left:int32, right:int32):int32 {
-
-        let pivot   = items[Math.floor(((right + left) / 2) as float32) as int32],
-            i       = left,
-            j       = right;
-
-        while (i <= j) {
-
-            while (items[i] < pivot) {
-                i++;
-            }
-
-            while (items[j] > pivot) {
-                j--;
-            }
-
-            if (i <= j) {
-                this.swap(items, i, j);
-                i++;
-                j--;
-            }
-        }
-
-        return i;
-    }*/
-
     operator [] (index: int32): *T {
         let length = this.bytesLength / this.elementSize;
         let headerSize = 8;

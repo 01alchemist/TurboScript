@@ -1400,7 +1400,7 @@ export class AsmJsModule {
             let constructorNode = node.constructorNode();
             let callSymbol = constructorNode.symbol;
             let lengthNode = node.arrayLength();
-            this.code.append(`${callSymbol.parent().name}_new(`);
+            this.code.append(`${callSymbol.parent().internalName}_new(`);
             assert(lengthNode.resolvedType.isInteger());
             if (lengthNode.kind == NodeKind.INT32) {
                 this.code.append(`${size * lengthNode.intValue}|0, ${size}|0`);
@@ -1419,7 +1419,7 @@ export class AsmJsModule {
             let args = constructorNode.functionFirstArgumentIgnoringThis();
             let callSymbol = constructorNode.symbol;
             let child = node.firstChild.nextSibling;
-            this.code.append(`${callSymbol.parent().name}_new(`);
+            this.code.append(`${callSymbol.parent().internalName}_new(`);
             while (child != null) {
                 let forceCastType: AsmType = null;
                 if (args.symbol.resolvedType.isDouble()) {
@@ -1526,7 +1526,7 @@ export class AsmJsModule {
             name: node.symbol.name,
             size: 4,
             align: 4,
-            clsid: computeClassId(node.symbol.name),
+            clsid: computeClassId(node.symbol.rename !== undefined?node.symbol.rename:node.symbol.name),
             members: {},
             code: ""
         };
