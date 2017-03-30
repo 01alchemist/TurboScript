@@ -1,6 +1,6 @@
 {
   "name": "turboscript",
-  "version": "1.0.7-alpha",
+  "version": "1.0.8-alpha",
   "description": "Super charged JavaScript for parallel programming and WebAssembly",
   "main": "index.js",
   "directories": {
@@ -20,6 +20,7 @@
   },
   "scripts": {
     "build": "tsc -p ./src && tsc lib/tc.ts",
+    "test:build": "node tests/make.js",
     "watch": "tsc -w -p ./src",
     "watch-lib": "tsc -w lib/tc.ts"
   },
