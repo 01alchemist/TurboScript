@@ -1,5 +1,5 @@
 *.js
 *.wasm
-*.wasm.log
+*.log
 *.wast
 !make.js
