@@ -26,7 +26,7 @@ TurboScript is forked from ThinScript and changed a lot, so there will be no goi
 * ~~Basic malloc and free~~
 * ~~ASM.JS Emitter~~
 * ~~Import external functions with namespace~~
-* Array Data Type
+* ~~Array Data Type~~
 * Parallel WebAssembly (post-MVP)
 
 # Wiki
