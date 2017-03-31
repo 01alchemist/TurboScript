@@ -1,3 +1,6 @@
+import {Texture} from "./texture.tbs";
+import {Color} from "./color.tbs";
+
 export class Material {
     color: Color;
     albedoMap: Texture;
@@ -13,8 +16,9 @@ export class Material {
     transparent: boolean;
 
     constructor(color: Color, albedoMap: Texture, normalMap: Texture, bumpMap: Texture, roughnessMap: Texture,
-                bumpMultiplier, emittance, index, roughness, tint: float32, reflectivity: float32, transparent: float32) {
-        this.color = Color;
+                bumpMultiplier:float32, emittance:float32, index:float32, roughness:float32, tint: float32,
+                reflectivity: float32, transparent: float32) {
+        this.color = color;
         this.albedoMap = albedoMap;
         this.normalMap = normalMap;
         this.bumpMap = bumpMap;

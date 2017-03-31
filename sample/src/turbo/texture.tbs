@@ -3,11 +3,10 @@ export class Texture {
     height: int32;
     data: Array<Color>;
 
-    constructor(width: int32, height: int32, data: Array<Color>): Texture {
+    constructor(width: int32, height: int32, data: Array<Color>) {
         this.width = width;
         this.height = height;
         this.data = data;
-        return this;
     }
 
     static createTexture(imgdata: Uint8Array, width: int32, height: int32): Texture {

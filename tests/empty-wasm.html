@@ -6,17 +6,6 @@
 </head>
 <body>
 <script>
-
-   var importObject = {
-        memory: new WebAssembly.Memory({initial: 10}),
-        Math: Math,
-        foreign: {
-            random: () => {
-                return Math.random() / Number.MAX_SAFE_INTEGER;
-            }
-        }
-    };
-
     async function init() {
         let data = await fetch("./bin/empty.wasm");
         let wasmBytes = await data.arrayBuffer();

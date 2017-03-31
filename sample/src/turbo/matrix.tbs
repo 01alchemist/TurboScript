@@ -25,7 +25,7 @@ export class Matrix{
         x10:float32=0.0, x11:float32=0.0, x12:float32=0.0, x13:float32=0.0, 
         x20:float32=0.0, x21:float32=0.0, x22:float32=0.0, x23:float32=0.0, 
         x30:float32=0.0, x31:float32=0.0, x32:float32=0.0, x33:float32=0.0
-    ):Matrix
+    )
     {
         this.x00 = x00;
         this.x01 = x01;
@@ -43,7 +43,6 @@ export class Matrix{
         this.x31 = x31;
         this.x32 = x32;
         this.x33 = x33;
-        return this;
     }
 
     set(
@@ -102,7 +101,7 @@ export class Matrix{
             0.0, 1.0, 0.0, v.y,
             0.0, 0.0, 1.0, v.z,
             0.0, 0.0, 0.0, 1
-        )
+        );
     }
 
     static scaleUnitMatrix(v:Vector3, c:Matrix):Matrix{
@@ -304,7 +303,7 @@ export class Matrix{
         this.x02*this.x11*this.x23*this.x30 - this.x02*this.x11*this.x20*this.x33 -
         this.x03*this.x10*this.x21*this.x32 + this.x03*this.x10*this.x22*this.x31 -
         this.x03*this.x11*this.x22*this.x30 + this.x03*this.x11*this.x20*this.x32 -
-        this.x03*this.x12*this.x20*this.x31 + this.x03*this.x12*this.x21*this.x30
+        this.x03*this.x12*this.x20*this.x31 + this.x03*this.x12*this.x21*this.x30;
     }
 
     inverse(c:Matrix):Matrix {

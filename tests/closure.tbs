@@ -1,0 +1,8 @@
+function test(): void {
+
+    //Should fail in v1
+    function innerFun():void {
+
+    }
+
+}

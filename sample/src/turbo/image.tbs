@@ -5,14 +5,13 @@ export class Image {
     depth: uint8;
     data: Array<uint8>;
 
-    constructor(width: int32, height: int32, depth: int32): Image {
+    constructor(width: int32, height: int32, depth: int32) {
 
         this.width = width;
         this.height = height;
         this.depth = depth;
         let len = width * height * 4;
         this.data = new Array<uint8>(len);
-        return this;
     }
 
     pixOffset(x: int32, y: int32): int32 {

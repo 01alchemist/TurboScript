@@ -12,7 +12,7 @@ export function addTwo4(a:float64, b:float64): float64 {
 }
 
 #if WASM
-// JS cannot pass i64 type to wasm since there is no 64 bit integer in JS.
+// JS cannot pass i64 type to/from wasm since there is no 64 bit integer in JS.
 // juts pass f64 and convert to i64
 //FIXME: Fix float64 to int64 conversion
 // export function addTwo5(a:float64, b:float64): int32 {

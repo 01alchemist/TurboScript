@@ -13,9 +13,8 @@ export class Shape{
 
     shapeId:uint32;
 
-	constructor(id:uint32):Shape {
+	constructor(id:uint32) {
         this.shapeId = id;
-		return this;
 	}
 
 	@virtual
@@ -73,13 +72,12 @@ export class TransformedShape extends Shape{
 	inverse:Matrix;
 	transpose:Matrix;
 
-	constructor(shape:Shape, matrix:Matrix):TransformedShape {
+	constructor(shape:Shape, matrix:Matrix) {
 	    super();
         this.shape = shape;
 		this.matrix = matrix;
 		this.inverse = matrix.inverse();
 		this.transpose = this.inverse.transpose();
-		return this;
 	}
 
 	@virtual

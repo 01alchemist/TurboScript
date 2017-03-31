@@ -6,12 +6,39 @@ let childProcess = require("child_process");
 let System = require('systemjs');
 System.defaultJSExtensions = true;
 
-// let modules = [ //     "./src/turbo/common.tts", //     "./src/tracer/axis.tts", //     "./src/turbo/color.tts", //     "./src/turbo/vector.tts", //     "./src/utils/util.tts", //     "./src/turbo/box.tts", //     "./src/turbo/matrix.tts", //     "./src/turbo/image.tts", //     "./src/turbo/texture.tts", //     "./src/turbo/material.tts", //     "./src/tracer/ray.tts", // //     "./src/turbo/shapes/shape.tts", //     "./src/turbo/shapes/cube.tts", //     "./src/turbo/shapes/sphere.tts", //     "./src/turbo/shapes/triangle.tts", //     "./src/turbo/shapes/mesh.tts", // //     "./src/turbo/tree.tts", //     "./src/tracer/hit.tts", //     "./src/turbo/camera.tts", //     "./src/turbo/scene.tts", //     "./src/three/buffer_geometry.tts", //     "./src/tracer/sampler.tts", // //     "./src/tracer/vector3.tts", //     "./src/tracer/color3.tts", //     "./src/tracer/matrix4.tts", // // ];
-let modules = [
+let modules = [ 
+    // "./src/turbo/common.tbs", 
+    "./src/turbo/axis.tbs", 
+    "./src/turbo/color.tbs", 
     "./src/turbo/vector3.tbs",
-    "./src/turbo/color.tbs",
-    "./src/turbo/image.tbs"
+    "./src/turbo/matrix.tbs",
+    "./src/turbo/box.tbs", 
+    // "./src/utils/util.tbs", 
+    "./src/turbo/image.tbs", 
+    "./src/turbo/texture.tbs",
+    "./src/turbo/material.tbs",
+    "./src/tracer/ray.tbs", 
+    "./src/turbo/shapes/shape.tbs",
+    "./src/turbo/shapes/cube.tbs", 
+    "./src/turbo/shapes/sphere.tbs", 
+    "./src/turbo/shapes/triangle.tbs",
+    "./src/turbo/shapes/mesh.tbs",
+    "./src/turbo/tree.tbs", 
+    "./src/tracer/hit.tbs", 
+    "./src/turbo/camera.tbs",
+    "./src/turbo/scene.tbs",
+    // "./src/three/buffer_geometry.tbs", 
+    // "./src/tracer/sampler.tbs",
+    // "./src/tracer/vector3.tbs",
+    // "./src/tracer/color3.tbs",
+    // "./src/tracer/matrix4.tbs",
 ];
+// let modules = [
+//     "./src/turbo/vector3.tbs",
+//     "./src/turbo/color.tbs",
+//     "./src/turbo/image.tbs"
+// ];
+
 let buildCommand = [];
 modules.forEach((file) => {
     buildCommand.push(path.resolve(__dirname, file));
@@ -20,17 +47,12 @@ modules.forEach((file) => {
 let TURBO_PATH = path.resolve(__dirname, "../");
 process.env.TURBO_PATH = TURBO_PATH;
 
-// let outFile = path.resolve(__dirname, "xray-kernel-turbo.asm.js");
-let outFile = path.resolve(__dirname, "xray-kernel-turbo");
+let binDir = path.join(__dirname, "bin");
+let outFile = path.join(__dirname, "bin", "xray-kernel-turbo");
 
-// buildCommand.push("--out");
-// buildCommand.push(outFile);
-
-// let compilerShell = TURBO_PATH + "/lib/tc.sh";
-
-// let code = shell.exec(`${compilerShell} ${buildCommand}`).code;
-
-// console.log(`child process exited with code ${code}`);
+if (!fs.existsSync(binDir)){
+    fs.mkdirSync(binDir);
+}
 
 function copyFile(source, target, cb) {
     let cbCalled = false;
@@ -182,19 +204,19 @@ System.import("main").then(function (mod) {
     console.log(`wasm compilation ${main(["--wasm", "--out", outFile + ".wasm"]) == 0 ? "success" : "failed"} \n`);
     turboMain.reset();
 
-    let wasm2wast = childProcess.spawn("wasm2wast", [`${outFile + ".wasm"}`, "-o", `${outFile + ".wast"}`, "-v"]);
-    wasm2wast.stdout.on('data', (data) => {
-        console.log(`${data}`);
-    });
-
-    wasm2wast.stderr.on('data', (data) => {
-        console.log(`Error: ${data}`);
-    });
-
-    wasm2wast.on('close', (code) => {
-        console.log(`child process exited with code ${code}`);
-        process.exit();
-    });
+    // let wasm2wast = childProcess.spawn("wasm2wast", [`${outFile + ".wasm"}`, "-o", `${outFile + ".wast"}`, "-v"]);
+    // wasm2wast.stdout.on('data', (data) => {
+    //     console.log(`${data}`);
+    // });
+    //
+    // wasm2wast.stderr.on('data', (data) => {
+    //     console.log(`Error: ${data}`);
+    // });
+    //
+    // wasm2wast.on('close', (code) => {
+    //     console.log(`child process exited with code ${code}`);
+    //     process.exit();
+    // });
 
     console.log("=====================");
     console.log(" Compiling to asm.js");

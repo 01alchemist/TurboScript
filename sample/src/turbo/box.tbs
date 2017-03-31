@@ -2,20 +2,18 @@ class Partition{
 	left:boolean;
 	right:boolean;
 
-	constructor(left:boolean, right:boolean):Partition {
+	constructor(left:boolean, right:boolean) {
 		this.left = left;
 		this.right = right;
-		return this;
 	}
 }
 export class Box{
 	min:Vector3;
 	max:Vector3;
 
-	constructor(min:Vector3, max:Vector3):Box {
+	constructor(min:Vector3, max:Vector3) {
         this.min = Vector.NewVector(min);
         this.max = Vector.NewVector(max);
-        return this;
 	}
 
     set(min:Vector3, max:Vector3):Box {
@@ -126,12 +124,12 @@ export class Box{
 		if (y1 > y2) {
 			tmp = y1;
 			y1 = y2;
-            y2 = tmp
+            y2 = tmp;
 		}
 		if (z1 > z2) {
             tmp = z1;
             z1 = z2;
-            z2 = tmp
+            z2 = tmp;
 		}
 		return new Intersection(
             Math.max(Math.max(x1, y1), z1),
@@ -144,19 +142,18 @@ export class Box{
         let max = this.max;
         let left;
         let right;
-		switch (axis) {
-			case Axis.AxisX:
-				left = this.min.x <= point;
-				right = this.max.x >= point;
-                break;
-			case Axis.AxisY:
-				left = this.min.y <= point;
-				right = this.max.y >= point;
-                break;
-            case Axis.AxisZ:
-				left = this.min.z <= point;
-				right = this.max.z >= point;// EPIC Bug :depth it was min and got weird triangle intersection
-                break;
+
+		if (axis == Axis.AxisX) {
+			left = this.min.x <= point;
+			right = this.max.x >= point;
+		}
+		else if (axis == Axis.AxisY) {
+			left = this.min.y <= point;
+			right = this.max.y >= point;
+		}
+        else if (axis == Axis.AxisZ) {
+			left = this.min.z <= point;
+			right = this.max.z >= point;// EPIC Bug :depth it was min and got weird triangle intersection
 		}
 		return new Partition(left, right);
 	}

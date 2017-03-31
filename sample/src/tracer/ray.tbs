@@ -3,10 +3,9 @@ export class Ray {
     origin: Vector3;
     direction: Vector3;
 
-    constructor(origin: Vector3 = null, direction: Vector3 = null): Ray {
+    constructor(origin: Vector3 = null, direction: Vector3 = null) {
         this.origin = origin == null ? new Vector3() : origin;
         this.direction = direction == null ? new Vector3() : direction;
-        return this;
     }
 
     set(origin: Vector3, direction: Vector3): Ray {
@@ -83,23 +82,22 @@ export class Ray {
 
         let reflect: boolean;
 
-        switch (bounceType) {
-            case BounceType.Any:
-                reflect = Math.random() < p;
-                break;
-            case BounceType.Diffuse:
-                reflect = false;
-                break;
-            case BounceType.Specular:
-                reflect = true;
-                break;
+        if (bounceType == BounceType.Any) {
+            reflect = Math.random() < p;
         }
+        else if (bounceType == BounceType.Diffuse) {
+            reflect = false;
+        }
+        else if (bounceType == BounceType.Specular) {
+            reflect = true;
+        }
+
         if (reflect) {
             let reflected: Ray = n.reflect(this);
             return new Bounce(reflected.coneBounce(gloss, u, v), true, p);
         } else if (transparent) {
             let refracted: Ray = n.refract(this, n1, n2);
-            refracted.origin = refracted.origin.add(refracted.direction.mulScalar(1e-4));
+            refracted.origin = refracted.origin.add(refracted.direction.mulScalar(0.0001));
             return new Bounce(refracted.coneBounce(gloss, u, v), true, 1.0 - p);
         } else {
             return new Bounce(n.weightedBounce(u, v), false, 1.0 - p);

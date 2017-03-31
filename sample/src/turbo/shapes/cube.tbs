@@ -1,21 +1,24 @@
+import {ShapeType} from "./shape.tbs";
+import {Box} from "../box.tbs";
+import {Ray} from "../../tracer/ray.tbs";
+import {Hit} from "../../tracer/hit.tbs";
 export class Cube extends Shape{
 	min:Vector3;
 	max:Vector3;
 	material:Material;
 	box:Box;
 
-	constructor(min:Vector3, max:Vector3, material:Material, box:Box):Cube {
+	constructor(min:Vector3, max:Vector3, material:Material, box:Box) {
 	    super();
         this.min = min;
         this.max = max;
         this.material = material;
         this.box = box;
-        return this;
     }
 
     @virtual
-    type():void {
-        throw ShapeType.CUBE;
+    type():ShapeType {
+        return ShapeType.CUBE;
     }
 
     // @virtual toJSON(SELF){
@@ -50,7 +53,7 @@ export class Cube extends Shape{
         min = null;
         max = null;
         if (t0 > 0 && t0 < t1) {
-            return new Hit(t0, null)
+            return new Hit(t0, null);
         }
         return Hit.NoHit;
     }
@@ -81,7 +84,7 @@ export class Cube extends Shape{
         }else if(p.x > max.x - EPS){
             return new Vector3(1, 0, 0);
         }else if (p.y < min.y + EPS){
-            return new Vector3(0, -1, 0)
+            return new Vector3(0, -1, 0);
         }else if(p.y > max.y - EPS){
             return new Vector3(0, 1, 0);
         }else if(p.z < min.z + EPS){

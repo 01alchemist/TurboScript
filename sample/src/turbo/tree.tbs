@@ -1,4 +1,4 @@
-import {Axis} from "./axis.tts";
+import {Axis} from "./axis.tbs";
 import {Box} from "./box.tbs";
 
 class Split {

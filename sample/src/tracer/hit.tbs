@@ -2,7 +2,7 @@ export class Intersection{
 	tmin:float64;
 	tmax:float64;
 
-	constructor(tmin:float64, tmax:float64):Intersection{
+	constructor(tmin:float64, tmax:float64){
 		this.tmin = tmin;
 		this.tmax = tmax;
 	}
@@ -18,14 +18,13 @@ export class HitInfo{
     material:Material;
     inside:boolean;
 
-	constructor(shape:Shape, position:Vector3, normal:Vector3, ray:Ray, material:Material, inside:boolean):HitInfo {
+	constructor(shape:Shape, position:Vector3, normal:Vector3, ray:Ray, material:Material, inside:boolean) {
         this.shape = shape;
         this.position = position;
         this.normal = normal;
         this.ray = ray;
         this.material = material;
         this.inside = inside;
-        return this;
 	}
 }
 
@@ -37,11 +36,10 @@ export class Hit{
 	T:float32;
 	hitInfo:hitInfo;
 
-	constructor(shape:Shape, T:float32, hitInfo:HitInfo):Hit {
+	constructor(shape:Shape, T:float32, hitInfo:HitInfo) {
         this.shape = shape;
         this.T = T;
         this.hitInfo = hitInfo;
-        return this;
 	}
 
 	ok():boolean{

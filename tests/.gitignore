@@ -3,3 +3,4 @@
 *.wasm.log
 *.wast
 !make.js
+!lib/*.js

@@ -177,8 +177,7 @@ export function main_entry(): int32 {
     }
 
     // Start the compilation
-    let compiler = new Compiler();
-    compiler.initialize(target, output);
+    let compiler = new Compiler(target, output);
 
     // Second pass over the argument list
     argument = firstArgument;

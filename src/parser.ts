@@ -792,7 +792,8 @@ class ParserContext {
             }
 
             this.advance();
-            assert(this.expect(TokenKind.RIGHT_BRACE));
+            // assert(this.expect(TokenKind.RIGHT_BRACE));
+            this.expect(TokenKind.RIGHT_BRACE);
         }
 
         this.expect(TokenKind.FROM);

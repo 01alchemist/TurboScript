@@ -3,11 +3,10 @@ export class Color {
     g: float64;
     b: float64;
 
-    constructor(r: float64=0.0d, g: float64=0.0d, b: float64=0.0d): Color {
+    constructor(r: float64=0.0, g: float64=0.0, b: float64=0.0) {
         this.r = r;
         this.g = g;
         this.b = b;
-        return this;
     }
 
     set(r: float64, g: float64, b: float64): Color {

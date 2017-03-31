@@ -40,15 +40,17 @@ export class Compiler {
     librarySource: Source;
     runtimeSource: string;
     wrapperSource: string;
+    inputs:string[];
     outputName: string;
     outputWASM: ByteArray;
     outputJS: string;
     outputC: string;
     outputH: string;
 
-    initialize(target: CompileTarget, outputName: string): void {
+    constructor(target: CompileTarget, outputName: string) {
         assert(this.log == null);
         this.log = new Log();
+        this.inputs = [];
         this.preprocessor = new Preprocessor();
         this.target = target;
         this.outputName = outputName;
@@ -113,11 +115,16 @@ export class Compiler {
             this.lastSource.next = source;
         }
         this.lastSource = source;
-
+        this.inputs.push(name);
         return source;
     }
 
     addInputBefore(name: string, contents: string, nextSource:Source): Source {
+
+        if(this.inputs.indexOf(name) > -1){
+            return null;
+        }
+
         let source = new Source();
         source.name = name;
         source.contents = contents;
@@ -126,7 +133,7 @@ export class Compiler {
         source.prev = nextSource.prev;
         nextSource.prev = source;
         source.next = nextSource;
-
+        this.inputs.push(name);
         return source;
     }
 
