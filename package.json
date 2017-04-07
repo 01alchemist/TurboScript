@@ -7,11 +7,16 @@
     "test": "tests"
   },
   "dependencies": {
+    "@types/webassembly-js-api.d.ts": "https://github.com/winksaville/webassembly-js-api.d.ts",
+    "alsatian": "^1.3.0",
     "systemjs": "^0.19.41"
   },
   "devDependencies": {
-    "@types/node": "^6.0.52",
+    "@types/debug": "^0.0.29",
+    "@types/node": "^7.0.12",
+    "debug": "^2.6.3",
     "lite-server": "^2.2.2",
+    "tap-fail-exit-one": "^1.0.0-beta.1",
     "ts-node": "^1.7.2",
     "typescript": "^2.1.4"
   },
@@ -19,10 +24,17 @@
     "tc": "./bin/tc"
   },
   "scripts": {
+    "build:utils": "tsc -p tests/utils.tsconfig.json",
+    "build:utils.spec": "tsc -p tests/utils.spec.tsconfig.json",
+    "run:utils.spec": "alsatian build/tests/utils.spec.js --tap | tap-fail-exit-one",
+    "test:utils.spec": "yarn build:utils && yarn build:utils.spec && yarn run:utils.spec",
     "build": "tsc -p ./src && tsc lib/tc.ts",
     "test:build": "node tests/make.js",
     "watch": "tsc -w -p ./src",
-    "watch-lib": "tsc -w lib/tc.ts"
+    "watch-lib": "tsc -w lib/tc.ts",
+    "pretests": "tsc -p tests/turboscript.spec.tsconfig.json && yarn build:utils",
+    "tests": "./node/bin/node --expose_wasm node_modules/.bin/alsatian build/tests/turboscript.spec.js",
+    "tests:verbose": "yarn pretests && DEBUG=turboscript.spec ./node/bin/node --expose_wasm node_modules/.bin/alsatian build/tests/turboscript.spec.js --tap | tap-fail-exit-one"
   },
   "repository": {
     "type": "git",
