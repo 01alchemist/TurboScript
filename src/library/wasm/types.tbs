@@ -1,6 +1,6 @@
 
-declare const Infinity: float64 = 1 / 0.0;
-declare const NaN:      float64 = 0 / 0.0;
+declare const Infinity: float64 = 1.0 / 0.0;
+declare const NaN:      float64 = 0.0 / 0.0;
 
 declare class boolean {
 toString(): string {
