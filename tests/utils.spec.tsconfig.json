@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+      "outDir": "../build/tests"
+  },
+  "files": [
+      "utils.spec.ts"
+  ]
+}

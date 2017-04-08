@@ -10,7 +10,7 @@
     var mod;
 
     async function init() {
-        let data = await fetch("wasm-get_global.wasm");
+        let data = await fetch("./bin/wasm-get_global.wasm");
         let wasmBytes = await data.arrayBuffer();
         try{
             WebAssembly.compile(wasmBytes).then(function (compiled) {

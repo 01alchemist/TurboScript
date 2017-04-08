@@ -1,0 +1,5 @@
+*.js
+*.wasm
+*.log
+*.wast
+!make.js

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>addTwo test</title>
+</head>
+<body>
+<script>
+
+    var turbo;
+
+    async function init() {
+        let data = await fetch("./bin/addTwo.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                turbo = new WebAssembly.Instance(compiled);
+
+                console.log("TurboScript WASM");
+                console.log("----------------");
+                console.log(`turbo.exports.addTwo1(-2,1) => ${turbo.exports.addTwo1(-2, 1)}`);
+                console.log(`turbo.exports.addTwo2(2,1) => ${turbo.exports.addTwo2(2, 1)}`);
+                console.log(`turbo.exports.addTwo3(2.5,5) => ${turbo.exports.addTwo3(2.5, 5)}`);
+                console.log(`turbo.exports.addTwo4(2.5,5) => ${turbo.exports.addTwo4(2.5, 5)}`);
+                // JS cannot pass i64 type to wasm since there is no 64 bit integer in JS.
+                // juts pass f64 and convert to i64
+                // FIXME: Fix float64 to int64 conversion
+                //console.log(`turbo.exports.addTwo5(-10000,10001) => ${turbo.exports.addTwo5(-10000,10001)}`);
+                //console.log(`turbo.exports.addTwo6(10000,10001) => ${turbo.exports.addTwo6(10000,10001)}`);
+                console.log("\n");
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    init();
+</script>
+</body>
+</html>

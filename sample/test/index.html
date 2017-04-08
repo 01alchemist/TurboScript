@@ -19,7 +19,7 @@
 </head>
 <body>
 <script>
-    var turbo = initTurbo(0x10000);
+    var turbo = TurboASM.Instance(0x10000);
 
     let a = turbo.exports.Vector3_new(1.1, 1.2, 1.3);
     let b = turbo.exports.Vector3_new(2, 2, 2);

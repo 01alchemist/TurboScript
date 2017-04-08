@@ -21,7 +21,7 @@
     };
 
     async function init() {
-        let data = await fetch("vector3.wasm");
+        let data = await fetch("./bin/vector3.wasm");
         let wasmBytes = await data.arrayBuffer();
         try {
             WebAssembly.compile(wasmBytes).then(function (compiled) {

@@ -71,7 +71,7 @@ export class Compiler {
         }
 
         else if (target == CompileTarget.ASMJS) {
-            this.preprocessor.define("ASM", true);
+            this.preprocessor.define("ASM_JS", true);
         }
 
         else if (target == CompileTarget.WEBASSEMBLY) {

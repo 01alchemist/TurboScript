@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ASM Array test</title>
+</head>
+<body>
+<script src="./bin/addTwo.asm.js"></script>
+<script>
+    let turbo = TurboASM.Instance(0x10000);
+
+    console.log(`turbo.exports.addTwo1(-2,1) => ${turbo.exports.addTwo1(-2, 1)}`);
+    console.log(`turbo.exports.addTwo2(2,1) => ${turbo.exports.addTwo2(2, 1)}`);
+    console.log(`turbo.exports.addTwo3(2.5,5) => ${turbo.exports.addTwo3(2.5, 5)}`);
+    console.log(`turbo.exports.addTwo4(2.5,5) => ${turbo.exports.addTwo4(2.5, 5)}`);
+    // There is no i64 in asm.js and we are not emulating it. it's all i32
+    console.log(`turbo.exports.addTwo5(-10000,10001) => ${turbo.exports.addTwo5(-10000, 10001)}`);
+    console.log(`turbo.exports.addTwo6(10000,10001) => ${turbo.exports.addTwo6(10000, 10001)}`);
+</script>
+</body>
+</html>

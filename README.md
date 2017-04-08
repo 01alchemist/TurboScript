@@ -1,5 +1,9 @@
-# TurboScript [![Build Status](https://travis-ci.org/01alchemist/TurboScript.svg?branch=master)](https://travis-ci.org/01alchemist/TurboScript)
+# TurboScript [![Build Status](https://travis-ci.org/01alchemist/TurboScript.svg?branch=master)](https://travis-ci.org/01alchemist/TurboScript) [![Stories in Ready](https://badge.waffle.io/01alchemist/TurboScript.png?label=ready&title=Ready)](https://waffle.io/01alchemist/TurboScript)
+
 Super charged JavaScript for parallel programming and WebAssembly 
+
+[![Throughput Graph](https://graphs.waffle.io/01alchemist/TurboScript/throughput.svg)](https://waffle.io/01alchemist/TurboScript/metrics/throughput)
+
 <pre>
     @             _________
      \____       /         \
@@ -17,7 +21,8 @@ This is still an experiment and isn't intended for real use yet. ~~The biggest i
 
 TurboScript is forked from ThinScript and changed a lot, so there will be no going back.
 
-## [Join ![Slack](https://01alchemist.com/images/slack-logo-small.png)](https://turboscript.slack.com/x-160566557623-159912532868/signup)
+## Join ![Slack](https://01alchemist.com/images/slack-logo-small.png)
+You need an invitation to join slack. open a ticket with your email address. I will make it happen.
 
 # Roadmap
 
@@ -26,7 +31,7 @@ TurboScript is forked from ThinScript and changed a lot, so there will be no goi
 * ~~Basic malloc and free~~
 * ~~ASM.JS Emitter~~
 * ~~Import external functions with namespace~~
-* Array Data Type
+* ~~Array Data Type~~
 * Parallel WebAssembly (post-MVP)
 
 # Wiki
