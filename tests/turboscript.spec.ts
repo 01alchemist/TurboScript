@@ -95,7 +95,7 @@ export class TurboScriptTests {
         debug("testAddTwoTypeScript:+");
 
         try {
-          let result = val1 + val2 //this.instance.exports.addTwo(val1, val2);
+          let result = val1 + val2; //this.instance.exports.addTwo(val1, val2);
           Expect(result).toBe(expectedResult);
         } catch (e) {
           debug(`testAddTwoTypeScript caught e=${e}`);

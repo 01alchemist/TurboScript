@@ -33,8 +33,8 @@
     "watch": "tsc -w -p ./src",
     "watch-lib": "tsc -w lib/tc.ts",
     "pretests": "tsc -p tests/turboscript.spec.tsconfig.json && yarn build:utils",
-    "tests": "./node/bin/node --expose_wasm node_modules/.bin/alsatian build/tests/turboscript.spec.js",
-    "tests:verbose": "yarn pretests && DEBUG=turboscript.spec ./node/bin/node --expose_wasm node_modules/.bin/alsatian build/tests/turboscript.spec.js --tap | tap-fail-exit-one"
+    "tests": "./node/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js build/tests/turboscript.spec.js",
+    "tests:verbose": "yarn pretests && set DEBUG=turboscript.spec ./node/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js build/tests/turboscript.spec.js --tap | tap-fail-exit-one"
   },
   "repository": {
     "type": "git",
