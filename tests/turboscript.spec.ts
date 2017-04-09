@@ -1,7 +1,7 @@
 import * as debugModule from "debug";
 const debug = debugModule("turboscript.spec");
 
-import {readFileAsync} from "./utils";
+import {readFileAsync, tcCompile, unlinkAsync} from "./utils";
 
 import {
     SetupFixture,
@@ -16,16 +16,17 @@ import {
 } from "alsatian";
 
 async function instantiateFile(filePath: string): Promise<WebAssembly.Instance> {
-    debug("instantiateFile:+");
+    debug(`instantiateFile:+ filePath=${filePath}`);
 
     // Read the file
     debug("instantiateFile: readFile:");
-    let data = await readFileAsync(filePath);
-    debug(`instantiateFile: file read length=${data.length}`);
+    let result = await readFileAsync(filePath);
+    // debug(`instantiateFile: result=${JSON.stringify(result)}`);
+    debug(`instantiateFile: file read length=${result.data.length}`);
 
     // Compile
     debug("instantiateFile compile:");
-    let mod = await WebAssembly.compile(data);
+    let mod = await WebAssembly.compile(result.data);
     debug("instantiateFile compiled:");
 
     // Instantiate:
@@ -33,7 +34,35 @@ async function instantiateFile(filePath: string): Promise<WebAssembly.Instance> 
     let instance = await WebAssembly.instantiate(mod);
     debug("instantiateFile instantiated:");
 
-    debug("instantiateFile:-");
+    debug(`instantiateFile:- filePath=${filePath} instance=${instance}`);
+    return instance;
+}
+
+async function instantiateTbsFile(filePath: string): Promise<WebAssembly.Instance> {
+    debug(`instantiateTbsFile:+ filePath=${filePath}`);
+
+    const tempFile = "./tmp1.wasm";
+
+    // Compile the to the temporary outfile
+    await tcCompile(filePath, tempFile);
+            
+    // Instantiate the file
+    let instance = instantiateFile(tempFile);
+    
+    // Remove the temporary outFile
+    let unlinkResult = await unlinkAsync(tempFile);
+    if (unlinkResult.err) {
+        debug(`instantiateTbsFile:- error unlink ${tempFile} result=${JSON.stringify(unlinkResult)}`);
+    }
+
+    // Remove the temporary outFile.log file
+    const logFile = tempFile + ".log";
+    unlinkResult = await unlinkAsync(logFile);
+    if (unlinkResult.err) {
+        debug(`instantiateTbsFile:- error ${logFile} result=${JSON.stringify(unlinkResult)}`);
+    }
+
+    debug(`instantiateTbsFile:- filePath=${filePath} instance=${instance}`);
     return instance;
 }
 
@@ -112,7 +141,7 @@ export class TurboScriptTests {
     public async testAddTwo(val1: number, val2: number, expectedResult: number) {
         debug("testAddTwo:+");
 
-        let addTwoInst = await instantiateFile("./tests/addTwo.wasm");
+        let addTwoInst = await instantiateTbsFile("./tests/addTwo.tbs");
         debug(`addTwoInst=${addTwoInst}`);
 
         try {
