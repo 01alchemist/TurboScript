@@ -16,13 +16,13 @@ matrix:
   fast_finish: true
 
 install:
-  - rm -rf node && mkdir node && curl https://nodejs.org/download/nightly/v8.0.0-nightly20170406a94a5da78c/node-v8.0.0-nightly20170406a94a5da78c-linux-x64.tar.xz -s -o node-v8.tar.xz && tar -xJf node-v8.tar.xz -C node --strip-components 1
   - npm uninstall turboscript
   - npm install
   - npm update
+  - yarn add:nodev8
 
 script:
-  - npm run build
+  - yarn build
   - yarn tests:verbose
 
 cache:

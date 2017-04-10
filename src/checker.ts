@@ -1432,7 +1432,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             if (symbol.kind == SymbolKind.VARIABLE_CONSTANT) {
 
                 if (symbol.resolvedType == context.booleanType) {
-                    node.becomebooleaneanConstant(symbol.offset != 0);
+                    node.becomeBooleanConstant(symbol.offset != 0);
                 }
 
                 else if (symbol.resolvedType == context.float32Type) {
