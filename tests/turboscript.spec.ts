@@ -141,11 +141,13 @@ export class TurboScriptTests {
     public async testAddTwo(val1: number, val2: number, expectedResult: number) {
         debug("testAddTwo:+");
 
-        let addTwoInst = await instantiateTbsFile("./tests/addTwo.tbs");
-        debug(`addTwoInst=${addTwoInst}`);
+        // Only instantiate the file once
+        if (!this.addTwoInst) {
+            this.addTwoInst = await instantiateTbsFile("./tests/addTwo.tbs");
+        }
 
         try {
-            let result = addTwoInst.exports.addTwo1(val1, val2);
+            let result = this.addTwoInst.exports.addTwo1(val1, val2);
             debug(`testAddTwo: result=${result}`);
             Expect(result).toBe(expectedResult);
         } catch (e) {
@@ -155,4 +157,5 @@ export class TurboScriptTests {
 
         debug("testAddTwo:-");
     }
+    private addTwoInst: WebAssembly.Instance; // Used only by testAddTwo
 }
