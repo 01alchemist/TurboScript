@@ -33,22 +33,29 @@ export class UtilsTests {
 
     @AsyncTest("Test readFileAsync success")
     public async testReadFileAsync() {
-        let result = await readFileAsync("./tests/data.txt");
-        Expect(result.err).not.toBeTruthy();
-        Expect(result.data.length).toBe(9);
-        let len = result.data.length;
+        let data = await readFileAsync("./tests/data.txt");
+        Expect(data.length).toBe(9);
+        let len = data.length;
         Expect(len).toBe(9);
         for (let i=0; i < len-1; i++) {
-            Expect(result.data[i]).toBe(i + 0x31);
+            Expect(data[i]).toBe(i + 0x31);
         }
-        Expect(result.data[len-1]).toBe(0x0a);
+        Expect(data[len-1]).toBe(0x0a);
     }
 
     @AsyncTest("Test readFileAsync failing")
     public async testReadFileAsyncFail() {
-        let result = await readFileAsync("non-existent-file");
-        Expect(result.err).toBeTruthy();
-        Expect(result.data.length).toBe(0);
+        let file="non-existent-file";
+
+        // TODO: This should work:
+        //    Expect(async () => await readFileAsync(file)).toThrow();
+        // But there appears to be a bug in Alsatian.
+        try {
+            await readFileAsync(file);
+            Expect(`testReadFileAsyncFail: reading ${file} succeeded but shouldn't have`).not.toBeTruthy();
+        } catch (err) {
+            debug(`testReadFileAsyncFail: reading ${file} failed as expected`);
+        }
     }
 
     @AsyncTest("Test tcCompile succeeds")
@@ -56,19 +63,18 @@ export class UtilsTests {
         const inFile = "./tests/addTwo.tbs";
         const outFile = "./tests/t1.wasm";
 
-        debug(`tcCompile:+ ${inFile} to ${outFile}`);
+        debug(`testTcCompileSuccess:+ ${inFile} to ${outFile}`);
 
-        let compResult = await tcCompile(inFile, outFile);
-        debug(`tcCompileSuccess: result=${JSON.stringify(compResult)}`);
-        Expect(compResult.err).not.toBeDefined();
+        Expect(async () => await tcCompile(inFile, outFile)).not.toThrow();
+        debug(`testTcCompileSuccess: ${inFile} to ${outFile}`);
         
-        let statResult = await statAsync(outFile);
-        debug(`tcCompileSuccess: stat ${outFile} result=${JSON.stringify(statResult)} done`);
-        Expect(statResult.err).not.toBeDefined();
+        Expect(async () => {
+            let stats = await statAsync(outFile);
+            debug(`testTcCompileSuccess: stat ${outFile} stats=${JSON.stringify(stats)} done`);
+        }).not.toThrow();
 
-        let unlinkResult = await unlinkAsync(outFile);
-        debug(`tcCompileSuccess: unlink ${outFile} result=${JSON.stringify(unlinkResult)} done`);
-        Expect(unlinkResult.err).not.toBeDefined();
+        Expect(async () => await unlinkAsync(outFile)).not.toThrow();
+        debug(`testTcCompileSuccess: unlink ${outFile} done`);
 
         debug(`tcCompile:- ${inFile} to ${outFile}`);
     }
@@ -78,9 +84,14 @@ export class UtilsTests {
         const inFile = "./tests/data.txt";
         const outFile = "./tests/tx1.wasm";
 
-        let result = await tcCompile(inFile, outFile);
-        debug(`tcCompileFailsOnBadFile: error=${result.err}`);
-        Expect(result.err).toBeTruthy();
+        // TODO: This should work:
+        //    Expect(async () => await tcCompile(inFile, outFile))).toThrow();
+        try {
+            await tcCompile(inFile, outFile);
+            Expect(`testTcCompileFailsOnBadFile: ${inFile} to ${outFile} succeeded but shouldn't have`).not.toBeTruthy();
+        } catch (err) {
+            debug(`testTcCompileFailsOnBadFile: ${inFile} to ${outFile} failed as expected`);
+        }
     }
 
     @AsyncTest("Test tcCompile fails on non existent file")
@@ -88,8 +99,13 @@ export class UtilsTests {
         const inFile = "non-existent-file";
         const outFile = "./tests/tx2.wasm";
 
-        let result = await tcCompile(inFile, outFile);
-        debug(`tcCompileFailsOnNonExistentFile: error=${result.err}`);
-        Expect(result.err).toBeTruthy();
+        // TODO: This should work:
+        //    Expect(async () => await tcCompile(inFile, outFile))).toThrow();
+        try {
+            await tcCompile(inFile, outFile);
+            Expect(`testTcCompileFailsOnNonExistentFile: ${inFile} to ${outFile} Succeeded but shouldn't have`).not.toBeTruthy();
+        } catch (err) {
+            debug(`testTcCompileFailsOnNonExistentFile: ${inFile} to ${outFile} failed as expected`);
+        }
     }
 }
