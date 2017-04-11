@@ -1,5 +1,6 @@
-declare const NaN: float32 = 0.0 / 0.0;
 
-export function getNaN(v:float32): float32 {
-   return v/0.0;
+declare const Infinity:float32 = 1.0 / 0.0;
+
+export function getInfinity():float32 {
+  return Infinity;
 }

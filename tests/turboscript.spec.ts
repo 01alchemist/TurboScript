@@ -1,41 +1,19 @@
 import * as debugModule from "debug";
 const debug = debugModule("turboscript.spec");
 
-import {readFileAsync} from "./utils";
+import { instantiateTbsFile } from "./utils";
 
 import {
-    SetupFixture,
-    Setup,
-    TeardownFixture,
-    Teardown,
     AsyncTest,
     Expect,
+    SetupFixture,
+    Setup,
+    Teardown,
+    TeardownFixture,
     Test,
     TestCase,
     TestFixture,
 } from "alsatian";
-
-async function instantiateFile(filePath: string): Promise<WebAssembly.Instance> {
-    debug("instantiateFile:+");
-
-    // Read the file
-    debug("instantiateFile: readFile:");
-    let data = await readFileAsync(filePath);
-    debug(`instantiateFile: file read length=${data.length}`);
-
-    // Compile
-    debug("instantiateFile compile:");
-    let mod = await WebAssembly.compile(data);
-    debug("instantiateFile compiled:");
-
-    // Instantiate:
-    debug("instantiateFile instantiate:");
-    let instance = await WebAssembly.instantiate(mod);
-    debug("instantiateFile instantiated:");
-
-    debug("instantiateFile:-");
-    return instance;
-}
 
 @TestFixture("TurboScript tests")
 export class TurboScriptTests {
@@ -87,6 +65,9 @@ export class TurboScriptTests {
         debug("teardown:-");
     }
 
+    /**
+     * An example synchronous test which adds two numbers using TypeScript
+     */
     @TestCase(1, 2, 3)
     @TestCase(-1, 2, 1)
     @TestCase(0, 0, 0)
@@ -94,17 +75,14 @@ export class TurboScriptTests {
     public testAddTwoTypeScript(val1: number, val2: number, expectedResult: number) {
         debug("testAddTwoTypeScript:+");
 
-        try {
-          let result = val1 + val2; //this.instance.exports.addTwo(val1, val2);
-          Expect(result).toBe(expectedResult);
-        } catch (e) {
-          debug(`testAddTwoTypeScript caught e=${e}`);
-          Expect(false).toBe(true); // Always fail.
-        }
+        Expect(val1 + val2).toBe(expectedResult);
 
         debug("testAddTwoTypeScript:-");
     }
 
+    /**
+     * Test TurboScript can add numbers
+     */
     @TestCase(1, 2, 3)
     @TestCase(-1, 2, 1)
     @TestCase(0, 0, 0)
@@ -112,18 +90,19 @@ export class TurboScriptTests {
     public async testAddTwo(val1: number, val2: number, expectedResult: number) {
         debug("testAddTwo:+");
 
-        let addTwoInst = await instantiateFile("./tests/addTwo.wasm");
-        debug(`addTwoInst=${addTwoInst}`);
-
-        try {
-            let result = addTwoInst.exports.addTwo1(val1, val2);
-            debug(`testAddTwo: result=${result}`);
-            Expect(result).toBe(expectedResult);
-        } catch (e) {
-            debug(`testAddTwo caught e=${e}`);
-            Expect(false).toBe(true); // Always fail.
+        // Only instantiate the file once
+        if (!this.addTwoInst) {
+            this.addTwoInst = await instantiateTbsFile("./tests/addTwo.tbs");
         }
 
-        debug("testAddTwo:-");
+        // Calculate the sum using addTwo1
+        let sum;
+        Expect(() => {
+            sum = this.addTwoInst.exports.addTwo1(val1, val2)
+        }).not.toThrow();
+        Expect(sum).toBe(expectedResult);
+
+        debug(`testAddTwo:- sum=${sum}`);
     }
+    private addTwoInst: WebAssembly.Instance; // Used only by testAddTwo
 }

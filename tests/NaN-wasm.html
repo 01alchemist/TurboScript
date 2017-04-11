@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Infinity</title>
+    <title>addTwo test</title>
 </head>
 <body>
 <script>
@@ -10,7 +10,7 @@
     var turbo;
 
     async function init() {
-        let data = await fetch("./bin/infinity.wasm");
+        let data = await fetch("./bin/NaN.wasm");
         let wasmBytes = await data.arrayBuffer();
         try {
             WebAssembly.compile(wasmBytes).then(function (compiled) {
@@ -18,7 +18,7 @@
 
                 console.log("TurboScript WASM");
                 console.log("----------------");
-                console.log(`turbo.exports.getInfinity() => ${turbo.exports.getInfinity()}`);
+                console.log(`turbo.exports.getNaN() => ${turbo.exports.getNaN()}`);
             })
 
         } catch (e) {

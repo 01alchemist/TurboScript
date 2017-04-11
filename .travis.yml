@@ -23,6 +23,7 @@ install:
 
 script:
   - yarn build
+  - yarn test:utils.spec
   - yarn tests:verbose
 
 cache:
