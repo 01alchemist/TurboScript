@@ -9,10 +9,24 @@ interface Nightly {
 
 const nightlyBaseUrl: string = "http://nodejs.org/download/nightly/";
 const request = require('request');
-const fs = require('fs');
+const fs = require('fs-extra');
+const path = require('path');
 const exec = require('child_process').exec;
-const installerName: string = `node-v8${getPlatform()}`;
-let fileName:string = null;
+const DOWNLOAD_NAME: string = `tmp/node-v8${getPlatform()}`;
+const NODE_PATH = "node-v8";
+let fileName: string = null;
+
+//Clean old files
+if (fs.existsSync(NODE_PATH)) {
+    fs.removeSync(NODE_PATH);
+}
+if (!fs.existsSync("tmp")) {
+    fs.mkdirSync("tmp");
+}
+
+console.log("##########################################");
+console.log("#   Installing node.js with webassembly  #");
+console.log("##########################################");
 
 request.get(nightlyBaseUrl + "index.json", function (error, response, body: string) {
     let nightlyInfo: Nightly[] = JSON.parse(body);
@@ -50,62 +64,51 @@ function startDownload(url) {
             console.log(err)
         })
         .on('end', () => {
-            console.log("Done");
+            console.log("Extracting...");
             let os = process.platform;
 
             switch (os) {
                 case "win32":
                     return installWindows();
                 case "darwin":
-                    return installMac();
                 case "linux":
-                    return installLinux();
+                    return installUnix();
             }
         })
-        .pipe(fs.createWriteStream(installerName));
+        .pipe(fs.createWriteStream(DOWNLOAD_NAME));
 }
 
 function installWindows() {
-    exec('7z x node-v8-win-x64.7z', (error, stdout, stderr) => {
+    exec(`7z x ${DOWNLOAD_NAME}`, (error, stdout, stderr) => {
         if (error) {
             console.error(`exec error: ${error}`);
             return;
         }
-        exec(`move ${fileName.replace(".7z", "")} node-v8`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`exec error: ${error}`);
-                return;
-            }
-        });
+        // exec(`move ${fileName.replace(".7z", "")} node-v8/bin`, (error, stdout, stderr) => {
+        //     if (error) {
+        //         console.error(`exec error: ${error}`);
+        //         return;
+        //     }
+        // });
+        if (!fs.existsSync("node-v8")) {
+            fs.mkdirSync("node-v8");
+        }
+        fs.moveSync(fileName.replace(".7z", ""), "node-v8/bin");
+        console.log("Cleaning...");
+        fs.removeSync(DOWNLOAD_NAME);
+        console.log("Completed!");
     });
 }
 
-function installMac() {
-    exec('tar -xf node-v8-darwin-x64.tar.xz', (error, stdout, stderr) => {
+function installUnix() {
+    exec(`tar -xf ${DOWNLOAD_NAME}`, (error, stdout, stderr) => {
         if (error) {
             console.error(`exec error: ${error}`);
             return;
         }
-        exec(`move ${fileName.replace(".tar.xz", "")} node-v8`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`exec error: ${error}`);
-                return;
-            }
-        });
-    });
-}
-
-function installLinux() {
-    exec('tar -xf node-v8-darwin-x64.tar.xz', (error, stdout, stderr) => {
-        if (error) {
-            console.error(`exec error: ${error}`);
-            return;
-        }
-        exec(`move ${fileName.replace(".tar.xz", "")} node-v8`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`exec error: ${error}`);
-                return;
-            }
-        });
+        fs.moveSync(fileName.replace(".tar.xz", ""), "node-v8");
+        console.log("Cleaning...");
+        fs.removeSync(DOWNLOAD_NAME);
+        console.log("Completed!");
     });
 }
