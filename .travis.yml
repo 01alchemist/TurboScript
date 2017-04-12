@@ -19,7 +19,7 @@ install:
   - npm uninstall turboscript
   - npm install
   - npm update
-  - yarn add:nodev8
+  - yarn install:node-v8
 
 script:
   - yarn build
