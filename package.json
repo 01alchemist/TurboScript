@@ -27,7 +27,7 @@
     "add:nodev8": "rm -rf nodev8 && mkdir nodev8 && curl https://nodejs.org/download/nightly/v8.0.0-nightly20170406a94a5da78c/node-v8.0.0-nightly20170406a94a5da78c-linux-x64.tar.xz -s -o node-v8.tar.xz && tar -xJf node-v8.tar.xz -C nodev8 --strip-components 1 && rm node-v8.tar.xz",
     "build:utils": "tsc -p tests/utils.tsconfig.json",
     "build:utils.spec": "tsc -p tests/utils.spec.tsconfig.json",
-    "run:utils.spec": "DEBUG=utils.spec alsatian build/tests/utils.spec.js --tap | tap-fail-exit-one",
+    "run:utils.spec": "DEBUG=utils.spec node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/utils.spec.js --tap | tap-fail-exit-one",
     "test:utils.spec": "yarn build:utils && yarn build:utils.spec && yarn run:utils.spec",
     "build": "tsc -p ./src && tsc lib/tc.ts",
     "test:build": "node tests/make.js",
