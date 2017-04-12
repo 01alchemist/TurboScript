@@ -703,7 +703,8 @@ class WasmModule {
             let returnType = node.functionReturnType();
             let shared = new WasmSharedOffset();
             let argumentTypesFirst: WasmWrappedType = null;
-            let argumentTypesLast: WasmWrappedType = null;
+            let argumentTypesLast: WasmWrappedType
+                = null;
             let symbol = node.symbol;
             let isConstructor: boolean = symbol.name == "constructor";
 
@@ -1252,13 +1253,13 @@ class WasmModule {
         else if (node.kind == NodeKind.FLOAT32) {
             appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
             log(array, byteOffset, node.floatValue, "f32 literal");
-            array.writeFloat(node.floatValue || 0);
+            array.writeFloat(node.floatValue);
         }
 
         else if (node.kind == NodeKind.FLOAT64) {
             appendOpcode(array, byteOffset, WasmOpcode.F64_CONST);
             log(array, byteOffset, node.doubleValue, "f64 literal");
-            array.writeDouble(node.doubleValue || 0);
+            array.writeDouble(node.doubleValue);
         }
 
         else if (node.kind == NodeKind.STRING) {

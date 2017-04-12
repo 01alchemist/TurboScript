@@ -408,7 +408,7 @@ export class Node {
         this.removeChildren();
     }
 
-    becomebooleaneanConstant(value: boolean): void {
+    becomeBooleanConstant(value: boolean): void {
         this.kind = NodeKind.BOOLEAN;
         this.symbol = null;
         this.intValue = value ? 1 : 0;
