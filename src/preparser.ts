@@ -36,6 +36,43 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
             wantNewline = false;
         }
 
+        else if (c == '/') {
+
+            // Single-line comments
+            if (i < limit && contents[i] == '/') {
+                i = i + 1;
+
+                while (i < limit && contents[i] != '\n') {
+                    i = i + 1;
+                }
+
+                continue;
+            }
+
+            // Multi-line comments
+            if (i < limit && contents[i] == '*') {
+                i = i + 1;
+                let foundEnd = false;
+
+                while (i < limit) {
+                    let next = contents[i];
+
+                    if (next == '*' && i + 1 < limit && contents[i + 1] == '/') {
+                        foundEnd = true;
+                        i = i + 2;
+                        break;
+                    }
+
+                    i = i + 1;
+                }
+
+                if (!foundEnd) {
+                    log.error(createRange(source, start, start + 2), "Unterminated multi-line comment");
+                    return null;
+                }
+            }
+        }
+
         // Identifier
         else if (isAlpha(c)) {
             while (i < limit && (isAlpha(contents[i]) || isNumber(contents[i]))) {

@@ -1,0 +1,6 @@
+// import "addTwo.tbs";
+import {addTwo4} from "./addTwo.tbs";
+
+export function test(a:float64, b:float64):float64{
+    return addTwo4(a, b);
+}
