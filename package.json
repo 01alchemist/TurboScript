@@ -18,6 +18,7 @@
     "fs-extra": "^2.1.2",
     "lite-server": "^2.2.2",
     "tap-fail-exit-one": "^1.0.0-beta.1",
+    "ts-jest": "^19.0.8",
     "ts-node": "^3.0.2",
     "typescript": "^2.1.4"
   },
@@ -31,14 +32,27 @@
     "run:utils.spec": "DEBUG=utils.spec alsatian build/tests/utils.spec.js --tap | tap-fail-exit-one",
     "test:utils.spec": "yarn build:utils && yarn build:utils.spec && yarn run:utils.spec",
     "build": "tsc -p ./src && tsc lib/tc.ts",
-    "test:build": "node tests/make.js",
     "watch": "tsc -w -p ./src",
     "watch-lib": "tsc -w lib/tc.ts",
+    "test:build": "node tests/make.js",
     "pretests": "tsc -p tests/turboscript.spec.tsconfig.json && yarn build:utils",
     "tests": "./node-v8/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/turboscript.spec.js",
     "pretests:verbose": "yarn pretests",
     "tests:verbose": "DEBUG=turboscript.spec ./node-v8/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/turboscript.spec.js --tap | tap-fail-exit-one"
   },
+
+  "jest": {
+    "transform": {
+      ".(ts|tsx)": "./node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ]
+  },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/01alchemist/TurboScript.git"
