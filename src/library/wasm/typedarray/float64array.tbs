@@ -74,13 +74,15 @@ export class Float64Array {
     operator [] (index: int32): float64 {
         let stripe = index * this.elementSize;
         if (stripe >= 0 && stripe < this.bytesLength) {
-            return *((this as *int32 + 8 + stripe) as *float64) as float64;
+            return *((this as *int8 + 8 + stripe) as *float64);
         }
         return NaN as float64;
     }
-    
+
     operator []= (index: int32, value: float64): void {
         let stripe = index * this.elementSize;
-        *((this as *int32 + 8 + stripe) as *float64) = value;
+        if (stripe >= 0 && stripe < this.bytesLength) {
+            *((this as *int8 + 8 + stripe) as *float64) = value;
+        }
     }
 }

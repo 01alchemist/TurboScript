@@ -4,25 +4,25 @@ export class Library {
     static get(target: CompileTarget) {
         let lib;
         switch (target) {
-            /*case CompileTarget.WEBASSEMBLY:
+            case CompileTarget.WEBASSEMBLY:
                 lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/types.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/foreign.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/malloc.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/math.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/array.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/wasm/typedarray/float64array.tbs") + "\n";
-                return lib;*/
+                return lib;
             case CompileTarget.TURBO_JAVASCRIPT:
                 lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/turbo/types.tbs") + "\n";
                 return lib;
-            case CompileTarget.WEBASSEMBLY:
+            /*case CompileTarget.WEBASSEMBLY:
                 lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/types.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/foreign.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/math.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/malloc.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/array.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/typedarray/float64array.tbs") + "\n";
-                return lib;
+                return lib;*/
             case CompileTarget.ASMJS:
                 lib = stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/types.tbs") + "\n";
                 lib += stdlib.IO_readTextFile(TURBO_PATH + "/src/library/asmjs/foreign.tbs") + "\n";

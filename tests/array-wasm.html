@@ -49,6 +49,9 @@
 
         let dataArray = turbo.exports.test(testData.length);
 
+        console.log('byte length:', turbo.exports.getArrayByteLength(turbo.exports.getArray()));
+        console.log('element size:', turbo.exports.getArrayElementSize(turbo.exports.getArray()));
+
         for (let i = 0; i < testData.length; i++) {
             let data = testData[i];
             let d1 = turbo.exports.getData(i);

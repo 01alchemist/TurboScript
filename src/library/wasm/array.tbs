@@ -3,23 +3,25 @@ export class Array<T> {
     bytesLength: int32;
     elementSize: int32;
 
+    constructor(bytesLength: int32, elementSize: int32) {
+        this.bytesLength = bytesLength;
+        this.elementSize = elementSize;
+    }
+
     // operator [] (index: int32): T;
-    operator [] (index: int32): *T {
+    operator [] (index: int32): T {
         let stripe = index * this.elementSize;
         if (stripe >= 0 && stripe < this.bytesLength) {
-            return *((this as *int32 + 8 + stripe) as *int32) as *T;
+            return *((this as *int8 + 8 + stripe) as *T);
         }
         return null;
     }
 
-    operator []= (index: int32, value: *T): void {
+    operator []= (index: int32, value: T): void {
         let stripe = index * this.elementSize;
-        *((this as *int32 + 8 + stripe) as *int32) = value;
-    }
-
-    constructor(bytesLength: int32, elementSize: int32) {
-        this.bytesLength = bytesLength;
-        this.elementSize = elementSize;
+        if (stripe >= 0 && stripe < this.bytesLength) {
+            *((this as *int8 + 8 + stripe) as *T) = value;
+        }
     }
 
     get length(): int32 {
