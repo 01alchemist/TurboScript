@@ -164,13 +164,13 @@ export function free(ptr:*uint8):void{
     }
     return null;
 }
-export function getHeapPtr(): int32 {
+/*export*/ function getHeapPtr(): int32 {
     return currentHeapPointer as int32;
 }
-export function getFreeMemory(): int32 {
+/*export*/ function getFreeMemory(): int32 {
     return freeMemory;
 }
-export function getOriginalHeapPtr(): int32 {
+/*export*/ function getOriginalHeapPtr(): int32 {
     return originalHeapPointer as int32;
 }
 function getNumFreeChunks():int32{
