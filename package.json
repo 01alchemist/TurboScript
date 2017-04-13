@@ -16,6 +16,7 @@
     "alsatian": "^1.3.0",
     "debug": "^2.6.3",
     "fs-extra": "^2.1.2",
+    "jest": "^19.0.2",
     "lite-server": "^2.2.2",
     "tap-fail-exit-one": "^1.0.0-beta.1",
     "ts-jest": "^19.0.8",
@@ -40,7 +41,6 @@
     "pretests:verbose": "yarn pretests",
     "tests:verbose": "DEBUG=turboscript.spec ./node-v8/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/turboscript.spec.js --tap | tap-fail-exit-one"
   },
-
   "jest": {
     "transform": {
       ".(ts|tsx)": "./node_modules/ts-jest/preprocessor.js"
@@ -52,7 +52,6 @@
       "js"
     ]
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/01alchemist/TurboScript.git"
