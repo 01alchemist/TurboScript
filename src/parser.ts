@@ -785,14 +785,16 @@ class ParserContext {
                 let range = importName.range;
                 let _import = createInternalImport(importName.range.toString());
                 node.appendChild(_import.withRange(range).withInternalRange(importName.range));
+                this.advance();
 
                 if (!this.eat(TokenKind.COMMA)) {
                     break;
                 }
             }
 
-            this.advance();
-            assert(this.expect(TokenKind.RIGHT_BRACE));
+            // this.advance();
+            // assert(this.expect(TokenKind.RIGHT_BRACE));
+            this.expect(TokenKind.RIGHT_BRACE);
         }
 
         this.expect(TokenKind.FROM);
