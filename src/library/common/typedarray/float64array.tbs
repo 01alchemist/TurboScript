@@ -1,4 +1,4 @@
-class Float64Array {
+/*class Float64Array {
 
     length: int32;
     bytesLength: int32;
@@ -75,5 +75,35 @@ class Float64Array {
     }
     operator []= (index: int32, value:float64):void {
         *((this as *int32 + 8 + index * 8) as *float64) = value;
+    }
+}*/
+
+export class Float64Array {
+
+    elementSize: int32;
+    bytesLength: int32;
+
+    constructor(length: int32) {
+        this.elementSize = 8;
+        this.bytesLength = length * this.elementSize;
+    }
+
+    get length(): int32 {
+        return this.bytesLength / this.elementSize;
+    }
+
+    operator [] (index: int32): float64 {
+        let stripe = index * this.elementSize;
+        if (stripe >= 0 && stripe < this.bytesLength) {
+            return *((this as *int8 + 8 + stripe) as *float64);
+        }
+        return NaN as float64;
+    }
+
+    operator []= (index: int32, value: float64): void {
+        let stripe = index * this.elementSize;
+        if (stripe >= 0 && stripe < this.bytesLength) {
+            *((this as *int8 + 8 + stripe) as *float64) = value;
+        }
     }
 }
