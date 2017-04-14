@@ -1,0 +1,13 @@
+{
+    "extends": "../tsconfig.base.json",
+    "compilerOptions": {
+        "target": "es6",
+        "module": "system",
+        "moduleResolution": "Node",
+        "noImplicitAny": false,
+        "outDir": "."
+    },
+    "files": [
+        "tc.ts"
+    ]
+}

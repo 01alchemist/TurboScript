@@ -65,16 +65,18 @@ export class UtilsTests {
 
         debug(`testTcCompileSuccess:+ ${inFile} to ${outFile}`);
 
-        Expect(async () => await tcCompile(inFile, outFile)).not.toThrow();
-        debug(`testTcCompileSuccess: ${inFile} to ${outFile}`);
-        
-        Expect(async () => {
+        try {
+            await tcCompile(inFile, outFile);
+            debug(`testTcCompileSuccess: ${inFile} to ${outFile}`);
+
             let stats = await statAsync(outFile);
             debug(`testTcCompileSuccess: stat ${outFile} stats=${JSON.stringify(stats)} done`);
-        }).not.toThrow();
 
-        Expect(async () => await unlinkAsync(outFile)).not.toThrow();
-        debug(`testTcCompileSuccess: unlink ${outFile} done`);
+            await unlinkAsync(outFile);
+            debug(`testTcCompileSuccess: unlink ${outFile} done`);
+        } catch (err) {
+            Expect(`TestTcCompileSuccess: error=${err}`).not.toBeTruthy(); // Always fail
+        }
 
         debug(`tcCompile:- ${inFile} to ${outFile}`);
     }
