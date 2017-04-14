@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@types/debug": "^0.0.29",
+    "@types/jest": "^19.2.2",
     "@types/node": "^7.0.12",
     "alsatian": "^1.3.0",
     "debug": "^2.6.3",
@@ -19,7 +20,7 @@
     "jest": "^19.0.2",
     "lite-server": "^2.2.2",
     "tap-fail-exit-one": "^1.0.0-beta.1",
-    "ts-jest": "^19.0.8",
+    "ts-jest": "^19.0.9",
     "ts-node": "^3.0.2",
     "typescript": "^2.1.4"
   },
@@ -28,18 +29,10 @@
   },
   "scripts": {
     "install:node-v8": "ts-node ./scripts/install-node-v8.ts",
-    "build:utils": "tsc -p tests/utils.tsconfig.json",
-    "build:utils.spec": "tsc -p tests/utils.spec.tsconfig.json",
-    "run:utils.spec": "DEBUG=utils.spec alsatian build/tests/utils.spec.js --tap | tap-fail-exit-one",
-    "test:utils.spec": "yarn build:utils && yarn build:utils.spec && yarn run:utils.spec",
     "build": "tsc -p ./src && tsc lib/tc.ts",
-    "watch": "tsc -w -p ./src",
-    "watch-lib": "tsc -w lib/tc.ts",
-    "test:build": "node tests/make.js",
-    "pretests": "tsc -p tests/turboscript.spec.tsconfig.json && yarn build:utils",
-    "tests": "./node-v8/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/turboscript.spec.js",
-    "pretests:verbose": "yarn pretests",
-    "tests:verbose": "DEBUG=turboscript.spec ./node-v8/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/turboscript.spec.js --tap | tap-fail-exit-one"
+    "watch-build": "tsc -w -p ./src && tsc -w -p ./lib",
+    "test": "./node-v8/bin/node ./node_modules/jest/bin/jest.js ",
+    "watch-test": "./node-v8/bin/node ./node_modules/jest/bin/jest.js --watch"
   },
   "jest": {
     "transform": {
