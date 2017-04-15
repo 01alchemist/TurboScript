@@ -1,0 +1,16 @@
+export class InternalMod1 {
+
+    id:int32 = 1;
+
+    constructor() {
+
+    }
+}
+export class InternalMod2 {
+
+    id:int32 = 2;
+
+    constructor() {
+
+    }
+}

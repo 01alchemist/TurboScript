@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Local import</title>
+</head>
+<body>
+<script>
+
+    async function init() {
+        let data = await fetch("./bin/local-import.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                window.exports = new WebAssembly.Instance(compiled).exports;
+                console.log("test(1.5, 3.1) => " + exports.test(1.5, 3.1));
+                console.log("WASM Compiled!");
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
