@@ -27,3 +27,10 @@ export class Array<T> {
         return this.bytesLength / this.elementSize;
     }
 }
+
+//declare type Int32Array   = Array< int32 >
+//declare type Uint32Array  = Array< uint32 >
+//declare type Int64Array   = Array< int64 >
+//declare type Uint64Array  = Array< uint64 >
+//declare type Float32Array = Array< float32 >
+//declare type Float64Array = Array< float64 >
