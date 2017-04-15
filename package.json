@@ -35,6 +35,9 @@
     "watch-test": "./node-v8/bin/node ./node_modules/jest/bin/jest.js --watch"
   },
   "jest": {
+     "globals": {
+      "__TS_CONFIG__": "tsconfig.base.json"
+    },
     "transform": {
       ".(ts|tsx)": "./node_modules/ts-jest/preprocessor.js"
     },
