@@ -1,4 +1,4 @@
-export class Array<T> {
+class Array<T> {
 
     bytesLength: int32;
     elementSize: int32;
