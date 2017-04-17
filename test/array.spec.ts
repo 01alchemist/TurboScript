@@ -1,10 +1,10 @@
 import * as path from "path";
-import { getWasmInstance } from "./utils/utils";
+import { getWasmInstanceSync } from "./utils/utils";
 
 const testFile: string = "array";
 
 test('it should create an array', () => {
-    const instance: WebAssembly.Instance = getWasmInstance(
+    const instance: WebAssembly.Instance = getWasmInstanceSync(
         path.join(__dirname, `${testFile}.tbs`),
         path.join(__dirname, `bin/${testFile}.wasm`)
     );

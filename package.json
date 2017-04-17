@@ -41,10 +41,9 @@
     "transform": {
       ".(ts|tsx)": "./node_modules/ts-jest/preprocessor.js"
     },
-    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
+    "testRegex": "(\\.(test|spec))\\.(ts)$",
     "moduleFileExtensions": [
       "ts",
-      "tsx",
       "js"
     ]
   },
@@ -52,7 +51,11 @@
     "type": "git",
     "url": "git+https://github.com/01alchemist/TurboScript.git"
   },
-  "author": "Nidin Vinayakan",
+  "author": "Nidin Vinayakan <01@01alchemist.com> (https://01alchemist.com)",
+  "contributors" : [
+    "Max Graey <maxgraey@gmail.com> (https://github.com/MaxGraey)",
+    "Wink Saville <wink@saville.com> (https://github.com/winksaville)"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/01alchemist/TurboScript/issues"
