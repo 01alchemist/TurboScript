@@ -2,30 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>addTwo test</title>
+    <title>NaN export</title>
 </head>
 <body>
-<script>
+    <script>
+        var turbo;
+        async function init() {
+            let data = await fetch("./bin/NaN.wasm");
+            let wasmBytes = await data.arrayBuffer();
+            try {
+                WebAssembly.compile(wasmBytes).then(function (compiled) {
+                    turbo = new WebAssembly.Instance(compiled);
 
-    var turbo;
+                    console.log("TurboScript WASM");
+                    console.log("----------------");
+                    console.log(`turbo.exports.getNaN() => ${turbo.exports.getNaN()}`);
+                })
 
-    async function init() {
-        let data = await fetch("./bin/NaN.wasm");
-        let wasmBytes = await data.arrayBuffer();
-        try {
-            WebAssembly.compile(wasmBytes).then(function (compiled) {
-                turbo = new WebAssembly.Instance(compiled);
-
-                console.log("TurboScript WASM");
-                console.log("----------------");
-                console.log(`turbo.exports.getNaN() => ${turbo.exports.getNaN()}`);
-            })
-
-        } catch (e) {
-            console.error(e);
+            } catch (e) {
+                console.error(e);
+            }
         }
-    }
-    init();
-</script>
+        init();
+    </script>
 </body>
 </html>

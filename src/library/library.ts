@@ -21,8 +21,7 @@ export class Library {
                     readLibraryFile("/common/foreign.tbs"),
                     readLibraryFile("/common/math.tbs"),
                     readLibraryFile("/common/malloc.tbs"),
-                    readLibraryFile("/common/array.tbs"),
-                    readLibraryFile("/common/typedarray/float64array.tbs")
+                    readLibraryFile("/common/array.tbs")
                 ].join('\n');
                 break;
         }

@@ -8,18 +8,29 @@ class Array<T> {
         this.elementSize = elementSize;
     }
 
-    get length(): int32 {
-        return this.bytesLength / this.elementSize;
-    }
-
     operator [] (index: int32): T {
-        let length = this.bytesLength / this.elementSize;
-        if (index < length) {
-            return *((this as *int32 + 8) + index * 4) as T;
+        let stripe = index * this.elementSize;
+        if (stripe >= 0 && stripe < this.bytesLength) {
+            return *((this as *int8 + 8 + stripe) as *T);
         }
         return null;
     }
-    operator []= (index: int32, value:T):void {
-        *(((this as *int32 + 8) + index * 4) as *int32) = value as int32;
+
+    operator []= (index: int32, value: T): void {
+        let stripe = index * this.elementSize;
+        if (stripe >= 0 && stripe < this.bytesLength) {
+            *((this as *int8 + 8 + stripe) as *T) = value;
+        }
+    }
+
+    get length(): int32 {
+        return this.bytesLength / this.elementSize;
     }
 }
+
+//declare type Int32Array   = Array< int32 >
+//declare type Uint32Array  = Array< uint32 >
+//declare type Int64Array   = Array< int64 >
+//declare type Uint64Array  = Array< uint64 >
+//declare type Float32Array = Array< float32 >
+//declare type Float64Array = Array< float64 >
