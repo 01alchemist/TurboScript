@@ -23,7 +23,7 @@
 
 "@types/webassembly-js-api.d.ts@https://github.com/winksaville/webassembly-js-api.d.ts":
   version "1.0.0"
-  resolved "https://github.com/winksaville/webassembly-js-api.d.ts#0683bb020499b5b41e1fa6dd7829202aa199c5fd"
+  resolved "https://github.com/winksaville/webassembly-js-api.d.ts#0b29fcc83b97f5f2585852281acb8d186227d56f"
 
 abbrev@1:
   version "1.1.0"
@@ -57,15 +57,15 @@ after@0.8.1:
   resolved "https://registry.yarnpkg.com/after/-/after-0.8.1.tgz#ab5d4fb883f596816d3515f8f791c0af486dd627"
 
 ajv@^4.9.1:
-  version "4.11.5"
-  resolved "https://registry.yarnpkg.com/ajv/-/ajv-4.11.5.tgz#b6ee74657b993a01dce44b7944d56f485828d5bd"
+  version "4.11.6"
+  resolved "https://registry.yarnpkg.com/ajv/-/ajv-4.11.6.tgz#947e93049790942b2a2d60a8289b28924d39f987"
   dependencies:
     co "^4.6.0"
     json-stable-stringify "^1.0.1"
 
 alsatian@^1.3.0:
-  version "1.3.0"
-  resolved "https://registry.yarnpkg.com/alsatian/-/alsatian-1.3.0.tgz#616d31a190ef54bb6a1f2d865c02a28aa107bdbd"
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/alsatian/-/alsatian-1.3.1.tgz#098b34c5205e3e5c446514a41d3194f7d4c3a63d"
   dependencies:
     "@types/glob" "^5.0.30"
     "@types/node" ">=0.0.2"
@@ -609,8 +609,8 @@ eventemitter3@1.x.x:
   resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-1.2.0.tgz#1c86991d816ad1e504750e73874224ecf3bec508"
 
 events-to-array@^1.0.1:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/events-to-array/-/events-to-array-1.0.2.tgz#b3484465534fe4ff66fbdd1a83b777713ba404aa"
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/events-to-array/-/events-to-array-1.1.2.tgz#2d41f563e1fe400ed4962fe1a4d5c6a7539df7f6"
 
 expand-brackets@^0.1.4:
   version "0.1.5"
@@ -697,8 +697,8 @@ forever-agent@~0.6.1:
   resolved "https://registry.yarnpkg.com/forever-agent/-/forever-agent-0.6.1.tgz#fbc71f0c41adeb37f96c577ad1ed42d8fdacca91"
 
 form-data@~2.1.1:
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/form-data/-/form-data-2.1.2.tgz#89c3534008b97eada4cbb157d58f6f5df025eae4"
+  version "2.1.4"
+  resolved "https://registry.yarnpkg.com/form-data/-/form-data-2.1.4.tgz#33c183acf193276ecaa98143a69e94bfee1750d1"
   dependencies:
     asynckit "^0.4.0"
     combined-stream "^1.0.5"
@@ -1240,8 +1240,8 @@ ms@0.7.2:
   resolved "https://registry.yarnpkg.com/ms/-/ms-0.7.2.tgz#ae25cf2512b3885a1d95d7f037868d8431124765"
 
 nan@^2.3.0:
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/nan/-/nan-2.6.1.tgz#8c84f7b14c96b89f57fbc838012180ec8ca39a01"
+  version "2.6.2"
+  resolved "https://registry.yarnpkg.com/nan/-/nan-2.6.2.tgz#e4ff34e6c95fdfb5aecc08de6596f43605a7db45"
 
 negotiator@0.6.1:
   version "0.6.1"
@@ -1525,8 +1525,8 @@ read-pkg@^1.0.0:
     path-type "^1.0.0"
 
 readable-stream@^2, "readable-stream@^2.0.0 || ^1.1.13", readable-stream@^2.0.2, readable-stream@^2.1.4, readable-stream@^2.1.5:
-  version "2.2.8"
-  resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.2.8.tgz#ad28b686f3554c73d39bc32347fa058356624705"
+  version "2.2.9"
+  resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.2.9.tgz#cf78ec6f4a6d1eb43d26488cac97f042e74b7fc8"
   dependencies:
     buffer-shims "~1.0.0"
     core-util-is "~1.0.0"
@@ -1984,8 +1984,8 @@ tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-0.14.5.tgz#5ae68177f192d4456269d108afa93ff8743f4f64"
 
 typescript@^2.1.4:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.2.2.tgz#606022508479b55ffa368b58fee963a03dfd7b0c"
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.3.0.tgz#2e63e09284392bc8158a2444c33e2093795c0418"
 
 ua-parser-js@0.7.12:
   version "0.7.12"
