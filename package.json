@@ -8,41 +8,54 @@
   },
   "dependencies": {
     "@types/webassembly-js-api.d.ts": "https://github.com/winksaville/webassembly-js-api.d.ts",
-    "alsatian": "^1.3.0",
     "systemjs": "^0.19.41"
   },
   "devDependencies": {
     "@types/debug": "^0.0.29",
+    "@types/jest": "^19.2.2",
     "@types/node": "^7.0.12",
+    "alsatian": "^1.3.0",
     "debug": "^2.6.3",
+    "fs-extra": "^2.1.2",
+    "jest": "^19.0.2",
     "lite-server": "^2.2.2",
     "tap-fail-exit-one": "^1.0.0-beta.1",
-    "ts-node": "^3.0.0",
+    "ts-jest": "^19.0.9",
+    "ts-node": "^3.0.2",
     "typescript": "^2.1.4"
   },
   "bin": {
     "tc": "./bin/tc"
   },
   "scripts": {
-    "add:nodev8": "rm -rf nodev8 && mkdir nodev8 && curl https://nodejs.org/download/nightly/v8.0.0-nightly20170406a94a5da78c/node-v8.0.0-nightly20170406a94a5da78c-linux-x64.tar.xz -s -o node-v8.tar.xz && tar -xJf node-v8.tar.xz -C nodev8 --strip-components 1 && rm node-v8.tar.xz",
-    "build:utils": "tsc -p tests/utils.tsconfig.json",
-    "build:utils.spec": "tsc -p tests/utils.spec.tsconfig.json",
-    "run:utils.spec": "DEBUG=utils.spec node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/utils.spec.js --tap | tap-fail-exit-one",
-    "test:utils.spec": "yarn build:utils && yarn build:utils.spec && yarn run:utils.spec",
-    "build": "tsc -p ./src && tsc -p ./lib",
-    "test:build": "node tests/make.js",
-    "watch": "tsc -w -p ./src",
-    "watch-lib": "tsc -w lib/tc.ts",
-    "pretests": "tsc -p tests/turboscript.spec.tsconfig.json && yarn build:utils",
-    "tests": "./nodev8/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/turboscript.spec.js",
-    "pretests:verbose": "yarn pretests",
-    "tests:verbose": "DEBUG=turboscript.spec ./nodev8/bin/node --expose_wasm node_modules/alsatian/cli/alsatian-cli.js --timeout 2000 build/tests/turboscript.spec.js --tap | tap-fail-exit-one"
+    "install:node-v8": "ts-node ./scripts/install-node-v8.ts",
+    "build": "tsc -p ./src && tsc lib/tc.ts",
+    "watch-build": "tsc -w -p ./src && tsc -w -p ./lib",
+    "test": "./node-v8/bin/node ./node_modules/jest/bin/jest.js ",
+    "watch-test": "./node-v8/bin/node ./node_modules/jest/bin/jest.js --watch"
+  },
+  "jest": {
+     "globals": {
+      "__TS_CONFIG__": "tsconfig.base.json"
+    },
+    "transform": {
+      ".(ts|tsx)": "./node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(\\.(test|spec))\\.(ts)$",
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ]
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/01alchemist/TurboScript.git"
   },
-  "author": "Nidin Vinayakan",
+  "author": "Nidin Vinayakan <01@01alchemist.com> (https://01alchemist.com)",
+  "contributors" : [
+    "Max Graey <maxgraey@gmail.com> (https://github.com/MaxGraey)",
+    "Wink Saville <wink@saville.com> (https://github.com/winksaville)"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/01alchemist/TurboScript/issues"
