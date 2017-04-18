@@ -1,11 +1,9 @@
 import * as path from "path";
 import { getWasmInstanceSync } from "./utils/utils";
 
-const testFile: string = "array";
-
 test('it should create an array', () => {
     const instance: WebAssembly.Instance = getWasmInstanceSync(
-        path.join(__dirname, `${testFile}.tbs`)
+        path.join(__dirname, 'array.tbs')
     );
     const HEAPF32 = new Float32Array(instance.exports.memory.buffer);
     let testData = [];

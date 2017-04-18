@@ -1,18 +1,15 @@
 import * as path from "path";
 import { getWasmInstanceSync } from "./utils/utils";
 
-const testFile: string = "linker";
-const libFile: string = "linker-lib";
-
 let instance: WebAssembly.Instance;
 let libInstance: WebAssembly.Instance;
 
 test("it should compile without error", () => {
     libInstance = getWasmInstanceSync(
-        path.join(__dirname, `${libFile}.tbs`)
+        path.join(__dirname, 'linker-lib.tbs')
     );
     instance = getWasmInstanceSync(
-        path.join(__dirname, `${testFile}.tbs`),
+        path.join(__dirname, 'linker.tbs'),
         { global: libInstance.exports }
     );
     expect(libInstance).toBeDefined();

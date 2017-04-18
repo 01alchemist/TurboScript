@@ -5,7 +5,7 @@ import * as path from "path";
 //Windows spawn work around
 let spawnSync: any = child.spawnSync;
 if (process.platform === 'win32') {
-    spawnSync = function (cmd, args) {
+    spawnSync = (cmd: string, args: string[]) => {
         return child.spawnSync('node', [cmd].concat(args));
     }
 }
@@ -20,7 +20,7 @@ export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outpu
     outputFile = outputFile || getDefaultOutputFile(sourcePath);
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
-    if(compileInfo.status > 0) { 
+    if (compileInfo.status > 0) {
         throw new Error(`Compile Error! \n${compileInfo.stdout}`);
     }
     const data = fs.readFileSync(outputFile);
@@ -38,7 +38,7 @@ export async function getWasmInstance(sourcePath: string, imports: any = {}, out
     outputFile = outputFile || getDefaultOutputFile(sourcePath);
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
-    if(compileInfo.status > 0) { 
+    if (compileInfo.status > 0) {
         throw new Error(`Compile Error! \n${compileInfo.stdout}`);
     }
     const data = fs.readFileSync(outputFile);
@@ -56,8 +56,9 @@ function clean(file: string) {
     }
 }
 
-function getDefaultOutputFile(inputFile:string):string {
-    let fileName = inputFile.substring(inputFile.lastIndexOf("/"), inputFile.length);
-    let folderName = inputFile.substring(0, inputFile.lastIndexOf("/"));
-    return folderName + "/bin/" + fileName.replace(".tbs", ".wasm");
+function getDefaultOutputFile(inputFile: string): string {
+    const sep = path.sep;
+    let fileName = inputFile.substring(inputFile.lastIndexOf(sep), inputFile.length);
+    let folderName = inputFile.substring(0, inputFile.lastIndexOf(sep));
+    return `${folderName}${sep}bin${sep}${fileName.replace(".tbs", ".wasm")}`;
 }
