@@ -6,6 +6,12 @@
   version "0.0.29"
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-0.0.29.tgz#a1e514adfbd92f03a224ba54d693111dbf1f3754"
 
+"@types/fs-extra@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@types/fs-extra/-/fs-extra-2.1.0.tgz#8b350239c0455d92b8d3c626edac193860ff395f"
+  dependencies:
+    "@types/node" "*"
+
 "@types/glob@^5.0.30":
   version "5.0.30"
   resolved "https://registry.yarnpkg.com/@types/glob/-/glob-5.0.30.tgz#1026409c5625a8689074602808d082b2867b8a51"
@@ -25,9 +31,9 @@
   version "7.0.12"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-7.0.12.tgz#ae5f67a19c15f752148004db07cbbb372e69efc9"
 
-"@types/webassembly-js-api.d.ts@https://github.com/winksaville/webassembly-js-api.d.ts":
-  version "1.0.0"
-  resolved "https://github.com/winksaville/webassembly-js-api.d.ts#0b29fcc83b97f5f2585852281acb8d186227d56f"
+"@types/webassembly-js-api@^0.0.0":
+  version "0.0.0"
+  resolved "https://registry.yarnpkg.com/@types/webassembly-js-api/-/webassembly-js-api-0.0.0.tgz#a4def3c6d1a5c951190d1649e6844eda9a9e5432"
 
 abab@^1.0.3:
   version "1.0.3"

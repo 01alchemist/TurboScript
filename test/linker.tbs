@@ -1,0 +1,5 @@
+declare function externalFn (value:int32):int32;
+
+export function test (value:int32):int32 {
+    return externalFn(value);
+}
