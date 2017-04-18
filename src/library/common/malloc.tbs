@@ -1,4 +1,3 @@
-// These will be filled in by the WebAssembly code generator
 var originalHeapPointer: *uint8 = null;
 var currentHeapPointer: *uint8 = null;
 

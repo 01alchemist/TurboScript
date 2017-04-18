@@ -19,12 +19,11 @@ install:
   - npm uninstall turboscript
   - npm install
   - npm update
-  - yarn add:nodev8
+  - yarn install:node-v8
 
 script:
   - yarn build
-  - yarn test:utils.spec
-  - yarn tests:verbose
+  - yarn test
 
 cache:
   yarn: true

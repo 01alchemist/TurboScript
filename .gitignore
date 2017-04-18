@@ -6,7 +6,7 @@ bin-release/
 # Other files and folders
 .settings/
 *.log
-nodev8/
+node-v8/
 
 # Executables
 *.swf
