@@ -1,0 +1,5 @@
+# Ignore all files so its basically empty
+*
+
+# Except this file
+!.gitignore
