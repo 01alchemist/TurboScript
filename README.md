@@ -1,10 +1,8 @@
-# TurboScript [![Build Status](https://travis-ci.org/01alchemist/TurboScript.svg?branch=master)](https://travis-ci.org/01alchemist/TurboScript) [![Stories in Ready](https://badge.waffle.io/01alchemist/TurboScript.png?label=ready&title=Ready)](https://waffle.io/01alchemist/TurboScript)
+# TurboScript [![Build Status](https://travis-ci.org/01alchemist/TurboScript.svg?branch=master)](https://travis-ci.org/01alchemist/TurboScript) [![Stories in Ready](https://badge.waffle.io/01alchemist/TurboScript.png?label=ready&title=Ready)](https://waffle.io/01alchemist/TurboScript) [![Greenkeeper badge](https://badges.greenkeeper.io/01alchemist/TurboScript.svg)](https://greenkeeper.io/)
 
 Super charged JavaScript for parallel programming and WebAssembly 
 
 [![Throughput Graph](https://graphs.waffle.io/01alchemist/TurboScript/throughput.svg)](https://waffle.io/01alchemist/TurboScript/metrics/throughput)
-
-[![Greenkeeper badge](https://badges.greenkeeper.io/01alchemist/TurboScript.svg)](https://greenkeeper.io/)
 
 <pre>
     @             _________
