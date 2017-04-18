@@ -1,0 +1,15 @@
+export function sin (value:float64):float64 {
+    return Math.sin(value);
+}
+
+export function cos (value:float64):float64 {
+    return Math.cos(value);
+}
+
+export function tan (value:float64):float64 {
+    return Math.tan(value);
+}
+
+export function abs (value:float32):float32 {
+    return Math.abs(value);
+}
