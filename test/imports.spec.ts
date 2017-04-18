@@ -4,6 +4,7 @@ import { getWasmInstanceSync } from "./utils/utils";
 const testFile: string = "imports";
 
 let instance: WebAssembly.Instance;
+const TwoPI = 2 * Math.PI;
 
 test("it should compile without error", () => {
     instance = getWasmInstanceSync(
@@ -14,7 +15,7 @@ test("it should compile without error", () => {
 })
 
 test("it should import sin function from javascript", () => {
-    const value: number = Math.random() * 360;
+    const value: number = Math.random() * TwoPI;
     const expected: number = Math.sin(value);
 
     const result: number = instance.exports.sin(value);
@@ -22,7 +23,7 @@ test("it should import sin function from javascript", () => {
 });
 
 test("it should import cos function from javascript", () => {
-    const value: number = Math.random() * 360;
+    const value: number = Math.random() * TwoPI;
     const expected: number = Math.cos(value);
 
     const result: number = instance.exports.cos(value);
@@ -30,7 +31,7 @@ test("it should import cos function from javascript", () => {
 });
 
 test("it should import tan function from javascript", () => {
-    const value: number = Math.random() * 360;
+    const value: number = Math.random() * TwoPI;
     const expected: number = Math.tan(value);
 
     const result: number = instance.exports.tan(value);
