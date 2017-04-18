@@ -22,7 +22,7 @@
     "tap-fail-exit-one": "^1.0.0-beta.1",
     "ts-jest": "^19.0.9",
     "ts-node": "^3.0.2",
-    "typescript": "^2.1.4"
+    "typescript": "^2.2.2"
   },
   "bin": {
     "tc": "./bin/tc"
@@ -35,7 +35,7 @@
     "watch-test": "./node-v8/bin/node ./node_modules/jest/bin/jest.js --watch"
   },
   "jest": {
-     "globals": {
+    "globals": {
       "__TS_CONFIG__": "tsconfig.base.json"
     },
     "transform": {
@@ -52,7 +52,7 @@
     "url": "git+https://github.com/01alchemist/TurboScript.git"
   },
   "author": "Nidin Vinayakan <01@01alchemist.com> (https://01alchemist.com)",
-  "contributors" : [
+  "contributors": [
     "Max Graey <maxgraey@gmail.com> (https://github.com/MaxGraey)",
     "Wink Saville <wink@saville.com> (https://github.com/winksaville)"
   ],
