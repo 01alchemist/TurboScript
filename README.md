@@ -4,6 +4,8 @@ Super charged JavaScript for parallel programming and WebAssembly
 
 [![Throughput Graph](https://graphs.waffle.io/01alchemist/TurboScript/throughput.svg)](https://waffle.io/01alchemist/TurboScript/metrics/throughput)
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/01alchemist/TurboScript.svg)](https://greenkeeper.io/)
+
 <pre>
     @             _________
      \____       /         \
