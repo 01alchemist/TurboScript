@@ -46,6 +46,7 @@ Math["log2"] = Math["log2"] || function (x) {
 var fs = require('fs');
 var path = require('path');
 var SystemJS = require('systemjs');
+global["System"] = SystemJS;
 SystemJS.defaultJSExtensions = true;
 
 if(!process.env.TURBO_PATH){
