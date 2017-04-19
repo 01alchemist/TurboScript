@@ -6,7 +6,7 @@ import * as path from "path";
 let spawnSync: any = child.spawnSync;
 if (process.platform === 'win32') {
     spawnSync = (cmd: string, args: string[]) => {
-        return child.spawnSync('node', [cmd].concat(args));
+        return child.spawnSync(path.join(__dirname, '../../node-v8/bin/node.exe'), [cmd].concat(args));
     }
 }
 
@@ -21,7 +21,7 @@ export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outpu
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
     if (compileInfo.status > 0) {
-        throw new Error(`Compile Error! \n${compileInfo.stdout}`);
+        throw new Error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
     }
     const data = fs.readFileSync(outputFile);
     const mod = new WebAssembly.Module(data);
@@ -39,7 +39,7 @@ export async function getWasmInstance(sourcePath: string, imports: any = {}, out
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
     if (compileInfo.status > 0) {
-        throw new Error(`Compile Error! \n${compileInfo.stdout}`);
+        throw new Error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
     }
     const data = fs.readFileSync(outputFile);
     const result: WebAssembly.ResultObject = await WebAssembly.instantiate(data, imports);
