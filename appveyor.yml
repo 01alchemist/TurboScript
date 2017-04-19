@@ -1,0 +1,12 @@
+install:
+    - cmd: npm uninstall turboscript
+    - cmd: npm install
+    - cmd: npm update
+    - cmd: npm run install:node-v8
+
+build_script:
+    - cmd: npm run build
+    - cmd: npm run test
+
+test_script:
+    - bash test.bash
