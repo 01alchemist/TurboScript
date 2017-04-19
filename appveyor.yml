@@ -1,4 +1,5 @@
 install:
+    - ps: Install-Product node ''
     - cmd: npm uninstall turboscript
     - cmd: npm install
     - cmd: npm update
