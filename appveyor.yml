@@ -7,7 +7,6 @@ install:
 
 build_script:
     - cmd: yarn build
-    - cmd: yarn test
 
 test_script:
-    - bash test.bash
+    - cmd: yarn test
