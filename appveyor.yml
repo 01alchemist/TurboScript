@@ -5,8 +5,8 @@ install:
     - cmd: npm run install:node-v8
 
 build_script:
-    - cmd: npm run build
-    - cmd: npm run test
+    - cmd: yarn build
+    - cmd: yarn test
 
 test_script:
     - bash test.bash
