@@ -33,7 +33,7 @@
     "install:node-v8": "ts-node ./scripts/install-node-v8.ts",
     "build": "tsc -p ./src && tsc lib/tc.ts",
     "watch-build": "tsc -w -p ./src && tsc -w -p ./lib",
-    "test": "bash scripts/test",
+    "test": "./node-v8/bin/node ./node_modules/jest/bin/jest.js ",
     "watch-test": "./node-v8/bin/node ./node_modules/jest/bin/jest.js --watch"
   },
   "jest": {
