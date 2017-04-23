@@ -10,8 +10,8 @@
     "systemjs": "^0.20.12"
   },
   "devDependencies": {
-    "@types/fs-extra": "^2.1.0",
     "@types/debug": "^0.0.29",
+    "@types/fs-extra": "^2.1.0",
     "@types/jest": "^19.2.2",
     "@types/node": "^7.0.12",
     "@types/webassembly-js-api": "^0.0.0",
@@ -20,6 +20,7 @@
     "fs-extra": "^2.1.2",
     "jest": "^19.0.2",
     "lite-server": "^2.2.2",
+    "request": "^2.81.0",
     "tap-fail-exit-one": "^1.0.0-beta.1",
     "ts-jest": "^19.0.9",
     "ts-node": "^3.0.2",
