@@ -662,7 +662,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
  * @param context
  * @param type
  * @param parameters
- * @param parentScope
+ * @param scope
  * @returns {Symbol}
  */
 function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[], scope: Scope) {
@@ -734,11 +734,11 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
 
     while (child) {
 
-        if (child.stringValue == "this" && child.parent.symbol && child.parent.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
+        if (child.stringValue == "this" && child.parent.symbol &&
+            child.parent.symbol.kind == SymbolKind.FUNCTION_INSTANCE && child.parent.firstChild == child) {
             child = child.nextSibling;
             continue;
         }
-
         let childNode: Node;
 
         if (child.kind == NodeKind.PARAMETERS || child.kind == NodeKind.PARAMETER) {
@@ -792,8 +792,8 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
         child = child.nextSibling;
     }
 
-    parentNode.firstChild = firstChildNode;
-    parentNode.lastChild = lastChildNode;
+    if(firstChildNode != null) parentNode.firstChild = firstChildNode;
+    if(lastChildNode != null) parentNode.lastChild = lastChildNode;
 }
 
 export function resolveChildren(context: CheckContext, node: Node, parentScope: Scope): void {
