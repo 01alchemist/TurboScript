@@ -698,7 +698,9 @@ class WasmModule {
             }
         }
 
-        else if (node.kind == NodeKind.FUNCTION) {
+        else if (node.kind == NodeKind.FUNCTION &&
+            (node.symbol.kind != SymbolKind.FUNCTION_INSTANCE ||
+            node.symbol.kind == SymbolKind.FUNCTION_INSTANCE && !node.parent.isTemplate())) {
 
             let returnType = node.functionReturnType();
             let shared = new WasmSharedOffset();
