@@ -64,12 +64,19 @@ export class Scope {
   define(log: Log, symbol: Symbol, hint: ScopeHint): boolean {
     var existing = this.findLocal(symbol.name, hint);
     if (existing != null) {
-      log.error(symbol.range, StringBuilder_new()
-        .append("Duplicate symbol '")
-        .append(symbol.name)
-        .append("'")
-        .finish());
-      return false;
+      if (symbol.name == "this") {
+        log.warning(symbol.range, StringBuilder_new()
+            .append("Duplicate 'this' symbol")
+            .finish());
+        return true;
+      } else {
+        log.error(symbol.range, StringBuilder_new()
+            .append("Duplicate symbol '")
+            .append(symbol.name)
+            .append("'")
+            .finish());
+        return false;
+      }
     }
 
     if (this.firstSymbol == null) this.firstSymbol = symbol;

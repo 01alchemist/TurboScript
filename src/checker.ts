@@ -214,7 +214,15 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         if (symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
             let parent = symbol.parent();
             initializeSymbol(context, parent);
-            node.insertChildBefore(node.functionFirstArgument(), createVariable("this", createType(parent.resolvedType), null));
+
+            let firstArgument = node.functionFirstArgument();
+
+            if (firstArgument.stringValue !== "this") {
+                node.insertChildBefore(firstArgument, createVariable("this", createType(parent.resolvedType), null));
+            } else if(firstArgument.stringValue === "this" && firstArgument.firstChild.resolvedType === undefined) {
+                firstArgument.firstChild.resolvedType = parent.resolvedType;
+            }
+
 
             //All constructors have special return "this" type
             if (symbol.name == "constructor") {
@@ -697,7 +705,7 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
 
     resolve(context, node, scope.parent);
 
-    node.symbol.flags = SYMBOL_FLAG_USED;
+    node.symbol.flags |= SYMBOL_FLAG_USED;
     type.symbol = node.symbol;
     node.symbol.rename =  rename;
 
@@ -735,10 +743,11 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
     while (child) {
 
         if (child.stringValue == "this" && child.parent.symbol &&
-            child.parent.symbol.kind == SymbolKind.FUNCTION_INSTANCE && child.parent.firstChild == child) {
+            child.parent.symbol.kind == SymbolKind.FUNCTION_INSTANCE && child.kind == NodeKind.TYPE) {
             child = child.nextSibling;
             continue;
         }
+
         let childNode: Node;
 
         if (child.kind == NodeKind.PARAMETERS || child.kind == NodeKind.PARAMETER) {
@@ -753,16 +762,27 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
             }
             if(child.symbol && isVariable(child.symbol.kind)){
                 childNode = child.clone();
+                console.log(child.resolvedType.symbol.name);
             } else {
                 childNode = parameters[offset].clone();
             }
             childNode.kind = NodeKind.NAME;
+
         } else {
             if (child.stringValue == "T") {
                 console.log(child);
             }
 
             childNode = child.clone();
+
+            if(child.resolvedType && child.resolvedType.symbol.name === templateName) {
+                // console.log("Found template");
+            } else if(child.symbol && child.symbol.resolvedType.symbol.name === templateName) {
+                // console.log("Found template");
+            } else {
+
+            }
+
             if (childNode.stringValue == templateName) {
                 childNode.stringValue = typeName;
             }
@@ -1156,9 +1176,6 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         initializeSymbol(context, node.symbol);
         context.enclosingModule = node.symbol;
         resolveChildren(context, node, node.scope);
-        // if (node.symbol.kind == SymbolKind.TYPE_MODULE) {
-        //     node.symbol.determineClassLayout(context);
-        // }
         context.enclosingModule = oldEnclosingModule;
     }
 
@@ -2215,6 +2232,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
     else if (kind == NodeKind.INTERNAL_IMPORT || kind == NodeKind.INTERNAL_IMPORT_FROM) {
         //ignore imports
+    }
+
+    else if (kind == NodeKind.TYPE) {
+        //ignore types
     }
 
     else {

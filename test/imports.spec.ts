@@ -10,7 +10,7 @@ test("it should compile without error", () => {
         { Math: Math }
     );
     expect(instance).toBeDefined();
-})
+});
 
 test("it should import sin function from javascript", () => {
     const value: number = Math.random() * TwoPI;

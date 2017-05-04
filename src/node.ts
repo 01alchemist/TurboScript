@@ -362,12 +362,12 @@ export class Node {
     clone(): Node {
         let node: Node = new Node();
         node.kind = this.kind;
-        node.offset = this.offset;
-        if(this.flags) node.flags = this.flags;
-        if(this.firstFlag) node.firstFlag = this.firstFlag;
+        if(this.offset !== undefined) node.offset = this.offset;
+        if(this.flags !== undefined) node.flags = this.flags;
+        if(this.firstFlag !== undefined) node.firstFlag = this.firstFlag;
         // if(this.constructorFunctionNode) node.constructorFunctionNode = this.constructorFunctionNode;
-        if(this.range) node.range = this.range;
-        if(this.internalRange) node.internalRange = this.internalRange;
+        if(this.range !== undefined) node.range = this.range;
+        if(this.internalRange !== undefined) node.internalRange = this.internalRange;
         if(this.hasValue) node.rawValue = this.__internal_rawValue;
         return node;
     }
