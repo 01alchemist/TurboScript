@@ -15,19 +15,15 @@ export class Foo<T> {
         return this.num2 + index;
     }
 
-    // mainAccessTest(index: int32): int32 {
-    //     return this[index] + this.length;
-    // }
+    mainAccessTest(index: int32): int32 {
+        return this[index] + this.length;
+    }
 }
 
 export function test(): Foo<int32> {
     return new Foo<int32>();
 }
 
-export function length ():int32 {
-    return new Foo<int32>().length;
+export function accessTest(): int32 {
+    return new Foo<int32>().mainAccessTest(20);
 }
-
-// export function accessTest(): int32 {
-//     return new Foo<int32>().mainAccessTest(20);
-// }

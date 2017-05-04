@@ -19,6 +19,7 @@
     "babel-jest": "^19.0.0",
     "debug": "^2.6.3",
     "fs-extra": "^2.1.2",
+    "intern": "^4.0.0-alpha.3",
     "jest": "^19.0.2",
     "lite-server": "^2.2.2",
     "request": "^2.81.0",

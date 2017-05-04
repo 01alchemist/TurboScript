@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generics test</title>
+</head>
+<body>
+<script>
+
+    var importObject = {
+        memory: new WebAssembly.Memory({initial: 10}),
+        Math: Math,
+        foreign: {
+            random: () => {
+                return Math.random() / Number.MAX_SAFE_INTEGER;
+            }
+        }
+    };
+
+    function init() {
+        fetch("./bin/newDotTarget.wasm").then((responds) => {
+            responds.arrayBuffer().then((wasmBytes) => {
+                try {
+                    WebAssembly.compile(wasmBytes).then(function (compiled) {
+                        window.exports = new WebAssembly.Instance(compiled, importObject).exports;
+                        window.HEAPU8 = new Uint8Array(exports.memory.buffer);
+                        window.HEAPU32 = new Uint32Array(exports.memory.buffer);
+                        window.HEAP32 = new Int32Array(exports.memory.buffer);
+                        window.HEAPF32 = new Float32Array(exports.memory.buffer);
+                        console.log("WASM Compiled!");
+                        run();
+                    })
+
+                } catch (e) {
+                    console.error(e);
+                }
+            })
+        });
+    }
+
+    function run() {
+        
+    }
+
+    init();
+</script>
+</body>
+</html>

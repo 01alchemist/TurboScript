@@ -13,6 +13,7 @@ if (process.platform === 'win32') {
 /**
  * Compile TurboScript to WebAssembly and instantiate synchronously
  * @param sourcePath
+ * @param imports
  * @param outputFile
  * @returns {WebAssembly.Instance}
  */
@@ -31,6 +32,7 @@ export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outpu
 /**
  * Compile TurboScript to WebAssembly and asynchronous instantiate
  * @param sourcePath
+ * @param imports
  * @param outputFile
  * @returns {Promise<Instance>}
  */

@@ -20,37 +20,43 @@ export function writeLogToTerminal(log: Log): void {
     let diagnostic = log.first;
 
     while (diagnostic != null) {
-        let location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
+        if (diagnostic.range !== undefined) {
+            let location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
 
-        // Source
-        let builder = StringBuilder_new();
-        diagnostic.appendSourceName(builder, location);
-        stdlib.Terminal_setColor(Color.BOLD);
-        stdlib.Terminal_write(builder.finish());
+            // Source
+            let builder = StringBuilder_new();
+            diagnostic.appendSourceName(builder, location);
+            stdlib.Terminal_setColor(Color.BOLD);
+            stdlib.Terminal_write(builder.finish());
 
-        // Kind
-        builder = StringBuilder_new();
-        diagnostic.appendKind(builder);
-        stdlib.Terminal_setColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
-        stdlib.Terminal_write(builder.finish());
+            // Kind
+            builder = StringBuilder_new();
+            diagnostic.appendKind(builder);
+            stdlib.Terminal_setColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
+            stdlib.Terminal_write(builder.finish());
 
-        // Message
-        builder = StringBuilder_new();
-        diagnostic.appendMessage(builder);
-        stdlib.Terminal_setColor(Color.BOLD);
-        stdlib.Terminal_write(builder.finish());
+            // Message
+            builder = StringBuilder_new();
+            diagnostic.appendMessage(builder);
+            stdlib.Terminal_setColor(Color.BOLD);
+            stdlib.Terminal_write(builder.finish());
 
-        // Line contents
-        builder = StringBuilder_new();
-        diagnostic.appendLineContents(builder, location);
-        stdlib.Terminal_setColor(Color.DEFAULT);
-        stdlib.Terminal_write(builder.finish());
+            // Line contents
+            builder = StringBuilder_new();
+            diagnostic.appendLineContents(builder, location);
+            stdlib.Terminal_setColor(Color.DEFAULT);
+            stdlib.Terminal_write(builder.finish());
 
-        // Range
-        builder = StringBuilder_new();
-        diagnostic.appendRange(builder, location);
-        stdlib.Terminal_setColor(Color.GREEN);
-        stdlib.Terminal_write(builder.finish());
+            // Range
+            builder = StringBuilder_new();
+            diagnostic.appendRange(builder, location);
+            stdlib.Terminal_setColor(Color.GREEN);
+            stdlib.Terminal_write(builder.finish());
+
+        } else {
+            stdlib.Terminal_setColor(Color.RED);
+            stdlib.Terminal_write(diagnostic.message + "\n");
+        }
 
         diagnostic = diagnostic.next;
     }
