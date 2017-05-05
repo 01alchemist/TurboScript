@@ -12,7 +12,7 @@ class SomeClass {
 
 }
 
-export function test():int32 {
+export function test1():int32 {
     return new SomeClass().id;
 }
 export function test2():int32 {

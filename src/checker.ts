@@ -1,23 +1,60 @@
 import {
-    Symbol, SymbolKind, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_IS_UNARY_OPERATOR,
-    SYMBOL_FLAG_IS_BINARY_OPERATOR, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED, SYMBOL_FLAG_NATIVE_FLOAT,
-    SymbolState, isFunction, SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL, isVariable, SYMBOL_FLAG_NATIVE_DOUBLE,
-    SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_IS_ARRAY, SYMBOL_FLAG_IS_GENERIC, SYMBOL_FLAG_IS_TEMPLATE, SYMBOL_FLAG_USED
+    isFunction,
+    isVariable,
+    Symbol,
+    SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL,
+    SYMBOL_FLAG_IS_BINARY_OPERATOR,
+    SYMBOL_FLAG_IS_GENERIC,
+    SYMBOL_FLAG_IS_REFERENCE,
+    SYMBOL_FLAG_IS_TEMPLATE,
+    SYMBOL_FLAG_IS_UNARY_OPERATOR,
+    SYMBOL_FLAG_IS_UNSIGNED,
+    SYMBOL_FLAG_NATIVE_DOUBLE,
+    SYMBOL_FLAG_NATIVE_FLOAT,
+    SYMBOL_FLAG_NATIVE_INTEGER,
+    SYMBOL_FLAG_NATIVE_LONG,
+    SYMBOL_FLAG_USED,
+    SymbolKind,
+    SymbolState
 } from "./symbol";
-import {Type, ConversionKind} from "./type";
+import {ConversionKind, Type} from "./type";
 import {
-    Node, NodeKind, createVariable, createType, rangeForFlag, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE,
-    NODE_FLAG_PUBLIC, NODE_FLAG_GET, NODE_FLAG_SET, NODE_FLAG_STATIC, NODE_FLAG_PROTECTED,
-    NODE_FLAG_DECLARE, isExpression, createInt, createboolean, createNull, createMemberReference, createSymbolReference,
-    isUnary, NODE_FLAG_UNSIGNED_OPERATOR, createCall, isBinary, createLong, createDouble, createFloat,
-    NODE_FLAG_EXTERNAL_IMPORT, NODE_FLAG_GENERIC, createReturn, createThis
+    createboolean,
+    createCall,
+    createDouble,
+    createFloat,
+    createInt,
+    createLong,
+    createMemberReference,
+    createNull,
+    createReturn,
+    createSymbolReference,
+    createThis,
+    createType,
+    createVariable,
+    isBinary,
+    isExpression,
+    isUnary,
+    Node,
+    NODE_FLAG_DECLARE,
+    NODE_FLAG_EXPORT,
+    NODE_FLAG_EXTERNAL_IMPORT,
+    NODE_FLAG_GENERIC,
+    NODE_FLAG_GET,
+    NODE_FLAG_PRIVATE,
+    NODE_FLAG_PROTECTED,
+    NODE_FLAG_PUBLIC,
+    NODE_FLAG_SET,
+    NODE_FLAG_UNSIGNED_OPERATOR,
+    NodeKind,
+    rangeForFlag
 } from "./node";
 import {CompileTarget} from "./compiler";
 import {Log, Range, spanRanges} from "./log";
-import {Scope, ScopeHint, FindNested} from "./scope";
+import {FindNested, Scope, ScopeHint} from "./scope";
 import {StringBuilder_new} from "./stringbuilder";
 import {alignToNextMultipleOf, isPositivePowerOf2} from "./imports";
-import {MAX_UINT32_VALUE, MIN_INT32_VALUE, MAX_INT32_VALUE} from "./const";
+import {MAX_INT32_VALUE, MAX_UINT32_VALUE, MIN_INT32_VALUE} from "./const";
 /**
  * Author : Nidin Vinayakan
  */
@@ -219,7 +256,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
 
             if (firstArgument.stringValue !== "this") {
                 node.insertChildBefore(firstArgument, createVariable("this", createType(parent.resolvedType), null));
-            } else if(firstArgument.stringValue === "this" && firstArgument.firstChild.resolvedType === undefined) {
+            } else if (firstArgument.stringValue === "this" && firstArgument.firstChild.resolvedType === undefined) {
                 firstArgument.firstChild.resolvedType = parent.resolvedType;
             }
 
@@ -227,7 +264,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
             //All constructors have special return "this" type
             if (symbol.name == "constructor") {
                 let returnNode: Node = createReturn(createThis());
-                if(node.lastChild.lastChild && node.lastChild.lastChild.kind == NodeKind.RETURN){
+                if (node.lastChild.lastChild && node.lastChild.lastChild.kind == NodeKind.RETURN) {
                     node.lastChild.lastChild.remove();
                 }
                 node.lastChild.appendChild(returnNode);
@@ -707,7 +744,7 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
 
     node.symbol.flags |= SYMBOL_FLAG_USED;
     type.symbol = node.symbol;
-    node.symbol.rename =  rename;
+    node.symbol.rename = rename;
 
     if (type.resolvedType.pointerTo) {
         type.resolvedType = node.symbol.resolvedType.pointerType();
@@ -715,14 +752,14 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
         type.resolvedType = node.symbol.resolvedType;
     }
 
-    if(templateNode.parent) {
+    if (templateNode.parent) {
         templateNode.replaceWith(node);
     } else {
         let prevNode = templateNode.derivedNodes[templateNode.derivedNodes.length - 1];
         prevNode.parent.insertChildAfter(prevNode, node);
     }
 
-    if(templateNode.derivedNodes === undefined){
+    if (templateNode.derivedNodes === undefined) {
         templateNode.derivedNodes = [];
     }
     templateNode.derivedNodes.push(node);
@@ -760,7 +797,7 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
             if (child.resolvedType) {
                 offset = child.resolvedType.pointerTo ? child.resolvedType.pointerTo.symbol.node.offset : child.resolvedType.symbol.node.offset;
             }
-            if(child.symbol && isVariable(child.symbol.kind)){
+            if (child.symbol && isVariable(child.symbol.kind)) {
                 childNode = child.clone();
                 console.log(child.resolvedType.symbol.name);
             } else {
@@ -775,9 +812,9 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
 
             childNode = child.clone();
 
-            if(child.resolvedType && child.resolvedType.symbol.name === templateName) {
+            if (child.resolvedType && child.resolvedType.symbol.name === templateName) {
                 // console.log("Found template");
-            } else if(child.symbol && child.symbol.resolvedType.symbol.name === templateName) {
+            } else if (child.symbol && child.symbol.resolvedType.symbol.name === templateName) {
                 // console.log("Found template");
             } else {
 
@@ -812,8 +849,8 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
         child = child.nextSibling;
     }
 
-    if(firstChildNode != null) parentNode.firstChild = firstChildNode;
-    if(lastChildNode != null) parentNode.lastChild = lastChildNode;
+    if (firstChildNode != null) parentNode.firstChild = firstChildNode;
+    if (lastChildNode != null) parentNode.lastChild = lastChildNode;
 }
 
 export function resolveChildren(context: CheckContext, node: Node, parentScope: Scope): void {
@@ -1527,10 +1564,16 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
                     // Automatically call getters
                     else if (symbol.isGetter()) {
-                        node.kind = NodeKind.CALL;
-                        node.appendChild(createMemberReference(target.remove(), symbol));
-                        node.resolvedType = null;
-                        resolveAsExpression(context, node, parentScope);
+                        if(node.parent.stringValue === node.stringValue && node.parent.kind === NodeKind.CALL) {
+                            node.parent.resolvedType = null;
+                            node.resolvedType = null;
+                            resolveAsExpression(context, node.parent, parentScope);
+                        } else {
+                            node.kind = NodeKind.CALL;
+                            node.appendChild(createMemberReference(target.remove(), symbol));
+                            node.resolvedType = null;
+                            resolveAsExpression(context, node, parentScope);
+                        }
                         return;
                     }
 
