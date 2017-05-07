@@ -2,7 +2,6 @@ environment:
   nodejs_version: "7"
   
 install:
-    - cmd: npm uninstall turboscript
     - cmd: npm install
     - cmd: npm update
     - cmd: npm run install:node-v8
