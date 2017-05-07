@@ -42,11 +42,12 @@ const TurboASM = {
         return TurboASMWrapper(TurboModule(
             typeof stdlib !== 'undefined' ? stdlib : window,
             typeof foreign !== 'undefined' ? foreign : {
-                    random: () => {
-                        return Math.random() / Number.MAX_SAFE_INTEGER;
-                    }
-                },
+                random: Math.random
+            },
             buffer
         ), buffer);
     }
 };
+
+exports = typeof exports === "undefined" ? {} : exports;
+exports.TurboASM = TurboASM;

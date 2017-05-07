@@ -20,5 +20,6 @@ class M {
 }
 export function test():List<float32>{
     let a = new List<M>(10);
+
     return new List<float32>(10);
 }

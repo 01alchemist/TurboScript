@@ -16,7 +16,7 @@ export class Data {
     }
 }
 
-var a: Array<Data> = null;
+let a: Array<Data> = null;
 
 export function test(num:int32): Array<Data> {
     a = new Array<Data>(num);
