@@ -1566,7 +1566,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     else if (symbol.isGetter()) {
                         if(node.parent.stringValue === node.stringValue && node.parent.kind === NodeKind.CALL) {
                             node.parent.resolvedType = null;
-                            node.resolvedType = null;
+                            node.symbol = symbol;
+                            node.resolvedType = symbol.resolvedType;
                             resolveAsExpression(context, node.parent, parentScope);
                         } else {
                             node.kind = NodeKind.CALL;

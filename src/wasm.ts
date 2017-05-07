@@ -524,6 +524,7 @@ class WasmModule {
             }
 
             if (fn.isConstructor) {
+                //this is CLASS_new function
                 this.emitInstantiator(bodyData, sectionOffset, fn.symbol.node)
             } else {
                 let child = fn.symbol.node.functionBody().firstChild;
@@ -960,7 +961,8 @@ class WasmModule {
             array.writeLEB128(size);
             appendOpcode(array, byteOffset, WasmOpcode.I32_ADD);
 
-        } else if (type.resolvedType.isTypedArray()) {
+        }
+        else if (type.resolvedType.isTypedArray()) {
             let elementSize = getTypedArrayElementSize(type.resolvedType.symbol.name);
             appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
             array.writeUnsignedLEB128(0);
@@ -972,7 +974,8 @@ class WasmModule {
             log(array, byteOffset, size, "i32 literal");
             array.writeLEB128(size);
             appendOpcode(array, byteOffset, WasmOpcode.I32_ADD);
-        } else {
+        }
+        else {
 
             // Pass the object size as the first argument
             appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
@@ -1278,7 +1281,11 @@ class WasmModule {
 
             // Write out the implicit "this" argument
             if (!symbol.node.isExternalImport() && symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
-                this.emitNode(array, byteOffset, value.dotTarget());
+                let dotTarget = value.dotTarget();
+                this.emitNode(array, byteOffset, dotTarget);
+                if(dotTarget.kind == NodeKind.NEW){
+                    this.emitConstructor(array, byteOffset, dotTarget);
+                }
             }
 
             let child = value.nextSibling;

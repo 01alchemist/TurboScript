@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ASM newDotTarget test</title>
+</head>
+<body>
+<script src="./bin/random.asm.js"></script>
+<script>
+    let turbo = TurboASM.Instance(0x10000);
+    console.log(turbo.exports.rand());
+</script>
+</body>
+</html>

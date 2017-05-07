@@ -22,8 +22,8 @@ fi
 
 #export TURBO_PATH
 
-node ${TURBO_PATH}/lib/tc.js $1 $2 $3 $4.$ext
-#ts-node ${TURBO_PATH}/lib/tc.ts $1 $2 $3 $4.$ext
+#node ${TURBO_PATH}/lib/tc.js $1 $2 $3 $4.$ext
+ts-node ${TURBO_PATH}/lib/tc.ts $1 $2 $3 $4.$ext
 if [ $? == 0 ] && [ $2 == --wasm ];
     then
         wasm2wast $4.$ext -o $4.wast -v
