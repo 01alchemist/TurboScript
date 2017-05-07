@@ -780,7 +780,7 @@ export class AsmJsModule {
 
             if (left.resolvedType.isInteger() && right.resolvedType.isInteger()) {
 
-                this.code.append("(Math_imul(");
+                this.code.append("(imul(");
                 this.code.append(leftIdentifier.left);
                 this.emitExpression(left, Precedence.LOWEST);
                 this.code.append(leftIdentifier.right);
