@@ -799,7 +799,6 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
             }
             if (child.symbol && isVariable(child.symbol.kind)) {
                 childNode = child.clone();
-                console.log(child.resolvedType.symbol.name);
             } else {
                 childNode = parameters[offset].clone();
             }
@@ -812,13 +811,13 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
 
             childNode = child.clone();
 
-            if (child.resolvedType && child.resolvedType.symbol.name === templateName) {
+            //if (child.resolvedType && child.resolvedType.symbol.name === templateName) {
                 // console.log("Found template");
-            } else if (child.symbol && child.symbol.resolvedType.symbol.name === templateName) {
+            //} else if (child.symbol && child.symbol.resolvedType.symbol.name === templateName) {
                 // console.log("Found template");
-            } else {
+            //} else {
 
-            }
+            //}
 
             if (childNode.stringValue == templateName) {
                 childNode.stringValue = typeName;
