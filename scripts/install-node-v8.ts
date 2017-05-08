@@ -37,8 +37,8 @@ request.get(nightlyBaseUrl + "index.json", function (error, response, body: stri
 });
 
 function generateDownloadUrl(nightlyInfo: Nightly[]): string {
-    //Just take first entry, assuming it is the latest.
-    let latest: Nightly = nightlyInfo[0];
+    //Just take the 'second' entry, assuming it is the latest 'completely uploaded'.
+    let latest: Nightly = nightlyInfo[1];
     fileName = "node-" + latest.version + getPlatform();
     return nightlyBaseUrl + latest.version + "/" + fileName;
 }
