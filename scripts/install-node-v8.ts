@@ -79,7 +79,11 @@ function startDownload(url) {
 }
 
 function installWindows() {
-    exec(`7z x ${DOWNLOAD_NAME}`, (error, stdout, stderr) => {
+    const _7zDefaultPath = path.join(process.env.ProgramFiles, '7-Zip', '7z.exe');
+    let _7z = '7z';
+    if (fs.existsSync(_7zDefaultPath))
+        _7z = '"' + _7zDefaultPath + '"';
+    exec(`${_7z} x ${DOWNLOAD_NAME}`, (error, stdout, stderr) => {
         if (error) {
             console.error(`exec error: ${error}`);
             return;
