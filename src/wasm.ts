@@ -730,9 +730,12 @@ class WasmModule {
 
             // Functions without bodies are imports
             if (body == null) {
-                let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
-                symbol.offset = this.importCount;
-                this.allocateImport(signatureIndex, moduleName, symbol.name);
+                //FIXME: dirty hack to support wasm native sqrt
+                if (symbol.name !== "sqrt32" && symbol.name !== "sqrt64") {
+                    let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
+                    symbol.offset = this.importCount;
+                    this.allocateImport(signatureIndex, moduleName, symbol.name);
+                }
                 node = node.nextSibling;
                 return;
             } else {
@@ -1293,10 +1296,18 @@ class WasmModule {
                 this.emitNode(array, byteOffset, child);
                 child = child.nextSibling;
             }
-            let callIndex: int32 = this.getWasmFunctionCallIndex(symbol);
-            appendOpcode(array, byteOffset, WasmOpcode.CALL);
-            log(array, byteOffset, callIndex, `call func index (${callIndex})`);
-            array.writeUnsignedLEB128(callIndex);
+            
+            //FIXME: dirty hack to support wasm native sqrt
+            if (symbol.name === "sqrt32") {
+                appendOpcode(array, byteOffset, WasmOpcode.F32_SQRT);
+            } else if (symbol.name === "sqrt64") {
+                appendOpcode(array, byteOffset, WasmOpcode.F64_SQRT);
+            } else {
+                let callIndex: int32 = this.getWasmFunctionCallIndex(symbol);
+                appendOpcode(array, byteOffset, WasmOpcode.CALL);
+                log(array, byteOffset, callIndex, `call func index (${callIndex})`);
+                array.writeUnsignedLEB128(callIndex);
+            }
         }
 
         else if (node.kind == NodeKind.NEW) {
