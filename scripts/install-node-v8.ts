@@ -52,7 +52,7 @@ function getPlatform(): string {
         case "darwin":
             return "-darwin-x64.tar.xz";
         case "linux":
-            //x64 version not found on the nightly sever
+            //x64 version not found on the nightly server
             return "-linux-x86.tar.xz";
     }
 }
