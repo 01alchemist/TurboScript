@@ -44,3 +44,7 @@ function minf32(x:float32, y:float32):float32{
 function maxf32(x:float32, y:float32):float32{
     return Math.max(x as float64, y as float64) as float32;
 }
+
+//WASM Native functions
+declare function sqrt32(value:float32):float32;
+declare function sqrt64(value:float64):float64;
