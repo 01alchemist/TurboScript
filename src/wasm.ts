@@ -1,10 +1,9 @@
-import {Symbol, SymbolKind, isFunction} from "./symbol";
-import {ByteArray, ByteArray_append32, ByteArray_set32, ByteArray_setString, ByteArray_set16} from "./bytearray";
+import {isFunction, Symbol, SymbolKind} from "./symbol";
+import {ByteArray, ByteArray_set32, ByteArray_setString} from "./bytearray";
 import {CheckContext} from "./checker";
 import {alignToNextMultipleOf} from "./imports";
-import {Node, NodeKind, isExpression, isUnary} from "./node";
+import {isExpression, isUnary, Node, NodeKind} from "./node";
 import {Type} from "./type";
-import {StringBuilder_new, StringBuilder} from "./stringbuilder";
 import {Compiler} from "./compiler";
 import {WasmOpcode} from "./wasm/opcode";
 import {toHex} from "./utils";
@@ -78,11 +77,19 @@ class SectionBuffer {
     publish(array: ByteArray) {
         log(array, 0, this.id, "section code");
         array.writeUnsignedLEB128(this.id);//section code
-        log(array, 0, this.data.length, "section size");
-        array.writeUnsignedLEB128(this.data.length);//size of this section in bytes
+
+
         if (this.id == 0) {
-            array.writeWasmString(this.name);
+            let strData: ByteArray = new ByteArray();
+            strData.writeWasmString(this.name);
+            log(array, 0, this.data.length, "section size");
+            array.writeUnsignedLEB128(this.data.length + strData.length);//size of this section in bytes
+            array.copy(strData);
+        } else {
+            log(array, 0, this.data.length, "section size");
+            array.writeUnsignedLEB128(this.data.length);//size of this section in bytes
         }
+
         array.log += this.data.log;
         array.copy(this.data);
     }
@@ -271,7 +278,7 @@ class WasmModule {
         this.emitElements(array);
         this.emitFunctionBodies(array);
         this.emitDataSegments(array);
-        // this.emitNames(array);
+        this.emitNames(array);
     }
 
     emitSignatures(array: ByteArray): void {
@@ -602,17 +609,46 @@ class WasmModule {
         wasmFinishSection(array, section);
     }
 
+    // Custom section for debug names
+    //
     emitNames(array: ByteArray): void {
-        let section = wasmStartSection(array, 0, "names");
-        array.writeUnsignedLEB128(this.functionCount);
+        let section = wasmStartSection(array, 0, "name");
 
+        let subsectionFunc: ByteArray = new ByteArray();
+        let subsectionLocal: ByteArray = new ByteArray();
+
+        subsectionFunc.writeUnsignedLEB128(this.functionCount);
+        subsectionLocal.writeUnsignedLEB128(this.functionCount);
         let fn = this.firstFunction;
+        let funcIndex: number = 0;
         while (fn != null) {
             let name = getWasmFunctionName(fn);
-            array.writeWasmString(name);
-            array.writeUnsignedLEB128(0); // No local variables for now
+            subsectionFunc.writeUnsignedLEB128(funcIndex++);
+            subsectionFunc.writeWasmString(name);
+
+            subsectionLocal.writeUnsignedLEB128(funcIndex);
+            subsectionLocal.writeUnsignedLEB128(fn.localCount);
+
+            let local = fn.firstLocal;
+            let localIndex = 0;
+            while (local != null) {
+                subsectionLocal.writeUnsignedLEB128(localIndex++);
+                subsectionLocal.writeWasmString(local.symbol.name);
+                local = local.next;
+            }
+
             fn = fn.next;
         }
+
+        //subsection for function names
+        section.data.writeUnsignedLEB128(1); // name_type
+        section.data.writeUnsignedLEB128(subsectionFunc.length); // name_payload_len
+        section.data.copy(subsectionFunc); // name_payload_data
+
+        //subsection for local names
+        section.data.writeUnsignedLEB128(2); // name_type
+        section.data.writeUnsignedLEB128(subsectionLocal.length); // name_payload_len
+        section.data.copy(subsectionLocal); // name_payload_data
 
         wasmFinishSection(array, section);
     }
@@ -1286,7 +1322,7 @@ class WasmModule {
             if (!symbol.node.isExternalImport() && symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
                 let dotTarget = value.dotTarget();
                 this.emitNode(array, byteOffset, dotTarget);
-                if(dotTarget.kind == NodeKind.NEW){
+                if (dotTarget.kind == NodeKind.NEW) {
                     this.emitConstructor(array, byteOffset, dotTarget);
                 }
             }
@@ -1296,7 +1332,7 @@ class WasmModule {
                 this.emitNode(array, byteOffset, child);
                 child = child.nextSibling;
             }
-            
+
             //FIXME: dirty hack to support wasm native sqrt
             if (symbol.name === "sqrt32") {
                 appendOpcode(array, byteOffset, WasmOpcode.F32_SQRT);
