@@ -1,0 +1,14 @@
+class Universe {
+
+    values: Array<int32>;
+
+    constructor(values: Array<int32>) {
+        this.values = values;
+    }
+}
+
+export function test(): void {
+    let a = new Array<int32>(10);
+    // let u = new Universe(a);
+    // return u;
+}
