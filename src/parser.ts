@@ -1614,44 +1614,8 @@ class ParserContext {
     parseInt(range: Range, node: Node): boolean {
         let source = range.source;
         let contents = source.contents;
-        let i = range.start;
-        let limit = range.end;
-        let value: uint32 = 0;
-        let base: uint32 = 10;
 
-        // Handle binary, octal, and hexadecimal prefixes
-        if (contents[i] == '0' && i + 1 < limit) {
-            let c = contents[i + 1];
-            if (c == 'b' || c == 'B') base = 2;
-            else if (c == 'o' || c == 'O') base = 8;
-            else if (c == 'x' || c == 'X') base = 16;
-            // else {
-            //     this.log.error(range, "Use the '0o' prefix for octal integers");
-            //     return false;
-            // }
-            if (base != 10) i = i + 2;
-        }
-
-        while (i < limit) {
-            let c: string = contents[i];
-            let digit: number = (
-                c >= 'A' && c <= 'F' ? c.charCodeAt(0) + (10 - 'A'.charCodeAt(0)) :
-                    c >= 'a' && c <= 'f' ? c.charCodeAt(0) + (10 - 'a'.charCodeAt(0)) :
-                        c.charCodeAt(0) - '0'.charCodeAt(0)
-            );
-            let baseValue = Math.imul(value, base) >>> 0;
-
-            // Check for overflow (unsigned integer overflow supposedly doesn't result in undefined behavior)
-            // if (baseValue / base >>> 0 !== value || baseValue > 4294967295 - digit >>> 0) {
-            //     this.log.error(range, "Integer literal is too big to fit in 32 bits");
-            //     return false;
-            // }
-
-            value = baseValue + digit;
-            i = i + 1;
-        }
-
-        node.intValue = value;
+        node.intValue = parseInt(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;
     }
