@@ -388,19 +388,31 @@ export function tokenize(source: Source, log: Log): Token {
                 }
 
                 let floatFound: boolean = false;
+                let exponentFound: boolean = false;
                 // Scan the payload
-                while (i < limit && (isDigit(contents[i], base) || (floatFound = contents[i] === "."))) {
+                while (i < limit && (isDigit(contents[i], base) ||
+                    (exponentFound = contents[i] === "e") ||
+                    (floatFound = contents[i] === ".")))
+                {
                     i = i + 1;
+
+                    if (exponentFound) {
+                        isFloat = true;
+                        if(contents[i] === "+" || contents[i] === "-"){
+                            i = i + 1;
+                        }
+                    }
+
                     if (floatFound) {
                         isFloat = true;
                     }
                 }
 
-                if (contents[i] === "d") {
-                    kind = TokenKind.FLOAT64;
+                if (contents[i] === "f") {
+                    kind = TokenKind.FLOAT32;
                     i = i + 1;
                 } else {
-                    kind = isFloat ? TokenKind.FLOAT32 : TokenKind.INT32;
+                    kind = isFloat ? TokenKind.FLOAT64 : TokenKind.INT32;
                 }
 
                 // Extra letters after the end is an error

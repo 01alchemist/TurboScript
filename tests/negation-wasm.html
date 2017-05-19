@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>negate</title>
+</head>
+<body>
+    <script>
+        var turbo;
+        async function init() {
+            let data = await fetch("./bin/negation.wasm");
+            let wasmBytes = await data.arrayBuffer();
+            try {
+                WebAssembly.compile(wasmBytes).then(function (compiled) {
+                    turbo = new WebAssembly.Instance(compiled);
+
+                    console.log("TurboScript WASM");
+                    console.log("----------------");
+                    console.log(`turbo.exports.test(2.8) => ${turbo.exports.test(2.8)}`);
+                })
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        init();
+    </script>
+</body>
+</html>
