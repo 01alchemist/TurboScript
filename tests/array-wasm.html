@@ -28,6 +28,7 @@
                 turbo.HEAPU32 = new Uint32Array(turbo.exports.memory.buffer);
                 turbo.HEAP32 = new Int32Array(turbo.exports.memory.buffer);
                 turbo.HEAPF32 = new Float32Array(turbo.exports.memory.buffer);
+                turbo.HEAPF64 = new Float64Array(turbo.exports.memory.buffer);
                 console.log("WASM Compiled!");
                 test();
             })
@@ -81,9 +82,9 @@
     function data_to_json(ptr) {
         return {
             id: turbo.HEAPU32[(ptr) >> 2],
-            v1: turbo.HEAPF32[(ptr + 4) >> 2],
-            v2: turbo.HEAPF32[(ptr + 8) >> 2],
-            v3: turbo.HEAPF32[(ptr + 12) >> 2],
+            v1: turbo.HEAPF64[(ptr + 12) >> 3],
+            v2: turbo.HEAPF64[(ptr + 20) >> 3],
+            v3: turbo.HEAPF64[(ptr + 28) >> 3],
             ptr: ptr
         }
     }

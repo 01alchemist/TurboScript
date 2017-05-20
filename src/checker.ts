@@ -719,6 +719,15 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
     let symbol = scope.parent.findNested(typeName, ScopeHint.NORMAL, FindNested.NORMAL);
 
     if (symbol) {
+        // resolve(context, type.firstChild.firstChild, scope.parent);
+        let genericSymbol = scope.parent.findNested(type.firstChild.firstChild.stringValue, ScopeHint.NORMAL, FindNested.NORMAL);
+        type.firstChild.firstChild.symbol = genericSymbol;
+        if (genericSymbol.resolvedType.pointerTo) {
+            type.firstChild.firstChild.resolvedType = genericSymbol.resolvedType.pointerType();
+        } else {
+            type.firstChild.firstChild.resolvedType = genericSymbol.resolvedType;
+        }
+
         type.symbol = symbol;
 
         if (type.resolvedType.pointerTo) {
