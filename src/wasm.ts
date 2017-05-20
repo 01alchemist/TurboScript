@@ -961,10 +961,10 @@ class WasmModule {
         let constructorNode = node.constructorNode();
         let callSymbol = constructorNode.symbol;
         let child = node.firstChild.nextSibling;
-        while (child != null) {
-            this.emitNode(array, byteOffset, child);
-            child = child.nextSibling;
-        }
+        // while (child != null) {
+        //     this.emitNode(array, byteOffset, child);
+        //     child = child.nextSibling;
+        // }
 
         let type = node.newType();
         let size;
@@ -973,7 +973,8 @@ class WasmModule {
             /**
             * If the new type if an array append total byte length and element size
             **/
-            let elementType = type.resolvedType;
+            let elementNode = type.firstGenericType();
+            let elementType = elementNode.resolvedType;
             let isClassElement = elementType.isClass();
             //ignore 64 bit pointer
             size = isClassElement ? 4 : elementType.allocationSizeOf(this.context);
@@ -996,9 +997,9 @@ class WasmModule {
             if (isClassElement) {
 
                 appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
-                array.writeLEB128(size);
+                array.writeLEB128(size); // array element size
 
-                let callIndex: int32 = this.getWasmFunctionCallIndex(elementType.symbol.node.constructorFunctionNode.symbol) + 1;
+                let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol) + 1;
                 appendOpcode(array, byteOffset, WasmOpcode.CALL);
                 log(array, byteOffset, callIndex, `call func index (${callIndex})`);
                 array.writeUnsignedLEB128(callIndex);
@@ -1178,9 +1179,9 @@ class WasmModule {
             if (value != null) {
                 this.emitNode(array, byteOffset, value);
 
-                if (value.kind == NodeKind.NEW) {
-                    this.emitConstructor(array, byteOffset, value);
-                }
+                // if (value.kind == NodeKind.NEW) {
+                //     this.emitConstructor(array, byteOffset, value);
+                // }
             }
             appendOpcode(array, byteOffset, WasmOpcode.RETURN);
         }
