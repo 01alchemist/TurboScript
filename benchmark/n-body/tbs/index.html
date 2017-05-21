@@ -6,15 +6,18 @@
 </head>
 <body>
 <script>
+    let importObject = {
+        Math: Math
+    };
     function init() {
         fetch("./bin/index.wasm").then(responds => {
             responds.arrayBuffer().then(wasmBytes => {
                 try {
                     WebAssembly.compile(wasmBytes).then(compiled => {
                         window.exports = new WebAssembly.Instance(compiled, importObject).exports;
-                        window.HEAPU8  = new Uint8Array(exports.memory.buffer);
+                        window.HEAPU8 = new Uint8Array(exports.memory.buffer);
                         window.HEAPU32 = new Uint32Array(exports.memory.buffer);
-                        window.HEAP32  = new Int32Array(exports.memory.buffer);
+                        window.HEAP32 = new Int32Array(exports.memory.buffer);
                         window.HEAPF32 = new Float32Array(exports.memory.buffer);
                         console.log("WASM Compiled!");
                         run();
@@ -27,7 +30,7 @@
     }
 
     function run() {
-        exports.test(10);
+        console.log("Energy:" + exports.test(1));
     }
     init();
 </script>

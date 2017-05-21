@@ -1,0 +1,50 @@
+export function assignByDefault(): int32 {
+    let var1:int32;
+    return var1;
+}
+
+export function assignByValue(): int32 {
+    let var1 = 1;
+    return var1;
+}
+
+export function assignByParameter(value: int32): int32 {
+    let var1 = value;
+    return var1;
+}
+
+function _getValue(): int32 {
+    return 3;
+}
+
+export function assignByCall(): int32 {
+    let var1 = _getValue();
+    return var1;
+}
+
+class Value {
+    id: int32;
+    doubleValue: float64;
+
+    constructor(id: int32) {
+        this.id = id;
+        this.doubleValue = id as float64;
+    }
+
+    getValue(): int32 {
+        return this.id;
+    }
+}
+export function assignByNew(value: int32): Value {
+    let var1 = new Value(value);
+    return var1;
+}
+export function getValue(value: Value): int32 {
+    return value.getValue();
+}
+
+export function assignByMember(value: int32): float64 {
+    let var1 = new Value(value);
+    let var2 = var1.doubleValue;
+    return var2;
+}
