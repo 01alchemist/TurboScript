@@ -1,0 +1,13 @@
+class Child {
+    value:float64;
+
+    constructor(value:float64){
+        // let tmp:float64 = 1.0;
+        // this.value = tmp + value;
+        return this;
+    }
+}
+
+export function test():void{
+    let child = new Child(1.1);
+}

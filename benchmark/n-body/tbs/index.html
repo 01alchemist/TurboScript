@@ -7,7 +7,12 @@
 <body>
 <script>
     let importObject = {
-        Math: Math
+        Math: Math,
+        global: {
+            printf64: function (value) {
+                console.log(value);
+            }
+        }
     };
     function init() {
         fetch("./bin/index.wasm").then(responds => {
@@ -30,7 +35,9 @@
     }
 
     function run() {
-        console.log("Energy:" + exports.test(1));
+        console.time("Finished in");
+        console.log("Energy:" + exports.test(1000000));
+        console.timeEnd("Finished in");
     }
     init();
 </script>
