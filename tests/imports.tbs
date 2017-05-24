@@ -1,3 +1,14 @@
 export function test():float64{
     return Math.sin(33.0 as float64);
 }
+@import
+declare function print64(value:float64):void;
+@import
+declare function print32(value:float32):void;
+
+export function test2(value:float32):void{
+    print32(value);
+}
+export function test3(value:float64):void{
+    print64(value);
+}

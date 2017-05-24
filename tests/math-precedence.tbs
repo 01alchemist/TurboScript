@@ -16,6 +16,9 @@
 export function testF32_1(a: float32, b: float32, c: float32, d: float32): float32 {
     return (a + b) * (c + d);
 }
+export function testF32_12(a: float32, b: float32, c: float32, d: float32): float32 {
+    return a + b * c + d;
+}
 
 export function testF32_2(a: float32, b: float32, c: float32, d: float32): float32 {
     return (a + b) * (c + (a * d));

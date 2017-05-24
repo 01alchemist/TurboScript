@@ -1,9 +1,14 @@
-//var PI: float64 = 3.141592653589793;
-var SOLAR_MASS: float64 = 4.0 * PI * PI;
-var DAYS_PER_YEAR: float64 = 365.24;
+"use strict";
 
-@import
-declare function printf64(value:float64):void;
+declare type float64 = number;
+declare type int32   = number;
+declare type uint32  = number;
+
+var sqrt64 = Math.sqrt;
+
+var PI: float64 = 3.141592653589793;
+var SOLAR_MASS: float64 = 4 * PI * PI;
+var DAYS_PER_YEAR: float64 = 365.24;
 
 class Body {
     public x: float64;
@@ -32,7 +37,7 @@ class Body {
         this.mass = mass;
     }
 
-    offsetMomentum(px: float64, py: float64, pz: float64): Body {
+    offsetMomentum(px: float64, py: float64, pz: float64): this {
         this.vx = -px / SOLAR_MASS;
         this.vy = -py / SOLAR_MASS;
         this.vz = -pz / SOLAR_MASS;
@@ -42,49 +47,49 @@ class Body {
 
 function Jupiter(): Body {
     return new Body(
-        4.84143144246472090,
-        -1.16032004402742839,
-        -0.103622044471123109,
-        0.00166007664274403694 * DAYS_PER_YEAR,
-        0.00769901118419740425 * DAYS_PER_YEAR,
-        -0.0000690460016972063 * DAYS_PER_YEAR,
-        0.00095479193842432661 * SOLAR_MASS
+        4.84143144246472090e+00,
+        -1.16032004402742839e+00,
+        -1.03622044471123109e-01,
+        1.66007664274403694e-03 * DAYS_PER_YEAR,
+        7.69901118419740425e-03 * DAYS_PER_YEAR,
+        -6.90460016972063023e-05 * DAYS_PER_YEAR,
+        9.54791938424326609e-04 * SOLAR_MASS
     );
 }
 
 function Saturn(): Body {
     return new Body(
-        8.34336671824457987,
-        4.12479856412430479,
-        -0.403523417114321381,
-        -0.002767425107268624 * DAYS_PER_YEAR,
-        0.0049985280123491724 * DAYS_PER_YEAR,
-        0.0000230417297573764 * DAYS_PER_YEAR,
-        0.0002858859806661308 * SOLAR_MASS
+        8.34336671824457987e+00,
+        4.12479856412430479e+00,
+        -4.03523417114321381e-01,
+        -2.76742510726862411e-03 * DAYS_PER_YEAR,
+        4.99852801234917238e-03 * DAYS_PER_YEAR,
+        2.30417297573763929e-05 * DAYS_PER_YEAR,
+        2.85885980666130812e-04 * SOLAR_MASS
     );
 }
 
 function Uranus(): Body {
     return new Body(
-        12.8943695621391310,
-        -15.1111514016986312,
-        -0.223307578892655734,
-        0.0029646013756476162 * DAYS_PER_YEAR,
-        0.0023784717395948095 * DAYS_PER_YEAR,
-        -0.000029658956854024 * DAYS_PER_YEAR,
-        0.0000436624404335156 * SOLAR_MASS
+        1.28943695621391310e+01,
+        -1.51111514016986312e+01,
+        -2.23307578892655734e-01,
+        2.96460137564761618e-03 * DAYS_PER_YEAR,
+        2.37847173959480950e-03 * DAYS_PER_YEAR,
+        -2.96589568540237556e-05 * DAYS_PER_YEAR,
+        4.36624404335156298e-05 * SOLAR_MASS
     );
 }
 
 function Neptune(): Body {
     return new Body(
-        15.3796971148509165,
-        -25.9193146099879641,
-        0.179258772950371181,
-        0.002680677724903893 * DAYS_PER_YEAR,
-        0.001628241700382423 * DAYS_PER_YEAR,
-        -0.000095159225451972 * DAYS_PER_YEAR,
-        0.0000515138902046612 * SOLAR_MASS
+        1.53796971148509165e+01,
+        -2.59193146099879641e+01,
+        1.79258772950371181e-01,
+        2.68067772490389322e-03 * DAYS_PER_YEAR,
+        1.62824170038242295e-03 * DAYS_PER_YEAR,
+        -9.51592254519715870e-05 * DAYS_PER_YEAR,
+        5.15138902046611451e-05 * SOLAR_MASS
     );
 }
 
@@ -101,15 +106,12 @@ class NBodySystem {
         var py: float64 = 0.0;
         var pz: float64 = 0.0;
         var size: uint32 = bodies.length;
-        var i: uint32 = 0;
-
-        while (i < size) {
+        for (var i: uint32 = 0; i < size; i++) {
             var b: Body    = bodies[i];
             var m: float64 = b.mass;
-            px = px + b.vx * m;
-            py = py + b.vy * m;
-            pz = pz + b.vz * m;
-            i = i + 1;
+            px += b.vx * m;
+            py += b.vy * m;
+            pz += b.vz * m;
         }
         this.bodies = bodies;
         this.bodies[0].offsetMomentum(px, py, pz);
@@ -130,8 +132,8 @@ class NBodySystem {
 
         var bodies: Array< Body > = this.bodies;
         var size: uint32 = bodies.length;
-        var i: uint32 = 0;
-        while (i < size) {
+
+        for (var i = 0; i < size; ++i) {
             var bodyi: Body = bodies[i];
 
             ix = bodyi.x;
@@ -143,9 +145,7 @@ class NBodySystem {
             bivz = bodyi.vz;
 
             var bodyim: float64 = bodyi.mass;
-            var j: uint32 = i + 1;
-
-            while (j < size) {
+            for (var j: uint32 = i + 1; j < size; ++j) {
                 var bodyj: Body = bodies[j];
                 dx = ix - bodyj.x;
                 dy = iy - bodyj.y;
@@ -158,26 +158,22 @@ class NBodySystem {
                 var bim = bodyim * mag;
                 var bjm = bodyj.mass * mag;
 
-                bivx = bivx - dx * bjm;
-                bivy = bivy - dy * bjm;
-                bivz = bivz - dz * bjm;
+                bivx -= dx * bjm;
+                bivy -= dy * bjm;
+                bivz -= dz * bjm;
 
-                bodyj.vx = bodyj.vx + dx * bim;
-                bodyj.vy = bodyj.vy + dy * bim;
-                bodyj.vz = bodyj.vz + dz * bim;
-
-                j= j + 1;
+                bodyj.vx += dx * bim;
+                bodyj.vy += dy * bim;
+                bodyj.vz += dz * bim;
             }
 
             bodyi.vx = bivx;
             bodyi.vy = bivy;
             bodyi.vz = bivz;
 
-            bodyi.x = bodyi.x + dt * bivx;
-            bodyi.y = bodyi.y + dt * bivy;
-            bodyi.z = bodyi.z + dt * bivz;
-
-            i = i + 1;
+            bodyi.x += dt * bivx;
+            bodyi.y += dt * bivy;
+            bodyi.z += dt * bivz;
         }
     }
 
@@ -187,9 +183,8 @@ class NBodySystem {
         var e : float64 = 0.0;
         var bodies: Array< Body > = this.bodies;
         var size: uint32 = bodies.length;
-        var i: uint32 = 0;
 
-        while (i < size) {
+        for (var i: uint32 = 0; i < size; ++i) {
             var bodyi: Body = bodies[i];
 
             ix = bodyi.x;
@@ -202,45 +197,26 @@ class NBodySystem {
 
             bim = bodyi.mass;
 
-            e = e + 0.5 * bim * (vx * vx + vy * vy + vz * vz);
-            // printf64(e);
-            var j: uint32 = i + 1;
+            e += 0.5 * bim * (vx * vx + vy * vy + vz * vz);
 
-            while (j < size) {
+            for (var j = i + 1; j < size; ++j) {
                 var bodyj: Body = bodies[j];
                 dx = ix - bodyj.x;
                 dy = iy - bodyj.y;
                 dz = iz - bodyj.z;
 
                 distance = sqrt64(dx * dx + dy * dy + dz * dz);
-                e = e - bim * bodyj.mass / distance;
-                // printf64(e);
-                j= j + 1;
+                e -= bim * bodyj.mass / distance;
             }
-            i = i + 1;
         }
         return e;
     }
 }
 
 export function test(n: uint32): float64 {
-
-    SOLAR_MASS = 4.0 * PI * PI;
-
-    let array = new Array< Body >(5);
-
-    array[0] = Sun();
-    array[1] = Jupiter();
-    array[2] = Saturn();
-    array[3] = Uranus();
-    array[4] = Neptune();
-
-    var bodies: NBodySystem = new NBodySystem(array);
-    var i: uint32 = 0;
-
-    while (i < n) {
+    var bodies: NBodySystem = new NBodySystem(new Array< Body >(Sun(), Jupiter(), Saturn(), Uranus(), Neptune()));
+    for (var i: uint32 = 0; i < n; i++) {
         bodies.advance(0.01);
-        i = i + 1;
     }
     return bodies.energy();
 }
@@ -251,11 +227,11 @@ var n: uint32 = 500000;
 console.time('t');
 var bodies: NBodySystem = new NBodySystem(new Array< Body >(Sun(), Jupiter(), Saturn(), Uranus(), Neptune()));
 
-console.log(bodies.energy().toFixed(9));
-for (var i: uint32 = 0; i < n; i = i + 1;) {
+//console.log(bodies.energy().toFixed(9));
+for (var i: uint32 = 0; i < n; i++) {
     bodies.advance(0.01);
 }
-console.log(bodies.energy().toFixed(9));
+//console.log(bodies.energy().toFixed(9));
 
 // -0.169075164
 // -0.169096567

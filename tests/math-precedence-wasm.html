@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WASM Math import</title>
+</head>
+<body>
+<script>
+
+    async function init() {
+
+        let imports = {Math:Math};
+
+        let data = await fetch("./bin/math-precedence.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try{
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                window.exports = new WebAssembly.Instance(compiled, imports).exports;
+                console.log("WASM Compiled!");
+            })
+
+        }catch (e){
+            console.error(e);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>turboscript n-body benchmark</title>
+    <script>
+        var exports = {};
+    </script>
+    <script src="index.js"></script>
+</head>
+<body>
+<script>
+    console.time("Finished in");
+    console.log("Energy:" + exports.test(1000000));
+    console.timeEnd("Finished in");
+</script>
+</body>
+</html>

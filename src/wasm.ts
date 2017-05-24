@@ -142,6 +142,7 @@ class WasmFunction {
     firstLocal: WasmLocal;
     lastLocal: WasmLocal;
     localCount: int32 = 0;
+    argumentCount: int32 = 0;
     next: WasmFunction;
 }
 
@@ -176,6 +177,7 @@ class WasmModule {
     freeFunctionIndex: int32;
     startFunctionIndex: int32;
     context: CheckContext;
+    currentFunction: WasmFunction;
 
     constructor(public bitness: Bitness) {
 
@@ -509,11 +511,13 @@ class WasmModule {
         let count = 0;
         let fn = this.firstFunction;
         while (fn != null) {
+            this.currentFunction = fn;
             let sectionOffset = offset + section.data.position;
             let bodyData: ByteArray = new ByteArray();
             log(bodyData, sectionOffset, fn.localCount ? fn.localCount : 0, "local var count");
             if (fn.localCount > 0) {
                 bodyData.writeUnsignedLEB128(fn.localCount); //local_count
+
                 //let localBlock = new ByteArray(); TODO: Optimize local declarations
                 //local_entry
                 let local = fn.firstLocal;
@@ -531,25 +535,25 @@ class WasmModule {
             }
 
             let wasmFunctionName = getWasmFunctionName(fn);
-            console.log(wasmFunctionName);
             let lastChild;
             if (fn.isConstructor) {
-                //this is <CLASS>_new function
-                this.emitInstantiator(bodyData, sectionOffset, fn.symbol.node)
-            } else {
-                let child = fn.symbol.node.functionBody().firstChild;
-                while (child != null) {
-                    lastChild = child;
-                    this.emitNode(bodyData, sectionOffset, child);
-                    child = child.nextSibling;
-                }
+                // this is <CLASS>__ctr function
+                this.emitConstructor(bodyData, sectionOffset, fn)
             }
+            // else {
+            let child = fn.symbol.node.functionBody().firstChild;
+            while (child != null) {
+                lastChild = child;
+                this.emitNode(bodyData, sectionOffset, child);
+                child = child.nextSibling;
+            }
+            // }
 
-            if(lastChild && lastChild.kind !== NodeKind.RETURN){
+            if (lastChild && lastChild.kind !== NodeKind.RETURN) {
                 appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
             }
 
-            appendOpcode(bodyData, sectionOffset, WasmOpcode.END); //end, 0x0b, indicating the end of the bod
+            appendOpcode(bodyData, sectionOffset, WasmOpcode.END); //end, 0x0b, indicating the end of the body
 
             //Copy and finish body
             section.data.writeUnsignedLEB128(bodyData.length);
@@ -757,6 +761,7 @@ class WasmModule {
 
             // Make sure to include the implicit "this" variable as a normal argument
             let argument = node.isExternalImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
+            let argumentCount = 0;
             while (argument != returnType) {
                 let type = wasmWrapType(this.getWasmType(argument.variableType().resolvedType));
 
@@ -765,6 +770,7 @@ class WasmModule {
                 argumentTypesLast = type;
 
                 shared.nextLocalOffset = shared.nextLocalOffset + 1;
+                argumentCount++;
                 argument = argument.nextSibling;
             }
 
@@ -787,6 +793,7 @@ class WasmModule {
             }
 
             let fn = this.allocateFunction(symbol, signatureIndex);
+            fn.isConstructor = isConstructor;
 
             // Make sure "malloc" is tracked
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
@@ -809,18 +816,14 @@ class WasmModule {
             }
 
             // Assign local variable offsets
+            // if (isConstructor) {
+            //     shared.localCount++; // reserve 1 local for self pointer reference
+            // }
             wasmAssignLocalVariableOffsets(fn, body, shared);
             fn.localCount = shared.localCount;
-
-            if (isConstructor) {
-                let ctrSignatureIndex = this.allocateSignature(argumentTypesFirst.next, wasmWrapType(this.getWasmType(returnType.resolvedType)));
-                let fn = this.allocateFunction(symbol, ctrSignatureIndex);
-                fn.isExported = true;
-                fn.isConstructor = true;
-                wasmAssignLocalVariableOffsets(fn, body, shared);
-                fn.localCount = shared.localCount;
-            }
-
+            fn.argumentCount = argumentCount;
+            // let fnName: string = getWasmFunctionName(fn);
+            // console.log(fnName);
         }
 
         let child = node.firstChild;
@@ -965,7 +968,13 @@ class WasmModule {
         array.writeUnsignedLEB128(offset);
     }
 
-    emitConstructor(array: ByteArray, byteOffset: int32, node: Node): void {
+    /**
+     * Emit instance function
+     * @param array
+     * @param byteOffset
+     * @param node
+     */
+    emitInstance(array: ByteArray, byteOffset: int32, node: Node): void {
         let constructorNode = node.constructorNode();
         let callSymbol = constructorNode.symbol;
 
@@ -981,8 +990,8 @@ class WasmModule {
 
         if (type.resolvedType.isArray()) {
             /**
-            * If the new type if an array append total byte length and element size
-            **/
+             * If the new type if an array append total byte length and element size
+             **/
             let elementNode = type.firstGenericType();
             let elementType = elementNode.resolvedType;
             let isClassElement = elementType.isClass();
@@ -1006,13 +1015,13 @@ class WasmModule {
 
             // if (isClassElement) {
 
-                appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
-                array.writeLEB128(size); // array element size
+            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+            array.writeLEB128(size); // array element size
 
-                let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol) + 1;
-                appendOpcode(array, byteOffset, WasmOpcode.CALL);
-                log(array, byteOffset, callIndex, `call func index (${callIndex})`);
-                array.writeUnsignedLEB128(callIndex);
+            let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol);
+            appendOpcode(array, byteOffset, WasmOpcode.CALL);
+            log(array, byteOffset, callIndex, `call func index (${callIndex})`);
+            array.writeUnsignedLEB128(callIndex);
 
             // } else {
             //     appendOpcode(array, byteOffset, WasmOpcode.CALL);
@@ -1034,7 +1043,7 @@ class WasmModule {
         }
         else {
 
-            let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol) + 1;
+            let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol);
             appendOpcode(array, byteOffset, WasmOpcode.CALL);
             log(array, byteOffset, callIndex, `call func index (${callIndex})`);
             array.writeUnsignedLEB128(callIndex);
@@ -1052,19 +1061,24 @@ class WasmModule {
         }
     }
 
-    //emit constructor function for javascript
-    emitInstantiator(array: ByteArray, byteOffset: int32, constructorNode: Node): void {
-        let callSymbol = constructorNode.symbol;
+    /**
+     * Emit constructor function where malloc happens
+     * @param array
+     * @param byteOffset
+     * @param fn
+     */
+    emitConstructor(array: ByteArray, byteOffset: int32, fn: WasmFunction): void {
+        let constructorNode: Node = fn.symbol.node;
         let type = constructorNode.parent.symbol;
         let size = type.resolvedType.allocationSizeOf(this.context);
         assert(size > 0);
 
         if (type.resolvedType.isArray()) {
             appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
-            array.writeUnsignedLEB128(0);
+            array.writeUnsignedLEB128(0); // array parameter byteLength
             appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
             log(array, byteOffset, size, "i32 literal");
-            array.writeLEB128(size);
+            array.writeLEB128(size); // size of array class, default is 8 bytes
             appendOpcode(array, byteOffset, WasmOpcode.I32_ADD);
 
         }
@@ -1082,35 +1096,38 @@ class WasmModule {
             appendOpcode(array, byteOffset, WasmOpcode.I32_ADD);
         }
         else {
-
             // Pass the object size as the first argument
             appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
             log(array, byteOffset, size, "i32 literal");
             array.writeLEB128(size);
         }
 
+        // Allocate memory
         appendOpcode(array, byteOffset, WasmOpcode.CALL);
         log(array, byteOffset, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
         array.writeUnsignedLEB128(this.mallocFunctionIndex);
+        appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
+        array.writeUnsignedLEB128(fn.argumentCount);
+        // pointer reference to this object
 
-        let child = constructorNode.firstChild.nextSibling;//ignore this pointer argument
-        while (child != null) {
-            if (child.kind == NodeKind.VARIABLE) {
-                let symbol = child.symbol;
-                let offset = symbol.offset - 1;//ignore this pointer argument
-                if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT) {
-                    appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
-                    log(array, byteOffset, offset, "local index");
-                    array.writeUnsignedLEB128(offset);
-                }
-            }
-            child = child.nextSibling;
-        }
+        // let child = constructorNode.firstChild.nextSibling;//ignore this pointer argument
+        // while (child != null) {
+        //     if (child.kind == NodeKind.VARIABLE) {
+        //         let symbol = child.symbol;
+        //         let offset = symbol.offset - 1;//subtract this pointer argument offset
+        //         if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT) {
+        //             appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
+        //             log(array, byteOffset, offset, "local index");
+        //             array.writeUnsignedLEB128(offset);
+        //         }
+        //     }
+        //     child = child.nextSibling;
+        // }
 
-        let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol);
-        appendOpcode(array, byteOffset, WasmOpcode.CALL);
-        log(array, byteOffset, callIndex, `call func index (${callIndex})`);
-        array.writeUnsignedLEB128(callIndex);
+        // let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol);
+        // appendOpcode(array, byteOffset, WasmOpcode.CALL);
+        // log(array, byteOffset, callIndex, `call func index (${callIndex})`);
+        // array.writeUnsignedLEB128(callIndex);
     }
 
     emitNode(array: ByteArray, byteOffset: int32, node: Node): int32 {
@@ -1197,7 +1214,7 @@ class WasmModule {
                 this.emitNode(array, byteOffset, value);
 
                 // if (value.kind == NodeKind.NEW) {
-                //     this.emitConstructor(array, byteOffset, value);
+                //     this.emitInstance(array, byteOffset, value);
                 // }
             }
             appendOpcode(array, byteOffset, WasmOpcode.RETURN);
@@ -1245,7 +1262,10 @@ class WasmModule {
         else if (node.kind == NodeKind.VARIABLE) {
             let value = node.variableValue();
 
-            if (node.symbol.kind == SymbolKind.VARIABLE_LOCAL) {
+            if(node.symbol.name == "this" && this.currentFunction.symbol.name == "constructor"){
+                // skip this
+            }
+            else if (node.symbol.kind == SymbolKind.VARIABLE_LOCAL) {
 
                 if (value &&
                     value.kind != NodeKind.NAME &&
@@ -1310,7 +1330,7 @@ class WasmModule {
                 }
 
                 // if (value.kind == NodeKind.NEW) {
-                //     this.emitConstructor(array, byteOffset, value);
+                //     this.emitInstance(array, byteOffset, value);
                 // }
 
                 appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
@@ -1328,8 +1348,14 @@ class WasmModule {
 
             if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT || symbol.kind == SymbolKind.VARIABLE_LOCAL) {
                 appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
-                log(array, byteOffset, symbol.offset, "local index");
-                array.writeUnsignedLEB128(symbol.offset);
+                // FIXME This should handle in checker.
+                if (symbol.name === "this" && this.currentFunction.symbol.name === "constructor") {
+                    log(array, byteOffset, this.currentFunction.argumentCount, "local index");
+                    array.writeUnsignedLEB128(this.currentFunction.argumentCount);
+                } else {
+                    log(array, byteOffset, symbol.offset, "local index");
+                    array.writeUnsignedLEB128(symbol.offset);
+                }
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
@@ -1395,7 +1421,7 @@ class WasmModule {
                 let dotTarget = value.dotTarget();
                 this.emitNode(array, byteOffset, dotTarget);
                 if (dotTarget.kind == NodeKind.NEW) {
-                    this.emitConstructor(array, byteOffset, dotTarget);
+                    this.emitInstance(array, byteOffset, dotTarget);
                 }
             }
 
@@ -1420,7 +1446,7 @@ class WasmModule {
 
         else if (node.kind == NodeKind.NEW) {
 
-            this.emitConstructor(array, byteOffset, node);
+            this.emitInstance(array, byteOffset, node);
 
             // let type = node.newType();
             // let size;
@@ -2134,7 +2160,7 @@ class WasmModule {
 function getWasmFunctionName(fn: WasmFunction): string {
     let symbol: Symbol = fn.symbol;
     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().internalName : "";
-    return (moduleName == "" ? "" : moduleName + "_") + (fn.isConstructor ? "new" : symbol.internalName);
+    return (moduleName == "" ? "" : moduleName + "_") + symbol.internalName;
 }
 
 function wasmStartSection(array: ByteArray, id: int32, name: string): SectionBuffer {

@@ -25,7 +25,7 @@ import {
     createFloat,
     createInt,
     createLong,
-    createMemberReference,
+    createMemberReference, createName,
     createNull,
     createReturn,
     createSymbolReference,
@@ -232,7 +232,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
         }
 
         if (symbol.name == "constructor") {
-            symbol.rename = "_set";
+            symbol.rename = "_ctr";
         }
 
         addScopeToSymbol(symbol, parentScope);
@@ -252,22 +252,39 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
             let parent = symbol.parent();
             initializeSymbol(context, parent);
 
-            let firstArgument = node.functionFirstArgument();
-
-            if (firstArgument.stringValue !== "this") {
-                node.insertChildBefore(firstArgument, createVariable("this", createType(parent.resolvedType), null));
-            } else if (firstArgument.stringValue === "this" && firstArgument.firstChild.resolvedType === undefined) {
-                firstArgument.firstChild.resolvedType = parent.resolvedType;
-            }
-
-
-            //All constructors have special return "this" type
             if (symbol.name == "constructor") {
-                let returnNode: Node = createReturn(createThis());
+                let body = node.functionBody();
+                let selfPointer;
+                if (body !== null) {
+                    let firstChild = body.firstChild;
+                    if (firstChild !== undefined) {
+                        if (firstChild.stringValue !== "this") {
+                            selfPointer = createVariable("this", createType(parent.resolvedType), null);
+                            body.insertChildBefore(firstChild, selfPointer);
+                        } else if (firstChild.stringValue === "this" && firstChild.firstChild.resolvedType === undefined) {
+                            selfPointer = firstChild.firstChild;
+                            firstChild.firstChild.resolvedType = parent.resolvedType;
+                        }
+                    } else {
+                        selfPointer = createVariable("this", createType(parent.resolvedType), null)
+                        body.appendChild(selfPointer);
+                    }
+                }
+
+                // All constructors have special return "this" type
+                let returnNode: Node = createReturn(createName("this"));
                 if (node.lastChild.lastChild && node.lastChild.lastChild.kind == NodeKind.RETURN) {
                     node.lastChild.lastChild.remove();
                 }
                 node.lastChild.appendChild(returnNode);
+
+            } else {
+                let firstArgument = node.functionFirstArgument();
+                if (firstArgument.stringValue !== "this") {
+                    node.insertChildBefore(firstArgument, createVariable("this", createType(parent.resolvedType), null));
+                } else if (firstArgument.stringValue === "this" && firstArgument.firstChild.resolvedType === undefined) {
+                    firstArgument.firstChild.resolvedType = parent.resolvedType;
+                }
             }
         }
     }
@@ -821,9 +838,9 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
             childNode = child.clone();
 
             //if (child.resolvedType && child.resolvedType.symbol.name === templateName) {
-                // console.log("Found template");
+            // console.log("Found template");
             //} else if (child.symbol && child.symbol.resolvedType.symbol.name === templateName) {
-                // console.log("Found template");
+            // console.log("Found template");
             //} else {
 
             //}
@@ -1572,7 +1589,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
                     // Automatically call getters
                     else if (symbol.isGetter()) {
-                        if(node.parent.stringValue === node.stringValue && node.parent.kind === NodeKind.CALL) {
+                        if (node.parent.stringValue === node.stringValue && node.parent.kind === NodeKind.CALL) {
                             node.parent.resolvedType = null;
                             node.symbol = symbol;
                             node.resolvedType = symbol.resolvedType;
@@ -1889,7 +1906,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         //Constructors arguments
         let child = type.nextSibling;
         let constructorNode = node.constructorNode();
-        let argumentVariable = constructorNode.functionFirstArgumentIgnoringThis();
+        let argumentVariable = constructorNode.functionFirstArgument();
         while (child != null) {
             resolveAsExpression(context, child, parentScope);
             checkConversion(context, child, argumentVariable.symbol.resolvedType, ConversionKind.IMPLICIT);

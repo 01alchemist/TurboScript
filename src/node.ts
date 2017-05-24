@@ -703,6 +703,27 @@ export class Node {
         return child;
     }
 
+    functionLastArgument(): Node {
+        assert(this.kind == NodeKind.FUNCTION);
+        assert(this.childCount() >= 2);
+        let child = this.firstChild;
+        if (child.kind == NodeKind.PARAMETERS) {
+            child = child.nextSibling;
+        }
+        let lastArgument:Node = null;
+        while(child != null){
+            let nextChild = child.nextSibling;
+            if(nextChild.kind !== NodeKind.VARIABLE){
+                lastArgument = child;
+                child = null;
+            } else {
+                child = nextChild;
+            }
+        }
+
+        return lastArgument;
+    }
+
     functionFirstArgumentIgnoringThis(): Node {
         assert(this.kind == NodeKind.FUNCTION);
         assert(this.childCount() >= 2);

@@ -1,4 +1,4 @@
-declare var PI:float32 = 3.141592653589793f;
+declare var PI:float64 = 3.141592653589793;
 
 @import
 declare class Math {
