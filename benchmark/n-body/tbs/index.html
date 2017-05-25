@@ -24,7 +24,6 @@
                         window.HEAPU32 = new Uint32Array(exports.memory.buffer);
                         window.HEAP32 = new Int32Array(exports.memory.buffer);
                         window.HEAPF32 = new Float32Array(exports.memory.buffer);
-                        console.log("WASM Compiled!");
                         run();
                     })
                 } catch (e) {
@@ -35,8 +34,11 @@
     }
 
     function run() {
+        let numBodies = 10000000;
+        console.log("N-Body Benchmark WebAssembly(TurboScript)");
+        console.log("  numBodies:"+numBodies);
         console.time("Finished in");
-        console.log("Energy:" + exports.test(1000000));
+        console.log("Energy:" + exports.test(numBodies));
         console.timeEnd("Finished in");
     }
     init();

@@ -10,8 +10,11 @@
 </head>
 <body>
 <script>
+    let numBodies = 10000000;
+    console.log("N-Body Benchmark JavaScript");
+    console.log("  numBodies:"+numBodies);
     console.time("Finished in");
-    console.log("Energy:" + exports.test(1000000));
+    console.log("Energy:" + exports.test(numBodies));
     console.timeEnd("Finished in");
 </script>
 </body>

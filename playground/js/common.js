@@ -148,13 +148,13 @@ function loadLibrary(callback) {
         //wasm
         {path: TURBO_PATH + '/src/library/wasm/types.tbs', code: ""},
         {path: TURBO_PATH + '/src/library/wasm/malloc.tbs', code: ""},
-        {path: TURBO_PATH + '/src/library/wasm/array.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/wasm/f32-array.tbs', code: ""},
         {path: TURBO_PATH + '/src/library/wasm/math.tbs', code: ""},
 
         //asmjs
         {path: TURBO_PATH + '/src/library/asmjs/types.tbs', code: ""},
         {path: TURBO_PATH + '/src/library/asmjs/malloc.tbs', code: ""},
-        {path: TURBO_PATH + '/src/library/asmjs/array.tbs', code: ""},
+        {path: TURBO_PATH + '/src/library/asmjs/f32-array.tbs', code: ""},
         {path: TURBO_PATH + '/src/library/asmjs/math.tbs', code: ""},
         {path: TURBO_PATH + '/src/library/asmjs/runtime.js', code: ""},
         {path: TURBO_PATH + '/src/library/asmjs/wrapper.js', code: ""},

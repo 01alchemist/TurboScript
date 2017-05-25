@@ -2,8 +2,8 @@
 var SOLAR_MASS: float64 = 4.0 * PI * PI;
 var DAYS_PER_YEAR: float64 = 365.24;
 
-@import
-declare function printf64(value:float64):void;
+// @import
+// declare function printf64(value:float64):void;
 
 class Body {
     public x: float64;

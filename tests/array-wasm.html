@@ -14,6 +14,11 @@
             random: () => {
                 return Math.random() / Number.MAX_SAFE_INTEGER;
             }
+        },
+        log: {
+            printI32: (v) => console.log(v),
+            printF32: (v) => console.log(v),
+            printF64: (v) => console.log(v)
         }
     };
 
@@ -30,7 +35,7 @@
                 turbo.HEAPF32 = new Float32Array(turbo.exports.memory.buffer);
                 turbo.HEAPF64 = new Float64Array(turbo.exports.memory.buffer);
                 console.log("WASM Compiled!");
-                test();
+                //test();
             })
 
         } catch (e) {
