@@ -3,16 +3,16 @@ import { getWasmInstanceSync } from "./utils/utils";
 
 test('it should create an array', () => {
     const instance: WebAssembly.Instance = getWasmInstanceSync(
-        path.join(__dirname, 'array.tbs')
+        path.join(__dirname, 'f64-array.tbs')
     );
-    const HEAPF32 = new Float32Array(instance.exports.memory.buffer);
+    const HEAPF64 = new Float64Array(instance.exports.memory.buffer);
     let testData = [];
 
     for (let i = 0; i < 10; i++) {
         testData.push({
-            v1: Math.fround(Math.random()),
-            v2: Math.fround(Math.random()),
-            v3: Math.fround(Math.random())
+            v1: Math.random(),
+            v2: Math.random(),
+            v3: Math.random()
         });
     }
 
@@ -32,9 +32,9 @@ test('it should create an array', () => {
 
     function data_to_json(ptr) {
         return {
-            v1: HEAPF32[(ptr + 4) >> 2],
-            v2: HEAPF32[(ptr + 8) >> 2],
-            v3: HEAPF32[(ptr + 12) >> 2]
+            v1: HEAPF64[(ptr + 8) >> 3],
+            v2: HEAPF64[(ptr + 16) >> 3],
+            v3: HEAPF64[(ptr + 24) >> 3]
         }
     }
 

@@ -25,13 +25,14 @@ import {
     createFloat,
     createInt,
     createLong,
-    createMemberReference, createName,
+    createMemberReference,
+    createName,
     createNull,
     createReturn,
     createSymbolReference,
-    createThis,
     createType,
     createVariable,
+    createVariables,
     isBinary,
     isExpression,
     isUnary,
@@ -254,29 +255,31 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
 
             if (symbol.name == "constructor") {
                 let body = node.functionBody();
-                let selfPointer;
                 if (body !== null) {
-                    let firstChild = body.firstChild;
-                    if (firstChild !== undefined) {
-                        if (firstChild.stringValue !== "this") {
-                            selfPointer = createVariable("this", createType(parent.resolvedType), null);
-                            body.insertChildBefore(firstChild, selfPointer);
-                        } else if (firstChild.stringValue === "this" && firstChild.firstChild.resolvedType === undefined) {
-                            selfPointer = firstChild.firstChild;
-                            firstChild.firstChild.resolvedType = parent.resolvedType;
+                    let variablesNode = body.firstChild;
+                    if (variablesNode.kind !== NodeKind.VARIABLES) {
+                        let _variablesNode = createVariables();
+                        body.insertChildBefore(variablesNode, _variablesNode);
+                        variablesNode = _variablesNode;
+                    }
+                    let firstVariable = variablesNode.firstChild;
+                    if (firstVariable !== undefined) {
+                        if (firstVariable.stringValue !== "this") {
+                            variablesNode.insertChildBefore(firstVariable, createVariable("this", createType(parent.resolvedType), null));
+                        } else if (firstVariable.stringValue === "this" && firstVariable.firstChild.resolvedType === undefined) {
+                            firstVariable.firstChild.resolvedType = parent.resolvedType;
                         }
                     } else {
-                        selfPointer = createVariable("this", createType(parent.resolvedType), null)
-                        body.appendChild(selfPointer);
+                        variablesNode.appendChild(createVariable("this", createType(parent.resolvedType), null));
                     }
-                }
 
-                // All constructors have special return "this" type
-                let returnNode: Node = createReturn(createName("this"));
-                if (node.lastChild.lastChild && node.lastChild.lastChild.kind == NodeKind.RETURN) {
-                    node.lastChild.lastChild.remove();
+                    // All constructors have special return "this" type
+                    let returnNode: Node = createReturn(createName("this"));
+                    if (node.lastChild.lastChild && node.lastChild.lastChild.kind == NodeKind.RETURN) {
+                        node.lastChild.lastChild.remove();
+                    }
+                    node.lastChild.appendChild(returnNode);
                 }
-                node.lastChild.appendChild(returnNode);
 
             } else {
                 let firstArgument = node.functionFirstArgument();
