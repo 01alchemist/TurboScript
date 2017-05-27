@@ -732,7 +732,7 @@ class WasmModule {
                 }
                 else assert(false);
 
-                //let global = this.allocateGlobal(symbol);// Since
+                //let global = this.allocateGlobal(symbol);
 
                 // Make sure the heap offset is tracked
                 if (symbol.name == "currentHeapPointer") {
@@ -818,15 +818,9 @@ class WasmModule {
                 fn.isExported = true;
             }
 
-            // Assign local variable offsets
-            // if (isConstructor) {
-            //     shared.localCount++; // reserve 1 local for self pointer reference
-            // }
             wasmAssignLocalVariableOffsets(fn, body, shared);
             fn.localCount = shared.localCount;
             fn.argumentCount = argumentCount;
-            // let fnName: string = getWasmFunctionName(fn);
-            // console.log(fnName);
         }
 
         let child = node.firstChild;
@@ -1009,8 +1003,6 @@ class WasmModule {
                 appendOpcode(array, byteOffset, WasmOpcode.I32_MUL); //array byteLength
             }
 
-            // if (isClassElement) {
-
             appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
             array.writeLEB128(size); // array element size
 
@@ -1018,13 +1010,6 @@ class WasmModule {
             appendOpcode(array, byteOffset, WasmOpcode.CALL);
             log(array, byteOffset, callIndex, `call func index (${callIndex})`);
             array.writeUnsignedLEB128(callIndex);
-
-            // } else {
-            //     appendOpcode(array, byteOffset, WasmOpcode.CALL);
-            //     log(array, byteOffset, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
-            //     array.writeUnsignedLEB128(this.mallocFunctionIndex);
-            // }
-
         }
         else if (type.resolvedType.isTypedArray()) {
             // let elementSize = getTypedArrayElementSize(type.resolvedType.symbol.name);
@@ -1100,26 +1085,6 @@ class WasmModule {
         array.writeUnsignedLEB128(this.mallocFunctionIndex);
         appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
         array.writeUnsignedLEB128(fn.argumentCount);// Set self pointer to first local variable which is immediate after the argument variable
-        // pointer reference to this object
-
-        // let child = constructorNode.firstChild.nextSibling;//ignore this pointer argument
-        // while (child != null) {
-        //     if (child.kind == NodeKind.VARIABLE) {
-        //         let symbol = child.symbol;
-        //         let offset = symbol.offset - 1;//subtract this pointer argument offset
-        //         if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT) {
-        //             appendOpcode(array, byteOffset, WasmOpcode.GET_LOCAL);
-        //             log(array, byteOffset, offset, "local index");
-        //             array.writeUnsignedLEB128(offset);
-        //         }
-        //     }
-        //     child = child.nextSibling;
-        // }
-
-        // let callIndex: int32 = this.getWasmFunctionCallIndex(callSymbol);
-        // appendOpcode(array, byteOffset, WasmOpcode.CALL);
-        // log(array, byteOffset, callIndex, `call func index (${callIndex})`);
-        // array.writeUnsignedLEB128(callIndex);
     }
 
     emitNode(array: ByteArray, byteOffset: int32, node: Node): int32 {
@@ -1209,10 +1174,6 @@ class WasmModule {
             let value = node.returnValue();
             if (value != null) {
                 this.emitNode(array, byteOffset, value);
-
-                // if (value.kind == NodeKind.NEW) {
-                //     this.emitInstance(array, byteOffset, value);
-                // }
             }
             appendOpcode(array, byteOffset, WasmOpcode.RETURN);
         }
@@ -1326,10 +1287,6 @@ class WasmModule {
                     }
                 }
 
-                // if (value.kind == NodeKind.NEW) {
-                //     this.emitInstance(array, byteOffset, value);
-                // }
-
                 appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
                 log(array, byteOffset, node.symbol.offset, "local index");
                 array.writeUnsignedLEB128(node.symbol.offset);
@@ -1356,6 +1313,7 @@ class WasmModule {
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
+                // FIXME: Final spec allow immutable global variables
                 //Global variables are immutable so we need to store then in memory
                 //appendOpcode(array, byteOffset, WasmOpcode.GET_GLOBAL);
                 //array.writeUnsignedLEB128(symbol.offset);
