@@ -143,6 +143,7 @@ class WasmFunction {
     lastLocal: WasmLocal;
     localCount: int32 = 0;
     argumentCount: int32 = 0;
+    returnType: WasmType;
     next: WasmFunction;
 }
 
@@ -550,7 +551,7 @@ class WasmModule {
             // }
 
             if (lastChild && lastChild.kind !== NodeKind.RETURN) {
-                appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
+                // appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
             }
 
             appendOpcode(bodyData, sectionOffset, WasmOpcode.END); //end, 0x0b, indicating the end of the body
@@ -752,6 +753,7 @@ class WasmModule {
             node.symbol.kind == SymbolKind.FUNCTION_INSTANCE && !node.parent.isTemplate())) {
 
             let returnType = node.functionReturnType();
+            let wasmReturnType = this.getWasmType(returnType.resolvedType);
             let shared = new WasmSharedOffset();
             let argumentTypesFirst: WasmWrappedType = null;
             let argumentTypesLast: WasmWrappedType
@@ -774,7 +776,7 @@ class WasmModule {
                 argument = argument.nextSibling;
             }
 
-            let signatureIndex = this.allocateSignature(argumentTypesFirst, wasmWrapType(this.getWasmType(returnType.resolvedType)));
+            let signatureIndex = this.allocateSignature(argumentTypesFirst, wasmWrapType(wasmReturnType));
 
             let body = node.functionBody();
 
@@ -794,6 +796,7 @@ class WasmModule {
 
             let fn = this.allocateFunction(symbol, signatureIndex);
             fn.isConstructor = isConstructor;
+            fn.returnType = wasmReturnType;
 
             // Make sure "malloc" is tracked
             if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
@@ -1124,8 +1127,13 @@ class WasmModule {
         if (node.kind == NodeKind.BLOCK) {
             appendOpcode(array, byteOffset, WasmOpcode.BLOCK);
 
-            log(array, byteOffset, WasmType.block_type, WasmType[WasmType.block_type]);
-            array.append(WasmType.block_type);
+            if (node.parent.kind === NodeKind.IF || node.parent.kind === NodeKind.WHILE) {
+                log(array, byteOffset, WasmType.block_type, WasmType[WasmType.block_type]);
+                array.append(WasmType.block_type);
+            } else {
+                log(array, byteOffset, this.currentFunction.returnType, WasmType[this.currentFunction.returnType]);
+                array.append(this.currentFunction.returnType);
+            }
 
             let child = node.firstChild;
             while (child != null) {
@@ -1251,7 +1259,7 @@ class WasmModule {
         else if (node.kind == NodeKind.VARIABLE) {
             let value = node.variableValue();
 
-            if(node.symbol.name == "this" && this.currentFunction.symbol.name == "constructor"){
+            if (node.symbol.name == "this" && this.currentFunction.symbol.name == "constructor") {
                 // skip this
             }
             else if (node.symbol.kind == SymbolKind.VARIABLE_LOCAL) {
