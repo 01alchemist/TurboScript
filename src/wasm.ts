@@ -551,7 +551,7 @@ class WasmModule {
             // }
 
             if (lastChild && lastChild.kind !== NodeKind.RETURN) {
-                // appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
+                appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
             }
 
             appendOpcode(bodyData, sectionOffset, WasmOpcode.END); //end, 0x0b, indicating the end of the body
