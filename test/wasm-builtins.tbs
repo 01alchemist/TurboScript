@@ -1,0 +1,120 @@
+
+export function native_I64_ROTL(value:int32, shift:int32):int32 {
+  return rotl(value as int64, shift as int64) as int32;
+}
+
+export function native_I32_ROTL(value:int32, shift:int32):int32 {
+  return rotl32(value, shift);
+}
+
+export function native_I64_ROTR(value:int32, shift:int32):int32 {
+  return rotl(value as int64, shift as int64) as int32;
+}
+
+export function native_I32_ROTR(value:int32, shift:int32):int32 {
+  return rotl32(value, shift);
+}
+
+export function native_I64_CLZ(value:int32):int32 {
+  return clz(value as int64) as int32;
+}
+
+export function native_I32_CLZ(value:int32):int32 {
+  return clz32(value);
+}
+
+export function native_I64_CTZ(value:int32):int32 {
+  return ctz(value as int64) as int32;
+}
+
+export function native_I32_CTZ(value:int32):int32 {
+  return ctz32(value);
+}
+
+export function native_I64_POPCNT(value:int32):int32 {
+  return popcnt(value as int64) as int32;
+}
+
+export function native_I32_POPCNT(value:int32):int32 {
+  return popcnt32(value);
+}
+
+export function native_F64_ABS(value:float64):float64 {
+  return abs(value);
+}
+
+export function native_F32_ABS(value:float32):float32 {
+  return abs32(value);
+}
+
+export function native_F64_CEIL(value:float64):float64 {
+  return ceil(value);
+}
+
+export function native_F32_CEIL(value:float32):float32 {
+  return ceil32(value);
+}
+
+export function native_F64_FLOOR(value:float64):float64 {
+  return floor(value);
+}
+
+export function native_F32_FLOOR(value:float32):float32 {
+  return floor32(value);
+}
+
+export function nativeS_F64_SQRT(value:float64):float64 {
+    return sqrt(value);
+}
+
+export function native_F32_SQRT(value:float32):float32 {
+  return sqrt32(value);
+}
+
+export function nativeS_F64_TRUNC(value:float64):int32 {
+    return trunc(value) as int32;
+}
+
+export function native_F32_TRUNC(value:float32):int32 {
+  return trunc32(value);
+}
+
+export function nativeS_F64_NEAREST(value:float64):int32 {
+    return nearest(value) as int32;
+}
+
+export function native_F32_NEAREST(value:float32):int32 {
+  return nearest32(value);
+}
+
+export function nativeS_F64_MIN(a:float64, b:float64):float64 {
+    return min(a, b);
+}
+
+export function native_F32_MIN(a:float32, b:float32):float32 {
+  return min32(a, b);
+}
+
+export function nativeS_F64_MAX(a:float64, b:float64):float64 {
+    return max(a, b);
+}
+
+export function native_F32_MAX(a:float32, b:float32):float32 {
+  return max32(a, b);
+}
+
+export function nativeS_F64_COPYSIGN(a:float64, b:float64):float64 {
+    return copysign(a, b);
+}
+
+export function native_F32_COPYSIGN(a:float32, b:float32):float32 {
+  return copysign32(a, b);
+}
+
+export function native_CURRENT_MEMORY():int32 {
+  return current_memory();
+}
+
+export function native_GROW_MEMORY(value:int32):int32 {
+  return grow_memory(value);
+}

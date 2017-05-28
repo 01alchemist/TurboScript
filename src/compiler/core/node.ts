@@ -1,6 +1,6 @@
 import {Type} from "./type";
-import {Symbol, SymbolKind, isType, SYMBOL_FLAG_IS_TEMPLATE} from "./symbol";
-import {Range} from "../../utils/log";
+import {isType, Symbol, SYMBOL_FLAG_IS_TEMPLATE, SymbolKind} from "./symbol";
+import {SourceRange} from "../../utils/log";
 import {Scope} from "./scope";
 import {CheckContext} from "../analyzer/type-checker";
 
@@ -17,10 +17,8 @@ export enum NodeKind {
     PARAMETER,
     PARAMETERS,
     VARIABLE,
-    INTERNAL_IMPORT,
-    INTERNAL_IMPORT_FROM,
-    EXTERNAL_IMPORT,
-
+    IMPORT,
+    IMPORT_FROM,
         // Statements
     BLOCK,
     BREAK,
@@ -141,8 +139,8 @@ export function isCompactNodeKind(kind: NodeKind): boolean {
 
 export const NODE_FLAG_DECLARE = 1 << 0;
 export const NODE_FLAG_EXPORT = 1 << 1;
-export const NODE_FLAG_INTERNAL_IMPORT = 1 << 2;
-export const NODE_FLAG_EXTERNAL_IMPORT = 1 << 3;
+export const NODE_FLAG_IMPORT = 1 << 2;
+export const NODE_FLAG_LIBRARY = 1 << 3;
 export const NODE_FLAG_GET = 1 << 4;
 export const NODE_FLAG_OPERATOR = 1 << 5;
 export const NODE_FLAG_POSITIVE = 1 << 6;
@@ -161,11 +159,11 @@ export const NODE_FLAG_GENERIC = 1 << 18;
 
 export class NodeFlag {
     flag: int32;
-    range: Range;
+    range: SourceRange;
     next: NodeFlag;
 }
 
-export function appendFlag(first: NodeFlag, flag: int32, range: Range): NodeFlag {
+export function appendFlag(first: NodeFlag, flag: int32, range: SourceRange): NodeFlag {
     let link = new NodeFlag();
     link.flag = flag;
     link.range = range;
@@ -193,7 +191,7 @@ export function allFlags(link: NodeFlag): int32 {
     return all;
 }
 
-export function rangeForFlag(link: NodeFlag, flag: int32): Range {
+export function rangeForFlag(link: NodeFlag, flag: int32): SourceRange {
     while (link != null) {
         if (link.flag == flag) {
             return link.range;
@@ -207,8 +205,8 @@ export class Node {
     kind: NodeKind;
     flags: int32;
     firstFlag: NodeFlag;
-    range: Range;
-    internalRange: Range;
+    range: SourceRange;
+    internalRange: SourceRange;
     parent: Node;
     firstChild: Node;
     lastChild: Node;
@@ -362,13 +360,13 @@ export class Node {
     clone(): Node {
         let node: Node = new Node();
         node.kind = this.kind;
-        if(this.offset !== undefined) node.offset = this.offset;
-        if(this.flags !== undefined) node.flags = this.flags;
-        if(this.firstFlag !== undefined) node.firstFlag = this.firstFlag;
+        if (this.offset !== undefined) node.offset = this.offset;
+        if (this.flags !== undefined) node.flags = this.flags;
+        if (this.firstFlag !== undefined) node.firstFlag = this.firstFlag;
         // if(this.constructorFunctionNode) node.constructorFunctionNode = this.constructorFunctionNode;
-        if(this.range !== undefined) node.range = this.range;
-        if(this.internalRange !== undefined) node.internalRange = this.internalRange;
-        if(this.hasValue) node.rawValue = this.__internal_rawValue;
+        if (this.range !== undefined) node.range = this.range;
+        if (this.internalRange !== undefined) node.internalRange = this.internalRange;
+        if (this.hasValue) node.rawValue = this.__internal_rawValue;
         return node;
     }
 
@@ -427,6 +425,10 @@ export class Node {
         return (this.flags & NODE_FLAG_DECLARE) != 0;
     }
 
+    isLibrary(): boolean {
+        return (this.flags & NODE_FLAG_LIBRARY) != 0;
+    }
+
     isVirtual(): boolean {
         return (this.flags & NODE_FLAG_VIRTUAL) != 0;
     }
@@ -435,8 +437,12 @@ export class Node {
         return (this.flags & NODE_FLAG_EXPORT) != 0;
     }
 
+    isImport(): boolean {
+        return (this.flags & NODE_FLAG_IMPORT) != 0;
+    }
+
     isExternalImport(): boolean {
-        return (this.flags & NODE_FLAG_EXTERNAL_IMPORT) != 0;
+        return this.isDeclare() && !this.isLibrary();
     }
 
     isStart(): boolean {
@@ -683,12 +689,12 @@ export class Node {
         return this.parent.kind == NodeKind.ASSIGN && this == this.parent.binaryLeft();
     }
 
-    withRange(range: Range): Node {
+    withRange(range: SourceRange): Node {
         this.range = range;
         return this;
     }
 
-    withInternalRange(range: Range): Node {
+    withInternalRange(range: SourceRange): Node {
         this.internalRange = range;
         return this;
     }
@@ -710,10 +716,10 @@ export class Node {
         if (child.kind == NodeKind.PARAMETERS) {
             child = child.nextSibling;
         }
-        let lastArgument:Node = null;
-        while(child != null){
+        let lastArgument: Node = null;
+        while (child != null) {
             let nextChild = child.nextSibling;
-            if(nextChild.kind !== NodeKind.VARIABLE){
+            if (nextChild.kind !== NodeKind.VARIABLE) {
                 lastArgument = child;
                 child = null;
             } else {
@@ -1243,23 +1249,16 @@ export function createImports(): Node {
     return node;
 }
 
-export function createInternalImport(name: string): Node {
+export function createImport(name: string): Node {
     let node = new Node();
-    node.kind = NodeKind.INTERNAL_IMPORT;
+    node.kind = NodeKind.IMPORT;
     node.stringValue = name;
     return node;
 }
 
-export function createInternalImportFrom(name: string): Node {
+export function createImportFrom(name: string): Node {
     let node = new Node();
-    node.kind = NodeKind.INTERNAL_IMPORT_FROM;
-    node.stringValue = name;
-    return node;
-}
-
-export function createExternalImport(name: string): Node {
-    let node = new Node();
-    node.kind = NodeKind.EXTERNAL_IMPORT;
+    node.kind = NodeKind.IMPORT_FROM;
     node.stringValue = name;
     return node;
 }

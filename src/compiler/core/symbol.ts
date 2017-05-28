@@ -2,7 +2,7 @@ import {Type} from "./type";
 import {Node, NodeKind} from "./node";
 import {CheckContext} from "../analyzer/type-checker";
 import {Scope} from "./scope";
-import {Range} from "../../utils/log";
+import {SourceRange} from "../../utils/log";
 import {alignToNextMultipleOf} from "../../utils/imports";
 
 export enum SymbolKind {
@@ -64,7 +64,7 @@ export class Symbol {
     kind: SymbolKind;
     name: string;
     node: Node;
-    range: Range;
+    range: SourceRange;
     scope: Scope;
     resolvedType: Type;
     next: Symbol;

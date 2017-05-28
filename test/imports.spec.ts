@@ -40,6 +40,6 @@ test("it should import abs function from javascript", () => {
     const value: number = Math.random();
     const expected: number = Math.fround(Math.abs(value)); //WASM abs is 32bit float
 
-    const result: number = instance.exports.abs(value);
+    const result: number = instance.exports.abs_f32(value);
     expect(result).toBeCloseTo(expected);
 });

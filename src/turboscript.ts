@@ -47,7 +47,7 @@ export function writeLogToTerminal(log: Log): void {
             stdlib.Terminal_setColor(Color.DEFAULT);
             stdlib.Terminal_write(builder.finish());
 
-            // Range
+            // SourceRange
             builder = StringBuilder_new();
             diagnostic.appendRange(builder, location);
             stdlib.Terminal_setColor(Color.GREEN);

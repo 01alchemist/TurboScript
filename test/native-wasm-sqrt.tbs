@@ -1,7 +1,0 @@
-export function nativeSqrt32(value:float32):float32 {
-  return sqrt32(value);
-}
-
-export function nativeSqrt64(value:float64):float64 {
-  return sqrt64(value);
-}

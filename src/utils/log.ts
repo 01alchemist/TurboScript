@@ -48,7 +48,7 @@ export class Source {
     }
 }
 
-export class Range {
+export class SourceRange {
     source: Source;
     start: int32;
     end: int32;
@@ -57,11 +57,11 @@ export class Range {
         return this.source.contents.slice(this.start, this.end);
     }
 
-    equals(other: Range): boolean {
+    equals(other: SourceRange): boolean {
         return this.source == other.source && this.start == other.start && this.end == other.end;
     }
 
-    enclosingLine(): Range {
+    enclosingLine(): SourceRange {
         var contents = this.source.contents;
         var start = this.start;
         var end = this.start;
@@ -78,21 +78,21 @@ export class Range {
         return createRange(this.source, start, end);
     }
 
-    rangeAtEnd(): Range {
+    rangeAtEnd(): SourceRange {
         return createRange(this.source, this.end, this.end);
     }
 }
 
-export function createRange(source: Source, start: int32, end: int32): Range {
+export function createRange(source: Source, start: int32, end: int32): SourceRange {
     assert(start <= end);
-    var range = new Range();
+    var range = new SourceRange();
     range.source = source;
     range.start = start;
     range.end = end;
     return range;
 }
 
-export function spanRanges(left: Range, right: Range): Range {
+export function spanRanges(left: SourceRange, right: SourceRange): SourceRange {
     assert(left.source == right.source);
     assert(left.start <= right.start);
     assert(left.end <= right.end);
@@ -105,7 +105,7 @@ export enum DiagnosticKind {
 }
 
 export class Diagnostic {
-    range: Range;
+    range: SourceRange;
     message: string;
     kind: DiagnosticKind;
     next: Diagnostic;
@@ -166,15 +166,15 @@ export class Log {
     first: Diagnostic;
     last: Diagnostic;
 
-    error(range: Range, message: string): void {
+    error(range: SourceRange, message: string): void {
         this.append(range, message, DiagnosticKind.ERROR);
     }
 
-    warning(range: Range, message: string): void {
+    warning(range: SourceRange, message: string): void {
         this.append(range, message, DiagnosticKind.WARNING);
     }
 
-    append(range: Range, message: string, kind: DiagnosticKind): void {
+    append(range: SourceRange, message: string, kind: DiagnosticKind): void {
         var diagnostic = new Diagnostic();
         diagnostic.range = range;
         diagnostic.message = message;

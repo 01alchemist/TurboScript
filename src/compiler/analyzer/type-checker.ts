@@ -39,7 +39,7 @@ import {
     Node,
     NODE_FLAG_DECLARE,
     NODE_FLAG_EXPORT,
-    NODE_FLAG_EXTERNAL_IMPORT,
+    NODE_FLAG_IMPORT,
     NODE_FLAG_GENERIC,
     NODE_FLAG_GET,
     NODE_FLAG_PRIVATE,
@@ -48,10 +48,10 @@ import {
     NODE_FLAG_SET,
     NODE_FLAG_UNSIGNED_OPERATOR,
     NodeKind,
-    rangeForFlag
+    rangeForFlag, NODE_FLAG_LIBRARY
 } from "../core/node";
 import {CompileTarget} from "../compiler";
-import {Log, Range, spanRanges} from "../../utils/log";
+import {Log, SourceRange, spanRanges} from "../../utils/log";
 import {FindNested, Scope, ScopeHint} from "../core/scope";
 import {StringBuilder_new} from "../../utils/stringbuilder";
 import {alignToNextMultipleOf, isPositivePowerOf2} from "../../utils/imports";
@@ -321,6 +321,9 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Children
     let child = node.firstChild;
     while (child != null) {
+        if(mode == CheckMode.INITIALIZE){
+            child.flags |= NODE_FLAG_LIBRARY;
+        }
         initialize(context, child, parentScope, mode);
         child = child.nextSibling;
     }
@@ -451,10 +454,6 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     // Function
     else if (isFunction(symbol.kind)) {
-        // if (node.firstChild.kind == NodeKind.PARAMETERS) {
-        //     resolve(context, node.firstChild, symbol.scope);
-        // }
-
         let body = node.functionBody();
         let returnType = node.functionReturnType();
         let oldUnsafeAllowed = context.isUnsafeAllowed;
@@ -555,9 +554,6 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             if (parent.node.isDeclare()) {
                 if (body == null) {
                     node.flags = node.flags | NODE_FLAG_DECLARE;
-                    if (parent.node.isExternalImport()) {
-                        node.flags = node.flags | NODE_FLAG_EXTERNAL_IMPORT;
-                    }
                 } else {
                     shouldConvertInstanceToGlobal = true;
                 }
@@ -979,60 +975,33 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         return false;
     }
 
-    else if (from.isInteger() && to.isLong()) {
+    else if (
+        from.isInteger() && to.isFloat() ||
+        from.isInteger() && to.isDouble() ||
+
+        from.isLong() && to.isInteger() ||
+        from.isLong() && to.isFloat() ||
+        from.isLong() && to.isDouble() ||
+
+        from.isFloat() && to.isInteger() ||
+        from.isFloat() && to.isLong() ||
+
+        from.isDouble() && to.isInteger() ||
+        from.isDouble() && to.isLong() ||
+        from.isDouble() && to.isFloat()
+    ) {
         if (kind == ConversionKind.IMPLICIT) {
             return false;
         }
         return true;
     }
 
-    else if (from.isInteger() && to.isFloat()) {
-        if (kind == ConversionKind.IMPLICIT) {
-            return false;
-        }
-        //TODO Allow only lossless conversions implicitly
-        return true;
-    }
-
-    else if (from.isInteger() && to.isDouble()) {
-        if (kind == ConversionKind.IMPLICIT) {
-            return false;
-        }
-        //TODO Allow only lossless conversions implicitly
-        return true;
-    }
-
-    else if (from.isFloat() && to.isInteger()) {
-        if (kind == ConversionKind.IMPLICIT) {
-            return false;
-        }
-        //TODO Allow only lossless conversions implicitly
-        return true;
-    }
-
-    else if (from.isFloat() && to.isDouble()) {
-        return true;
-    }
-
-    else if (from.isDouble() && to.isFloat()) {
-        if (kind == ConversionKind.IMPLICIT) {
-            return false;
-        }
-        //TODO Allow only lossless conversions implicitly
-        return true;
-    }
-
-    else if (from.isDouble() && to.isInteger()) {
-        if (kind == ConversionKind.IMPLICIT) {
-            return false;
-        }
-        //TODO Allow only lossless conversions implicitly
-        return true;
-    }
-    else if (from.isFloat() && to.isFloat()) {
-        return true;
-    }
-    else if (from.isDouble() && to.isDouble()) {
+    else if (
+        from.isInteger() && to.isLong() ||
+        from.isFloat() && to.isDouble() ||
+        from.isFloat() && to.isFloat() ||
+        from.isDouble() && to.isDouble()
+    ) {
         return true;
     }
 
@@ -1176,7 +1145,7 @@ export function isBinaryDouble(node: Node): boolean {
     return leftType.isDouble() || rightType.isDouble();
 }
 
-export function isSymbolAccessAllowed(context: CheckContext, symbol: Symbol, node: Node, range: Range): boolean {
+export function isSymbolAccessAllowed(context: CheckContext, symbol: Symbol, node: Node, range: SourceRange): boolean {
     if (symbol.isUnsafe() && !context.isUnsafeAllowed) {
         context.log.error(range, StringBuilder_new()
             .append("Cannot use symbol '")
@@ -1244,8 +1213,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         context.enclosingModule = oldEnclosingModule;
     }
 
-    else if (kind == NodeKind.EXTERNAL_IMPORT) {
-        let symbol = node.symbol;
+    else if (kind == NodeKind.IMPORT || kind == NodeKind.IMPORT_FROM) {
+        //ignore imports
     }
 
     else if (kind == NodeKind.CLASS) {
@@ -2300,10 +2269,6 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     .finish());
             }
         }
-    }
-
-    else if (kind == NodeKind.INTERNAL_IMPORT || kind == NodeKind.INTERNAL_IMPORT_FROM) {
-        //ignore imports
     }
 
     else if (kind == NodeKind.TYPE) {

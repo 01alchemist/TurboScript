@@ -1,0 +1,59 @@
+let i32: int32 = 428364;
+let i64: int64 = 9127363240;
+let f32: float32 = 16384.8890f;
+let f64: float64 = 857.1239;
+
+// cast from I32
+export function cast_i32_to_i64(): int32 {
+    let a = i32 as int64;
+    return a as int32;
+}
+
+export function cast_i32_to_f32(): float32 {
+    return i32 as float32;
+}
+
+export function cast_i32_to_f64(): float64 {
+    return i32 as float64;
+}
+
+// cast from I64
+export function cast_i64_to_i32(): int32 {
+    return i64 as int32;
+}
+
+export function cast_i64_to_f32(): float32 {
+    return i64 as float32;
+}
+
+export function cast_i64_to_f64(): float64 {
+    return i64 as float64;
+}
+
+// cast from f32
+export function cast_f32_to_i32(): int32 {
+    return f32 as int32;
+}
+
+export function cast_f32_to_i64(): int32 {
+    let a = f32 as int64;
+    return a as int32;
+}
+
+export function cast_f32_to_f64(): float64 {
+    return f32 as float64;
+}
+
+// cast from f64
+export function cast_f64_to_i32(): int32 {
+    return f64 as int32;
+}
+
+export function cast_f64_to_i64(): int32 {
+    let a = f64 as int64;
+    return a as int32;
+}
+
+export function cast_f64_to_f32(): float32 {
+    return f64 as float32;
+}
