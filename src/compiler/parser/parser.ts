@@ -1612,7 +1612,6 @@ class ParserContext {
     parseInt(range: SourceRange, node: Node): boolean {
         let source = range.source;
         let contents = source.contents;
-
         node.intValue = parseInt(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;
@@ -1621,7 +1620,6 @@ class ParserContext {
     parseFloat(range: SourceRange, node: Node): boolean {
         let source = range.source;
         let contents = source.contents;
-
         node.floatValue = parseFloat(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;
@@ -1630,7 +1628,6 @@ class ParserContext {
     parseDouble(range: SourceRange, node: Node): boolean {
         let source = range.source;
         let contents = source.contents;
-
         node.doubleValue = parseFloat(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;

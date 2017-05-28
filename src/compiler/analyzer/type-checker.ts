@@ -654,7 +654,6 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                 resolveAsExpression(context, value, symbol.scope);
                 checkConversion(context, value, symbol.resolvedTypeUnderlyingIfEnumValue(context), ConversionKind.IMPLICIT);
 
-                //FIXME: Why we need to set offset like this?
                 if (value.kind == NodeKind.INT32 || value.kind == NodeKind.INT64 || value.kind == NodeKind.BOOLEAN) {
                     symbol.offset = value.intValue;
                 }

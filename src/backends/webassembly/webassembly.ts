@@ -902,7 +902,6 @@ class WasmModule {
     }
 
     emitStoreToMemory(array: ByteArray, byteOffset: int32, type: Type, relativeBase: Node, offset: int32, value: Node): void {
-        let opcode;
         // Relative address
         if (relativeBase != null) {
             this.emitNode(array, byteOffset, relativeBase);
@@ -1344,7 +1343,7 @@ class WasmModule {
         else if (node.kind == NodeKind.INT64) {
             appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
             log(array, byteOffset, node.longValue, "i64 literal");
-            array.writeLEB128(node.longValue || 0);
+            array.writeLEB128(node.longValue);
         }
 
         else if (node.kind == NodeKind.FLOAT32) {
@@ -1476,7 +1475,7 @@ class WasmModule {
                 if (value.kind == NodeKind.INT32) {
                     appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
                     log(array, byteOffset, value.longValue, "i64 literal");
-                    array.writeLEB128(value.longValue || 0);//TODO: implement i64 write
+                    array.writeLEB128(value.longValue);
                 } else {
                     let isUnsigned = value.resolvedType.isUnsigned();
                     this.emitNode(array, byteOffset, value);
@@ -1550,12 +1549,14 @@ class WasmModule {
             }
 
             // i64 > f64
-            else if (from == context.int64Type && type == context.float64Type) {
+            else if (
+                (from == context.int64Type || from == context.uint64Type) &&
+                type == context.float64Type) {
 
                 if (value.kind == NodeKind.INT64) {
                     appendOpcode(array, byteOffset, WasmOpcode.F64_CONST);
                     log(array, byteOffset, value.doubleValue, "f64 literal");
-                    array.writeDouble(value.doubleValue || 0);
+                    array.writeDouble(value.doubleValue);
                 } else {
                     let isUnsigned = value.resolvedType.isUnsigned();
                     this.emitNode(array, byteOffset, value);
@@ -1816,15 +1817,6 @@ class WasmModule {
 
             let dataTypeLeft: string = typeToDataType(left.resolvedType, this.bitness);
             let dataTypeRight: string = typeToDataType(right.resolvedType, this.bitness);
-            //FIXME: This should handle in checker
-            // if (left.resolvedType.symbol && right.kind != NodeKind.NAME) {
-            //     if (left.resolvedType.symbol.name == "float64") {
-            //         right.kind = NodeKind.FLOAT64;
-            //     }
-            //     else if (left.resolvedType.symbol.name == "int64") {
-            //         right.kind = NodeKind.INT64;
-            //     }
-            // }
 
             if (node.kind == NodeKind.ADD) {
 
