@@ -15,7 +15,6 @@ export class Library {
                 lib = readLibraryFile("/turbo/types.tbs") + "\n";
                 break;
             case CompileTarget.WEBASSEMBLY:
-            case CompileTarget.ASMJS:
                 lib = [
                     readLibraryFile("/common/types.tbs"),
                     readLibraryFile("/common/foreign.tbs"),
@@ -33,8 +32,6 @@ export class Library {
         switch (target) {
             case CompileTarget.JAVASCRIPT:
                 return readLibraryFile("/turbo/runtime.js") + "\n";
-            case CompileTarget.ASMJS:
-                return readLibraryFile("/asmjs/runtime.js") + "\n";
             default:
                 return "";
         }
@@ -44,8 +41,6 @@ export class Library {
         switch (target) {
             case CompileTarget.JAVASCRIPT:
                 return readLibraryFile("/turbo/wrapper.js") + "\n";
-            case CompileTarget.ASMJS:
-                return readLibraryFile("/asmjs/wrapper.js") + "\n";
             default:
                 return "";
         }

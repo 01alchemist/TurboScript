@@ -135,8 +135,6 @@ export function main_entry(): int32 {
                 target = CompileTarget.CPP;
             } else if (text == "--js") {
                 target = CompileTarget.JAVASCRIPT;
-            } else if (text == "--asmjs") {
-                target = CompileTarget.ASMJS;
             } else if (text == "--wasm") {
                 target = CompileTarget.WEBASSEMBLY;
             } else if (text == "--define" && argument.next != null) {
@@ -170,7 +168,6 @@ export function main_entry(): int32 {
     //C emitter and vanilla javascript emitter is disabled due to outdated code base.
     if (target == CompileTarget.NONE) {
         if (output.endsWith(".wasm")) target = CompileTarget.WEBASSEMBLY;
-        else if (output.endsWith(".asm.js")) target = CompileTarget.ASMJS;
         // else if (output.endsWith(".c")) target = CompileTarget.C;
         // else if (output.endsWith(".js")) target = CompileTarget.TURBO_JAVASCRIPT;
         else {
@@ -213,7 +210,6 @@ export function main_entry(): int32 {
         if (target == CompileTarget.CPP && stdlib.IO_writeTextFile(output, compiler.outputCPP) &&
             stdlib.IO_writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
             target == CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.ASMJS && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
             stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {
             return 0;
