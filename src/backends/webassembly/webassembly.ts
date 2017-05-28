@@ -1,12 +1,12 @@
-import {isFunction, Symbol, SymbolKind} from "./symbol";
-import {ByteArray, ByteArray_set32, ByteArray_setString} from "./bytearray";
-import {CheckContext} from "./checker";
-import {alignToNextMultipleOf} from "./imports";
-import {isExpression, isUnary, Node, NodeKind} from "./node";
-import {Type} from "./type";
-import {Compiler} from "./compiler";
-import {WasmOpcode} from "./wasm/opcode";
-import {toHex} from "./utils";
+import {isFunction, Symbol, SymbolKind} from "../../compiler/core/symbol";
+import {ByteArray, ByteArray_set32, ByteArray_setString} from "../../utils/bytearray";
+import {CheckContext} from "../../compiler/analyzer/type-checker";
+import {alignToNextMultipleOf} from "../../utils/imports";
+import {isExpression, isUnary, Node, NodeKind} from "../../compiler/core/node";
+import {Type} from "../../compiler/core/type";
+import {Compiler} from "../../compiler/compiler";
+import {WasmOpcode} from "./opcode";
+import {toHex} from "../../utils/utils";
 
 const WASM_MAGIC = 0x6d736100; //'\0' | 'a' << 8 | 's' << 16 | 'm' << 24;
 const WASM_VERSION = 0x1;

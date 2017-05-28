@@ -1,31 +1,27 @@
-///<reference path="declarations.d.ts" />
-import {CheckContext, CheckMode, resolve, initialize} from "./checker";
-import {Node, NodeKind} from "./node";
-import {ByteArray} from "./bytearray";
-import {Log, Source} from "./log";
-import {Preprocessor} from "./preprocessor";
-import {Scope} from "./scope";
-import {tokenize} from "./lexer";
-import {parse} from "./parser";
-import {treeShaking} from "./shaking";
-import {StringBuilder_new} from "./stringbuilder";
-import {cEmit} from "./c";
-import {jsEmit} from "./js";
-import {turboJsEmit} from "./turbojs";
-import {wasmEmit} from "./wasm";
-import {Library} from "./library/library";
-import {asmJsEmit} from "./asmjs";
-import {preparse} from "./preparser";
+///<reference path="../declarations.d.ts" />
+import {CheckContext, CheckMode, resolve, initialize} from "./analyzer/type-checker";
+import {Node, NodeKind} from "./core/node";
+import {ByteArray} from "../utils/bytearray";
+import {Log, Source} from "../utils/log";
+import {Preprocessor} from "./preprocessor/preprocessor";
+import {Scope} from "./core/scope";
+import {tokenize} from "./scanner/scanner";
+import {parse} from "./parser/parser";
+import {treeShaking} from "./optimizer/shaking";
+import {StringBuilder_new} from "../utils/stringbuilder";
+import {cppEmit} from "../backends/c++/c++";
+import {jsEmit} from "../backends/javascript/js";
+import {wasmEmit} from "../backends/webassembly/webassembly";
+import {Library} from "../library/library";
+import {preparse} from "./parser/preparser";
 /**
  * Author: Nidin Vinayakan
  */
-
 export enum CompileTarget {
     NONE,
-    C,
+    AUTO,
+    CPP,
     JAVASCRIPT,
-    TURBO_JAVASCRIPT,
-    ASMJS,
     WEBASSEMBLY,
 }
 
@@ -43,7 +39,7 @@ export class Compiler {
     outputName: string;
     outputWASM: ByteArray;
     outputJS: string;
-    outputC: string;
+    outputCPP: string;
     outputH: string;
 
     initialize(target: CompileTarget, outputName: string): void {
@@ -58,20 +54,12 @@ export class Compiler {
         this.wrapperSource = Library.getWrapper(target);
         this.createGlobals();
 
-        if (target == CompileTarget.C) {
-            this.preprocessor.define("C", true);
+        if (target == CompileTarget.CPP) {
+            this.preprocessor.define("CPP", true);
         }
 
         else if (target == CompileTarget.JAVASCRIPT) {
             this.preprocessor.define("JS", true);
-        }
-
-        else if (target == CompileTarget.TURBO_JAVASCRIPT) {
-            this.preprocessor.define("TURBO_JS", true);
-        }
-
-        else if (target == CompileTarget.ASMJS) {
-            this.preprocessor.define("ASM_JS", true);
         }
 
         else if (target == CompileTarget.WEBASSEMBLY) {
@@ -142,7 +130,7 @@ export class Compiler {
         }
         stdlib.Profiler_end("pre-parsing");
 
-        stdlib.Profiler_begin("lexing");
+        stdlib.Profiler_begin("scanning");
 
         source = this.firstSource;
         while (source != null) {
@@ -150,8 +138,8 @@ export class Compiler {
             source = source.next;
         }
 
-        stdlib.Profiler_end("lexing");
-        stdlib.Profiler_begin("preprocessing");
+        stdlib.Profiler_end("scanning");
+        stdlib.Profiler_begin("pre-processing");
 
         source = this.firstSource;
         while (source != null) {
@@ -159,7 +147,7 @@ export class Compiler {
             source = source.next;
         }
 
-        stdlib.Profiler_end("preprocessing");
+        stdlib.Profiler_end("pre-processing");
         stdlib.Profiler_begin("parsing");
 
         source = this.firstSource;
@@ -171,7 +159,7 @@ export class Compiler {
         }
 
         stdlib.Profiler_end("parsing");
-        stdlib.Profiler_begin("checking");
+        stdlib.Profiler_begin("type-checking");
 
         let global = this.global;
         let context = this.context;
@@ -209,17 +197,17 @@ export class Compiler {
             resolve(context, global, global.scope);
         }
 
-        stdlib.Profiler_end("checking");
+        stdlib.Profiler_end("type-checking");
 
         if (this.log.hasErrors()) {
             return false;
         }
 
-        stdlib.Profiler_begin("shaking");
+        stdlib.Profiler_begin("optimizing");
 
         treeShaking(global);
 
-        stdlib.Profiler_end("shaking");
+        stdlib.Profiler_end("optimizing");
         stdlib.Profiler_begin("emitting");
 
         // if (this.target == CompileTarget.C) {
@@ -228,17 +216,9 @@ export class Compiler {
 
         // else if (this.target == CompileTarget.JAVASCRIPT) {
         //     jsEmit(this);
-        // }
-        //
-        // else if (this.target == CompileTarget.TURBO_JAVASCRIPT) {
-        //     turboJsEmit(this);
-        // }
+        // } else
 
-        if (this.target == CompileTarget.ASMJS) {
-            asmJsEmit(this);
-        }
-
-        else if (this.target == CompileTarget.WEBASSEMBLY) {
+        if (this.target == CompileTarget.WEBASSEMBLY) {
             wasmEmit(this);
         }
 

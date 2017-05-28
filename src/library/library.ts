@@ -1,4 +1,4 @@
-import { CompileTarget } from "../compiler";
+import { CompileTarget } from "../compiler/compiler";
 
 const TURBO_LIBRARY_PATH = TURBO_PATH + "/src/library";
 
@@ -11,7 +11,7 @@ export class Library {
         let lib;
 
         switch (target) {
-            case CompileTarget.TURBO_JAVASCRIPT:
+            case CompileTarget.JAVASCRIPT:
                 lib = readLibraryFile("/turbo/types.tbs") + "\n";
                 break;
             case CompileTarget.WEBASSEMBLY:
@@ -31,7 +31,7 @@ export class Library {
 
     static getRuntime(target): string {
         switch (target) {
-            case CompileTarget.TURBO_JAVASCRIPT:
+            case CompileTarget.JAVASCRIPT:
                 return readLibraryFile("/turbo/runtime.js") + "\n";
             case CompileTarget.ASMJS:
                 return readLibraryFile("/asmjs/runtime.js") + "\n";
@@ -42,7 +42,7 @@ export class Library {
 
     static getWrapper(target): string {
         switch (target) {
-            case CompileTarget.TURBO_JAVASCRIPT:
+            case CompileTarget.JAVASCRIPT:
                 return readLibraryFile("/turbo/wrapper.js") + "\n";
             case CompileTarget.ASMJS:
                 return readLibraryFile("/asmjs/wrapper.js") + "\n";

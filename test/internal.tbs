@@ -1,0 +1,5 @@
+var SHARED_ID: int32 = 10;
+
+function sharedFunction(): int32 {
+    return SHARED_ID;
+}

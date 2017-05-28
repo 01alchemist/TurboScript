@@ -16,8 +16,8 @@ import {
     SYMBOL_FLAG_USED,
     SymbolKind,
     SymbolState
-} from "./symbol";
-import {ConversionKind, Type} from "./type";
+} from "../core/symbol";
+import {ConversionKind, Type} from "../core/type";
 import {
     createboolean,
     createCall,
@@ -49,13 +49,13 @@ import {
     NODE_FLAG_UNSIGNED_OPERATOR,
     NodeKind,
     rangeForFlag
-} from "./node";
-import {CompileTarget} from "./compiler";
-import {Log, Range, spanRanges} from "./log";
-import {FindNested, Scope, ScopeHint} from "./scope";
-import {StringBuilder_new} from "./stringbuilder";
-import {alignToNextMultipleOf, isPositivePowerOf2} from "./imports";
-import {MAX_INT32_VALUE, MAX_UINT32_VALUE, MIN_INT32_VALUE} from "./const";
+} from "../core/node";
+import {CompileTarget} from "../compiler";
+import {Log, Range, spanRanges} from "../../utils/log";
+import {FindNested, Scope, ScopeHint} from "../core/scope";
+import {StringBuilder_new} from "../../utils/stringbuilder";
+import {alignToNextMultipleOf, isPositivePowerOf2} from "../../utils/imports";
+import {MAX_INT32_VALUE, MAX_UINT32_VALUE, MIN_INT32_VALUE} from "../const";
 /**
  * Author : Nidin Vinayakan
  */

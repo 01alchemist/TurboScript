@@ -1,12 +1,12 @@
-import {CheckContext} from "./checker";
-import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "./stringbuilder";
+import {CheckContext} from "../../compiler/analyzer/type-checker";
+import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "../../utils/stringbuilder";
 import {
     Node, isCompactNodeKind, isUnaryPostfix, NodeKind, invertedBinaryKind, NODE_FLAG_DECLARE
-} from "./node";
-import {Precedence} from "./parser";
+} from "../../compiler/core/node";
+import {Precedence} from "../../compiler/parser/parser";
 import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
-import {SymbolKind, Symbol} from "./symbol";
-import {Compiler} from "./compiler";
+import {SymbolKind, Symbol} from "../../compiler/core/symbol";
+import {Compiler} from "../../compiler/compiler";
 
 let optimization: uint8 = 0;
 let classMap: Map<string, any> = new Map<string, any>();

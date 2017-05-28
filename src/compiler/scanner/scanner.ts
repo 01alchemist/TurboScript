@@ -1,5 +1,5 @@
-import {Range, createRange, Source, Log} from "./log";
-import {StringBuilder_new} from "./stringbuilder";
+import {Range, createRange, Source, Log} from "../../utils/log";
+import {StringBuilder_new} from "../../utils/stringbuilder";
 /**
  * Author: Nidin Vinayakan
  */

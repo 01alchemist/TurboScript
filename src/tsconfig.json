@@ -11,7 +11,7 @@
     "outFile": "../lib/turbo.js"
   },
   "files": [
-    "main.ts"
+    "turboscript.ts"
   ],
   "exclude": [
     "node_modules",

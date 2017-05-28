@@ -22,6 +22,7 @@ export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outpu
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
     if (compileInfo.status > 0) {
+        console.error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
         throw new Error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
     }
     const data = fs.readFileSync(outputFile);
@@ -41,6 +42,7 @@ export async function getWasmInstance(sourcePath: string, imports: any = {}, out
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
     if (compileInfo.status > 0) {
+        console.error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
         throw new Error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
     }
     const data = fs.readFileSync(outputFile);

@@ -3,10 +3,10 @@ import {
     SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_DOUBLE,
     SYMBOL_FLAG_IS_ARRAY
 } from "./symbol";
-import {CheckContext} from "./checker";
-import {StringBuilder_new} from "./stringbuilder";
+import {CheckContext} from "../analyzer/type-checker";
+import {StringBuilder_new} from "../../utils/stringbuilder";
 import {ScopeHint} from "./scope";
-import {MAX_UINT32_VALUE} from "./const";
+import {MAX_UINT32_VALUE} from "../const";
 
 export enum ConversionKind {
     IMPLICIT,

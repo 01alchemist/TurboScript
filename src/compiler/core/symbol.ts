@@ -1,9 +1,9 @@
 import {Type} from "./type";
 import {Node, NodeKind} from "./node";
-import {CheckContext} from "./checker";
+import {CheckContext} from "../analyzer/type-checker";
 import {Scope} from "./scope";
-import {Range} from "./log";
-import {alignToNextMultipleOf} from "./imports";
+import {Range} from "../../utils/log";
+import {alignToNextMultipleOf} from "../../utils/imports";
 
 export enum SymbolKind {
     TYPE_MODULE,

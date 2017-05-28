@@ -1,6 +1,6 @@
 import {Symbol, SymbolKind, SymbolState} from "./symbol";
-import {Log} from "./log";
-import {StringBuilder_new} from "./stringbuilder";
+import {Log} from "../../utils/log";
+import {StringBuilder_new} from "../../utils/stringbuilder";
 import {Type} from "./type";
 export enum FindNested {
   NORMAL,

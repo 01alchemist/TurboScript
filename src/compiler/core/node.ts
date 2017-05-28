@@ -1,8 +1,8 @@
 import {Type} from "./type";
 import {Symbol, SymbolKind, isType, SYMBOL_FLAG_IS_TEMPLATE} from "./symbol";
-import {Range} from "./log";
+import {Range} from "../../utils/log";
 import {Scope} from "./scope";
-import {CheckContext} from "./checker";
+import {CheckContext} from "../analyzer/type-checker";
 
 /**
  * Author: Nidin Vinayakan
