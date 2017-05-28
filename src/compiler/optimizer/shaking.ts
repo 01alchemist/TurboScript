@@ -1,5 +1,5 @@
-import {isFunction, SYMBOL_FLAG_USED, SymbolKind} from "./symbol";
-import {NodeKind, Node} from "./node";
+import {isFunction, SYMBOL_FLAG_USED, SymbolKind} from "../core/symbol";
+import {NodeKind, Node} from "../core/node";
 
 export function treeShakingMarkAllUsed(node: Node): void {
     var symbol = node.symbol;

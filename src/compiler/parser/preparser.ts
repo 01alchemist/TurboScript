@@ -1,8 +1,8 @@
-import {Log, Source, createRange} from "./log";
-import {Compiler} from "./compiler";
-import {isAlpha, isNumber, TokenKind} from "./lexer";
-import {printError} from "./main";
-import {StringBuilder_new} from "./stringbuilder";
+import {Log, Source, createRange} from "../../utils/log";
+import {Compiler} from "../compiler";
+import {isAlpha, isNumber, TokenKind} from "../scanner/scanner";
+import {printError} from "../../turboscript";
+import {StringBuilder_new} from "../../utils/stringbuilder";
 
 export function preparse(source: Source, compiler: Compiler, log: Log): boolean {
 

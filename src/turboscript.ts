@@ -1,7 +1,7 @@
 ///<reference path="declarations.d.ts" />
-import {Log, DiagnosticKind} from "./log";
-import {StringBuilder_new} from "./stringbuilder";
-import {CompileTarget, Compiler, replaceFileExtension} from "./compiler";
+import {Log, DiagnosticKind} from "./utils/log";
+import {StringBuilder_new} from "./utils/stringbuilder";
+import {CompileTarget, Compiler, replaceFileExtension} from "./compiler/compiler";
 
 /**
  * TurboScript compiler main entry
@@ -131,12 +131,10 @@ export function main_entry(): int32 {
             if (text == "-h" || text == "-help" || text == "--help" || text == "/?") {
                 printUsage();
                 return 0;
-            } else if (text == "--c") {
-                target = CompileTarget.C;
+            } else if (text == "--cpp") {
+                target = CompileTarget.CPP;
             } else if (text == "--js") {
                 target = CompileTarget.JAVASCRIPT;
-            } else if (text == "--turbo-js") {
-                target = CompileTarget.TURBO_JAVASCRIPT;
             } else if (text == "--asmjs") {
                 target = CompileTarget.ASMJS;
             } else if (text == "--wasm") {
@@ -212,10 +210,9 @@ export function main_entry(): int32 {
 
     // Only emit the output if the compilation succeeded
     if (!compiler.log.hasErrors()) {
-        if (target == CompileTarget.C && stdlib.IO_writeTextFile(output, compiler.outputC) &&
+        if (target == CompileTarget.CPP && stdlib.IO_writeTextFile(output, compiler.outputCPP) &&
             stdlib.IO_writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
             target == CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.TURBO_JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.ASMJS && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
             stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {

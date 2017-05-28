@@ -1,7 +1,7 @@
-import {Log, spanRanges, Source, DiagnosticKind} from "./log";
-import {StringBuilder_new} from "./stringbuilder";
-import {TokenKind, Token, tokenToString} from "./lexer";
-import {Precedence} from "./parser";
+import {Log, spanRanges, Source, DiagnosticKind} from "../../utils/log";
+import {StringBuilder_new} from "../../utils/stringbuilder";
+import {TokenKind, Token, tokenToString} from "../scanner/scanner";
+import {Precedence} from "../parser/parser";
 export enum PreprocessorValue {
   FALSE,
   TRUE,

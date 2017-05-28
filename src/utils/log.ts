@@ -1,5 +1,5 @@
-import {Token} from "./lexer";
-import {Node} from "./node";
+import {Token} from "../compiler/scanner/scanner";
+import {Node} from "../compiler/core/node";
 import {StringBuilder, StringBuilder_new} from "./stringbuilder";
 
 export class LineColumn {

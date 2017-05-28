@@ -1,11 +1,11 @@
-import {CheckContext} from "./checker";
-import {StringBuilder, StringBuilder_new} from "./stringbuilder";
-import {Compiler, replaceFileExtension} from "./compiler";
-import {Node, isCompactNodeKind, isUnaryPostfix, NodeKind} from "./node";
-import {Precedence} from "./parser";
-import {Symbol, SymbolKind} from "./symbol";
-import {isAlpha, isNumber, isASCII} from "./lexer";
-import {Type} from "./type";
+import {CheckContext} from "../../compiler/analyzer/type-checker";
+import {StringBuilder, StringBuilder_new} from "../../utils/stringbuilder";
+import {Compiler, replaceFileExtension} from "../../compiler/compiler";
+import {Node, isCompactNodeKind, isUnaryPostfix, NodeKind} from "../../compiler/core/node";
+import {Precedence} from "../../compiler/parser/parser";
+import {Symbol, SymbolKind} from "../../compiler/core/symbol";
+import {isAlpha, isNumber, isASCII} from "../../compiler/scanner/scanner";
+import {Type} from "../../compiler/core/type";
 
 export enum TypeMode {
     NORMAL,
@@ -711,7 +711,7 @@ export function cEmitCharacter(builder: StringBuilder, c: string): void {
     else builder.append(c.toString());
 }
 
-export function cEmit(compiler: Compiler): void {
+export function cppEmit(compiler: Compiler): void {
     var child = compiler.global.firstChild;
     var temporaryCode = StringBuilder_new();
     var headerCode = StringBuilder_new();
@@ -761,6 +761,6 @@ export function cEmit(compiler: Compiler): void {
         result.emitNewlineAfter(child);
     }
 
-    compiler.outputC = implementationCode.finish();
+    compiler.outputCPP = implementationCode.finish();
     compiler.outputH = headerCode.finish();
 }

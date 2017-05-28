@@ -1,9 +1,9 @@
-import {CheckContext} from "./checker";
-import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "./stringbuilder";
-import {Symbol, SymbolKind} from "./symbol";
-import {Node, NodeKind, isCompactNodeKind, isUnaryPostfix, invertedBinaryKind} from "./node";
-import {Precedence} from "./parser";
-import {Compiler} from "./compiler";
+import {CheckContext} from "../../compiler/analyzer/type-checker";
+import {StringBuilder, StringBuilder_appendQuoted, StringBuilder_new} from "../../utils/stringbuilder";
+import {Symbol, SymbolKind} from "../../compiler/core/symbol";
+import {Node, NodeKind, isCompactNodeKind, isUnaryPostfix, invertedBinaryKind} from "../../compiler/core/node";
+import {Precedence} from "../../compiler/parser/parser";
+import {Compiler} from "../../compiler/compiler";
 export enum EmitBinary {
     NORMAL,
     CAST_TO_INT,

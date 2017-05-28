@@ -60,7 +60,7 @@ console.log("TURBO_PATH:"+global["TURBO_PATH"]);
 //Import compiler
 require("./turbo.js");
 
-SystemJS.import("main").then(function (mod) {
+SystemJS.import("turboscript").then(function (mod) {
     var Color = mod.Color;
     var turboMain = mod.main;
 

@@ -1,6 +1,6 @@
-import {Token, TokenKind, tokenToString, splitToken, isKeyword} from "./lexer";
-import {Range, Log, spanRanges, createRange} from "./log";
-import {StringBuilder_new} from "./stringbuilder";
+import {Token, TokenKind, tokenToString, splitToken, isKeyword} from "../scanner/scanner";
+import {Range, Log, spanRanges, createRange} from "../../utils/log";
+import {StringBuilder_new} from "../../utils/stringbuilder";
 import {
     Node, NodeKind, isUnary, createUnary, createBinary, createName, createNull, createThis,
     createParseError, createInt, createString, createboolean, createNew, createAlignOf, createSizeOf, createDot,
@@ -13,7 +13,7 @@ import {
     createDelete, createImports, NODE_FLAG_INTERNAL_IMPORT, createExternalImport, NODE_FLAG_ANYFUNC, createType,
     createAny, createArray,
     NODE_FLAG_JAVASCRIPT, NODE_FLAG_EXTERNAL_IMPORT, createInternalImport, createInternalImportFrom, createDouble
-} from "./node";
+} from "../core/node";
 
 export enum Precedence {
     LOWEST,
