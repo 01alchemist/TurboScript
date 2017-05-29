@@ -1466,6 +1466,37 @@ class WasmModule {
             let fromSize = from.variableSizeOf(context);
             let typeSize = type.variableSizeOf(context);
 
+            //FIXME: Handle 8,16 bit integer to float casting
+            // Sign-extend
+            if (
+                from == context.int32Type &&
+                type == context.int8Type || type == context.int16Type
+            ) {
+                let shift = 32 - typeSize * 8;
+                this.emitNode(array, byteOffset, value);
+                appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                log(array, byteOffset, shift, "i32 literal");
+                array.writeLEB128(shift);
+                appendOpcode(array, byteOffset, WasmOpcode.I32_SHR_S);
+                appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                log(array, byteOffset, shift, "i32 literal");
+                array.writeLEB128(shift);
+                appendOpcode(array, byteOffset, WasmOpcode.I32_SHL);
+            }
+
+            // Mask
+            else if (
+                from == context.int32Type || from == context.uint32Type &&
+                type == context.uint8Type || type == context.uint16Type
+            ) {
+                this.emitNode(array, byteOffset, value);
+                appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                let _value = type.integerBitMask(this.context);
+                log(array, byteOffset, _value, "i32 literal");
+                array.writeLEB128(_value);
+                appendOpcode(array, byteOffset, WasmOpcode.I32_AND);
+            }
+
             // --- 32 bit Integer casting ---
             // i32 > i64
             if (
