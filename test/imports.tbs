@@ -1,3 +1,5 @@
+import {Math} from "javascript";
+
 export function sin (value:float64):float64 {
     return Math.sin(value);
 }
@@ -10,6 +12,6 @@ export function tan (value:float64):float64 {
     return Math.tan(value);
 }
 
-export function abs (value:float32):float32 {
+export function abs_f32 (value:float32):float32 {
     return Math.abs(value);
 }

@@ -1,4 +1,4 @@
-import {Log, Source, createRange} from "../../utils/log";
+import {createRange, Log, Source} from "../../utils/log";
 import {Compiler} from "../compiler";
 import {isAlpha, isNumber, TokenKind} from "../scanner/scanner";
 import {printError} from "../../turboscript";
@@ -119,7 +119,7 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
                     if (next == c) {
                         let text = contents.slice(start + 1, i - 1);
                         //FIXME: If the import already resolved don't add it again.
-                        let importContent = resolveImport(basePath + pathSeparator + text);
+                        let importContent = resolveImport(basePath + pathSeparator + text, text);
                         if (importContent) {
                             compiler.addInputBefore(text, importContent, source);
                         } else {
@@ -136,8 +136,13 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
     return true;
 }
 
-function resolveImport(importPath: string): string {
-    let contents = stdlib.IO_readTextFile(importPath);
+function resolveImport(importPath: string, original:string): string {
+    let contents = null;
+    if (original === "javascript") {
+        contents = stdlib.IO_readTextFile(TURBO_PATH + "/src/extras/javascript.tbs");
+    }else {
+        contents = stdlib.IO_readTextFile(importPath);
+    }
     if (contents == null) {
         printError(StringBuilder_new().append("Cannot read from ").append(importPath).finish());
         return null;

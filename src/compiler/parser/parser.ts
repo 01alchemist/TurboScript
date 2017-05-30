@@ -1,5 +1,5 @@
 import {Token, TokenKind, tokenToString, splitToken, isKeyword} from "../scanner/scanner";
-import {Range, Log, spanRanges, createRange} from "../../utils/log";
+import {SourceRange, Log, spanRanges, createRange} from "../../utils/log";
 import {StringBuilder_new} from "../../utils/stringbuilder";
 import {
     Node, NodeKind, isUnary, createUnary, createBinary, createName, createNull, createThis,
@@ -10,9 +10,8 @@ import {
     createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
     NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
-    createDelete, createImports, NODE_FLAG_INTERNAL_IMPORT, createExternalImport, NODE_FLAG_ANYFUNC, createType,
-    createAny, createArray,
-    NODE_FLAG_JAVASCRIPT, NODE_FLAG_EXTERNAL_IMPORT, createInternalImport, createInternalImportFrom, createDouble
+    createDelete, createImports, createImport, NODE_FLAG_ANYFUNC,
+    createAny, NODE_FLAG_JAVASCRIPT, createImportFrom, createDouble, NODE_FLAG_IMPORT
 } from "../core/node";
 
 export enum Precedence {
@@ -162,7 +161,7 @@ class ParserContext {
         return createUnary(kind, value).withRange(spanRanges(value.range, token.range)).withInternalRange(token.range);
     }
 
-    parseQuotedString(range: Range): string {
+    parseQuotedString(range: SourceRange): string {
         assert(range.end - range.start >= 2);
         let text = range.source.contents;
         let end = range.start + 1;
@@ -468,7 +467,7 @@ class ParserContext {
         return createDelete(value).withRange(spanRanges(token.range, semicolon.range));
     }
 
-    parseArgumentList(start: Range, node: Node): Node {
+    parseArgumentList(start: SourceRange, node: Node): Node {
         let open = this.current.range;
         let isIndex = node.kind == NodeKind.INDEX;
         let left = isIndex ? TokenKind.LEFT_BRACKET : TokenKind.LEFT_PARENTHESIS;
@@ -753,13 +752,13 @@ class ParserContext {
         return node.withRange(spanRanges(open.range, close.range));
     }
 
-    parseInternalImports(): Node {
+    parseImports(): Node {
         let token = this.current;
-        assert(token.kind == TokenKind.INTERNAL_IMPORT);
+        assert(token.kind == TokenKind.IMPORT);
         this.advance();
 
         let node = createImports();
-        node.flags = node.flags | NODE_FLAG_INTERNAL_IMPORT;
+        node.flags = node.flags | TokenKind.IMPORT;
 
         if (this.peek(TokenKind.MULTIPLY)) { //check for wildcard '*' import
 
@@ -770,7 +769,7 @@ class ParserContext {
 
             let importName = this.current;
             let range = importName.range;
-            let _import = createInternalImport(importName.range.toString());
+            let _import = createImport(importName.range.toString());
             node.appendChild(_import.withRange(range).withInternalRange(importName.range));
             this.advance();
         }
@@ -783,7 +782,7 @@ class ParserContext {
 
                 let importName = this.current;
                 let range = importName.range;
-                let _import = createInternalImport(importName.range.toString());
+                let _import = createImport(importName.range.toString());
                 node.appendChild(_import.withRange(range).withInternalRange(importName.range));
                 this.advance();
 
@@ -799,7 +798,7 @@ class ParserContext {
 
         this.expect(TokenKind.FROM);
         let importFrom = this.current;
-        let _from = createInternalImportFrom(importFrom.range.toString());
+        let _from = createImportFrom(importFrom.range.toString());
         node.appendChild(_from.withRange(importFrom.range).withInternalRange(importFrom.range));
         this.advance();
         let semicolon = this.current;
@@ -1089,7 +1088,7 @@ class ParserContext {
     parseFunction(firstFlag: NodeFlag, parent: Node): Node {
         let isOperator = false;
         let token = this.current;
-        let nameRange: Range;
+        let nameRange: SourceRange;
         let name: string;
 
         // Support custom operators
@@ -1483,8 +1482,7 @@ class ParserContext {
             let token = this.current;
             let flag: int32;
 
-            if (this.eat(TokenKind.EXTERNAL_IMPORT)) flag = NODE_FLAG_EXTERNAL_IMPORT;
-            else if (this.eat(TokenKind.DECLARE)) flag = NODE_FLAG_DECLARE;
+            if (this.eat(TokenKind.DECLARE)) flag = NODE_FLAG_DECLARE;
             else if (this.eat(TokenKind.EXPORT)) flag = NODE_FLAG_EXPORT;
             else if (this.eat(TokenKind.PRIVATE)) flag = NODE_FLAG_PRIVATE;
             else if (this.eat(TokenKind.PROTECTED)) flag = NODE_FLAG_PROTECTED;
@@ -1563,7 +1561,7 @@ class ParserContext {
         let firstFlag = mode == StatementMode.FILE ? this.parseFlags() : null;
 
         // if (this.peek(TokenKind.UNSAFE) && firstFlag == null) return this.parseUnsafe(); //disabled for now
-        if (this.peek(TokenKind.INTERNAL_IMPORT) && firstFlag == null) return this.parseInternalImports(); // This should handle before parsing
+        if (this.peek(TokenKind.IMPORT) && firstFlag == null) return this.parseImports(); // This should handle before parsing
         if (this.peek(TokenKind.JAVASCRIPT) && firstFlag == null) return this.parseJavaScript();
         if (this.peek(TokenKind.START) && firstFlag == null) return this.parseStart();
         if (this.peek(TokenKind.CONST) || this.peek(TokenKind.LET) || this.peek(TokenKind.VAR)) return this.parseVariables(firstFlag, null);
@@ -1611,28 +1609,25 @@ class ParserContext {
         return true;
     }
 
-    parseInt(range: Range, node: Node): boolean {
+    parseInt(range: SourceRange, node: Node): boolean {
         let source = range.source;
         let contents = source.contents;
-
         node.intValue = parseInt(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;
     }
 
-    parseFloat(range: Range, node: Node): boolean {
+    parseFloat(range: SourceRange, node: Node): boolean {
         let source = range.source;
         let contents = source.contents;
-
         node.floatValue = parseFloat(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;
     }
 
-    parseDouble(range: Range, node: Node): boolean {
+    parseDouble(range: SourceRange, node: Node): boolean {
         let source = range.source;
         let contents = source.contents;
-
         node.doubleValue = parseFloat(contents.substring(range.start, range.end));
         node.flags = NODE_FLAG_POSITIVE;
         return true;

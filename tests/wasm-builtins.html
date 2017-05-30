@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WASM Vector3</title>
+</head>
+<body>
+<script>
+
+    async function init() {
+        let data = await fetch("./bin/wasm-builtins.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            return WebAssembly.compile(wasmBytes).then(function (compiled) {
+                let instance = new WebAssembly.Instance(compiled);
+                window.exports = instance.exports;
+                window.HEAP8 = new Uint8Array(exports.memory.buffer);
+                window.HEAPF32 = new Float32Array(exports.memory.buffer);
+                console.log("WASM Compiled!");
+                return window.exports;
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    init().then((exports) => {
+        console.log(exports.native_F32_SQRT(44 * 44));
+    });
+</script>
+</body>
+</html>

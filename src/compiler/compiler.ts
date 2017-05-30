@@ -1,6 +1,6 @@
 ///<reference path="../declarations.d.ts" />
 import {CheckContext, CheckMode, resolve, initialize} from "./analyzer/type-checker";
-import {Node, NodeKind} from "./core/node";
+import {Node, NODE_FLAG_LIBRARY, NodeKind} from "./core/node";
 import {ByteArray} from "../utils/bytearray";
 import {Log, Source} from "../utils/log";
 import {Preprocessor} from "./preprocessor/preprocessor";
@@ -171,6 +171,7 @@ export class Compiler {
 
             if (file != null) {
                 if (source.isLibrary) {
+                    file.flags |= NODE_FLAG_LIBRARY;
                     initialize(context, file, global.scope, CheckMode.INITIALIZE);
                     resolve(context, file, global.scope);
                 } else {
