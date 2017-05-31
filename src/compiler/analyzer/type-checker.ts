@@ -2129,6 +2129,18 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
                 node.resolvedType = commonType;
 
+                // Type conversion
+                if(commonType == context.int64Type) {
+                    if(left.kind == NodeKind.INT32){
+                        left.kind = NodeKind.INT64;
+                        left.resolvedType = context.int64Type;
+                    }
+                    else if(right.kind == NodeKind.INT32){
+                        right.kind = NodeKind.INT64;
+                        right.resolvedType = context.int64Type;
+                    }
+                }
+
                 // Automatically fold constants
                 if ((left.kind == NodeKind.INT32 || left.kind == NodeKind.INT64) &&
                     (right.kind == NodeKind.INT32 || right.kind == NodeKind.INT64)) {

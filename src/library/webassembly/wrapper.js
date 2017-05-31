@@ -1,4 +1,4 @@
-function TurboASMWrapper(exports, buffer) {
+function TurboWASMWrapper(exports, buffer) {
 
     exports.initMemory();
 
@@ -31,15 +31,15 @@ function sort(ptr, length) {
 
 }
 
-const TurboASM = {
+const TurboWASM = {
     Instance: function (bytes, shared) {
-        var buffer = shared ? new SharedArrayBuffer(bytes) : new ArrayBuffer(bytes);
+        let buffer = shared ? new SharedArrayBuffer(bytes) : new ArrayBuffer(bytes);
 
         if (buffer.byteLength < 16) {
             throw new Error("The memory is too small even for metadata");
         }
 
-        return TurboASMWrapper(TurboModule(
+        return TurboWASMWrapper(TurboModule(
             typeof stdlib !== 'undefined' ? stdlib : window,
             typeof foreign !== 'undefined' ? foreign : {
                 random: Math.random
@@ -50,4 +50,4 @@ const TurboASM = {
 };
 
 exports = typeof exports === "undefined" ? {} : exports;
-exports.TurboASM = TurboASM;
+exports.TurboWASM = TurboWASM;

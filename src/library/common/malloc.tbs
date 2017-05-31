@@ -53,7 +53,7 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //     currentHeapPointer  = 40 as *uint8;//this will override by compiler
 // }
 
-function malloc(size: int32): *uint8 {
+export function malloc(size: int32): *uint8 {
 
     //All loc variable should declare here before assigning named value
     var alignment:int32 = 8;
@@ -91,7 +91,7 @@ function malloc(size: int32): *uint8 {
 
     return offset as *uint8;
 }
-function free(ptr:*uint8):void{
+export function free(ptr:*uint8):void{
 
     var chunkptr:*uint8 = null;
     var tmp1:int32 = 0;

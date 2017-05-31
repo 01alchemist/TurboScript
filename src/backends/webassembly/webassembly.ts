@@ -145,6 +145,7 @@ class WasmFunction {
     localCount: int32 = 0;
     argumentCount: int32 = 0;
     returnType: WasmType;
+    body: ByteArray;
     next: WasmFunction;
 }
 
@@ -179,6 +180,7 @@ class WasmModule {
     freeFunctionIndex: int32;
     startFunctionIndex: int32;
     context: CheckContext;
+    startFunction: WasmFunction;
     currentFunction: WasmFunction;
 
     constructor(public bitness: Bitness) {
@@ -409,36 +411,40 @@ class WasmModule {
         while (global) {
             let dataType: string = typeToDataType(global.symbol.resolvedType, this.bitness);
             let value = global.symbol.node.variableValue();
-            // if(value.resolvedType != global.symbol.resolvedType){
-            //     value.becomeTypeOf();
-            // }
             section.data.append(WasmType[dataType]); //content_type
             section.data.writeUnsignedLEB128(1); //mutability, 0 if immutable, 1 if mutable. MVP only support immutable global variables
             if (value) {
-                if (value.rawValue) {
-                    // section.data.writeUnsignedLEB128(WasmOpcode[`${dataType}_CONST`]);
-                    appendOpcode(section.data, array.position, WasmOpcode[`${dataType}_CONST`]);
-                    switch (dataType) {
-                        case "I32":
-                            log(section.data, array.position, value.rawValue, "i32 literal");
-                            section.data.writeUnsignedLEB128(value.rawValue);
-                            break;
-                        case "I64":
-                            log(section.data, array.position, value.rawValue, "i64 literal");
-                            section.data.writeUnsignedLEB128(value.rawValue);
-                            break;
-                        case "F32":
-                            log(section.data, array.position, value.rawValue, "f32 literal");
-                            section.data.writeFloat(value.rawValue);
-                            break;
-                        case "F64":
-                            log(section.data, array.position, value.rawValue, "f64 literal");
-                            section.data.writeDouble(value.rawValue);
-                            break;
-                    } //const value
-                } else {
-                    this.emitNode(section.data, array.position, value);
+                let rawValue = 0;
+                if (value.kind === NodeKind.NULL || value.kind === NodeKind.UNDEFINED) {
+                    rawValue = 0;
                 }
+                else if (value.rawValue !== undefined) {
+                    rawValue = value.rawValue;
+                } else {
+                    // Emit evaluation to start function
+                    this.addGlobalToStartFunction(global);
+                }
+
+                appendOpcode(section.data, array.position, WasmOpcode[`${dataType}_CONST`]);
+                switch (dataType) {
+                    case "I32":
+                        log(section.data, array.position, rawValue, "i32 literal");
+                        section.data.writeUnsignedLEB128(rawValue);
+                        break;
+                    case "I64":
+                        log(section.data, array.position, rawValue, "i64 literal");
+                        section.data.writeUnsignedLEB128(rawValue);
+                        break;
+                    case "F32":
+                        log(section.data, array.position, rawValue, "f32 literal");
+                        section.data.writeFloat(rawValue);
+                        break;
+                    case "F64":
+                        log(section.data, array.position, rawValue, "f64 literal");
+                        section.data.writeDouble(rawValue);
+                        break;
+                }
+
             } else {
                 appendOpcode(section.data, array.position, WasmOpcode[`${dataType}_CONST`]);
                 log(section.data, array.position, 0, "const value");
@@ -451,6 +457,15 @@ class WasmModule {
         }
 
         wasmFinishSection(array, section);
+    }
+
+    addGlobalToStartFunction(global: WasmGlobal): void {
+        let value = global.symbol.node.variableValue();
+        let startFn = this.startFunction;
+
+        this.emitNode(startFn.body, 0, value);
+        appendOpcode(startFn.body, 0, WasmOpcode.SET_GLOBAL);
+        startFn.body.writeUnsignedLEB128(global.symbol.offset);
     }
 
     emitExportTable(array: ByteArray): void {
@@ -504,7 +519,7 @@ class WasmModule {
         if (this.startFunctionIndex != -1) {
             let section = wasmStartSection(array, WasmSection.Start, "start_function");
             log(section.data, array.position, this.startFunctionIndex, "start function index");
-            section.data.writeUnsignedLEB128(this.startFunctionIndex);
+            section.data.writeUnsignedLEB128(this.importCount + this.startFunctionIndex);
             wasmFinishSection(array, section);
         }
     }
@@ -526,7 +541,9 @@ class WasmModule {
         while (fn != null) {
             this.currentFunction = fn;
             let sectionOffset = offset + section.data.position;
-            let bodyData: ByteArray = new ByteArray();
+            let wasmFunctionName = getWasmFunctionName(fn.symbol);
+            let bodyData = new ByteArray();
+
             log(bodyData, sectionOffset, fn.localCount ? fn.localCount : 0, "local var count");
             if (fn.localCount > 0) {
                 bodyData.writeUnsignedLEB128(fn.localCount); //local_count
@@ -547,23 +564,25 @@ class WasmModule {
                 bodyData.writeUnsignedLEB128(0);
             }
 
-            let wasmFunctionName = getWasmFunctionName(fn.symbol);
             let lastChild;
             if (fn.isConstructor) {
                 // this is <CLASS>__ctr function
                 this.emitConstructor(bodyData, sectionOffset, fn)
             }
-            // else {
+
             let child = fn.symbol.node.functionBody().firstChild;
             while (child != null) {
                 lastChild = child;
                 this.emitNode(bodyData, sectionOffset, child);
                 child = child.nextSibling;
             }
-            // }
 
-            if (lastChild && lastChild.kind !== NodeKind.RETURN) {
-                appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
+            if (fn.body) {
+                bodyData.copy(fn.body);
+            } else {
+                if (lastChild && lastChild.kind !== NodeKind.RETURN) {
+                    appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
+                }
             }
 
             appendOpcode(bodyData, sectionOffset, WasmOpcode.END); //end, 0x0b, indicating the end of the body
@@ -820,10 +839,12 @@ class WasmModule {
                 this.freeFunctionIndex = symbol.offset;
             }
 
-            // Make "init_malloc" as start function
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "init_malloc") {
+            // Make "__WASM_INITIALIZER" as start function
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "__WASM_INITIALIZER") {
                 assert(this.startFunctionIndex == -1);
                 this.startFunctionIndex = symbol.offset;
+                this.startFunction = fn;
+                this.startFunction.body = new ByteArray();
             }
 
             if (node.isExport()) {
@@ -1092,8 +1113,9 @@ class WasmModule {
 
         // Allocate memory
         appendOpcode(array, byteOffset, WasmOpcode.CALL);
-        log(array, byteOffset, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
-        array.writeUnsignedLEB128(this.mallocFunctionIndex);
+        let mallocIndex = this.calculateWasmFunctionIndex(this.mallocFunctionIndex);
+        log(array, byteOffset, mallocIndex, `call func index (${mallocIndex})`);
+        array.writeUnsignedLEB128(mallocIndex);
         appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
         array.writeUnsignedLEB128(fn.argumentCount);// Set self pointer to first local variable which is immediate after the argument variable
     }
@@ -2020,6 +2042,10 @@ class WasmModule {
         }
 
         return 1;
+    }
+
+    calculateWasmFunctionIndex(index: int32): int32 {
+        return this.importCount + index;
     }
 
     getWasmFunctionCallIndex(symbol: Symbol): int32 {

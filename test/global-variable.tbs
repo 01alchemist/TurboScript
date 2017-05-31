@@ -1,17 +1,33 @@
-let i32:int32 = 87349;
-let i64:int64 = 9364582;
-let f32:float32 = 763.9872340f;
-let f64:float64 = 1763.9872340;
+let i32: int32 = 87349;
+let i64: int64 = 9364582;
+let f32: float32 = 763.9872340f;
+let f64: float64 = 1763.9872340;
+let evaluated_i32: int32 = 10 + i32;
+let evaluated_i64: int64 = 100 + i64;
+let evaluated_f32: float32 = 10.5f + f32;
+let evaluated_f64: float64 = 10.5 + f64;
 
-export function get_i32():int32 {
+export function get_i32(): int32 {
     return i32;
 }
-export function get_i64():int32 {
+export function get_i64(): int32 {
     return i64 as int32;
 }
-export function get_f32():float32 {
+export function get_f32(): float32 {
     return f32;
 }
-export function get_f64():float64 {
+export function get_f64(): float64 {
     return f64;
+}
+export function get_evaluated_i32(): int32 {
+    return evaluated_i32;
+}
+export function get_evaluated_i64(): int32 {
+    return evaluated_i64 as int32;
+}
+export function get_evaluated_f32(): float32 {
+    return evaluated_f32;
+}
+export function get_evaluated_f64(): float64 {
+    return evaluated_f64;
 }
