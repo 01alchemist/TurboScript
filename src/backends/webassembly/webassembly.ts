@@ -145,6 +145,7 @@ class WasmFunction {
     localCount: int32 = 0;
     argumentCount: int32 = 0;
     returnType: WasmType;
+    body: ByteArray;
     next: WasmFunction;
 }
 
@@ -179,6 +180,7 @@ class WasmModule {
     freeFunctionIndex: int32;
     startFunctionIndex: int32;
     context: CheckContext;
+    startFunction: WasmFunction;
     currentFunction: WasmFunction;
 
     constructor(public bitness: Bitness) {
@@ -276,7 +278,7 @@ class WasmModule {
         this.emitFunctionDeclarations(array);
         // this.emitTables(array);
         this.emitMemory(array);
-        // this.emitGlobalDeclarations(array); // Since global variables are immutable in MVP, avoiding it for now.
+        this.emitGlobalDeclarations(array);
         this.emitExportTable(array);
         this.emitStartFunctionDeclaration(array);
         this.emitElements(array);
@@ -409,37 +411,61 @@ class WasmModule {
         while (global) {
             let dataType: string = typeToDataType(global.symbol.resolvedType, this.bitness);
             let value = global.symbol.node.variableValue();
-            // if(value.resolvedType != global.symbol.resolvedType){
-            //     value.becomeTypeOf();
-            // }
             section.data.append(WasmType[dataType]); //content_type
-            section.data.writeUnsignedLEB128(0); //mutability, 0 if immutable, 1 if mutable. MVP only support immutable global variables
+            section.data.writeUnsignedLEB128(1); //mutability, 0 if immutable, 1 if mutable. MVP only support immutable global variables
             if (value) {
-                if (value.rawValue) {
-                    section.data.writeUnsignedLEB128(WasmOpcode[`${dataType}_CONST`]);
-                    switch (dataType) {
-                        case "I32":
-                            section.data.writeUnsignedLEB128(value.rawValue);
-                            break;
-                        case "F32":
-                            section.data.writeFloat(value.rawValue);
-                            break;
-                        case "F64":
-                            section.data.writeDouble(value.rawValue);
-                            break;
-                    } //const value
-                } else {
-                    this.emitNode(section.data, array.position, value); //const value
+                let rawValue = 0;
+                if (value.kind === NodeKind.NULL || value.kind === NodeKind.UNDEFINED) {
+                    rawValue = 0;
                 }
+                else if (value.rawValue !== undefined) {
+                    rawValue = value.rawValue;
+                } else {
+                    // Emit evaluation to start function
+                    this.addGlobalToStartFunction(global);
+                }
+
+                appendOpcode(section.data, array.position, WasmOpcode[`${dataType}_CONST`]);
+                switch (dataType) {
+                    case "I32":
+                        log(section.data, array.position, rawValue, "i32 literal");
+                        section.data.writeUnsignedLEB128(rawValue);
+                        break;
+                    case "I64":
+                        log(section.data, array.position, rawValue, "i64 literal");
+                        section.data.writeUnsignedLEB128(rawValue);
+                        break;
+                    case "F32":
+                        log(section.data, array.position, rawValue, "f32 literal");
+                        section.data.writeFloat(rawValue);
+                        break;
+                    case "F64":
+                        log(section.data, array.position, rawValue, "f64 literal");
+                        section.data.writeDouble(rawValue);
+                        break;
+                }
+
             } else {
-                section.data.writeUnsignedLEB128(WasmOpcode[`${dataType}_CONST`]);
+                appendOpcode(section.data, array.position, WasmOpcode[`${dataType}_CONST`]);
+                log(section.data, array.position, 0, "const value");
                 section.data.writeUnsignedLEB128(0); //const value
             }
-            section.data.writeUnsignedLEB128(WasmOpcode.END);
+
+            appendOpcode(section.data, array.position, WasmOpcode.END);
+
             global = global.next;
         }
 
         wasmFinishSection(array, section);
+    }
+
+    addGlobalToStartFunction(global: WasmGlobal): void {
+        let value = global.symbol.node.variableValue();
+        let startFn = this.startFunction;
+
+        this.emitNode(startFn.body, 0, value);
+        appendOpcode(startFn.body, 0, WasmOpcode.SET_GLOBAL);
+        startFn.body.writeUnsignedLEB128(global.symbol.offset);
     }
 
     emitExportTable(array: ByteArray): void {
@@ -493,7 +519,7 @@ class WasmModule {
         if (this.startFunctionIndex != -1) {
             let section = wasmStartSection(array, WasmSection.Start, "start_function");
             log(section.data, array.position, this.startFunctionIndex, "start function index");
-            section.data.writeUnsignedLEB128(this.startFunctionIndex);
+            section.data.writeUnsignedLEB128(this.importCount + this.startFunctionIndex);
             wasmFinishSection(array, section);
         }
     }
@@ -515,7 +541,9 @@ class WasmModule {
         while (fn != null) {
             this.currentFunction = fn;
             let sectionOffset = offset + section.data.position;
-            let bodyData: ByteArray = new ByteArray();
+            let wasmFunctionName = getWasmFunctionName(fn.symbol);
+            let bodyData = new ByteArray();
+
             log(bodyData, sectionOffset, fn.localCount ? fn.localCount : 0, "local var count");
             if (fn.localCount > 0) {
                 bodyData.writeUnsignedLEB128(fn.localCount); //local_count
@@ -536,23 +564,25 @@ class WasmModule {
                 bodyData.writeUnsignedLEB128(0);
             }
 
-            let wasmFunctionName = getWasmFunctionName(fn.symbol);
             let lastChild;
             if (fn.isConstructor) {
                 // this is <CLASS>__ctr function
                 this.emitConstructor(bodyData, sectionOffset, fn)
             }
-            // else {
+
             let child = fn.symbol.node.functionBody().firstChild;
             while (child != null) {
                 lastChild = child;
                 this.emitNode(bodyData, sectionOffset, child);
                 child = child.nextSibling;
             }
-            // }
 
-            if (lastChild && lastChild.kind !== NodeKind.RETURN) {
-                appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
+            if (fn.body) {
+                bodyData.copy(fn.body);
+            } else {
+                if (lastChild && lastChild.kind !== NodeKind.RETURN) {
+                    appendOpcode(bodyData, sectionOffset, WasmOpcode.RETURN);
+                }
             }
 
             appendOpcode(bodyData, sectionOffset, WasmOpcode.END); //end, 0x0b, indicating the end of the body
@@ -592,7 +622,6 @@ class WasmModule {
         section.data.writeUnsignedLEB128(0); //index, the linear memory index (0 in the MVP)
 
         //offset, an i32 initializer expression that computes the offset at which to place the data
-        //FIXME: This could be wrong
         appendOpcode(section.data, array.position, WasmOpcode.I32_CONST);
         log(section.data, array.position, WASM_MEMORY_INITIALIZER_BASE, "i32 literal");
         section.data.writeUnsignedLEB128(WASM_MEMORY_INITIALIZER_BASE); //const value
@@ -684,56 +713,58 @@ class WasmModule {
         else if (node.kind == NodeKind.VARIABLE) {
             let symbol = node.symbol;
 
+            /*if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
+             let sizeOf = symbol.resolvedType.variableSizeOf(this.context);
+             let value = symbol.node.variableValue();
+             let memoryInitializer = this.memoryInitializer;
+
+             // Copy the initial value into the memory initializer
+             this.growMemoryInitializer();
+
+             let offset = symbol.offset;
+
+             if (sizeOf == 1) {
+             if (symbol.resolvedType.isUnsigned()) {
+             memoryInitializer.writeUnsignedByte(value.intValue, offset);
+             } else {
+             memoryInitializer.writeByte(value.intValue, offset);
+             }
+             }
+             else if (sizeOf == 2) {
+             if (symbol.resolvedType.isUnsigned()) {
+             memoryInitializer.writeUnsignedShort(value.intValue, offset);
+             } else {
+             memoryInitializer.writeShort(value.intValue, offset);
+             }
+             }
+             else if (sizeOf == 4) {
+             if (symbol.resolvedType.isFloat()) {
+             memoryInitializer.writeFloat(value.floatValue, offset);
+             } else {
+             if (symbol.resolvedType.isUnsigned()) {
+             memoryInitializer.writeUnsignedInt(value.intValue, offset);
+             } else {
+             memoryInitializer.writeInt(value.intValue, offset);
+             }
+             }
+             }
+             else if (sizeOf == 8) {
+             if (symbol.resolvedType.isDouble()) {
+             memoryInitializer.writeDouble(value.rawValue, offset);
+             } else {
+             //TODO Implement Int64 write
+             if (symbol.resolvedType.isUnsigned()) {
+             //memoryInitializer.writeUnsignedInt64(value.rawValue, offset);
+             } else {
+             //memoryInitializer.writeInt64(value.rawValue, offset);
+             }
+             }
+             }
+             else assert(false);*/
+
             if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                let sizeOf = symbol.resolvedType.variableSizeOf(this.context);
-                let value = symbol.node.variableValue();
-                let memoryInitializer = this.memoryInitializer;
 
-                // Copy the initial value into the memory initializer
-                this.growMemoryInitializer();
-
-                let offset = symbol.offset;
-
-                if (sizeOf == 1) {
-                    if (symbol.resolvedType.isUnsigned()) {
-                        memoryInitializer.writeUnsignedByte(value.intValue, offset);
-                    } else {
-                        memoryInitializer.writeByte(value.intValue, offset);
-                    }
-                }
-                else if (sizeOf == 2) {
-                    if (symbol.resolvedType.isUnsigned()) {
-                        memoryInitializer.writeUnsignedShort(value.intValue, offset);
-                    } else {
-                        memoryInitializer.writeShort(value.intValue, offset);
-                    }
-                }
-                else if (sizeOf == 4) {
-                    if (symbol.resolvedType.isFloat()) {
-                        memoryInitializer.writeFloat(value.floatValue, offset);
-                    } else {
-                        if (symbol.resolvedType.isUnsigned()) {
-                            memoryInitializer.writeUnsignedInt(value.intValue, offset);
-                        } else {
-                            memoryInitializer.writeInt(value.intValue, offset);
-                        }
-                    }
-                }
-                else if (sizeOf == 8) {
-                    if (symbol.resolvedType.isDouble()) {
-                        memoryInitializer.writeDouble(value.rawValue, offset);
-                    } else {
-                        //TODO Implement Int64 write
-                        if (symbol.resolvedType.isUnsigned()) {
-                            //memoryInitializer.writeUnsignedInt64(value.rawValue, offset);
-                        } else {
-                            //memoryInitializer.writeInt64(value.rawValue, offset);
-                        }
-                    }
-                }
-                else assert(false);
-
-                //let global = this.allocateGlobal(symbol);
+                let global = this.allocateGlobal(symbol);
 
                 // Make sure the heap offset is tracked
                 if (symbol.name == "currentHeapPointer") {
@@ -808,10 +839,12 @@ class WasmModule {
                 this.freeFunctionIndex = symbol.offset;
             }
 
-            // Make "init_malloc" as start function
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "init_malloc") {
+            // Make "__WASM_INITIALIZER" as start function
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "__WASM_INITIALIZER") {
                 assert(this.startFunctionIndex == -1);
                 this.startFunctionIndex = symbol.offset;
+                this.startFunction = fn;
+                this.startFunction.body = new ByteArray();
             }
 
             if (node.isExport()) {
@@ -1080,8 +1113,9 @@ class WasmModule {
 
         // Allocate memory
         appendOpcode(array, byteOffset, WasmOpcode.CALL);
-        log(array, byteOffset, this.mallocFunctionIndex, `call func index (${this.mallocFunctionIndex})`);
-        array.writeUnsignedLEB128(this.mallocFunctionIndex);
+        let mallocIndex = this.calculateWasmFunctionIndex(this.mallocFunctionIndex);
+        log(array, byteOffset, mallocIndex, `call func index (${mallocIndex})`);
+        array.writeUnsignedLEB128(mallocIndex);
         appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
         array.writeUnsignedLEB128(fn.argumentCount);// Set self pointer to first local variable which is immediate after the argument variable
     }
@@ -1317,10 +1351,9 @@ class WasmModule {
 
             else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
                 // FIXME: Final spec allow immutable global variables
-                //Global variables are immutable so we need to store then in memory
-                //appendOpcode(array, byteOffset, WasmOpcode.GET_GLOBAL);
-                //array.writeUnsignedLEB128(symbol.offset);
-                this.emitLoadFromMemory(array, byteOffset, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset);
+                appendOpcode(array, byteOffset, WasmOpcode.GET_GLOBAL);
+                array.writeUnsignedLEB128(symbol.offset);
+                // this.emitLoadFromMemory(array, byteOffset, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset);
             }
 
             else {
@@ -1731,10 +1764,10 @@ class WasmModule {
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                // this.emitNode(array, byteOffset, right);
-                // appendOpcode(array, byteOffset, WasmOpcode.SET_GLOBAL);
-                // array.writeUnsignedLEB128(symbol.offset);
-                this.emitStoreToMemory(array, byteOffset, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset, right);
+                this.emitNode(array, byteOffset, right);
+                appendOpcode(array, byteOffset, WasmOpcode.SET_GLOBAL);
+                array.writeUnsignedLEB128(symbol.offset);
+                // this.emitStoreToMemory(array, byteOffset, symbol.resolvedType, null, WASM_MEMORY_INITIALIZER_BASE + symbol.offset, right);
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT || symbol.kind == SymbolKind.VARIABLE_LOCAL) {
@@ -2049,6 +2082,10 @@ class WasmModule {
         }
 
         return 1;
+    }
+
+    calculateWasmFunctionIndex(index: int32): int32 {
+        return this.importCount + index;
     }
 
     getWasmFunctionCallIndex(symbol: Symbol): int32 {

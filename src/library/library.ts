@@ -17,6 +17,7 @@ export class Library {
             case CompileTarget.WEBASSEMBLY:
                 lib = [
                     readLibraryFile("/common/types.tbs"),
+                    readLibraryFile("/webassembly/initializer.tbs"),
                     readLibraryFile("/webassembly/builtins.tbs"),
                     readLibraryFile("/common/math.tbs"),
                     readLibraryFile("/common/malloc.tbs"),
