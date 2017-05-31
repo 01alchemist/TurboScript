@@ -1,5 +1,5 @@
-declare var MAX_SAFE_INTEGER:int32 = 9007199254740991;
+const MAX_SAFE_INTEGER: int32 = 9007199254740991;
 
-export function randomFloat32():float32{
+export function randomFloat32(): float32 {
     return (foreign.random()) as float32;
 }

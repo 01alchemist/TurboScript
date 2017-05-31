@@ -1,1 +1,1 @@
-declare var PI:float64 = 3.141592653589793;
+const PI:float64 = 3.141592653589793;
