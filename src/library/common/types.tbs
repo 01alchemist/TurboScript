@@ -1,4 +1,4 @@
-
+// Native types
 declare const NaN:      float64 = 0.0 / 0.0;
 declare const Infinity: float64 = 1.0 / 0.0;
 
@@ -53,29 +53,6 @@ declare class float32 {
 declare class float64 {
     toString(): string;
 }
-
-// declare class Math {
-//     static abs(x: float64): float64;
-//     static acos(x: float64): float64;
-//     static asin(x: float64): float64;
-//     static atan(x: float64): float64;
-//     static atan2(y: float64, x: float64): float64;
-//     static ceil(x: float64): float64;
-//     static cos(x: float64): float64;
-//     static exp(x: float64): float64;
-//     static floor(x: float64): float64;
-//     static log(x: float64): float64;
-//     // static max(...values: float64[]): float64;
-//     static max(a: float64, b:float64): float64;
-//     // static min(...values: float64[]): float64;
-//     static min(a: float64, b:float64): float64;
-//     static pow(x: float64, y: float64): float64;
-//     static random(): float64;
-//     static round(x: float64): float64;
-//     static sin(x: float64): float64;
-//     static sqrt(x: float64): float64;
-//     static tan(x: float64): float64;
-// }
 
 declare class string {
     charAt(index: int32): string;

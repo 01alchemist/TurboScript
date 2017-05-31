@@ -2,7 +2,7 @@ import {isFunction, Symbol, SymbolKind} from "../../compiler/core/symbol";
 import {ByteArray, ByteArray_set32, ByteArray_setString} from "../../utils/bytearray";
 import {CheckContext} from "../../compiler/analyzer/type-checker";
 import {alignToNextMultipleOf} from "../../utils/imports";
-import {isExpression, isUnary, Node, NodeKind} from "../../compiler/core/node";
+import {isExpression, isUnary, isUnaryPostfix, Node, NodeKind} from "../../compiler/core/node";
 import {Type} from "../../compiler/core/type";
 import {Compiler} from "../../compiler/compiler";
 import {WasmOpcode} from "./opcode";
@@ -782,7 +782,7 @@ class WasmModule {
 
             // Functions without bodies are imports
             if (body == null) {
-                let wasmFunctionName:string = getWasmFunctionName(symbol);
+                let wasmFunctionName: string = getWasmFunctionName(symbol);
                 if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.importCount;
@@ -1246,13 +1246,13 @@ class WasmModule {
                     else if (node.symbol.resolvedType.isLong()) {
                         appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
                         log(array, byteOffset, value.longValue, "i64 literal");
-                        array.writeUnsignedLEB128(value.longValue);
+                        array.writeLEB128(value.longValue);
                     }
 
                     else {
                         appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
                         log(array, byteOffset, value.intValue, "i32 literal");
-                        array.writeUnsignedLEB128(value.intValue);
+                        array.writeLEB128(value.intValue);
                     }
 
                 } else {
@@ -1275,20 +1275,24 @@ class WasmModule {
                         else if (node.symbol.resolvedType.isLong()) {
                             appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
                             log(array, byteOffset, 0, "i64 literal");
-                            array.writeUnsignedLEB128(0);
+                            array.writeLEB128(0);
                         }
 
                         else {
                             appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
                             log(array, byteOffset, 0, "i32 literal");
-                            array.writeUnsignedLEB128(0);
+                            array.writeLEB128(0);
                         }
                     }
                 }
 
-                appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
-                log(array, byteOffset, node.symbol.offset, "local index");
-                array.writeUnsignedLEB128(node.symbol.offset);
+                let skipSetLocal = value && isUnaryPostfix(value.kind);
+
+                if (skipSetLocal == false) {
+                    appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
+                    log(array, byteOffset, node.symbol.offset, "local index");
+                    array.writeUnsignedLEB128(node.symbol.offset);
+                }
             }
 
             else {
@@ -1385,7 +1389,7 @@ class WasmModule {
                 child = child.nextSibling;
             }
 
-            let wasmFunctionName:string = getWasmFunctionName(symbol);
+            let wasmFunctionName: string = getWasmFunctionName(symbol);
             if (isBuiltin(wasmFunctionName)) {
                 appendOpcode(array, byteOffset, getBuiltinOpcode(symbol.name));
             }
@@ -1727,7 +1731,6 @@ class WasmModule {
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
-                //Global variables are immutable in MVP so we need to store them in memory
                 // this.emitNode(array, byteOffset, right);
                 // appendOpcode(array, byteOffset, WasmOpcode.SET_GLOBAL);
                 // array.writeUnsignedLEB128(symbol.offset);
@@ -1736,9 +1739,11 @@ class WasmModule {
 
             else if (symbol.kind == SymbolKind.VARIABLE_ARGUMENT || symbol.kind == SymbolKind.VARIABLE_LOCAL) {
                 this.emitNode(array, byteOffset, right);
-                appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
-                log(array, byteOffset, symbol.offset, "local index");
-                array.writeUnsignedLEB128(symbol.offset);
+                if (!isUnaryPostfix(right.kind)) {
+                    appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
+                    log(array, byteOffset, symbol.offset, "local index");
+                    array.writeUnsignedLEB128(symbol.offset);
+                }
             }
 
             else {
@@ -1767,76 +1772,110 @@ class WasmModule {
         }
 
         else if (isUnary(node.kind)) {
-
             let kind = node.kind;
 
-            if (kind == NodeKind.POSTFIX_INCREMENT) {
+            if (kind == NodeKind.POSTFIX_INCREMENT || kind == NodeKind.POSTFIX_DECREMENT) {
 
                 let value = node.unaryValue();
                 let dataType: string = typeToDataType(value.resolvedType, this.bitness);
 
+                //TODO handle instance variable
+                if (node.parent.kind == NodeKind.VARIABLE)
+                {
+                    this.emitNode(array, byteOffset, value);
+                    appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
+                    log(array, byteOffset, node.parent.symbol.offset, "local index");
+                    array.writeUnsignedLEB128(node.parent.symbol.offset);
+                }
+                else if (node.parent.kind == NodeKind.ASSIGN)
+                {
+                    this.emitNode(array, byteOffset, value);
+                    let left = node.parent.binaryLeft();
+                    appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
+                    log(array, byteOffset, left.symbol.offset, "local index");
+                    array.writeUnsignedLEB128(left.symbol.offset);
+                }
+
                 this.emitNode(array, byteOffset, value);
 
-                assert(
-                    value.resolvedType.isInteger() || value.resolvedType.isLong() ||
-                    value.resolvedType.isFloat() || value.resolvedType.isDouble()
-                );
-                let size = value.resolvedType.pointerTo.allocationSizeOf(this.context);
+                if (node.parent.kind != NodeKind.RETURN) {
+                    assert(
+                        value.resolvedType.isInteger() || value.resolvedType.isLong() ||
+                        value.resolvedType.isFloat() || value.resolvedType.isDouble()
+                    );
+                    let size = value.resolvedType.pointerTo ?
+                        value.resolvedType.pointerTo.allocationSizeOf(this.context) :
+                        value.resolvedType.allocationSizeOf(this.context);
 
-                if (size == 1 || size == 2) {
-                    if (value.kind == NodeKind.INT32) {
-                        appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
-                        log(array, byteOffset, 1, "i32 literal");
-                        array.writeLEB128(1);
+                    if (size == 1 || size == 2) {
+                        if (value.kind == NodeKind.INT32 || value.resolvedType.isInteger()) {
+                            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                            log(array, byteOffset, 1, "i32 literal");
+                            array.writeLEB128(1);
+                        }
+
+                        else {
+                            console.error("Wrong type");
+                        }
                     }
 
-                    else {
-                        console.error("Wrong type");
+                    else if (size == 4) {
+                        if (value.kind == NodeKind.INT32 || value.resolvedType.isInteger()) {
+                            appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
+                            log(array, byteOffset, 1, "i32 literal");
+                            array.writeLEB128(1);
+                        }
+
+                        else if (value.kind == NodeKind.FLOAT32 || value.resolvedType.isFloat()) {
+                            appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
+                            log(array, byteOffset, 1, "f32 literal");
+                            array.writeFloat(1);
+                        }
+
+                        else {
+                            console.error("Wrong type");
+                        }
+                    }
+
+                    else if (size == 8) {
+
+                        if (value.kind == NodeKind.INT64 || value.resolvedType.isLong()) {
+                            appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
+                            log(array, byteOffset, 1, "i64 literal");
+                            array.writeLEB128(1);
+                        }
+
+                        else if (value.kind == NodeKind.FLOAT64 || value.resolvedType.isDouble()) {
+                            appendOpcode(array, byteOffset, WasmOpcode.F64_CONST);
+                            log(array, byteOffset, 1, "f64 literal");
+                            array.writeDouble(1);
+                        }
+
+                        else {
+                            console.error("Wrong type");
+                        }
+                    }
+
+                    //TODO extend to other operations
+                    let operation = kind == NodeKind.POSTFIX_INCREMENT ? "ADD" : "SUB";
+
+                    appendOpcode(array, byteOffset, WasmOpcode[`${dataType}_${operation}`]);
+
+                    if (value.symbol.kind == SymbolKind.VARIABLE_GLOBAL) {
+                        appendOpcode(array, byteOffset, WasmOpcode.SET_GLOBAL);
+                        log(array, byteOffset, value.symbol.offset, "i32 literal");
+                        array.writeLEB128(value.symbol.offset);
+                    }
+                    else if (value.symbol.kind == SymbolKind.VARIABLE_LOCAL || value.symbol.kind == SymbolKind.VARIABLE_ARGUMENT) {
+                        appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL);
+                        log(array, byteOffset, value.symbol.offset, "i32 literal");
+                        array.writeLEB128(value.symbol.offset);
+                    }
+                    else if (value.symbol.kind == SymbolKind.VARIABLE_INSTANCE) {
+                        //FIXME
+                        //this.emitStoreToMemory(array, byteOffset, value.symbol.resolvedType, value.dotTarget(), value.symbol.offset, node);
                     }
                 }
-
-                else if (size == 4) {
-                    if (value.kind == NodeKind.INT32) {
-                        appendOpcode(array, byteOffset, WasmOpcode.I32_CONST);
-                        log(array, byteOffset, 1, "i32 literal");
-                        array.writeLEB128(1);
-                    }
-
-                    else if (value.kind == NodeKind.FLOAT32) {
-                        appendOpcode(array, byteOffset, WasmOpcode.F32_CONST);
-                        log(array, byteOffset, 1, "f32 literal");
-                        array.writeFloat(1);
-                    }
-
-                    else {
-                        console.error("Wrong type");
-                    }
-                }
-
-                else if (size == 8) {
-
-                    if (value.kind == NodeKind.INT64) {
-                        appendOpcode(array, byteOffset, WasmOpcode.I64_CONST);
-                        log(array, byteOffset, 1, "i64 literal");
-                        array.writeLEB128(1);
-                    }
-
-                    else if (value.kind == NodeKind.FLOAT64) {
-                        appendOpcode(array, byteOffset, WasmOpcode.F64_CONST);
-                        log(array, byteOffset, 1, "f64 literal");
-                        array.writeDouble(1);
-                    }
-
-                    else {
-                        console.error("Wrong type");
-                    }
-                }
-
-                // if (value.resolvedType.pointerTo == null) {
-                //     this.emitNode(array, byteOffset, value);
-                // }
-
-                appendOpcode(array, byteOffset, WasmOpcode[`${dataType}_ADD`]);
             }
         }
         else {
@@ -2044,7 +2083,7 @@ class WasmModule {
     }
 }
 
-function getWasmFunctionName(symbol:Symbol): string {
+function getWasmFunctionName(symbol: Symbol): string {
     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().internalName : "";
     return (moduleName == "" ? "" : moduleName + "_") + symbol.internalName;
 }
