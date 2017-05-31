@@ -1961,6 +1961,25 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             node.resolvedType = context.booleanType;
         }
 
+        // Special-case long types
+        else if (value.resolvedType.isLong()) {
+            if (value.resolvedType.isUnsigned()) {
+                node.flags = node.flags | NODE_FLAG_UNSIGNED_OPERATOR;
+                node.resolvedType = context.uint64Type;
+            } else {
+                node.resolvedType = context.int64Type;
+            }
+
+            // Automatically fold constants
+            if (value.kind == NodeKind.INT64) {
+                let input = value.longValue;
+                let output = input;
+                if (kind == NodeKind.COMPLEMENT) output = ~input;
+                else if (kind == NodeKind.NEGATIVE) output = -input;
+                node.becomeLongConstant(output);
+            }
+        }
+
         // Special-case integer types
         else if (value.resolvedType.isInteger()) {
             if (value.resolvedType.isUnsigned()) {
