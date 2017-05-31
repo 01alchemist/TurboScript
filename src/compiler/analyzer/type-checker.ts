@@ -1961,6 +1961,25 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             node.resolvedType = context.booleanType;
         }
 
+        // Special-case long types
+        else if (value.resolvedType.isLong()) {
+            if (value.resolvedType.isUnsigned()) {
+                node.flags = node.flags | NODE_FLAG_UNSIGNED_OPERATOR;
+                node.resolvedType = context.uint64Type;
+            } else {
+                node.resolvedType = context.int64Type;
+            }
+
+            // Automatically fold constants
+            if (value.kind == NodeKind.INT64) {
+                let input = value.longValue;
+                let output = input;
+                if (kind == NodeKind.COMPLEMENT) output = ~input;
+                else if (kind == NodeKind.NEGATIVE) output = -input;
+                node.becomeLongConstant(output);
+            }
+        }
+
         // Special-case integer types
         else if (value.resolvedType.isInteger()) {
             if (value.resolvedType.isUnsigned()) {
@@ -2128,6 +2147,18 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 checkConversion(context, left, commonType, ConversionKind.IMPLICIT);
                 checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
                 node.resolvedType = commonType;
+
+                // Type conversion
+                if(commonType == context.int64Type) {
+                    if(left.kind == NodeKind.INT32){
+                        left.kind = NodeKind.INT64;
+                        left.resolvedType = context.int64Type;
+                    }
+                    else if(right.kind == NodeKind.INT32){
+                        right.kind = NodeKind.INT64;
+                        right.resolvedType = context.int64Type;
+                    }
+                }
 
                 // Automatically fold constants
                 if ((left.kind == NodeKind.INT32 || left.kind == NodeKind.INT64) &&
