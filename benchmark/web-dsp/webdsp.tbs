@@ -1,0 +1,167 @@
+export function getPixel (x:int32, y:int32, arr:*int32, width:int32, height:int32):int32 {
+    if (x < 0 || y < 0) return 0;
+    if (x >= (width) || y >= (height)) return 0;
+    return (arr[((width * y) + x)]);
+}
+
+//start filters below
+export function grayScale (data:*uint8, len:int32):void {
+    let i:int32 = 0;
+    while(i < len) {
+        let r:int32 = data[i];
+        let g:int32 = data[i+1];
+        let b:int32 = data[i+2];
+        let a:int32 = data[i+3];
+        // int brightness = (r*.21+g*.72+b*.07);
+
+        data[i] = r;
+        data[i+1] = r;
+        data[i+2] = r;
+        data[i+3] = a;
+        i = i + 4;
+    }
+}
+export function brighten (data:*uint8, len:in32, brightness:int32):void {
+    let i:int32 = 0;
+    while(i < len) {
+        data[i]   + brightness > 255 ? 255 : data[i]   += brightness;
+        data[i+1] + brightness > 255 ? 255 : data[i+1] += brightness;
+        data[i+2] + brightness > 255 ? 255 : data[i+2] += brightness;
+        i = i + 4;
+    }
+}
+export function invert (data:*uint8, len:int32):void {
+    let i:int32 = 0;
+    while(i < len) {
+        data[i] = 255 - data[i]; //r
+        data[i+1] = 255 - data[i+1]; //g
+        data[i+2] = 255 - data[i+2]; //b
+        i = i + 4;
+    }
+}
+export function noise (data:*float32, len:int32):void {
+    let random:int32;
+    let i:int32 = 0;
+    while(i < len) {
+        random = (random() % 70) - 35;
+        data[i] = data[i] + random; //r
+        data[i+1] = data[i+1] + random; //g
+        data[i+2] = data[i+2] + random; //b
+        i = i + 4;
+    }
+}
+export function multiFilter (data:*uint8, len:int32, width:int32, filterType:int32, mag:int32, mult:int32, adj:int32):void {
+    let i:int32 = 0;
+    while(i < len) {
+        if (i % 4 != 3) {
+            data[i] = mag + mult * data[i] - data[i + adj] - data[i + width * 4];
+        }
+        i = i + filterType;
+    }
+}
+export function sobelFilter (data:*uint8, width:int32, height:int32, invert:boolean):void {
+    let grayData:Array<int32> = new Array<int32>(width * height);
+    let x:int32 = 0;
+    let y:int32 = 0;
+    while(y < height) {
+        while(x < width) {
+            let goffset:int32 = ((width * y) + x) << 2; //multiply by 4
+            let r:int32 = data[goffset];
+            let g:int32 = data[goffset + 1];
+            let b:int32 = data[goffset + 2];
+
+            let avg:int32 = (r >> 2) + (g >> 1) + (b >> 3);
+            grayData[((width * y) + x)] = avg;
+
+            let doffset:int32 = ((width * y) + x) << 2;
+            data[doffset] = avg;
+            data[doffset + 1] = avg;
+            data[doffset + 2] = avg;
+            data[doffset + 3] = 255;
+            x = x + 1;
+        }
+        y = y + 1;
+    }
+
+    x = 0;
+    y = 0;
+    while(y < height) {
+        while(x < width) {
+            let newX:int32;
+            let newY:int32;
+            if ((x <= 0 || x >= width - 1) || (y <= 0 || y >= height - 1)) {
+                newX = 0;
+                newY = 0;
+            } else {
+                newX = (
+                    (-1 * getPixel(x - 1, y - 1, grayData, width, height)) +
+                    (getPixel(x + 1, y - 1, grayData, width, height)) +
+                    (-1 * (getPixel(x - 1, y, grayData, width, height) << 1)) +
+                    (getPixel(x + 1, y, grayData, width, height) << 1) +
+                    (-1 * getPixel(x - 1, y + 1, grayData, width, height)) +
+                    (getPixel(x + 1, y + 1, grayData, width, height))
+                );
+                newY = (
+                    (-1 * getPixel(x - 1, y - 1, grayData, width, height)) +
+                    (-1 * (getPixel(x, y - 1, grayData, width, height) << 1)) +
+                    (-1 * getPixel(x + 1, y - 1, grayData, width, height)) +
+                    (getPixel(x - 1, y + 1, grayData, width, height)) +
+                    (getPixel(x, y + 1, grayData, width, height) << 1) +
+                    (getPixel(x + 1, y + 1, grayData, width, height))
+                );
+            }
+            let mag:int32 = sqrt((newX * newX) + (newY * newY));
+            if (mag > 255) mag = 255;
+            let offset:int32 = ((width * y) + x) << 2; //multiply by
+            if (invert == true) mag = 255 - mag;
+            data[offset] = mag;
+            data[offset + 1] = mag;
+            data[offset + 2] = mag;
+            data[offset + 3] = 255;
+        }
+    }
+}
+export function convFilter (
+    data:*float32, width:int32, height:int32, kern:*float32, kWidth:int32, kHeight:int32, divisor:float32,
+    bias:float32, count:int32
+):void {
+    let r:float32, g:float32, b:float32;
+    let yy:int32, xx:int32, imageOffset:int32, kernelOffset:int32, pix:int32;
+    let kCenterY:int32 = (kHeight / 2) as int32;
+    let kCenterX:int32 = (kWidth / 2) as int32;
+
+    let i:int32 = 0;
+    let x:int32 = kCenterX;
+    let y:int32 = kCenterY;
+    while(i < count) {
+        i = i + 1;
+        while(y < height - kCenterY) {
+            y = y + 1;
+            while(x < width - kCenterX) {
+                x = x + 1;
+                r = 0;
+                g = 0;
+                b = 0;
+
+                let kx:int32 = 0;
+                let ky:int32 = 0;
+                while(ky < kHeight) {
+                    ky = ky + 1;
+                    while(kx < kWidth) {
+                        kx = kx + 1;
+                        imageOffset = (width * (y - kCenterY + ky) + (x - kCenterX + kx)) * 4;
+                        kernelOffset = kWidth * ky + kx;
+                        // access correct index by offsetting x and y by the current kernel index
+                        r = r + data[imageOffset + 0] * kern[kernelOffset];
+                        g = g + data[imageOffset + 1] * kern[kernelOffset];
+                        b = b + data[imageOffset + 2] * kern[kernelOffset];
+                    }
+                }
+                pix = (width * y + x) * 4;
+                data[pix + 0] =  ((r / divisor)>255.0) ? 255.0 : ((r / divisor)<0.0) ? 0.0 : r / divisor;
+                data[pix + 1] =  ((g / divisor)>255.0) ? 255.0 : ((g / divisor)<0.0) ? 0.0 : g / divisor;
+                data[pix + 2] =  ((b / divisor)>255.0) ? 255.0 : ((b / divisor)<0.0) ? 0.0 : b / divisor;
+            }
+        }
+    }
+}
