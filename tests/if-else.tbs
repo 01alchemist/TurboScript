@@ -1,0 +1,11 @@
+export function test(value: int32): int32 {
+    if (value == 1) {
+        return 10;
+    }
+}
+
+export function test2(value: float32): float32 {
+    if (value == 1.0f) {
+        return 10.0f;
+    }
+}

@@ -1,1 +1,12 @@
 const PI:float64 = 3.141592653589793;
+
+const MAX_UNSIGNED_INTEGER_32:uint32 = 4294967295;
+
+const MIN_INTEGER_32:int32 = -2147483648;
+const MAX_INTEGER_32:int32 = 2147483647;
+
+const MAX_UNSIGNED_INTEGER_64:int32 = 18446744073709551615;
+
+// −(2^63) to 2^63 − 1
+// const MIN_INTEGER_64:int32 = -powi64(2, 63);
+// const MAX_INTEGER_64:int32 = powi64(2, 63) - 1;
