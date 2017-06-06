@@ -1,6 +1,9 @@
 import {Token} from "../compiler/scanner/scanner";
 import {Node} from "../compiler/core/node";
 import {StringBuilder, StringBuilder_new} from "./stringbuilder";
+import {Color} from "./color";
+import {assert} from "./assert";
+import {Terminal} from "./terminal";
 
 export class LineColumn {
     line: int32; // 0-based
@@ -214,4 +217,61 @@ export class Log {
 
         return false;
     }
+}
+
+export function printError(text: string): void {
+    Terminal.setColor(Color.RED);
+    Terminal.write("error: ");
+    Terminal.setColor(Color.BOLD);
+    Terminal.write(text);
+    Terminal.write("\n");
+    Terminal.setColor(Color.DEFAULT);
+}
+
+export function writeLogToTerminal(log: Log): void {
+    let diagnostic = log.first;
+
+    while (diagnostic != null) {
+        if (diagnostic.range !== undefined) {
+            let location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
+
+            // Source
+            let builder = StringBuilder_new();
+            diagnostic.appendSourceName(builder, location);
+            Terminal.setColor(Color.BOLD);
+            Terminal.write(builder.finish());
+
+            // Kind
+            builder = StringBuilder_new();
+            diagnostic.appendKind(builder);
+            Terminal.setColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
+            Terminal.write(builder.finish());
+
+            // Message
+            builder = StringBuilder_new();
+            diagnostic.appendMessage(builder);
+            Terminal.setColor(Color.BOLD);
+            Terminal.write(builder.finish());
+
+            // Line contents
+            builder = StringBuilder_new();
+            diagnostic.appendLineContents(builder, location);
+            Terminal.setColor(Color.DEFAULT);
+            Terminal.write(builder.finish());
+
+            // SourceRange
+            builder = StringBuilder_new();
+            diagnostic.appendRange(builder, location);
+            Terminal.setColor(Color.GREEN);
+            Terminal.write(builder.finish());
+
+        } else {
+            Terminal.setColor(Color.RED);
+            Terminal.write(diagnostic.message + "\n");
+        }
+
+        diagnostic = diagnostic.next;
+    }
+
+    Terminal.setColor(Color.DEFAULT);
 }

@@ -1,10 +1,9 @@
 environment:
-  nodejs_version: "7"
+  nodejs_version: "8"
   
 install:
     - cmd: npm install
     - cmd: npm update
-    - cmd: npm run install:node-v8
 
 build_script:
     - cmd: yarn build

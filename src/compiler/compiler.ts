@@ -14,16 +14,11 @@ import {jsEmit} from "../backends/javascript/js";
 import {wasmEmit} from "../backends/webassembly/webassembly";
 import {Library} from "../library/library";
 import {preparse} from "./parser/preparser";
+import {CompileTarget} from "./compile-target";
+import {assert} from "../utils/assert";
 /**
  * Author: Nidin Vinayakan
  */
-export enum CompileTarget {
-    NONE,
-    AUTO,
-    CPP,
-    JAVASCRIPT,
-    WEBASSEMBLY,
-}
 
 export class Compiler {
     log: Log;
@@ -41,6 +36,8 @@ export class Compiler {
     outputJS: string;
     outputCPP: string;
     outputH: string;
+
+    static mallocRequired:boolean = false;
 
     initialize(target: CompileTarget, outputName: string): void {
         assert(this.log == null);
@@ -119,7 +116,7 @@ export class Compiler {
     }
 
     finish(): boolean {
-        stdlib.Profiler_begin("pre-parsing");
+        console.time("pre-parsing");
 
         let source = this.firstSource;
         while (source != null) {
@@ -128,9 +125,9 @@ export class Compiler {
             }
             source = source.next;
         }
-        stdlib.Profiler_end("pre-parsing");
+        console.timeEnd("pre-parsing");
 
-        stdlib.Profiler_begin("scanning");
+        console.time("scanning");
 
         source = this.firstSource;
         while (source != null) {
@@ -138,8 +135,8 @@ export class Compiler {
             source = source.next;
         }
 
-        stdlib.Profiler_end("scanning");
-        stdlib.Profiler_begin("pre-processing");
+        console.timeEnd("scanning");
+        console.time("pre-processing");
 
         source = this.firstSource;
         while (source != null) {
@@ -147,8 +144,8 @@ export class Compiler {
             source = source.next;
         }
 
-        stdlib.Profiler_end("pre-processing");
-        stdlib.Profiler_begin("parsing");
+        console.timeEnd("pre-processing");
+        console.time("parsing");
 
         source = this.firstSource;
         while (source != null) {
@@ -158,8 +155,8 @@ export class Compiler {
             source = source.next;
         }
 
-        stdlib.Profiler_end("parsing");
-        stdlib.Profiler_begin("type-checking");
+        console.timeEnd("parsing");
+        console.time("type-checking");
 
         let global = this.global;
         let context = this.context;
@@ -198,18 +195,18 @@ export class Compiler {
             resolve(context, global, global.scope);
         }
 
-        stdlib.Profiler_end("type-checking");
+        console.timeEnd("type-checking");
 
         if (this.log.hasErrors()) {
             return false;
         }
 
-        stdlib.Profiler_begin("optimizing");
+        console.time("optimizing");
 
         treeShaking(global);
 
-        stdlib.Profiler_end("optimizing");
-        stdlib.Profiler_begin("emitting");
+        console.timeEnd("optimizing");
+        console.time("emitting");
 
         // if (this.target == CompileTarget.C) {
         //     cEmit(this);
@@ -223,7 +220,7 @@ export class Compiler {
             wasmEmit(this);
         }
 
-        stdlib.Profiler_end("emitting");
+        console.timeEnd("emitting");
 
         console.log("Done!");
 

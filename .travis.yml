@@ -4,8 +4,7 @@ notifications:
 language: node_js
 os: osx
 node_js:
-  - 'stable'
-  - '6'
+  - '8'
 
 sudo: false
 
@@ -19,7 +18,6 @@ install:
   - npm uninstall turboscript
   - npm install
   - npm update
-  - yarn install:node-v8
 
 script:
   - yarn build

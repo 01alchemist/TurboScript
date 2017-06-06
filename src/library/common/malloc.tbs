@@ -144,10 +144,9 @@ export function free(ptr:*uint8):void{
             tmp4 = getChunkSize(freeChunk);
             tmp3 = tmp3 - tmp4;
             freeMemory = tmp3;
-            return freeChunk;
         }
     }
-    return null;
+    return freeChunk;
 }
 /*export*/function findChunk(size: int32):*uint8{
     var chunk:*uint8 = null;

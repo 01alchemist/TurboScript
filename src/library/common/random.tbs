@@ -1,5 +1,12 @@
+
 const MAX_SAFE_INTEGER: int32 = 9007199254740991;
 
-export function randomFloat32(): float32 {
-    return (foreign.random()) as float32;
-}
+// export function randomFloat32(): float32 {
+//     return (Math.random()) as float32;
+// }
+// export function randomFloat64(): float64 {
+//     return Math.random();
+// }
+// export function randomInt32(): int32 {
+//     return (Math.random() * (MAX_SAFE_INTEGER as float64)) as int32;
+// }

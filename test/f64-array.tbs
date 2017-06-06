@@ -1,54 +1,28 @@
-export class Data {
+var a: Array<float64> = null;
 
-    id: int32;
-
-    v1: float64;
-    v2: float64;
-    v3: float64;
-
-    constructor(id: int32) {
-        this.id = id;
-    }
-    set(v1:float64, v2:float64, v3:float64):void{
-        this.v1 = v1;
-        this.v2 = v2;
-        this.v3 = v3;
-    }
-}
-
-var a: Array<Data> = null;
-
-export function test(num:int32): Array<Data> {
-    a = new Array<Data>(num);
+export function test(num:int32): Array<float64> {
+    a = new Array<float64>(num);
     let i:int32 = 0;
     while (i < num) {
-        let d = new Data(i);
-        // d.set(0.5, 0.5, 0.5);
-        a[i] = d;
+        a[i] = 0.0;
         i = i + 1;
     }
     return a;
 }
 
-export function getArrayByteLength(value:Array<Data>):int32 {
+export function getArrayByteLength(value:Array<float64>):int32 {
     return value.bytesLength;
 }
-export function getArrayElementSize(value:Array<Data>):int32 {
+export function getArrayElementSize(value:Array<float64>):int32 {
     return value.elementSize;
 }
 
-export function getArray(): Array<Data> {
+export function getArray(): Array<float64> {
     return a;
 }
-export function getData(index:int32):Data {
+export function getData(index:int32):float64 {
     return a[index];
 }
-
-// @JS
-// anyfunc function data_to_json(data:data) {
-//     return {
-//         v1:data.v1,
-//         v2:data.v2,
-//         v3:data.v3
-//     };
-// }
+export function setData(index:int32, value:float64):void {
+    a[index] = value;
+}

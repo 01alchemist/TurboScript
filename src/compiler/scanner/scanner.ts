@@ -1,5 +1,6 @@
 import {SourceRange, createRange, Source, Log} from "../../utils/log";
 import {StringBuilder_new} from "../../utils/stringbuilder";
+import {assert} from "../../utils/assert";
 /**
  * Author: Nidin Vinayakan
  */

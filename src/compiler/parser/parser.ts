@@ -13,6 +13,7 @@ import {
     createDelete, createImports, createImport, NODE_FLAG_ANYFUNC,
     createAny, NODE_FLAG_JAVASCRIPT, createImportFrom, createDouble, NODE_FLAG_IMPORT
 } from "../core/node";
+import {assert} from "../../utils/assert";
 
 export enum Precedence {
     LOWEST,
@@ -1603,6 +1604,9 @@ class ParserContext {
             let child = this.parseStatement(parent.kind == NodeKind.FILE ? StatementMode.FILE : StatementMode.NORMAL);
             if (child == null) {
                 return false;
+            }
+            if(child.kind === NodeKind.RETURN){
+                parent.returnNode = child;
             }
             parent.appendChild(child);
         }

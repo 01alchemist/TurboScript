@@ -50,12 +50,14 @@ import {
     NodeKind,
     rangeForFlag, NODE_FLAG_LIBRARY
 } from "../core/node";
-import {CompileTarget} from "../compiler";
+import {CompileTarget} from "../compile-target";
 import {Log, SourceRange, spanRanges} from "../../utils/log";
 import {FindNested, Scope, ScopeHint} from "../core/scope";
 import {StringBuilder_new} from "../../utils/stringbuilder";
-import {alignToNextMultipleOf, isPositivePowerOf2} from "../../utils/imports";
+import {alignToNextMultipleOf, isPositivePowerOf2} from "../../utils/utils";
 import {MAX_INT32_VALUE, MAX_UINT32_VALUE, MIN_INT32_VALUE} from "../const";
+import {assert} from "../../utils/assert";
+import {Compiler} from "../compiler";
 /**
  * Author : Nidin Vinayakan
  */
@@ -1714,6 +1716,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     context.log.error(value.range, "Unexpected return value in function returning 'void'");
                 }
             }
+
+            node.parent.returnNode = node;
+
         }
 
         else if (context.currentReturnType != null && context.currentReturnType != context.voidType) {
@@ -1853,6 +1858,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.NEW) {
+        Compiler.mallocRequired = true;
         let type = node.newType();
         resolveAsType(context, type, parentScope);
 
