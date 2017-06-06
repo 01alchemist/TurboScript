@@ -2,7 +2,7 @@ notifications:
   slack: turboscript:9IeY6sX0PuLan9Q4Ad1Ggylp
   
 language: node_js
-os: osx
+os: linux
 node_js:
   - '8'
 
