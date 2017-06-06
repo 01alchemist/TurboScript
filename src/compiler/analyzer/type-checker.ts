@@ -1715,6 +1715,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     context.log.error(value.range, "Unexpected return value in function returning 'void'");
                 }
             }
+
+            node.parent.returnNode = node;
+
         }
 
         else if (context.currentReturnType != null && context.currentReturnType != context.voidType) {
@@ -1854,6 +1857,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else if (kind == NodeKind.NEW) {
+        Compiler.mallocRequired = true;
         let type = node.newType();
         resolveAsType(context, type, parentScope);
 

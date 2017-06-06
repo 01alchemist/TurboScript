@@ -37,6 +37,8 @@ export class Compiler {
     outputCPP: string;
     outputH: string;
 
+    static mallocRequired:boolean = false;
+
     initialize(target: CompileTarget, outputName: string): void {
         assert(this.log == null);
         this.log = new Log();

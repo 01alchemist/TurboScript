@@ -1,32 +1,18 @@
-export function addTwo1(a:int32, b:int32): int32 {
-  return a + b;
+export function addTwo1(a: int32, b: int32): int32 {
+    return a + b;
 }
-export function addTwo2(a:uint32, b:uint32): uint32 {
-  return a + b;
+export function addTwo2(a: uint32, b: uint32): uint32 {
+    return a + b;
 }
-export function addTwo3(a:float32, b:float32): float32 {
-  return a + b;
+export function addTwo3(a: float32, b: float32): float32 {
+    return a + b;
 }
-export function addTwo4(a:float64, b:float64): float64 {
-  return a + b;
+export function addTwo4(a: float64, b: float64): float64 {
+    return a + b;
 }
-
-#if WASM
-// JS cannot pass i64 type to wasm since there is no 64 bit integer in JS.
-// juts pass f64 and convert to i64
-//FIXME: Fix float64 to int64 conversion
-// export function addTwo5(a:float64, b:float64): int32 {
-//   return ((a as int64) + (b as int64)) as int32;
-// }
-// export function addTwo6(a:float64, b:float64): uin32 {
-//   return ((a as uint64) + (b as uint64)) as uint32;
-// }
-#elif ASM_JS
-// There is no i64 in asm.js and we are not emulating it. it's all i32
-export function addTwo5(a:int64, b:int64): int64 {
-  return a + b;
+export function addTwo5(a: int64, b: int64): int64 {
+    return a + b;
 }
-export function addTwo6(a:uint64, b:uint64): uint64 {
-  return a + b;
+export function addTwo6(a: uint64, b: uint64): uint64 {
+    return a + b;
 }
-#endif

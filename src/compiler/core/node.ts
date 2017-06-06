@@ -218,6 +218,7 @@ export class Node {
     scope: Scope;
     offset: int32;
 
+    returnNode: Node;
     constructorFunctionNode: Node;
     derivedNodes: Node[];
 
@@ -827,6 +828,13 @@ export class Node {
         return this.firstChild;
     }
 
+    ifReturnNode(): Node {
+        assert(this.kind == NodeKind.IF);
+        assert(this.firstChild !== null);
+        assert(this.firstChild.nextSibling !== null);
+        return this.firstChild.nextSibling.returnNode || null;
+    }
+
     deleteValue(): Node {
         assert(this.kind == NodeKind.DELETE);
         assert(this.childCount() <= 1);
@@ -955,7 +963,7 @@ export class Node {
         assert(this.kind == NodeKind.IF);
         assert(this.childCount() == 2 || this.childCount() == 3);
         assert(this.firstChild.nextSibling.nextSibling == null || this.firstChild.nextSibling.nextSibling.kind == NodeKind.BLOCK);
-        return this.firstChild.nextSibling.nextSibling;
+        return this.firstChild.nextSibling.nextSibling || null;
     }
 
     expandCallIntoOperatorTree(): boolean {

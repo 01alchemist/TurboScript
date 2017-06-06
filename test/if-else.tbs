@@ -1,0 +1,7 @@
+export function test(value: int32): int32 {
+    if (value == 1) {
+        return 10;
+    } else {
+        return 20;
+    }
+}

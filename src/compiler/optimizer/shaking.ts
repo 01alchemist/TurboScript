@@ -1,5 +1,6 @@
-import {isFunction, SYMBOL_FLAG_USED, SymbolKind} from "../core/symbol";
-import {NodeKind, Node} from "../core/node";
+import {isFunction, SYMBOL_FLAG_USED} from "../core/symbol";
+import {Node, NodeKind} from "../core/node";
+import {Compiler} from "../compiler";
 
 export function treeShakingMarkAllUsed(node: Node): void {
     var symbol = node.symbol;
@@ -26,6 +27,10 @@ export function treeShakingMarkAllUsed(node: Node): void {
 
 export function treeShakingSearchForUsed(node: Node): void {
     if (node.kind == NodeKind.FUNCTION && (node.isExport() || node.isStart())) {
+        if ((node.symbol.name === "malloc" || node.symbol.name === "free") && !Compiler.mallocRequired) {
+            return;
+        }
+
         treeShakingMarkAllUsed(node);
     }
 
@@ -49,7 +54,7 @@ export function treeShakingRemoveUnused(node: Node): void {
         //         node.remove();
         //     }
         // } else {
-            node.remove();
+        node.remove();
         // }
     }
 
