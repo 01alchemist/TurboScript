@@ -6,6 +6,7 @@ import {Precedence} from "../../compiler/parser/parser";
 import {Symbol, SymbolKind} from "../../compiler/core/symbol";
 import {isAlpha, isNumber, isASCII} from "../../compiler/scanner/scanner";
 import {Type} from "../../compiler/core/type";
+import {assert} from "../../utils/assert";
 
 export enum TypeMode {
     NORMAL,

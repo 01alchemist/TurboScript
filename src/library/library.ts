@@ -1,10 +1,14 @@
-import { CompileTarget } from "../compiler/compiler";
-
-const TURBO_LIBRARY_PATH = TURBO_PATH + "/src/library";
-
-function readLibraryFile(path: string): string {
-    return stdlib.IO_readTextFile(TURBO_LIBRARY_PATH + path);
-}
+import {CompileTarget} from "../compiler/compile-target";
+// library files
+const math = require('./common/math.tbs');
+const types = require('./common/types.tbs');
+const array = require('./common/array.tbs');
+const jstypes = require('./turbo/types.tbs');
+const runtime = require('raw-loader!./turbo/runtime.js');
+const wrapper = require('raw-loader!./turbo/wrapper.js');
+const malloc = require('./common/malloc.tbs');
+const builtins = require('./webassembly/builtins.tbs');
+const initializer = require('./webassembly/initializer.tbs');
 
 export class Library {
     static get(target: CompileTarget) {
@@ -12,16 +16,16 @@ export class Library {
 
         switch (target) {
             case CompileTarget.JAVASCRIPT:
-                lib = readLibraryFile("/turbo/types.tbs") + "\n";
+                lib = jstypes + "\n";
                 break;
             case CompileTarget.WEBASSEMBLY:
                 lib = [
-                    readLibraryFile("/common/types.tbs"),
-                    readLibraryFile("/webassembly/initializer.tbs"),
-                    readLibraryFile("/webassembly/builtins.tbs"),
-                    readLibraryFile("/common/math.tbs"),
-                    readLibraryFile("/common/malloc.tbs"),
-                    readLibraryFile("/common/array.tbs")
+                    types,
+                    initializer,
+                    builtins,
+                    math,
+                    malloc,
+                    array
                 ].join('\n');
                 break;
         }
@@ -32,7 +36,7 @@ export class Library {
     static getRuntime(target): string {
         switch (target) {
             case CompileTarget.JAVASCRIPT:
-                return readLibraryFile("/turbo/runtime.js") + "\n";
+                return runtime + "\n";
             default:
                 return "";
         }
@@ -41,7 +45,7 @@ export class Library {
     static getWrapper(target): string {
         switch (target) {
             case CompileTarget.JAVASCRIPT:
-                return readLibraryFile("/turbo/wrapper.js") + "\n";
+                return wrapper + "\n";
             default:
                 return "";
         }

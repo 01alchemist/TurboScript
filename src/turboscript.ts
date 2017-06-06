@@ -1,78 +1,14 @@
 ///<reference path="declarations.d.ts" />
-import {Log, DiagnosticKind} from "./utils/log";
+import {Log, DiagnosticKind, printError, writeLogToTerminal} from "./utils/log";
 import {StringBuilder_new} from "./utils/stringbuilder";
-import {CompileTarget, Compiler, replaceFileExtension} from "./compiler/compiler";
+import {Compiler, replaceFileExtension} from "./compiler/compiler";
+import {CompileTarget} from "./compiler/compile-target";
+import {Terminal} from "./utils/terminal";
+import {FileSystem} from "./utils/filesystem";
 
 /**
  * TurboScript compiler main entry
- *
  */
-
-export enum Color {
-    DEFAULT,
-    BOLD,
-    RED,
-    GREEN,
-    MAGENTA,
-}
-
-export function writeLogToTerminal(log: Log): void {
-    let diagnostic = log.first;
-
-    while (diagnostic != null) {
-        if (diagnostic.range !== undefined) {
-            let location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
-
-            // Source
-            let builder = StringBuilder_new();
-            diagnostic.appendSourceName(builder, location);
-            stdlib.Terminal_setColor(Color.BOLD);
-            stdlib.Terminal_write(builder.finish());
-
-            // Kind
-            builder = StringBuilder_new();
-            diagnostic.appendKind(builder);
-            stdlib.Terminal_setColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
-            stdlib.Terminal_write(builder.finish());
-
-            // Message
-            builder = StringBuilder_new();
-            diagnostic.appendMessage(builder);
-            stdlib.Terminal_setColor(Color.BOLD);
-            stdlib.Terminal_write(builder.finish());
-
-            // Line contents
-            builder = StringBuilder_new();
-            diagnostic.appendLineContents(builder, location);
-            stdlib.Terminal_setColor(Color.DEFAULT);
-            stdlib.Terminal_write(builder.finish());
-
-            // SourceRange
-            builder = StringBuilder_new();
-            diagnostic.appendRange(builder, location);
-            stdlib.Terminal_setColor(Color.GREEN);
-            stdlib.Terminal_write(builder.finish());
-
-        } else {
-            stdlib.Terminal_setColor(Color.RED);
-            stdlib.Terminal_write(diagnostic.message + "\n");
-        }
-
-        diagnostic = diagnostic.next;
-    }
-
-    stdlib.Terminal_setColor(Color.DEFAULT);
-}
-
-export function printError(text: string): void {
-    stdlib.Terminal_setColor(Color.RED);
-    stdlib.Terminal_write("error: ");
-    stdlib.Terminal_setColor(Color.BOLD);
-    stdlib.Terminal_write(text);
-    stdlib.Terminal_write("\n");
-    stdlib.Terminal_setColor(Color.DEFAULT);
-}
-
 export class CommandLineArgument {
     text: string;
     next: CommandLineArgument;
@@ -96,18 +32,16 @@ export function main_reset(): void {
 }
 
 export function printUsage(): void {
-    stdlib.Terminal_write(`
+    Terminal.write(`
 Usage: tc [FLAGS] [INPUTS]
 
   --help           Print this message.
   --out [PATH]     Emit code to PATH (the target format is the file extension).
-    --asmjs        Explicit asmjs output
     --wasm         Explicit webassembly output 
   --define [NAME]  Define the flag NAME in all input files.
 
 Examples:
 
-  tc main.tbs --out main.asm.js
   tc src/*.tbs --out main.wasm
 `);
 }
@@ -191,7 +125,7 @@ export function main_entry(): int32 {
         } else if (text == "--out") {
             argument = argument.next;
         } else if (!text.startsWith("-")) {
-            let contents = stdlib.IO_readTextFile(text);
+            let contents = FileSystem.readTextFile(text);
             if (contents == null) {
                 printError(StringBuilder_new().append("Cannot read from ").append(text).finish());
                 return 1;
@@ -207,11 +141,11 @@ export function main_entry(): int32 {
 
     // Only emit the output if the compilation succeeded
     if (!compiler.log.hasErrors()) {
-        if (target == CompileTarget.CPP && stdlib.IO_writeTextFile(output, compiler.outputCPP) &&
-            stdlib.IO_writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
-            target == CompileTarget.JAVASCRIPT && stdlib.IO_writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.WEBASSEMBLY && stdlib.IO_writeBinaryFile(output, compiler.outputWASM) &&
-            stdlib.IO_writeTextFile(output + ".log", compiler.outputWASM.log)) {
+        if (target == CompileTarget.CPP && FileSystem.writeTextFile(output, compiler.outputCPP) &&
+            FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
+            target == CompileTarget.JAVASCRIPT && FileSystem.writeTextFile(output, compiler.outputJS) ||
+            target == CompileTarget.WEBASSEMBLY && FileSystem.writeBinaryFile(output, compiler.outputWASM) &&
+            FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log)) {
             return 0;
         }
 
@@ -221,8 +155,29 @@ export function main_entry(): int32 {
     return 1;
 }
 
-export var main = {
+export const main = {
     addArgument: main_addArgument,
     reset: main_reset,
     entry: main_entry
 };
+
+export function compileString(source:string, target:CompileTarget = CompileTarget.WEBASSEMBLY) {
+    if(typeof TURBO_PATH === "undefined"){
+        TURBO_PATH = "";
+    }
+    let input = "tmp-string-source.tbs";
+    let output = "tmp-string-source.wasm";
+    FileSystem.writeTextFile("tmp-string-source.tbs", source);
+
+    let compiler = new Compiler();
+    compiler.initialize(target, output);
+    compiler.addInput(input, source);
+    compiler.finish();
+    console.log("finished");
+    writeLogToTerminal(compiler.log);
+    if (!compiler.log.hasErrors()) {
+        return compiler.outputWASM;
+    } else {
+        return null;
+    }
+}

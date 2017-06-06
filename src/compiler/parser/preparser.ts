@@ -1,7 +1,7 @@
 import {createRange, Log, Source} from "../../utils/log";
 import {Compiler} from "../compiler";
 import {isAlpha, isNumber, TokenKind} from "../scanner/scanner";
-import {printError} from "../../turboscript";
+import {printError} from "../../utils/log";
 import {StringBuilder_new} from "../../utils/stringbuilder";
 
 export function preparse(source: Source, compiler: Compiler, log: Log): boolean {

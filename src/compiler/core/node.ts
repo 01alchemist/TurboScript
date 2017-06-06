@@ -3,6 +3,7 @@ import {isType, Symbol, SYMBOL_FLAG_IS_TEMPLATE, SymbolKind} from "./symbol";
 import {SourceRange} from "../../utils/log";
 import {Scope} from "./scope";
 import {CheckContext} from "../analyzer/type-checker";
+import {assert} from "../../utils/assert";
 
 /**
  * Author: Nidin Vinayakan

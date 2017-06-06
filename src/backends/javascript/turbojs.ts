@@ -7,6 +7,7 @@ import {Precedence} from "../../compiler/parser/parser";
 import {jsKindCastsOperandsToInt, EmitBinary} from "./js";
 import {SymbolKind, Symbol} from "../../compiler/core/symbol";
 import {Compiler} from "../../compiler/compiler";
+import {assert} from "../../utils/assert";
 
 let optimization: uint8 = 0;
 let classMap: Map<string, any> = new Map<string, any>();

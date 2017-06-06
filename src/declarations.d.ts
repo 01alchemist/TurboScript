@@ -25,7 +25,6 @@ interface Math {
 declare class ByteArray {
 }
 
-declare var assert:Function;
 declare var TURBO_PATH:string;
 
 declare namespace stdlib {
