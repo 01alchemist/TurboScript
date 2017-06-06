@@ -57,6 +57,7 @@ import {StringBuilder_new} from "../../utils/stringbuilder";
 import {alignToNextMultipleOf, isPositivePowerOf2} from "../../utils/utils";
 import {MAX_INT32_VALUE, MAX_UINT32_VALUE, MIN_INT32_VALUE} from "../const";
 import {assert} from "../../utils/assert";
+import {Compiler} from "../compiler";
 /**
  * Author : Nidin Vinayakan
  */

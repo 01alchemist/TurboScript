@@ -1,4 +1,5 @@
 import {WasmWrappedType} from "./wasm-type";
+import {assert} from "../../../utils/assert";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
