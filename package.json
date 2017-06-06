@@ -32,11 +32,10 @@
     "tc": "./bin/tc"
   },
   "scripts": {
-    "install:node-v8": "ts-node ./scripts/install-node-v8.ts",
     "build": "webpack --config webpack.config.js && tsc -p ./lib",
     "watch-build": "webpack --progress --colors --watch",
-    "test": "ts-node ./scripts/run-node-v8.ts ./node_modules/jest/bin/jest.js",
-    "watch-test": "ts-node ./scripts/run-node-v8.ts ./node_modules/jest/bin/jest.js --watch"
+    "test": "node ./node_modules/jest/bin/jest.js",
+    "watch-test": "node ./node_modules/jest/bin/jest.js --watch"
   },
   "jest": {
     "globals": {
