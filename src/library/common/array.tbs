@@ -11,15 +11,15 @@ class Array<T> {
     operator [] (index: int32): T {
         let stripe = index * this.elementSize;
         if (stripe >= 0 && stripe < this.bytesLength) {
-            return *((this as *int8 + 8 + stripe) as *T);
+            return *((this as *uint8 + 8 + stripe) as *T);
         }
-        return null;
+        return null as T;
     }
 
     operator []= (index: int32, value: T): void {
         let stripe = index * this.elementSize;
         if (stripe >= 0 && stripe < this.bytesLength) {
-            *((this as *int8 + 8 + stripe) as *T) = value;
+            *((this as *uint8 + 8 + stripe) as *T) = value;
         }
     }
 

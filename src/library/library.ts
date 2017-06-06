@@ -20,6 +20,7 @@ export class Library {
                     readLibraryFile("/webassembly/initializer.tbs"),
                     readLibraryFile("/webassembly/builtins.tbs"),
                     readLibraryFile("/common/math.tbs"),
+                    readLibraryFile("/common/random.tbs"),
                     readLibraryFile("/common/malloc.tbs"),
                     readLibraryFile("/common/array.tbs")
                 ].join('\n');

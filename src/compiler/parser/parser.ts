@@ -1604,6 +1604,9 @@ class ParserContext {
             if (child == null) {
                 return false;
             }
+            if(child.kind === NodeKind.RETURN){
+                parent.returnNode = child;
+            }
             parent.appendChild(child);
         }
         return true;
