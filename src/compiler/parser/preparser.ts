@@ -3,6 +3,9 @@ import {Compiler} from "../compiler";
 import {isAlpha, isNumber, TokenKind} from "../scanner/scanner";
 import {printError} from "../../utils/log";
 import {StringBuilder_new} from "../../utils/stringbuilder";
+import {FileSystem} from "../../utils/filesystem";
+
+const javascript = require("../../extras/javascript.tbs");
 
 export function preparse(source: Source, compiler: Compiler, log: Log): boolean {
 
@@ -139,9 +142,9 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
 function resolveImport(importPath: string, original:string): string {
     let contents = null;
     if (original === "javascript") {
-        contents = stdlib.IO_readTextFile(TURBO_PATH + "/src/extras/javascript.tbs");
+        contents = javascript;
     }else {
-        contents = stdlib.IO_readTextFile(importPath);
+        contents = FileSystem.readTextFile(importPath);
     }
     if (contents == null) {
         printError(StringBuilder_new().append("Cannot read from ").append(importPath).finish());

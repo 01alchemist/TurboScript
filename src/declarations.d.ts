@@ -26,27 +26,3 @@ declare class ByteArray {
 }
 
 declare var TURBO_PATH:string;
-
-declare namespace stdlib {
-    var assert;
-
-    function Profiler_begin(name: string);
-
-    function Profiler_end(name: string);
-
-    function StringBuilder_append(a, b);
-
-    function StringBuilder_appendChar(a, b);
-
-    function Uint8Array_new(x);
-
-    function Terminal_setColor(color: any): void;
-
-    function Terminal_write(text: string): void;
-
-    function IO_readTextFile(path: string): string;
-
-    function IO_writeTextFile(path: string, contents: string): boolean;
-
-    function IO_writeBinaryFile(path: string, contents: ByteArray): boolean;
-}
