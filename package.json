@@ -7,7 +7,6 @@
     "test": "tests"
   },
   "dependencies": {
-    "systemjs": "^0.20.12"
   },
   "devDependencies": {
     "@types/debug": "^0.0.29",
