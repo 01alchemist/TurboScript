@@ -2,10 +2,9 @@ notifications:
   slack: turboscript:9IeY6sX0PuLan9Q4Ad1Ggylp
   
 language: node_js
-os: osx
+os: linux
 node_js:
-  - 'stable'
-  - '6'
+  - '8'
 
 sudo: false
 
@@ -19,7 +18,6 @@ install:
   - npm uninstall turboscript
   - npm install
   - npm update
-  - yarn install:node-v8
 
 script:
   - yarn build

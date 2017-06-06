@@ -1,13 +1,14 @@
 import {isFunction, Symbol, SymbolKind} from "../../compiler/core/symbol";
 import {ByteArray, ByteArray_set32, ByteArray_setString} from "../../utils/bytearray";
 import {CheckContext} from "../../compiler/analyzer/type-checker";
-import {alignToNextMultipleOf} from "../../utils/imports";
+import {alignToNextMultipleOf} from "../../utils/utils";
 import {isExpression, isUnary, isUnaryPostfix, Node, NodeKind} from "../../compiler/core/node";
 import {Type} from "../../compiler/core/type";
 import {Compiler} from "../../compiler/compiler";
 import {WasmOpcode} from "./opcode";
 import {toHex} from "../../utils/utils";
 import {getBuiltinOpcode, isBuiltin} from "./builtins-helper";
+import {assert} from "../../utils/assert";
 import {WasmType, WasmWrappedType} from "./core/wasm-type";
 import {log, logData} from "./utils/logger";
 import {wasmAreSignaturesEqual, WasmSignature} from "./core/wasm-signature";

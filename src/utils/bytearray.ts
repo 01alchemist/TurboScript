@@ -1,3 +1,4 @@
+import {assert} from "./assert";
 export function ByteArray_set16(array: ByteArray, index: number, value: number): void {
     array.set(index, value);
     array.set(index + 1, (value >> 8));

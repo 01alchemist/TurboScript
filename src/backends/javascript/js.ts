@@ -4,6 +4,7 @@ import {Symbol, SymbolKind} from "../../compiler/core/symbol";
 import {Node, NodeKind, isCompactNodeKind, isUnaryPostfix, invertedBinaryKind} from "../../compiler/core/node";
 import {Precedence} from "../../compiler/parser/parser";
 import {Compiler} from "../../compiler/compiler";
+import {assert} from "../../utils/assert";
 export enum EmitBinary {
     NORMAL,
     CAST_TO_INT,

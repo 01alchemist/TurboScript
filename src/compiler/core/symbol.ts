@@ -3,7 +3,8 @@ import {Node, NodeKind} from "./node";
 import {CheckContext} from "../analyzer/type-checker";
 import {Scope} from "./scope";
 import {SourceRange} from "../../utils/log";
-import {alignToNextMultipleOf} from "../../utils/imports";
+import {alignToNextMultipleOf} from "../../utils/utils";
+import {assert} from "../../utils/assert";
 
 export enum SymbolKind {
     TYPE_MODULE,

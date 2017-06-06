@@ -374,27 +374,26 @@ TURBO_PATH = "../";
     function main() {
         loadLibrary(function (libs) {
 
-            SystemJS.import("main").then(function (exports) {
-                backendWebAssembly.onchange = compile;
-                backendJavaScript.onchange = compile;
-                targetWebAssembly.onchange = compile;
-                targetJavaScript.onchange = compile;
-                terminal.oninput = updateTerminalContent;
-                targetAsmJs.onchange = compile;
-                input.oninput = compile;
-                outputButton.onclick = function () {
-                    triggerDownload(outputName, outputContents);
-                };
-                secondaryOutputButton.onclick = function () {
-                    triggerDownload(secondaryOutputName, secondaryOutputContents);
-                };
-                terminalButton.onclick = runOrDownloadShim;
-                clear.onclick = clearLog;
+            backendWebAssembly.onchange = compile;
+            backendJavaScript.onchange = compile;
+            targetWebAssembly.onchange = compile;
+            targetJavaScript.onchange = compile;
+            terminal.oninput = updateTerminalContent;
+            targetAsmJs.onchange = compile;
+            input.oninput = compile;
+            outputButton.onclick = function () {
+                triggerDownload(outputName, outputContents);
+            };
+            secondaryOutputButton.onclick = function () {
+                triggerDownload(secondaryOutputName, secondaryOutputContents);
+            };
+            terminalButton.onclick = runOrDownloadShim;
+            clear.onclick = clearLog;
 
-                compiledJavaScript = compileJavaScript(exports, libs);
-                input.value = samples[selectedSample].content;
-                input.selectionStart = input.selectionEnd = 0;
-                compile();
+            compiledJavaScript = compileJavaScript(exports, libs);
+            input.value = samples[selectedSample].content;
+            input.selectionStart = input.selectionEnd = 0;
+            compile();
 
 //                if (supportsWebAssembly()) {
 //                    compiledWebAssembly = compileWebAssembly(wasm);
@@ -407,7 +406,6 @@ TURBO_PATH = "../";
 //                    document.body.className = 'wasm-unavailable';
 //                }
 
-            });
         });
     }
 

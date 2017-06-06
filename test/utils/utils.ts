@@ -51,6 +51,25 @@ export async function getWasmInstance(sourcePath: string, imports: any = {}, out
 }
 
 /**
+ * Compile TurboScript to WebAssembly and asynchronous instantiate
+ * @param sourceString
+ * @param imports
+ * @param outputFile
+ * @returns {Promise<Instance>}
+ */
+export async function getWasmInstanceFromString(sourceString: string, imports: any = {}, outputFile?: string): Promise<WebAssembly.Instance> {
+    if(exports.turbo === undefined){
+        if(typeof global["TURBO_PATH"] === "undefined"){
+            global["TURBO_PATH"] = "";
+        }
+        exports.turbo = require("../../lib/turbo.js");
+    }
+    let wasmBinary = exports.turbo.compileString(sourceString);
+    const result: WebAssembly.ResultObject = await WebAssembly.instantiate(wasmBinary.array, imports);
+    return result.instance;
+}
+
+/**
  * Compile TurboScript to asm.js and asynchronous instantiate
  * @param sourcePath
  * @param imports
