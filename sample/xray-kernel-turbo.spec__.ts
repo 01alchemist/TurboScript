@@ -1121,7 +1121,7 @@ describe("Kernel suite >> ", () => {
 
             let rotateUnitMatrix:number = Matrix.RotateUnitMatrix(vec, 90);
 
-            // console.log(matrix.DATA(rotateUnitMatrix));
+            // Terminal.write(matrix.DATA(rotateUnitMatrix));
 
             expect(Matrix.IsEqual(rotateUnitMatrix, expectedMat)).toBeTruthy();
             expect(Matrix.IsIdentity(rotateUnitMatrix)).not.toBeTruthy();

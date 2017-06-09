@@ -1,0 +1,30 @@
+declare function modf32(a:float32, b:float32):float32;
+declare function modf64(a:float64, b:float64):float64;
+
+export function test_i32_u(a: uint32, b: uint32): uint32 {
+    return a % b;
+}
+
+export function test_i32_s(a: int32, b: int32): int32 {
+    return a % b;
+}
+
+export function test_i64_u(a: uint32, b: uint32): uint32 {
+    let c = a as uint64;
+    let d = b as uint64;
+    return (c % d) as uint32;
+}
+
+export function test_i64_s(a: int32, b: int32): int32 {
+    let c = a as int64;
+    let d = b as int64;
+    return (c % d) as int32;
+}
+
+export function test_f32(a: float32, b: float32): float32 {
+    return modf32(a, b);
+}
+
+export function test_f64(a: float64, b: float64): float64 {
+    return modf64(a, b);
+}

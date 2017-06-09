@@ -1,4 +1,4 @@
-import {Math} from "javascript";
+import {Math, modf64} from "javascript";
 
 export function randomFloat32(): float32 {
     return (Math.random()) as float32;
@@ -7,7 +7,7 @@ export function randomFloat64(): float64 {
     return Math.random();
 }
 export function randomInt32(): int32 {
-    return (Math.random() * (MAX_SAFE_INTEGER as float64)) as int32;
+    return (Math.random() * (MAX_INTEGER_32 as float64)) as int32;
 }
 
 export function getPixel (x:int32, y:int32, arr:Array<int32>, width:int32, height:int32):int32 {
@@ -33,6 +33,7 @@ export function grayScale (data:Array<uint8>, len:int32):void {
         i = i + 4;
     }
 }
+
 export function brighten (data:Array<uint8>, len:int32, brightness:int32):void {
     let i:int32 = 0;
     while(i < len) {
@@ -45,6 +46,7 @@ export function brighten (data:Array<uint8>, len:int32, brightness:int32):void {
         i = i + 4;
     }
 }
+
 export function invert (data:Array<uint8>, len:int32):void {
     let i:int32 = 0;
     while(i < len) {
@@ -54,17 +56,19 @@ export function invert (data:Array<uint8>, len:int32):void {
         i = i + 4;
     }
 }
+
 export function noise (data:Array<float64>, len:int32):void {
     let random:float64;
     let i:int32 = 0;
     while(i < len) {
-        random = (randomFloat64() % 70.0) - 35.0;
+        random = modf64(randomFloat64(), 70.0) - 35.0;
         data[i] = data[i] + random; //r
         data[i+1] = data[i+1] + random; //g
         data[i+2] = data[i+2] + random; //b
         i = i + 4;
     }
 }
+
 export function multiFilter (data:Array<uint8>, len:int32, width:int32, filterType:int32, mag:int32, mult:int32, adj:int32):void {
     let i:int32 = 0;
     while(i < len) {
@@ -74,6 +78,7 @@ export function multiFilter (data:Array<uint8>, len:int32, width:int32, filterTy
         i = i + filterType;
     }
 }
+
 export function sobelFilter (data:Array<uint8>, width:int32, height:int32, invert:boolean):void {
     let grayData:Array<int32> = new Array<int32>(width * height);
     let x:int32 = 0;
@@ -136,6 +141,7 @@ export function sobelFilter (data:Array<uint8>, width:int32, height:int32, inver
         }
     }
 }
+
 export function convFilter (
     data:Array<float64>, width:int32, height:int32, kern:Array<float64>, kWidth:int32, kHeight:int32, divisor:float64,
     bias:float64, count:int32

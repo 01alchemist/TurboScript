@@ -39,16 +39,16 @@ import {
     Node,
     NODE_FLAG_DECLARE,
     NODE_FLAG_EXPORT,
-    NODE_FLAG_IMPORT,
     NODE_FLAG_GENERIC,
     NODE_FLAG_GET,
+    NODE_FLAG_LIBRARY,
     NODE_FLAG_PRIVATE,
     NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC,
     NODE_FLAG_SET,
     NODE_FLAG_UNSIGNED_OPERATOR,
     NodeKind,
-    rangeForFlag, NODE_FLAG_LIBRARY
+    rangeForFlag
 } from "../core/node";
 import {CompileTarget} from "../compile-target";
 import {Log, SourceRange, spanRanges} from "../../utils/log";
@@ -58,6 +58,7 @@ import {alignToNextMultipleOf, isPositivePowerOf2} from "../../utils/utils";
 import {MAX_INT32_VALUE, MAX_UINT32_VALUE, MIN_INT32_VALUE} from "../const";
 import {assert} from "../../utils/assert";
 import {Compiler} from "../compiler";
+import {Terminal} from "../../utils/terminal";
 /**
  * Author : Nidin Vinayakan
  */
@@ -323,7 +324,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Children
     let child = node.firstChild;
     while (child != null) {
-        if(mode == CheckMode.INITIALIZE){
+        if (mode == CheckMode.INITIALIZE) {
             child.flags |= NODE_FLAG_LIBRARY;
         }
         initialize(context, child, parentScope, mode);
@@ -832,15 +833,15 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
 
         } else {
             if (child.stringValue == "T") {
-                console.log(child);
+                Terminal.write(child);
             }
 
             childNode = child.clone();
 
             //if (child.resolvedType && child.resolvedType.symbol.name === templateName) {
-            // console.log("Found template");
+            // Terminal.write("Found template");
             //} else if (child.symbol && child.symbol.resolvedType.symbol.name === templateName) {
-            // console.log("Found template");
+            // Terminal.write("Found template");
             //} else {
 
             //}
@@ -951,6 +952,11 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
         if (kind == ConversionKind.EXPLICIT) {
             return true;
         }
+    }
+
+    // Allow conversions from boolean
+    else if (from == context.booleanType) {
+        return true;
     }
 
     // Check integer conversions
@@ -1664,7 +1670,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 }
 
                 if (returnType.resolvedType.isArray()) {
-                    console.log(returnType);
+                    Terminal.write(returnType);
                     //let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
                     //if (mappedType) {
                     //returnType = mappedType;
@@ -2155,12 +2161,12 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 node.resolvedType = commonType;
 
                 // Type conversion
-                if(commonType == context.int64Type) {
-                    if(left.kind == NodeKind.INT32){
+                if (commonType == context.int64Type) {
+                    if (left.kind == NodeKind.INT32) {
                         left.kind = NodeKind.INT64;
                         left.resolvedType = context.int64Type;
                     }
-                    else if(right.kind == NodeKind.INT32){
+                    else if (right.kind == NodeKind.INT32) {
                         right.kind = NodeKind.INT64;
                         right.resolvedType = context.int64Type;
                     }
@@ -2312,7 +2318,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     }
 
     else {
-        console.error(`Unexpected kind: ${NodeKind[kind]}`);
+        Terminal.error(`Unexpected kind: ${NodeKind[kind]}`);
         assert(false);
     }
 }

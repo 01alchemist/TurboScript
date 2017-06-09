@@ -7,6 +7,10 @@ import {SectionBuffer} from "../buffer/section-buffer";
 import {log} from "../utils/logger";
 import {WasmSection} from "../core/wasm-section";
 import {WasmImport} from "../core/wasm-import";
+import {WasmRuntimeLocal} from "../stack-machine/wasm-runtime-local";
+import {WasmType} from "../core/wasm-type";
+import {WasmLocalEntry} from "../core/wasm-local";
+import {Terminal} from "../../../utils/terminal";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -35,11 +39,15 @@ export class WasmAssembler {
             fn.isImport = true;
             runtimeFunctions.push(fn);
         });
-        this.functionList.forEach((_wasmFunc:WasmFunction) => {
+        this.functionList.forEach((_wasmFunc: WasmFunction) => {
             let fn = new WasmRuntimeFunction();
             fn.name = _wasmFunc.symbol.name;
             fn.signature = _wasmFunc.signature;
             fn.isImport = false;
+            fn.locals = [];
+            _wasmFunc.localEntries.forEach((local:WasmLocalEntry) => {
+                fn.locals.push(new WasmRuntimeLocal(local.type));
+            });
             runtimeFunctions.push(fn);
         });
         this.stackTracer.functions = runtimeFunctions;
@@ -58,11 +66,16 @@ export class WasmAssembler {
     }
 
     dropStack(array: ByteArray, max: number = 1) {
-        let item = this.stackTracer.context.stack.pop(true);
-        while (item !== undefined && max > 0) {
-            array.append(WasmOpcode.DROP);
-            item = this.stackTracer.context.stack.pop(true);
-            max--;
+        if (this.stackTracer.context.stack.length > 0) {
+            Terminal.warn(`Dropping stack items, '${this.stackTracer.context.fn.name}' func stack contains ${this.stackTracer.context.stack.length} items`);
+            let item = this.stackTracer.context.stack.pop(true);
+
+            while (item !== undefined && max > 0) {
+                Terminal.warn(WasmType[item.type]);
+                array.append(WasmOpcode.DROP);
+                item = this.stackTracer.context.stack.pop(true);
+                max--;
+            }
         }
     }
 
@@ -111,6 +124,6 @@ export function append(array: ByteArray, offset = 0, value = null, msg = null) {
 
 export function logOpcode(array: ByteArray, offset = 0, opcode, inline_value?) {
     if (global["debug"]) {
-        array.log += `${toHex(offset + array.position)}: ${toHex(opcode, 2)}                    ; ${WasmOpcode[opcode]} ${inline_value?inline_value:""}\n`;
+        array.log += `${toHex(offset + array.position)}: ${toHex(opcode, 2)}                    ; ${WasmOpcode[opcode]} ${inline_value ? inline_value : ""}\n`;
     }
 }

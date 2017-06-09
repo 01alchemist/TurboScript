@@ -1,9 +1,9 @@
 import {createRange, Log, Source} from "../../utils/log";
 import {Compiler} from "../compiler";
 import {isAlpha, isNumber, TokenKind} from "../scanner/scanner";
-import {printError} from "../../utils/log";
 import {StringBuilder_new} from "../../utils/stringbuilder";
 import {FileSystem} from "../../utils/filesystem";
+import {Terminal} from "../../utils/terminal";
 
 const javascript = require("../../extras/javascript.tbs");
 
@@ -147,7 +147,7 @@ function resolveImport(importPath: string, original:string): string {
         contents = FileSystem.readTextFile(importPath);
     }
     if (contents == null) {
-        printError(StringBuilder_new().append("Cannot read from ").append(importPath).finish());
+        Terminal.error(StringBuilder_new().append("Cannot read from ").append(importPath).finish());
         return null;
     }
     return contents;

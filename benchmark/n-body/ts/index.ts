@@ -224,17 +224,17 @@ export function test(n: uint32): float64 {
 /*
 var n: uint32 = 500000;
 
-console.time('t');
+Terminal.time('t');
 var bodies: NBodySystem = new NBodySystem(new Array< Body >(Sun(), Jupiter(), Saturn(), Uranus(), Neptune()));
 
-//console.log(bodies.energy().toFixed(9));
+//Terminal.write(bodies.energy().toFixed(9));
 for (var i: uint32 = 0; i < n; i++) {
     bodies.advance(0.01);
 }
-//console.log(bodies.energy().toFixed(9));
+//Terminal.write(bodies.energy().toFixed(9));
 
 // -0.169075164
 // -0.169096567
 
-console.timeEnd('t');
+Terminal.timeEnd('t');
 */

@@ -1,6 +1,6 @@
 import {WasmType} from "./wasm-type";
 import {Symbol} from "../../../compiler/core/symbol";
-import {WasmLocal} from "./wasm-local";
+import {WasmLocal, WasmLocalEntry} from "./wasm-local";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmSignature} from "./wasm-signature";
 /**
@@ -14,7 +14,7 @@ export class WasmFunction {
     isConstructor: boolean;
     firstLocal: WasmLocal;
     lastLocal: WasmLocal;
-    localEntries: WasmType[];
+    localEntries: WasmLocalEntry[];
     localCount: int32 = 0;
     returnType: WasmType;
     body: ByteArray;

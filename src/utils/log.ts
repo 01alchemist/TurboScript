@@ -219,15 +219,6 @@ export class Log {
     }
 }
 
-export function printError(text: string): void {
-    Terminal.setColor(Color.RED);
-    Terminal.write("error: ");
-    Terminal.setColor(Color.BOLD);
-    Terminal.write(text);
-    Terminal.write("\n");
-    Terminal.setColor(Color.DEFAULT);
-}
-
 export function writeLogToTerminal(log: Log): void {
     let diagnostic = log.first;
 
@@ -238,40 +229,40 @@ export function writeLogToTerminal(log: Log): void {
             // Source
             let builder = StringBuilder_new();
             diagnostic.appendSourceName(builder, location);
-            Terminal.setColor(Color.BOLD);
+            Terminal.setBoldText();
             Terminal.write(builder.finish());
 
             // Kind
             builder = StringBuilder_new();
             diagnostic.appendKind(builder);
-            Terminal.setColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
+            Terminal.setTextColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
             Terminal.write(builder.finish());
 
             // Message
             builder = StringBuilder_new();
             diagnostic.appendMessage(builder);
-            Terminal.setColor(Color.BOLD);
+            Terminal.setBoldText();
             Terminal.write(builder.finish());
 
             // Line contents
             builder = StringBuilder_new();
             diagnostic.appendLineContents(builder, location);
-            Terminal.setColor(Color.DEFAULT);
+            Terminal.clearColor();
             Terminal.write(builder.finish());
 
             // SourceRange
             builder = StringBuilder_new();
             diagnostic.appendRange(builder, location);
-            Terminal.setColor(Color.GREEN);
+            Terminal.setTextColor(Color.GREEN);
             Terminal.write(builder.finish());
 
         } else {
-            Terminal.setColor(Color.RED);
+            Terminal.setTextColor(Color.RED);
             Terminal.write(diagnostic.message + "\n");
         }
 
         diagnostic = diagnostic.next;
     }
 
-    Terminal.setColor(Color.DEFAULT);
+    Terminal.clearColor();
 }

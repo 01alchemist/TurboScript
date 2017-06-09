@@ -11,6 +11,12 @@
         global: {
             printf64: function (value) {
                 console.log(value);
+            },
+            modf32: function (a, b) {
+                return a % b;
+            },
+            modf64: function (a, b) {
+                return a % b;
             }
         }
     };
@@ -18,8 +24,9 @@
         fetch("./bin/webdsp.wasm").then(responds => {
             responds.arrayBuffer().then(wasmBytes => {
                 try {
-                    WebAssembly.compile(wasmBytes).then(compiled => {
-                        window.exports = new WebAssembly.Instance(compiled, importObject).exports;
+                    WebAssembly.instantiate(wasmBytes, importObject).then(result => {
+//                        window.exports = new WebAssembly.Instance(compiled, importObject).exports;
+                        window.exports = result.instance.exports;
                         window.HEAPU8 = new Uint8Array(exports.memory.buffer);
                         window.HEAPU32 = new Uint32Array(exports.memory.buffer);
                         window.HEAP32 = new Int32Array(exports.memory.buffer);

@@ -8,7 +8,7 @@ const dir = path.join(__dirname, '..', 'node-v8');
 
 fs.exists(path.join(dir, 'bin'), exists => {
     if (!exists) {
-        console.error("node-v8 is not installed. To install it, run: npm run install:node-v8");
+        Terminal.error("node-v8 is not installed. To install it, run: npm run install:node-v8");
         process.exit(1);
     }
     spawn(path.join(dir, 'bin', 'node'), process.argv.slice(2), {

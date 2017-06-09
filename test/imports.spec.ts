@@ -1,5 +1,5 @@
 import * as path from "path";
-import { getWasmInstanceSync } from "./utils/utils";
+import {getWasmInstanceSync} from "./utils/utils";
 
 let instance: WebAssembly.Instance;
 const TwoPI = 2 * Math.PI;
@@ -7,7 +7,12 @@ const TwoPI = 2 * Math.PI;
 test("it should compile without error", () => {
     instance = getWasmInstanceSync(
         path.join(__dirname, 'imports.tbs'),
-        { Math: Math }
+        {
+            Math: Math, global: {
+            modf32: () => {},
+            modf64: () => {}
+        }
+        }
     );
     expect(instance).toBeDefined();
 });

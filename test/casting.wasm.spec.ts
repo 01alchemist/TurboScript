@@ -7,6 +7,10 @@ test('it should cast i32 -> i64 properly', async () => {
     expect(instance.exports.cast_i32_to_i64()).toBe(428364);
 });
 
+test('it should cast i32 -> ui64 properly', async () => {
+    expect(instance.exports.cast_i32_to_ui64()).toBe(428364);
+});
+
 test('it should cast i32 -> f32 properly', async () => {
     expect(instance.exports.cast_i32_to_f32()).toBe(428364);
 });

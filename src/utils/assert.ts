@@ -1,3 +1,4 @@
+import {Terminal} from "./terminal";
 /**
  * Created by n.vinayakan on 06.06.17.
  */
@@ -7,7 +8,7 @@ export function assert(truth) {
             debugger;
         }
         let error = new Error('Assertion failed');
-        console.error(error);
+        Terminal.error(error);
         if(typeof process !== "undefined"){
             process.exit(1);
         } else{

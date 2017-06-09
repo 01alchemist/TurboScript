@@ -1,29 +1,31 @@
 import {isBrowser, isNode} from "./env";
+import {Terminal} from "./terminal";
 
 /**
  * Created by n.vinayakan on 06.06.17.
  */
 let fs = null;
+let virtualFileSystem = {
+    fileMap: new Map(),
+    readFileSync: (path, options?) => {
+        return fs.fileMap.get(path);
+    },
+    writeFileSync: (path, data, options?) => {
+        return fs.fileMap.set(path, data);
+    }
+};
 if (isBrowser) {
-    console.log("----> Browser environment");
-    fs = {
-        fileMap: new Map(),
-        readFileSync: (path, options) => {
-            return fs.fileMap.get(path);
-        },
-        writeFileSync: (path, data, options) => {
-            return fs.fileMap.set(path, data);
-        }
-    };
+    // Terminal.write("----> Browser environment");
+    fs = virtualFileSystem;
     window["Buffer"] = class NodeBuffer {
         constructor(public array) {
         }
     }
 } else if (isNode) {
-    console.log("----> NodeJS environment");
+    // Terminal.write("----> NodeJS environment");
     fs = require("fs");
 } else {
-    console.error("----> Unknown host environment!!!. Where are we?");
+    Terminal.error("----> Unknown host environment!!!. Where are we?");
 }
 
 export class FileSystem {
@@ -32,13 +34,18 @@ export class FileSystem {
         try {
             return fs.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
         } catch (e) {
-            return null;
+            let virtualFile = virtualFileSystem.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+            return virtualFile === undefined ? null : virtualFile;
         }
     }
 
-    static writeTextFile(path, contents) {
+    static writeTextFile(path, contents, virtual = false) {
         try {
-            fs.writeFileSync(path, contents);
+            if (virtual) {
+                virtualFileSystem.writeFileSync(path, contents);
+            } else {
+                fs.writeFileSync(path, contents);
+            }
             return true;
         } catch (e) {
             return false;
@@ -50,13 +57,18 @@ export class FileSystem {
         try {
             return fs.readFileSync(path);
         } catch (e) {
-            return null;
+            let virtualFile = virtualFileSystem.readFileSync(path);
+            return virtualFile === undefined ? null : virtualFile;
         }
     }
 
-    static writeBinaryFile(path, contents) {
+    static writeBinaryFile(path, contents, virtual = false) {
         try {
-            fs.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
+            if (virtual) {
+                virtualFileSystem.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
+            } else {
+                fs.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
+            }
             return true;
         } catch (e) {
             return false;

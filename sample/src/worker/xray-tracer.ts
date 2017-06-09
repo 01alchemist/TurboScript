@@ -84,7 +84,7 @@ export class xRayTracer {
     trace(data):boolean {
 
         if (this.flags[this.id] === 2) {//thread locked
-            console.log("exit:1");
+            Terminal.write("exit:1");
             this.lock();
             return;
         }
@@ -102,7 +102,7 @@ export class xRayTracer {
         this.iterations = data.init_iterations || 0;
 
         if (this.locked) {
-            console.log("restarted:" + this.iterations, "samples:" + this.checkSamples());
+            Terminal.write("restarted:" + this.iterations, "samples:" + this.checkSamples());
             this.locked = false;
         }
 
@@ -155,7 +155,7 @@ export class xRayTracer {
             for (var x:number = this.xoffset; x < this.xoffset + this.width; x++) {
 
                 if (this.flags[this.id] === 2) {//thread locked
-                    console.log("exit:3");
+                    Terminal.write("exit:3");
                     this.lock();
                     return;
                 }
@@ -223,13 +223,13 @@ export class xRayTracer {
             }
         }
 
-        //console.time("render");
+        //Terminal.time("render");
         /*for (var y:number = this.yoffset; y < this.yoffset + this.height; y++) {
 
             for (var x:number = this.xoffset; x < this.xoffset + this.width; x++) {
 
                 if (this.flags[this.id] === 2) {//thread locked
-                    console.log("exit:3");
+                    Terminal.write("exit:3");
                     this.lock();
                     return;
                 }
@@ -264,7 +264,7 @@ export class xRayTracer {
                 }
 
                 if (this.flags[this.id] === 2) {//thread locked
-                    console.log("exit:7");
+                    Terminal.write("exit:7");
                     this.lock();
                     return;
                 }
@@ -274,13 +274,13 @@ export class xRayTracer {
                 this.updatePixel(c, screen_index);
             }
         }*/
-        //console.timeEnd("render");
+        //Terminal.timeEnd("render");
     }
 
     updatePixel(color, si:number):void {
 
         if (this.flags[this.id] === 2) {//thread locked
-            console.log("exit:8");
+            Terminal.write("exit:8");
             this.lock();
             return;
         }

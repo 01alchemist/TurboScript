@@ -1,9 +1,10 @@
 ///<reference path="declarations.d.ts" />
-import {Log, DiagnosticKind, printError, writeLogToTerminal} from "./utils/log";
+import {writeLogToTerminal} from "./utils/log";
 import {StringBuilder_new} from "./utils/stringbuilder";
 import {Compiler, replaceFileExtension} from "./compiler/compiler";
 import {CompileTarget} from "./compiler/compile-target";
 import {Terminal} from "./utils/terminal";
+import {Color} from "./utils/color";
 import {FileSystem} from "./utils/filesystem";
 
 /**
@@ -47,6 +48,7 @@ Examples:
 }
 
 export function main_entry(): int32 {
+
     let target = CompileTarget.NONE;
     let argument = firstArgument;
     let inputCount = 0;
@@ -77,7 +79,7 @@ export function main_entry(): int32 {
                 argument = argument.next;
                 output = argument.text;
             } else {
-                printError(StringBuilder_new().append("Invalid flag: ").append(text).finish());
+                Terminal.error(StringBuilder_new().append("Invalid flag: ").append(text).finish());
                 return 1;
             }
         } else {
@@ -88,13 +90,13 @@ export function main_entry(): int32 {
 
     // Must have inputs
     if (inputCount == 0) {
-        printError("No input files");
+        Terminal.error("No input files");
         return 1;
     }
 
     // Must have an output
     if (output == null) {
-        printError("Missing an output file (use the --out flag)");
+        Terminal.error("Missing an output file (use the --out flag)");
         return 1;
     }
 
@@ -105,8 +107,8 @@ export function main_entry(): int32 {
         // else if (output.endsWith(".c")) target = CompileTarget.C;
         // else if (output.endsWith(".js")) target = CompileTarget.TURBO_JAVASCRIPT;
         else {
-            // printError("Missing a target (use either --c, --js, --asmjs or --wasm)");
-            printError("Missing a target (use either --asmjs or --wasm)");
+            // Terminal.error("Missing a target (use either --c, --js, --asmjs or --wasm)");
+            Terminal.error("Missing a target (use either --asmjs or --wasm)");
             return 1;
         }
     }
@@ -127,7 +129,7 @@ export function main_entry(): int32 {
         } else if (!text.startsWith("-")) {
             let contents = FileSystem.readTextFile(text);
             if (contents == null) {
-                printError(StringBuilder_new().append("Cannot read from ").append(text).finish());
+                Terminal.error(StringBuilder_new().append("Cannot read from ").append(text).finish());
                 return 1;
             }
             compiler.addInput(text, contents);
@@ -146,11 +148,14 @@ export function main_entry(): int32 {
             target == CompileTarget.JAVASCRIPT && FileSystem.writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.WEBASSEMBLY && FileSystem.writeBinaryFile(output, compiler.outputWASM) &&
             FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log)) {
+            Terminal.write("\n");
             return 0;
         }
 
-        printError(StringBuilder_new().append("Cannot write to ").append(output).finish());
+        Terminal.error(StringBuilder_new().append("Cannot write to ").append(output).finish());
     }
+
+    Terminal.write("\n");
 
     return 1;
 }
@@ -162,19 +167,18 @@ export const main = {
 };
 
 export function compileString(source:string, target:CompileTarget = CompileTarget.WEBASSEMBLY) {
+    Terminal.silent = true;
     if(typeof TURBO_PATH === "undefined"){
         TURBO_PATH = "";
     }
     let input = "tmp-string-source.tbs";
     let output = "tmp-string-source.wasm";
-    FileSystem.writeTextFile("tmp-string-source.tbs", source);
-
+    FileSystem.writeTextFile("tmp-string-source.tbs", source, true);
     let compiler = new Compiler();
     compiler.initialize(target, output);
     compiler.addInput(input, source);
     compiler.finish();
-    console.log("finished");
-    writeLogToTerminal(compiler.log);
+    Terminal.silent = false;
     if (!compiler.log.hasErrors()) {
         return compiler.outputWASM;
     } else {

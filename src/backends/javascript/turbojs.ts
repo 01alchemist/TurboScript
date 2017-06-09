@@ -537,7 +537,7 @@ export class TurboJsResult {
     emitStatement(node: Node): void {
 
         if (node.kind == NodeKind.EXTENDS) {
-            console.log("Extends found");
+            Terminal.write("Extends found");
             this.code.append(" /*extends*/ ")
         }
 

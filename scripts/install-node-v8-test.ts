@@ -1,3 +1,4 @@
+import {Terminal} from "../src/utils/terminal";
 /**
  * Created by Nidin Vinayakan on 10/04/17.
  */
@@ -24,9 +25,9 @@ if (!fs.existsSync("tmp")) {
     fs.mkdirSync("tmp");
 }
 
-console.log("##########################################");
-console.log("#   Installing node.js with webassembly  #");
-console.log("##########################################");
+Terminal.write("##########################################");
+Terminal.write("#   Installing node.js with webassembly  #");
+Terminal.write("##########################################");
 
 request.get(baseUrl + "index.json", function (error:Error, response:Response, body: string) {
     let nodeJSInfo: NodeJS[] = JSON.parse(body);
@@ -58,14 +59,14 @@ function getPlatform(): string {
 }
 
 function startDownload(url:string) {
-    console.log(`Downloading ${url}`);
+    Terminal.write(`Downloading ${url}`);
     request
         .get(url)
         .on('error', err => {
-            console.log(err)
+            Terminal.write(err)
         })
         .on('end', () => {
-            console.log("Extracting...");
+            Terminal.write("Extracting...");
             let os = process.platform;
 
             switch (os) {
@@ -82,12 +83,12 @@ function startDownload(url:string) {
 function installWindows() {
     exec(`7z x ${DOWNLOAD_NAME}`, (error, stdout, stderr) => {
         if (error) {
-            console.error(`exec error: ${error}`);
+            Terminal.error(`exec error: ${error}`);
             return;
         }
         // exec(`move ${fileName.replace(".7z", "")} node-v8/bin`, (error, stdout, stderr) => {
         //     if (error) {
-        //         console.error(`exec error: ${error}`);
+        //         Terminal.error(`exec error: ${error}`);
         //         return;
         //     }
         // });
@@ -95,21 +96,21 @@ function installWindows() {
             fs.mkdirSync("node-v8");
         }
         fs.moveSync(fileName.replace(".7z", ""), "node-v8/bin");
-        console.log("Cleaning...");
+        Terminal.write("Cleaning...");
         fs.removeSync(DOWNLOAD_NAME);
-        console.log("Completed!");
+        Terminal.write("Completed!");
     });
 }
 
 function installUnix() {
     exec(`tar -xf ${DOWNLOAD_NAME}`, (error, stdout, stderr) => {
         if (error) {
-            console.error(`exec error: ${error}`);
+            Terminal.error(`exec error: ${error}`);
             return;
         }
         fs.moveSync(fileName.replace(".tar.xz", ""), "node-v8");
-        console.log("Cleaning...");
+        Terminal.write("Cleaning...");
         fs.removeSync(DOWNLOAD_NAME);
-        console.log("Completed!");
+        Terminal.write("Completed!");
     });
 }

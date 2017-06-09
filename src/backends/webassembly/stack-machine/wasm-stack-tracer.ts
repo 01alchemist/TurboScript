@@ -1,9 +1,9 @@
 import {WasmType} from "../core/wasm-type";
 import {WasmOpcode} from "../opcode";
-import {WasmFunction} from "../core/wasm-function";
 import {WasmRuntimeLocal} from "./wasm-runtime-local";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmSignature} from "../core/wasm-signature";
+import {Terminal} from "../../../utils/terminal";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -29,10 +29,16 @@ export class WasmStack {
     pop(silent: boolean = false): WasmStackItem {
         if (this.list.length === 0) {
             if (!silent) {
-                throw "Stack is empty";
+                let error = `Stack is empty`;
+                Terminal.warn(error);
+                // throw error;
             }
         }
         return this.list.pop();
+    }
+
+    clear() {
+        this.list = [];
     }
 }
 
@@ -41,6 +47,7 @@ export class WasmRuntimeFunction {
     name: string;
     isImport: boolean;
     signature: WasmSignature;
+    locals: WasmRuntimeLocal[];
 
     constructor() {
 
@@ -57,17 +64,12 @@ export class WasmRuntimeFunction {
 
 export class WasmStackContext {
     stack: WasmStack;
-    locals: WasmRuntimeLocal[];
     opcodes: number[];
     lastOpcode: number;
 
-    constructor(public fn: WasmFunction) {
+    constructor(public fn: WasmRuntimeFunction) {
         this.stack = new WasmStack();
         this.opcodes = [];
-        this.locals = [];
-        fn.localEntries.forEach(localType => {
-            this.locals.push(new WasmRuntimeLocal(localType));
-        })
     }
 }
 
@@ -93,15 +95,16 @@ export class WasmStackTracer {
         });
     }
 
-    startFunction(fn: WasmFunction) {
-        this.context = new WasmStackContext(fn);
+    startFunction(index: int32) {
+        this.context = new WasmStackContext(this.functions[index]);
     }
 
     endFunction() {
         if (this.context.stack.length > 0) {
             if (this.context.fn.returnType === WasmType.VOID) {
-                console.error(`Function '${this.context.fn.symbol.name}' does not return anything but stack is not empty. Stack contains ${this.context.stack.length} items`);
-                throw `Function '${this.context.fn.symbol.name}' does not return anything but stack is not empty. Stack contains ${this.context.stack.length} items`;
+                let error = `Function '${this.context.fn.name}' does not return anything but stack is not empty. Stack contains ${this.context.stack.length} items`
+                Terminal.error(error);
+                // throw error;
             }
         }
         this.context = null;
@@ -137,7 +140,7 @@ export class WasmStackTracer {
 
     private updateStack(opcode: number, value?: number) {
         let type: WasmType = null;
-        if (opcode !== null) {
+        if (opcode !== undefined && opcode !== null) {
             type = getOprandType(opcode);
         }
 
@@ -150,11 +153,12 @@ export class WasmStackTracer {
                 break;
 
             case WasmOpcode.END:
+                this.context.stack.clear();
                 break;
 
             case WasmOpcode.RETURN:
                 if (this.context.stack.length == 0) {
-                    console.warn(`Empty stack on return in function ${this.context.fn.symbol.name}`);
+                    Terminal.warn(`Empty stack on return in function ${this.context.fn.name}`);
                 }
                 break;
 
@@ -169,20 +173,20 @@ export class WasmStackTracer {
 
             case WasmOpcode.SET_LOCAL:
                 if (value !== undefined) {
-                    if (this.context.locals.length <= value) {
-                        let errorMsg = `Local index ${value} out of range ${this.context.locals.length} in function ${this.context.fn.symbol.name}`;
-                        console.error(errorMsg);
+                    if (this.context.fn.locals.length <= value) {
+                        let errorMsg = `Local index ${value} out of range ${this.context.fn.locals.length} in function ${this.context.fn.name}`;
+                        Terminal.error(errorMsg);
                         throw errorMsg;
                     } else {
                         let a = this.context.stack.pop();
-                        this.context.locals[value].value = a.value;
+                        this.context.fn.locals[value].value = a.value;
                     }
                 }
                 break;
 
             case WasmOpcode.GET_LOCAL:
                 if (value !== undefined) {
-                    let a = this.context.locals[value];
+                    let a = this.context.fn.locals[value];
                     this.context.stack.push(new WasmStackItem(a.type, a.value));
                 }
                 break;
@@ -191,7 +195,7 @@ export class WasmStackTracer {
                 if (value !== undefined) {
                     if (this.globals.length <= value) {
                         let errorMsg = `Global index ${value} out of range ${this.globals.length}`;
-                        console.error(errorMsg);
+                        Terminal.error(errorMsg);
                         throw errorMsg;
                     } else {
                         let a = this.context.stack.pop();
@@ -423,6 +427,13 @@ export class WasmStackTracer {
                 break;
             }
 
+            case WasmOpcode.F32_SQRT:
+            case WasmOpcode.F64_SQRT: {
+                let a = this.context.stack.pop();
+                this.context.stack.push(new WasmStackItem(a.type, Math.sqrt(a.value)));
+                break;
+            }
+
             //LOAD
             case WasmOpcode.I32_LOAD:
             case WasmOpcode.I64_LOAD:
@@ -461,6 +472,51 @@ export class WasmStackTracer {
             case WasmOpcode.BR_IF:
                 let a = this.context.stack.pop();
                 this.context.lastOpcode = null;
+                break;
+
+            case WasmOpcode.IF_ELSE:
+            case WasmOpcode.BLOCK:
+            case WasmOpcode.LOOP:
+            case WasmOpcode.BR:
+                //ignore
+                break;
+
+            case WasmOpcode.I32_WRAP_I64:
+            case WasmOpcode.I32_TRUNC_S_F32:
+            case WasmOpcode.I32_TRUNC_U_F32:
+            case WasmOpcode.I32_TRUNC_S_F64:
+            case WasmOpcode.I32_TRUNC_U_F64:
+            case WasmOpcode.I32_REINTERPRET_F32:
+            case WasmOpcode.I64_TRUNC_S_F32:
+            case WasmOpcode.I64_TRUNC_U_F32:
+            case WasmOpcode.I64_TRUNC_S_F64:
+            case WasmOpcode.I64_TRUNC_U_F64:
+            case WasmOpcode.I64_EXTEND_S_I32:
+            case WasmOpcode.I64_EXTEND_U_I32:
+            case WasmOpcode.F32_DEMOTE_F64:
+            case WasmOpcode.F32_TRUNC:
+            case WasmOpcode.F32_REINTERPRET_I32:
+            case WasmOpcode.F32_CONVERT_S_I32:
+            case WasmOpcode.F32_CONVERT_U_I32:
+            case WasmOpcode.F32_CONVERT_S_I64:
+            case WasmOpcode.F32_CONVERT_U_I64:
+            case WasmOpcode.F64_PROMOTE_F32:
+            case WasmOpcode.F64_TRUNC:
+            case WasmOpcode.F64_REINTERPRET_I64:
+            case WasmOpcode.F64_CONVERT_S_I32:
+            case WasmOpcode.F64_CONVERT_U_I32:
+            case WasmOpcode.F64_CONVERT_S_I64:
+            case WasmOpcode.F64_CONVERT_U_I64:
+                //ignore  > pop > push
+                break;
+
+            case null:
+            case undefined:
+                //ignore
+                break;
+
+            default:
+                Terminal.warn(`Unhandled Opcode ${opcode} => ${WasmOpcode[opcode]}`);
                 break;
         }
     }
@@ -645,7 +701,7 @@ function getOprandType(opcode: number): WasmType {
         case WasmOpcode.NOP:
             return null;
         default:
-            console.warn("Unhandled Opcode " + WasmOpcode[opcode]);
+            Terminal.warn(`Unhandled Opcode ${opcode} => ${WasmOpcode[opcode]}`);
             break;
     }
 }

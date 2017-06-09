@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>While loop test</title>
+</head>
+<body>
+<script>
+
+    var mod;
+    var modRef;
+    var imports = {
+        global: {
+            print_i32: i32 => {
+                console.log(i32);
+            }
+        }
+    }
+    async function init() {
+        let data = await fetch("./bin/while-loop.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            WebAssembly.compile(wasmBytes).then(function (compiled) {
+                mod = new WebAssembly.Instance(compiled, imports);
+
+                console.log("TurboScript WASM");
+                console.log("----------------");
+//                console.log(`mod.exports.test(100) => ${mod.exports.test(100)}`);
+                console.log("\n");
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    init();
+</script>
+</body>
+</html>

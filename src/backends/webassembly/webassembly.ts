@@ -1,12 +1,11 @@
 import {isFunction, Symbol, SymbolKind} from "../../compiler/core/symbol";
 import {ByteArray, ByteArray_set32, ByteArray_setString} from "../../utils/bytearray";
 import {CheckContext} from "../../compiler/analyzer/type-checker";
-import {alignToNextMultipleOf} from "../../utils/utils";
+import {alignToNextMultipleOf, toHex} from "../../utils/utils";
 import {isExpression, isUnary, isUnaryPostfix, Node, NodeKind} from "../../compiler/core/node";
 import {Type} from "../../compiler/core/type";
 import {Compiler} from "../../compiler/compiler";
 import {WasmOpcode} from "./opcode";
-import {toHex} from "../../utils/utils";
 import {getBuiltinOpcode, isBuiltin} from "./builtins-helper";
 import {assert} from "../../utils/assert";
 import {WasmType, WasmWrappedType} from "./core/wasm-type";
@@ -18,9 +17,10 @@ import {WasmExternalKind} from "./core/wasm-external-kind";
 import {WasmGlobal} from "./core/wasm-global";
 import {WasmFunction} from "./core/wasm-function";
 import {WasmImport} from "./core/wasm-import";
-import {WasmLocal} from "./core/wasm-local";
+import {WasmLocal, WasmLocalEntry} from "./core/wasm-local";
 import {WasmSharedOffset} from "./core/wasm-shared-offset";
 import {append, WasmAssembler} from "./assembler/wasm-assembler";
+import {Terminal} from "../../utils/terminal";
 
 const WASM_MAGIC = 0x6d736100; //'\0' | 'a' << 8 | 's' << 16 | 'm' << 24;
 const WASM_VERSION = 0x1;
@@ -123,7 +123,7 @@ class WasmModule {
         return fn;
     }
 
-    allocateSignature(argumentTypes: WasmWrappedType, returnType: WasmWrappedType, argumentCount:int32): int32 {
+    allocateSignature(argumentTypes: WasmWrappedType, returnType: WasmWrappedType, argumentCount: int32): int32 {
         assert(returnType != null);
         assert(returnType.next == null);
 
@@ -304,8 +304,8 @@ class WasmModule {
             let value = global.symbol.node.variableValue();
             section.data.append(WasmType[dataType]); //content_type
             this.assembler.writeUnsignedLEB128(section.data, 1); //mutability, 0 if immutable, 1 if mutable. MVP only support immutable global variables
+            let rawValue = 0;
             if (value) {
-                let rawValue = 0;
                 if (value.kind === NodeKind.NULL || value.kind === NodeKind.UNDEFINED) {
                     rawValue = 0;
                 }
@@ -315,26 +315,22 @@ class WasmModule {
                     // Emit evaluation to start function
                     this.addGlobalToStartFunction(global);
                 }
+            }
 
-                this.assembler.appendOpcode(section.data, array.position, WasmOpcode[`${dataType}_CONST`], rawValue);
-                switch (dataType) {
-                    case "I32":
-                        this.assembler.writeUnsignedLEB128(section.data, rawValue);
-                        break;
-                    case "I64":
-                        this.assembler.writeUnsignedLEB128(section.data, rawValue);
-                        break;
-                    case "F32":
-                        this.assembler.writeFloat(section.data, rawValue);
-                        break;
-                    case "F64":
-                        this.assembler.writeDouble(section.data, rawValue);
-                        break;
-                }
-
-            } else {
-                this.assembler.appendOpcode(section.data, array.position, WasmOpcode[`${dataType}_CONST`], 0);
-                this.assembler.writeUnsignedLEB128(section.data, 0); //const value
+            this.assembler.appendOpcode(section.data, array.position, WasmOpcode[`${dataType}_CONST`], rawValue);
+            switch (dataType) {
+                case "I32":
+                    this.assembler.writeUnsignedLEB128(section.data, rawValue);
+                    break;
+                case "I64":
+                    this.assembler.writeUnsignedLEB128(section.data, rawValue);
+                    break;
+                case "F32":
+                    this.assembler.writeFloat(section.data, rawValue);
+                    break;
+                case "F64":
+                    this.assembler.writeDouble(section.data, rawValue);
+                    break;
             }
 
             this.assembler.appendOpcode(section.data, array.position, WasmOpcode.END);
@@ -431,7 +427,7 @@ class WasmModule {
             let bodyData = new ByteArray();
             log(bodyData, sectionOffset, fn.localCount ? fn.localCount : 0, "local var count");
 
-            this.assembler.stackTracer.startFunction(fn);
+            this.assembler.stackTracer.startFunction(this.importCount + count);
 
             if (fn.localCount > 0) {
                 bodyData.writeUnsignedLEB128(fn.localCount); //local_count
@@ -563,15 +559,13 @@ class WasmModule {
             this.assembler.writeUnsignedLEB128(subsectionFunc, fnIndex);
             this.assembler.writeWasmString(subsectionFunc, name);
             this.assembler.writeUnsignedLEB128(subsectionLocal, fnIndex);
-            this.assembler.writeUnsignedLEB128(subsectionLocal, fn.localCount);
+            this.assembler.writeUnsignedLEB128(subsectionLocal, fn.localEntries.length);
 
-            let local = fn.firstLocal;
-            let localIndex = 0;
-            while (local != null) {
-                this.assembler.writeUnsignedLEB128(subsectionLocal, localIndex++);
-                this.assembler.writeWasmString(subsectionLocal, local.symbol.name);
-                local = local.next;
-            }
+            fn.localEntries.forEach((local, index) => {
+                this.assembler.writeUnsignedLEB128(subsectionLocal, index);
+                this.assembler.writeWasmString(subsectionLocal, local.name);
+            });
+
             fn = fn.next;
         }
 
@@ -687,10 +681,10 @@ class WasmModule {
             // Make sure to include the implicit "this" variable as a normal argument
             let argument = node.isExternalImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
             let argumentCount = 0;
-            let argumentList: WasmType[] = [];
+            let argumentList: WasmLocalEntry[] = [];
             while (argument != returnType) {
                 let wasmType = this.getWasmType(argument.variableType().resolvedType);
-                argumentList.push(wasmType);
+                argumentList.push(new WasmLocalEntry(wasmType, argument.symbol.name));
 
                 let type = wasmWrapType(wasmType);
 
@@ -1016,7 +1010,7 @@ class WasmModule {
             /**
              * Skip emitting block if parent is 'if' or 'loop' since it is already a block
              */
-            let skipBlock = node.parent.kind === NodeKind.IF || node.parent.kind === NodeKind.WHILE;
+            let skipBlock = node.parent.kind === NodeKind.IF;
 
             if (!skipBlock) {
                 this.assembler.appendOpcode(array, byteOffset, WasmOpcode.BLOCK);
@@ -1442,14 +1436,18 @@ class WasmModule {
             // --- 32 bit Integer casting ---
             // i32 > i64
             if (
-                (from == context.nullType || from == context.int32Type || from == context.uint32Type ) &&
+                (from == context.nullType || from == context.booleanType || from == context.int32Type || from == context.uint32Type ) &&
                 (type == context.int64Type || type == context.uint64Type)
             ) {
                 if (value.kind == NodeKind.NULL) {
                     this.assembler.appendOpcode(array, byteOffset, WasmOpcode.I64_CONST, 0);
                     this.assembler.writeLEB128(array, 0);
                 }
-                else if (value.kind == NodeKind.INT32) {
+                else if (value.kind == NodeKind.BOOLEAN) {
+                    let intValue = value.intValue || 0;
+                    this.assembler.appendOpcode(array, byteOffset, WasmOpcode.I64_CONST, intValue);
+                    this.assembler.writeLEB128(array, intValue);
+                } else if (value.kind == NodeKind.INT32) {
                     this.assembler.appendOpcode(array, byteOffset, WasmOpcode.I64_CONST, value.longValue);
                     this.assembler.writeLEB128(array, value.longValue);
                 } else {
@@ -1461,12 +1459,17 @@ class WasmModule {
 
             // i32 > f32
             else if (
-                (from == context.nullType || from == context.int32Type || from == context.uint32Type) &&
+                (from == context.nullType || from == context.booleanType  || from == context.int32Type || from == context.uint32Type) &&
                 type == context.float32Type
             ) {
                 if (value.kind == NodeKind.NULL) {
                     this.assembler.appendOpcode(array, byteOffset, WasmOpcode.F32_CONST, 0);
                     this.assembler.writeFloat(array, 0);
+                }
+                else if (value.kind == NodeKind.BOOLEAN) {
+                    let floatValue = value.intValue || 0;
+                    this.assembler.appendOpcode(array, byteOffset, WasmOpcode.F32_CONST, floatValue);
+                    this.assembler.writeFloat(array, floatValue);
                 }
                 else if (value.kind == NodeKind.INT32) {
                     let floatValue = value.floatValue || 0;
@@ -1487,6 +1490,11 @@ class WasmModule {
                 if (value.kind == NodeKind.NULL) {
                     this.assembler.appendOpcode(array, byteOffset, WasmOpcode.F64_CONST, 0);
                     this.assembler.writeDouble(array, 0);
+                }
+                else if (value.kind == NodeKind.BOOLEAN) {
+                    let doubleValue = value.doubleValue || 0;
+                    this.assembler.appendOpcode(array, byteOffset, WasmOpcode.F64_CONST, doubleValue);
+                    this.assembler.writeDouble(array, doubleValue);
                 }
                 else if (value.kind == NodeKind.INT32) {
                     let doubleValue = value.doubleValue || 0;
@@ -1757,7 +1765,7 @@ class WasmModule {
                         }
 
                         else {
-                            console.error("Wrong type");
+                            Terminal.error("Wrong type");
                         }
                     }
 
@@ -1773,7 +1781,7 @@ class WasmModule {
                         }
 
                         else {
-                            console.error("Wrong type");
+                            Terminal.error("Wrong type");
                         }
                     }
 
@@ -1790,7 +1798,7 @@ class WasmModule {
                         }
 
                         else {
-                            console.error("Wrong type");
+                            Terminal.error("Wrong type");
                         }
                     }
 
@@ -1896,10 +1904,16 @@ class WasmModule {
             }
 
             else if (node.kind == NodeKind.BITWISE_AND) {
+                if (isFloat || isDouble) {
+                    throw "Cannot do bitwise operations on floating point number";
+                }
                 this.emitBinaryExpression(array, byteOffset, node, WasmOpcode[`${dataTypeLeft}_AND`]);
             }
 
             else if (node.kind == NodeKind.BITWISE_OR) {
+                if (isFloat || isDouble) {
+                    throw "Cannot do bitwise operations on floating point number";
+                }
                 this.emitBinaryExpression(array, byteOffset, node, WasmOpcode[`${dataTypeLeft}_OR`]);
             }
 
@@ -1920,6 +1934,9 @@ class WasmModule {
             }
 
             else if (node.kind == NodeKind.SHIFT_LEFT) {
+                if (isFloat || isDouble) {
+                    throw "Cannot do bitwise operations on floating point number";
+                }
                 this.emitBinaryExpression(array, byteOffset, node, WasmOpcode[`${dataTypeLeft}_SHL`]);
             }
 
@@ -1963,11 +1980,17 @@ class WasmModule {
             }
 
             else if (node.kind == NodeKind.REMAINDER) {
+                if (isFloat || isDouble) {
+                    throw "Floating point remainder is not yet supported in WebAssembly. Please import javascript function to handle this";
+                }
                 this.emitBinaryExpression(array, byteOffset, node, isUnsigned ?
                     WasmOpcode[`${dataTypeLeft}_REM_U`] : WasmOpcode[`${dataTypeLeft}_REM_S`]);
             }
 
             else if (node.kind == NodeKind.SHIFT_RIGHT) {
+                if (isFloat || isDouble) {
+                    throw "Cannot do bitwise operations on floating point number";
+                }
                 this.emitBinaryExpression(array, byteOffset, node, isUnsigned ?
                     WasmOpcode[`${dataTypeLeft}_SHR_U`] : WasmOpcode[`${dataTypeLeft}_SHR_S`]);
             }
@@ -2097,7 +2120,7 @@ function wasmAssignLocalVariableOffsets(fn: WasmFunction, node: Node, shared: Wa
         if (fn.firstLocal == null) fn.firstLocal = local;
         else fn.lastLocal.next = local;
         fn.lastLocal = local;
-        fn.localEntries.push(local.type);
+        fn.localEntries.push(new WasmLocalEntry(local.type, local.symbol.name));
     }
 
     let child = node.firstChild;

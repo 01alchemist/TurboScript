@@ -14,6 +14,7 @@ import {
     createAny, NODE_FLAG_JAVASCRIPT, createImportFrom, createDouble, NODE_FLAG_IMPORT
 } from "../core/node";
 import {assert} from "../../utils/assert";
+import {Terminal} from "../../utils/terminal";
 
 export enum Precedence {
     LOWEST,
@@ -353,7 +354,7 @@ class ParserContext {
 
 
         if (this.peek(TokenKind.LEFT_BRACE)) {
-            console.log("Check if its JS");
+            Terminal.write("Check if its JS");
 
         }
 

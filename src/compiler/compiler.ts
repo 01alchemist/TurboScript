@@ -16,6 +16,7 @@ import {Library} from "../library/library";
 import {preparse} from "./parser/preparser";
 import {CompileTarget} from "./compile-target";
 import {assert} from "../utils/assert";
+import {Terminal} from "../utils/terminal";
 /**
  * Author: Nidin Vinayakan
  */
@@ -116,7 +117,7 @@ export class Compiler {
     }
 
     finish(): boolean {
-        console.time("pre-parsing");
+        Terminal.time("pre-parsing");
 
         let source = this.firstSource;
         while (source != null) {
@@ -125,9 +126,9 @@ export class Compiler {
             }
             source = source.next;
         }
-        console.timeEnd("pre-parsing");
+        Terminal.timeEnd("pre-parsing");
 
-        console.time("scanning");
+        Terminal.time("scanning");
 
         source = this.firstSource;
         while (source != null) {
@@ -135,8 +136,8 @@ export class Compiler {
             source = source.next;
         }
 
-        console.timeEnd("scanning");
-        console.time("pre-processing");
+        Terminal.timeEnd("scanning");
+        Terminal.time("pre-processing");
 
         source = this.firstSource;
         while (source != null) {
@@ -144,8 +145,8 @@ export class Compiler {
             source = source.next;
         }
 
-        console.timeEnd("pre-processing");
-        console.time("parsing");
+        Terminal.timeEnd("pre-processing");
+        Terminal.time("parsing");
 
         source = this.firstSource;
         while (source != null) {
@@ -155,8 +156,8 @@ export class Compiler {
             source = source.next;
         }
 
-        console.timeEnd("parsing");
-        console.time("type-checking");
+        Terminal.timeEnd("parsing");
+        Terminal.time("type-checking");
 
         let global = this.global;
         let context = this.context;
@@ -195,18 +196,18 @@ export class Compiler {
             resolve(context, global, global.scope);
         }
 
-        console.timeEnd("type-checking");
+        Terminal.timeEnd("type-checking");
 
         if (this.log.hasErrors()) {
             return false;
         }
 
-        console.time("optimizing");
+        Terminal.time("optimizing");
 
         treeShaking(global);
 
-        console.timeEnd("optimizing");
-        console.time("emitting");
+        Terminal.timeEnd("optimizing");
+        Terminal.time("emitting");
 
         // if (this.target == CompileTarget.C) {
         //     cEmit(this);
@@ -220,9 +221,9 @@ export class Compiler {
             wasmEmit(this);
         }
 
-        console.timeEnd("emitting");
+        Terminal.timeEnd("emitting");
 
-        console.log("Done!");
+        Terminal.write("Done!");
 
         return true;
     }

@@ -40,3 +40,6 @@ function minf32(x:float32, y:float32):float32{
 function maxf32(x:float32, y:float32):float32{
     return Math.max(x as float64, y as float64) as float32;
 }
+
+declare function modf32(a:float32, b:float32):float32;
+declare function modf64(a:float64, b:float64):float64;
