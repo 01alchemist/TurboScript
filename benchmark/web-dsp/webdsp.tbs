@@ -17,22 +17,38 @@ export function getPixel (x:int32, y:int32, arr:Array<int32>, width:int32, heigh
 }
 
 //start filters below
-export function grayScale (data:Array<uint8>, len:int32):void {
+export function grayScale (data:*uint8, len:int32):void {
     let i:int32 = 0;
     while(i < len) {
-        let r:int32 = data[i];
-        let g:int32 = data[i+1];
-        let b:int32 = data[i+2];
-        let a:int32 = data[i+3];
+        let r:int32 = *(data + i) as int32;
+        let g:int32 = *(data + i +1) as int32;
+        let b:int32 = *(data + i + 2) as int32;
+        let a:int32 = *(data + i + 3) as int32;
         // int brightness = (r*.21+g*.72+b*.07);
 
-        data[i] = r;
-        data[i+1] = r;
-        data[i+2] = r;
-        data[i+3] = a;
+        *(data + i) = r;
+        *(data + i + 1) = r;
+        *(data + i + 2) = r;
+        *(data + i + 3) = a;
         i = i + 4;
     }
 }
+// export function grayScale (data:*uint8, len:int32):void {
+//     let i:int32 = 0;
+//     while(i < len) {
+//         let r:int32 = data[i];
+//         let g:int32 = data[i+1];
+//         let b:int32 = data[i+2];
+//         let a:int32 = data[i+3];
+//         // int brightness = (r*.21+g*.72+b*.07);
+//
+//         data[i] = r;
+//         data[i+1] = r;
+//         data[i+2] = r;
+//         data[i+3] = a;
+//         i = i + 4;
+//     }
+// }
 
 export function brighten (data:Array<uint8>, len:int32, brightness:int32):void {
     let i:int32 = 0;

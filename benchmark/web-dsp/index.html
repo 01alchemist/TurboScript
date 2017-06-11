@@ -25,12 +25,15 @@
             responds.arrayBuffer().then(wasmBytes => {
                 try {
                     WebAssembly.instantiate(wasmBytes, importObject).then(result => {
-//                        window.exports = new WebAssembly.Instance(compiled, importObject).exports;
                         window.exports = result.instance.exports;
                         window.HEAPU8 = new Uint8Array(exports.memory.buffer);
+                        window.HEAP8 = new Int8Array(exports.memory.buffer);
+                        window.HEAPU16 = new Uint16Array(exports.memory.buffer);
+                        window.HEAP16 = new Int16Array(exports.memory.buffer);
                         window.HEAPU32 = new Uint32Array(exports.memory.buffer);
                         window.HEAP32 = new Int32Array(exports.memory.buffer);
                         window.HEAPF32 = new Float32Array(exports.memory.buffer);
+                        window.HEAPF64 = new Float64Array(exports.memory.buffer);
                         run();
                     })
                 } catch (e) {
