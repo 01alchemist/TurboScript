@@ -1,0 +1,5 @@
+export function test():*uint8{
+    let block:*uint8 = malloc(4 * 4);
+    block[0] = 10;
+    return block;
+}

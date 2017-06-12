@@ -359,24 +359,12 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
 
         prepareNativeType(context.float32Type, 4, SYMBOL_FLAG_NATIVE_FLOAT);
         prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_DOUBLE);
-
-        //Prepare builtin types
-        //context.arrayType = parentScope.findLocal("Array", ScopeHint.NORMAL).resolvedType;
-        //prepareBuiltinType(context.arrayType, 0, SYMBOL_FLAG_IS_ARRAY); //byteSize will calculate later
     }
 }
 
 function prepareNativeType(type: Type, byteSizeAndMaxAlignment: int32, flags: int32): void {
     let symbol = type.symbol;
     symbol.kind = SymbolKind.TYPE_NATIVE;
-    symbol.byteSize = byteSizeAndMaxAlignment;
-    symbol.maxAlignment = byteSizeAndMaxAlignment;
-    symbol.flags = flags;
-}
-
-function prepareBuiltinType(type: Type, byteSizeAndMaxAlignment: int32, flags: int32): void {
-    let symbol = type.symbol;
-    symbol.kind = SymbolKind.TYPE_CLASS;
     symbol.byteSize = byteSizeAndMaxAlignment;
     symbol.maxAlignment = byteSizeAndMaxAlignment;
     symbol.flags = flags;
