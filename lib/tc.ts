@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#! /usr/bin/env ts-node
 
 const debug = true;
 
@@ -33,13 +33,8 @@ const turbo = require("./turbo.js");
 const Color = turbo.Color;
 const turboMain = turbo.main;
 
-function main() {
-
-    for (var i = 2; i < process.argv.length; i++) {
-        turboMain.addArgument(process.argv[i]);
-    }
-
-    process.exit(turboMain.entry());
+for (let i = 2; i < process.argv.length; i++) {
+    turboMain.addArgument(process.argv[i]);
 }
 
-main();
+process.exit(turboMain.entry());

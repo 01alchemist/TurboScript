@@ -39,16 +39,16 @@ import {
     Node,
     NODE_FLAG_DECLARE,
     NODE_FLAG_EXPORT,
-    NODE_FLAG_IMPORT,
     NODE_FLAG_GENERIC,
     NODE_FLAG_GET,
+    NODE_FLAG_LIBRARY,
     NODE_FLAG_PRIVATE,
     NODE_FLAG_PROTECTED,
     NODE_FLAG_PUBLIC,
     NODE_FLAG_SET,
     NODE_FLAG_UNSIGNED_OPERATOR,
     NodeKind,
-    rangeForFlag, NODE_FLAG_LIBRARY
+    rangeForFlag
 } from "../core/node";
 import {CompileTarget} from "../compile-target";
 import {Log, SourceRange, spanRanges} from "../../utils/log";
@@ -323,7 +323,7 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
     // Children
     let child = node.firstChild;
     while (child != null) {
-        if(mode == CheckMode.INITIALIZE){
+        if (mode == CheckMode.INITIALIZE) {
             child.flags |= NODE_FLAG_LIBRARY;
         }
         initialize(context, child, parentScope, mode);
@@ -820,6 +820,7 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
 
         } else {
             if (child.stringValue == "T") {
+                console.log("Generic type escaped!");
                 console.log(child);
             }
 
@@ -1013,8 +1014,20 @@ export function checkConversion(context: CheckContext, node: Node, to: Type, kin
 export function checkStorage(context: CheckContext, target: Node): void {
     assert(isExpression(target));
 
-    if (target.resolvedType != context.errorType && target.kind != NodeKind.INDEX && target.kind != NodeKind.DEREFERENCE &&
-        (target.kind != NodeKind.NAME && target.kind != NodeKind.DOT || target.symbol != null && (!isVariable(target.symbol.kind) || target.symbol.kind == SymbolKind.VARIABLE_CONSTANT))) {
+    if (target.resolvedType != context.errorType &&
+        target.kind != NodeKind.INDEX &&
+        target.kind != NodeKind.POINTER_INDEX &&
+        target.kind != NodeKind.DEREFERENCE &&
+        (
+            target.kind != NodeKind.NAME &&
+            target.kind != NodeKind.DOT ||
+            target.symbol != null &&
+            (
+                !isVariable(target.symbol.kind) ||
+                target.symbol.kind == SymbolKind.VARIABLE_CONSTANT
+            )
+        )
+    ) {
         context.log.error(target.range, "Cannot store to this location");
         target.resolvedType = context.errorType;
     }
@@ -1369,11 +1382,19 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             let symbol = type.hasInstanceMembers() ? type.findMember("[]", ScopeHint.NORMAL) : null;
 
             if (symbol == null) {
-                context.log.error(node.internalRange, StringBuilder_new()
-                    .append("Cannot index into type '")
-                    .append(target.resolvedType.toString())
-                    .appendChar('\'')
-                    .finish());
+
+                if (target.resolvedType.pointerTo !== undefined) {
+                    // convert index to pinter index
+                    node.kind = NodeKind.POINTER_INDEX;
+                    node.resolvedType = target.resolvedType.pointerTo.symbol.resolvedType;
+                } else {
+
+                    context.log.error(node.internalRange, StringBuilder_new()
+                        .append("Cannot index into type '")
+                        .append(target.resolvedType.toString())
+                        .appendChar('\'')
+                        .finish());
+                }
             }
 
             else {
@@ -1802,11 +1823,18 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 let symbol = type.hasInstanceMembers() ? type.findMember("[]=", ScopeHint.NORMAL) : null;
 
                 if (symbol == null) {
-                    context.log.error(left.internalRange, StringBuilder_new()
-                        .append("Cannot index into type '")
-                        .append(target.resolvedType.toString())
-                        .appendChar('\'')
-                        .finish());
+
+                    if (target.resolvedType.pointerTo != undefined) {
+                        left.kind = NodeKind.POINTER_INDEX;
+                        left.resolvedType = target.resolvedType.pointerTo.symbol.resolvedType;
+                    } else {
+
+                        context.log.error(left.internalRange, StringBuilder_new()
+                            .append("Cannot index into type '")
+                            .append(target.resolvedType.toString())
+                            .appendChar('\'')
+                            .finish());
+                    }
                 }
 
                 else {
@@ -1828,7 +1856,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        resolveAsExpression(context, left, parentScope);
+        if(!left.resolvedType) {
+            resolveAsExpression(context, left, parentScope);
+        }
 
         // Automatically call setters
         if (left.symbol != null && left.symbol.isSetter()) {
@@ -1919,6 +1949,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
     }
 
+    else if (kind == NodeKind.POINTER_INDEX) {
+        debugger
+    }
     else if (kind == NodeKind.DEREFERENCE) {
         let value = node.unaryValue();
         resolveAsExpression(context, value, parentScope);
@@ -2143,12 +2176,12 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 node.resolvedType = commonType;
 
                 // Type conversion
-                if(commonType == context.int64Type) {
-                    if(left.kind == NodeKind.INT32){
+                if (commonType == context.int64Type) {
+                    if (left.kind == NodeKind.INT32) {
                         left.kind = NodeKind.INT64;
                         left.resolvedType = context.int64Type;
                     }
-                    else if(right.kind == NodeKind.INT32){
+                    else if (right.kind == NodeKind.INT32) {
                         right.kind = NodeKind.INT64;
                         right.resolvedType = context.int64Type;
                     }

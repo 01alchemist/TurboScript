@@ -1280,6 +1280,10 @@ class WasmModule {
             this.emitLoadFromMemory(array, byteOffset, node.resolvedType.underlyingType(this.context), node.unaryValue(), 0);
         }
 
+        else if (node.kind == NodeKind.POINTER_INDEX) {
+            this.emitLoadFromMemory(array, byteOffset, node.resolvedType.underlyingType(this.context), node.pointer(), node.pointerOffset());
+        }
+
         else if (node.kind == NodeKind.NULL) {
             this.assembler.appendOpcode(array, byteOffset, WasmOpcode.I32_CONST, 0);
             this.assembler.writeLEB128(array, 0);
@@ -1673,6 +1677,10 @@ class WasmModule {
 
             if (left.kind == NodeKind.DEREFERENCE) {
                 this.emitStoreToMemory(array, byteOffset, left.resolvedType.underlyingType(this.context), left.unaryValue(), 0, right);
+            }
+
+            else if (left.kind == NodeKind.POINTER_INDEX) {
+                this.emitStoreToMemory(array, byteOffset, left.resolvedType.underlyingType(this.context), left.pointer(), left.pointerOffset(), right);
             }
 
             else if (symbol.kind == SymbolKind.VARIABLE_INSTANCE) {

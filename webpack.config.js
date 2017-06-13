@@ -1,28 +1,34 @@
-var path = require('path');
+// Prepack Disabled due to Invariant Violation error
+// const PrepackWebpackPlugin = require("prepack-webpack-plugin").default;
+const path = require("path");
 
 module.exports = {
-    target: 'node',
-    entry: './src/turboscript.ts',
+    target: "node",
+    entry: "./src/turboscript.ts",
+    devtool: "inline-source-map",
     resolve: {
-        // Add '.ts' and '.tsx' as a resolvable extension.
+        // Add ".ts" and ".tsx" as a resolvable extension.
         extensions: [".ts", ".js"]
     },
+    plugins: [
+        // new PrepackWebpackPlugin({})
+    ],
     module: {
         rules: [
             {
                 test: /\.(tbs|txt)$/,
-                loader: 'raw-loader'
+                loader: "raw-loader"
             },
             {
                 test: /\.tsx?$/,
-                loader: 'ts-loader',
+                loader: "ts-loader",
                 exclude: /node_modules/,
             }
         ]
     },
     output: {
-        filename: 'turbo.js',
-        path: path.resolve(__dirname, 'lib'),
+        filename: "turbo.js",
+        path: path.resolve(__dirname, "lib"),
         library: "turbo",
         libraryTarget: "umd"
     }
