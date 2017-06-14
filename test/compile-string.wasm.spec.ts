@@ -1,5 +1,4 @@
-import * as path from "path";
-import {getWasmInstance, getWasmInstanceFromString} from "./utils/utils";
+import {getWasmInstanceFromString} from "./utils/utils";
 
 test('it should compile from string', async () => {
     let source = `

@@ -22,9 +22,12 @@ node-v8/
 /node_modules/
 *.swp
 src/**/*.js
-src/**/*.js.map
+*.js.map
 /TurboScript.iml
 !src/library/asmjs/runtime.js
 !src/library/webassembly/wrapper.js
 !src/library/turbo/runtime.js
 !src/library/turbo/wrapper.js
+lib/tc.js.map
+test/snapshots/
+tests/bin/

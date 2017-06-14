@@ -48,7 +48,6 @@ Examples:
 }
 
 export function main_entry(): int32 {
-
     let target = CompileTarget.NONE;
     let argument = firstArgument;
     let inputCount = 0;
@@ -182,6 +181,7 @@ export function compileString(source:string, target:CompileTarget = CompileTarge
     if (!compiler.log.hasErrors()) {
         return compiler.outputWASM;
     } else {
+        writeLogToTerminal(compiler.log);
         return null;
     }
 }
