@@ -1,12 +1,13 @@
 import * as fs from "fs";
 import * as child from "child_process";
 import * as path from "path";
+import {Terminal} from "../../src/utils/terminal";
 
 //Windows spawn work around
 let spawnSync: any = child.spawnSync;
 if (process.platform === 'win32') {
     spawnSync = (cmd: string, args: string[]) => {
-        return child.spawnSync(path.join(__dirname, '../../node-v8/bin/node.exe'), [cmd].concat(args));
+        return child.spawnSync('node.exe', [cmd].concat(args));
     }
 }
 
@@ -21,9 +22,15 @@ export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outpu
     outputFile = outputFile || getDefaultOutputFile(sourcePath);
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
-    if (compileInfo.status > 0) {
-        Terminal.error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
-        throw new Error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
+    if (compileInfo.error) {
+        let error = `Compiler Error! \n${compileInfo.error}`;
+        Terminal.error(error);
+        throw new Error(error);
+    }
+    else if (compileInfo.status > 0) {
+        let error = `Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`;
+        Terminal.error(error);
+        throw new Error(error);
     }
     const data = fs.readFileSync(outputFile);
     const mod = new WebAssembly.Module(data);
@@ -41,9 +48,15 @@ export async function getWasmInstance(sourcePath: string, imports: any = {}, out
     outputFile = outputFile || getDefaultOutputFile(sourcePath);
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
-    if (compileInfo.status > 0) {
-        Terminal.error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
-        throw new Error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
+    if (compileInfo.error) {
+        let error = `Compiler Error! \n${compileInfo.error}`;
+        Terminal.error(error);
+        throw new Error(error);
+    }
+    else if (compileInfo.status > 0) {
+        let error = `Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`;
+        Terminal.error(error);
+        throw new Error(error);
     }
     const data = fs.readFileSync(outputFile);
     const result: WebAssembly.ResultObject = await WebAssembly.instantiate(data, imports);
@@ -58,13 +71,18 @@ export async function getWasmInstance(sourcePath: string, imports: any = {}, out
  * @returns {Promise<Instance>}
  */
 export async function getWasmInstanceFromString(sourceString: string, imports: any = {}, outputFile?: string): Promise<WebAssembly.Instance> {
-    if(exports.turbo === undefined){
-        if(typeof global["TURBO_PATH"] === "undefined"){
+    if (exports.turbo === undefined) {
+        if (typeof global["TURBO_PATH"] === "undefined") {
             global["TURBO_PATH"] = "";
         }
         exports.turbo = require("../../lib/turbo.js");
     }
     let wasmBinary = exports.turbo.compileString(sourceString);
+    if (wasmBinary === null) {
+        let error = "Compile Error!";
+        Terminal.error(error);
+        throw new Error(error);
+    }
     const result: WebAssembly.ResultObject = await WebAssembly.instantiate(wasmBinary.array, imports);
     return result.instance;
 }
@@ -76,12 +94,19 @@ export async function getWasmInstanceFromString(sourceString: string, imports: a
  * @param outputFile
  * @returns {Promise<Instance>}
  */
-export async function getAsmjsInstance(sourcePath: string, imports: any = {}, outputFile?: string): Promise<{exports:any}> {
+export async function getAsmjsInstance(sourcePath: string, imports: any = {}, outputFile?: string): Promise<{ exports: any }> {
     outputFile = outputFile || getDefaultOutputFile(sourcePath, "asm.js");
     clean(outputFile);
     const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
-    if (compileInfo.status > 0) {
-        throw new Error(`Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`);
+    if (compileInfo.error) {
+        let error = `Compiler Error! \n${compileInfo.error}`;
+        Terminal.error(error);
+        throw new Error(error);
+    }
+    else if (compileInfo.status > 0) {
+        let error = `Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`;
+        Terminal.error(error);
+        throw new Error(error);
     }
     const TurboASM = require(outputFile).TurboASM;
     return TurboASM.Instance(0x10000);
