@@ -4,6 +4,7 @@ import {Compiler, replaceFileExtension} from "./compiler/compiler";
 import {CompileTarget} from "./compiler/compile-target";
 import {Terminal} from "./utils/terminal";
 import {FileSystem} from "./utils/filesystem";
+import {CompilerOptions, defaultCompilerOptions} from "./compiler/compiler-options";
 
 /**
  * TurboScript compiler main entry
@@ -163,27 +164,26 @@ export const main = {
     entry: main_entry
 };
 
-export function compileString(source: string, target: CompileTarget = CompileTarget.WEBASSEMBLY) {
-    Terminal.silent = true;
-    if (typeof TURBO_PATH === "undefined") {
-        TURBO_PATH = "";
-    }
-    let input = "tmp-string-source.tbs";
-    let output = "tmp-string-source.wasm";
-    FileSystem.writeTextFile("tmp-string-source.tbs", source, true);
+export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions) {
+    Terminal.silent = options.silent;
+    let input = "/virtual/inline.tbs";
+    let output = "/virtual/inline.wasm";
+    FileSystem.writeTextFile(input, source, true);
     let compiler = new Compiler();
-    compiler.initialize(target, output);
+    compiler.initialize(options.target, output);
     compiler.addInput(input, source);
     compiler.finish();
     Terminal.silent = false;
     if (!compiler.log.hasErrors()) {
         return {
             success: true,
-            wasm: compiler.outputWASM,
-            wast: "Not yet supported"
+            wasm: compiler.outputWASM.array,
+            wast: "WebAssembly text format output is not yet supported!\nPlease check wasm binary data."
         };
     } else {
-        writeLogToTerminal(compiler.log);
+        if(!options.silent || options.logError){
+            writeLogToTerminal(compiler.log);
+        }
         return {
             success: false,
             log: compiler.log

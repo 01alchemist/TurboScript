@@ -4,7 +4,7 @@ import {Terminal} from "./terminal";
  */
 export function assert(truth) {
     if (!truth) {
-        if(global["debug"]){
+        if(typeof self["debug"] !== "undefined" && self["debug"]){
             debugger;
         }
         let error = new Error('Assertion failed');

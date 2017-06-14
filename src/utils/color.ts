@@ -14,3 +14,17 @@ export const Color = {
     MAGENTA: 5,
     ORANGE: 208,
 };
+
+const hexColor = {};
+hexColor[Color.DEFAULT_TEXT] = "#000000";
+hexColor[Color.DEFAULT_BG] = "#FFFFFF";
+hexColor[Color.BLACK] = "#000000";
+hexColor[Color.WHITE] = "#FFFFFF";
+hexColor[Color.BOLD] = "";
+hexColor[Color.RED] = "#FF0000";
+hexColor[Color.GREEN] = "#00FF00";
+hexColor[Color.BLUE] = "#0000FF";
+hexColor[Color.YELLOW] = "#FFF600";
+hexColor[Color.MAGENTA] = "#FF00FF";
+hexColor[Color.ORANGE] = "#FF8C00";
+export const HexColor = hexColor;

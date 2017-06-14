@@ -45,7 +45,7 @@ export class WasmAssembler {
             fn.signature = _wasmFunc.signature;
             fn.isImport = false;
             fn.locals = [];
-            _wasmFunc.localEntries.forEach((local:WasmLocalEntry) => {
+            _wasmFunc.localEntries.forEach((local: WasmLocalEntry) => {
                 fn.locals.push(new WasmRuntimeLocal(local.type));
             });
             runtimeFunctions.push(fn);
@@ -80,9 +80,7 @@ export class WasmAssembler {
     }
 
     appendOpcode(array: ByteArray, offset = 0, opcode: number, inline_value?) {
-        if (global["debug"]) {
-            logOpcode(array, offset, opcode, inline_value);
-        }
+        logOpcode(array, offset, opcode, inline_value);
         array.append(opcode);
         this.stackTracer.pushOpcode(opcode);
     }
@@ -114,16 +112,12 @@ export class WasmAssembler {
 }
 
 export function append(array: ByteArray, offset = 0, value = null, msg = null) {
-    if (global["debug"]) {
-        array.log += (value != null ? `${toHex(offset + array.position)}: ${toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
-    }
+    array.log += (value != null ? `${toHex(offset + array.position)}: ${toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
     if (value) {
         array.append(value);
     }
 }
 
 export function logOpcode(array: ByteArray, offset = 0, opcode, inline_value?) {
-    if (global["debug"]) {
-        array.log += `${toHex(offset + array.position)}: ${toHex(opcode, 2)}                    ; ${WasmOpcode[opcode]} ${inline_value ? inline_value : ""}\n`;
-    }
+    array.log += `${toHex(offset + array.position)}: ${toHex(opcode, 2)}                    ; ${WasmOpcode[opcode]} ${inline_value ? inline_value : ""}\n`;
 }

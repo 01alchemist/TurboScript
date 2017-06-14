@@ -4,7 +4,7 @@ const path = require("path");
 
 module.exports = {
     target: "node",
-    entry: "./src/turboscript.ts",
+    entry: "./src/index.ts",
     devtool: "inline-source-map",
     resolve: {
         // Add ".ts" and ".tsx" as a resolvable extension.

@@ -232,7 +232,7 @@ export function writeLogToTerminal(log: Log): void {
 
             // SourceRange
             diagnosticMessage = diagnostic.sourceRange(location);
-            Terminal.setTextColor(Color.GREEN);
+            Terminal.setTextColor(Color.RED);
             Terminal.write(diagnosticMessage);
 
         } else {

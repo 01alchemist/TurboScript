@@ -19,14 +19,6 @@ Math["log2"] = Math["log2"] || function (x) {
 const fs = require('fs');
 const path = require('path');
 
-if (!process.env.TURBO_PATH) {
-    process.env.TURBO_PATH = path.resolve(__dirname, "../");
-}
-
-global["TURBO_PATH"] = process.env.TURBO_PATH;
-
-console.log("TURBO_PATH:" + global["TURBO_PATH"]);
-
 //Import compiler
 const turbo = require("./turboscript.js");
 

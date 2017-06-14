@@ -1,5 +1,5 @@
-import {isNode} from "./env";
-import {Color} from "./color";
+import { isNode } from "./env";
+import { Color, HexColor } from "./color";
 /**
  * Created by n.vinayakan on 06.06.17.
  */
@@ -7,6 +7,11 @@ export class Terminal {
 
     static silent: boolean = false;
     static history: string = "";
+    static browserStyles = {
+        text: HexColor[Color.DEFAULT_TEXT],
+        background: HexColor[Color.DEFAULT_BG],
+        bold: false
+    };
 
     static write(text) {
         Terminal.history += text;
@@ -16,7 +21,12 @@ export class Terminal {
         if (isNode) {
             process.stdout.write(text);
         } else {
-            console.log(text);
+            console.log(
+                `%c${text}`,
+                `background: ${Terminal.browserStyles.background};`+
+                `color: ${Terminal.browserStyles.text};`+
+                `font-weight: ${Terminal.browserStyles.bold?"700":"100"};`
+            );
         }
     }
 
@@ -38,7 +48,7 @@ export class Terminal {
                 process.stdout.write(`\x1B[48;5;${color === null ? "" : color}m`);
             }
         } else {
-            // TODO
+            Terminal.browserStyles.background = HexColor[color];
         }
     }
 
@@ -48,7 +58,7 @@ export class Terminal {
                 process.stdout.write(`\x1B[38;5;${color}m`);
             }
         } else {
-            // TODO
+            Terminal.browserStyles.text = HexColor[color];
         }
     }
 
@@ -58,7 +68,7 @@ export class Terminal {
                 process.stdout.write(`\x1B[38;1m`);
             }
         } else {
-            // TODO
+            Terminal.browserStyles.bold = true;
         }
     }
 
@@ -68,7 +78,9 @@ export class Terminal {
                 process.stdout.write(`\x1B[0m`);
             }
         } else {
-            // TODO
+            Terminal.browserStyles.text = HexColor[Color.DEFAULT_TEXT];
+            Terminal.browserStyles.background = HexColor[Color.DEFAULT_BG];
+            Terminal.browserStyles.bold = false;
         }
     }
 

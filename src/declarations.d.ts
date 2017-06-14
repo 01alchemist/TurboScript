@@ -24,5 +24,3 @@ interface Math {
 }
 declare class ByteArray {
 }
-
-declare var TURBO_PATH:string;
