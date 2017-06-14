@@ -16,11 +16,23 @@ Super charged JavaScript for parallel programming and WebAssembly
           \______\_________/____"-_____ /_/  \____/_/|_/____/\____/
 </pre>
   
-TurboScript is an experimental programming language for parallel programming for web which compiles to JavaScript (asm.js) and WebAssembly (targeting post-MVP). The syntax is similar to TypeScript (Hardly trying to fill the gaps) and the compiler is open source and written in TypeScript.
+TurboScript is an experimental programming language for parallel programming for web which compiles to JavaScript ~~(asm.js)~~ and WebAssembly (targeting post-MVP). The syntax is similar to TypeScript ~~(Hardly trying to fill the gaps)~~ and the compiler is open source and written in TypeScript. TurboScript has zero dependencies.
 
-This is still an experiment and isn't intended for real use yet. ~~The biggest issue is that the generated code currently doesn't delete anything~~ (basic manual memory management is added). Also the WebAssembly specification is still being developed and the current binary format may stop working when WebAssembly is officially released. WebAssembly binary format is up-to-date, please feel free to open issues if it stop working or need a new feature.
+This is still an experiment and isn't intended for real use yet but we are working towards an MVP release. Please feel free to open issues if it stop working or need a new feature.
 
-TurboScript is forked from ThinScript and changed a lot, so there will be no going back.
+## Usage
+`npm install -g turboscript`
+
+#### Example script
+```typescript
+// add.tbs
+export function add(a:int32, b:int32):int32 {
+    return a + b;
+}
+```
+
+#### Compile to wasm
+`tc add.tbs --wasm --out add.wasm`
 
 ## Join ![Slack](https://01alchemist.com/images/slack-logo-small.png)
 You need an invitation to join slack. open a ticket with your email address. I will make it happen.

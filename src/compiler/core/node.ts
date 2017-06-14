@@ -48,6 +48,7 @@ export enum NodeKind {
     DOT,
     HOOK,
     INDEX,
+    POINTER_INDEX,
     ANY,
     INT32,
     INT64,
@@ -901,6 +902,19 @@ export class Node {
         assert(this.childCount() == 1);
         assert(isExpression(this.firstChild));
         return this.firstChild;
+    }
+
+    pointer(): Node {
+        assert(this.kind == NodeKind.POINTER_INDEX);
+        assert(this.childCount() >= 1);
+        assert(isExpression(this.firstChild));
+        return this.firstChild;
+    }
+
+    pointerOffset(): int32 {
+        assert(this.firstChild);
+        assert(this.firstChild.nextSibling);
+        return this.firstChild.nextSibling.intValue;
     }
 
     whileValue(): Node {

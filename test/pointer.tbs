@@ -1,0 +1,8 @@
+export function initialize():*uint8 {
+    let block:*uint8 = malloc(4);
+    block[0] = 1;
+    block[1] = 2;
+    block[2] = 3;
+    block[3] = 4;
+    return block;
+}

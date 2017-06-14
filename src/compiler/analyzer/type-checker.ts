@@ -360,24 +360,12 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
 
         prepareNativeType(context.float32Type, 4, SYMBOL_FLAG_NATIVE_FLOAT);
         prepareNativeType(context.float64Type, 8, SYMBOL_FLAG_NATIVE_DOUBLE);
-
-        //Prepare builtin types
-        //context.arrayType = parentScope.findLocal("Array", ScopeHint.NORMAL).resolvedType;
-        //prepareBuiltinType(context.arrayType, 0, SYMBOL_FLAG_IS_ARRAY); //byteSize will calculate later
     }
 }
 
 function prepareNativeType(type: Type, byteSizeAndMaxAlignment: int32, flags: int32): void {
     let symbol = type.symbol;
     symbol.kind = SymbolKind.TYPE_NATIVE;
-    symbol.byteSize = byteSizeAndMaxAlignment;
-    symbol.maxAlignment = byteSizeAndMaxAlignment;
-    symbol.flags = flags;
-}
-
-function prepareBuiltinType(type: Type, byteSizeAndMaxAlignment: int32, flags: int32): void {
-    let symbol = type.symbol;
-    symbol.kind = SymbolKind.TYPE_CLASS;
     symbol.byteSize = byteSizeAndMaxAlignment;
     symbol.maxAlignment = byteSizeAndMaxAlignment;
     symbol.flags = flags;
@@ -833,18 +821,11 @@ function cloneChildren(child: Node, parentNode: Node, parameters: any[], templat
 
         } else {
             if (child.stringValue == "T") {
+                Terminal.write("Generic type escaped!");
                 Terminal.write(child);
             }
 
             childNode = child.clone();
-
-            //if (child.resolvedType && child.resolvedType.symbol.name === templateName) {
-            // Terminal.write("Found template");
-            //} else if (child.symbol && child.symbol.resolvedType.symbol.name === templateName) {
-            // Terminal.write("Found template");
-            //} else {
-
-            //}
 
             if (childNode.stringValue == templateName) {
                 childNode.stringValue = typeName;
@@ -1031,8 +1012,20 @@ export function checkConversion(context: CheckContext, node: Node, to: Type, kin
 export function checkStorage(context: CheckContext, target: Node): void {
     assert(isExpression(target));
 
-    if (target.resolvedType != context.errorType && target.kind != NodeKind.INDEX && target.kind != NodeKind.DEREFERENCE &&
-        (target.kind != NodeKind.NAME && target.kind != NodeKind.DOT || target.symbol != null && (!isVariable(target.symbol.kind) || target.symbol.kind == SymbolKind.VARIABLE_CONSTANT))) {
+    if (target.resolvedType != context.errorType &&
+        target.kind != NodeKind.INDEX &&
+        target.kind != NodeKind.POINTER_INDEX &&
+        target.kind != NodeKind.DEREFERENCE &&
+        (
+            target.kind != NodeKind.NAME &&
+            target.kind != NodeKind.DOT ||
+            target.symbol != null &&
+            (
+                !isVariable(target.symbol.kind) ||
+                target.symbol.kind == SymbolKind.VARIABLE_CONSTANT
+            )
+        )
+    ) {
         context.log.error(target.range, "Cannot store to this location");
         target.resolvedType = context.errorType;
     }
@@ -1387,11 +1380,19 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             let symbol = type.hasInstanceMembers() ? type.findMember("[]", ScopeHint.NORMAL) : null;
 
             if (symbol == null) {
-                context.log.error(node.internalRange, StringBuilder_new()
-                    .append("Cannot index into type '")
-                    .append(target.resolvedType.toString())
-                    .appendChar('\'')
-                    .finish());
+
+                if (target.resolvedType.pointerTo !== undefined) {
+                    // convert index to pinter index
+                    node.kind = NodeKind.POINTER_INDEX;
+                    node.resolvedType = target.resolvedType.pointerTo.symbol.resolvedType;
+                } else {
+
+                    context.log.error(node.internalRange, StringBuilder_new()
+                        .append("Cannot index into type '")
+                        .append(target.resolvedType.toString())
+                        .appendChar('\'')
+                        .finish());
+                }
             }
 
             else {
@@ -1671,10 +1672,6 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
                 if (returnType.resolvedType.isArray()) {
                     Terminal.write(returnType);
-                    //let mappedType = returnType.getMappedGenericType(node.firstChild.firstChild.symbol.name);
-                    //if (mappedType) {
-                    //returnType = mappedType;
-                    //}
                 }
                 // Pass the return type along
                 node.resolvedType = returnType.resolvedType;
@@ -1820,11 +1817,18 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 let symbol = type.hasInstanceMembers() ? type.findMember("[]=", ScopeHint.NORMAL) : null;
 
                 if (symbol == null) {
-                    context.log.error(left.internalRange, StringBuilder_new()
-                        .append("Cannot index into type '")
-                        .append(target.resolvedType.toString())
-                        .appendChar('\'')
-                        .finish());
+
+                    if (target.resolvedType.pointerTo != undefined) {
+                        left.kind = NodeKind.POINTER_INDEX;
+                        left.resolvedType = target.resolvedType.pointerTo.symbol.resolvedType;
+                    } else {
+
+                        context.log.error(left.internalRange, StringBuilder_new()
+                            .append("Cannot index into type '")
+                            .append(target.resolvedType.toString())
+                            .appendChar('\'')
+                            .finish());
+                    }
                 }
 
                 else {
@@ -1846,7 +1850,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        resolveAsExpression(context, left, parentScope);
+        if(!left.resolvedType) {
+            resolveAsExpression(context, left, parentScope);
+        }
 
         // Automatically call setters
         if (left.symbol != null && left.symbol.isSetter()) {
@@ -1937,6 +1943,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
     }
 
+    else if (kind == NodeKind.POINTER_INDEX) {
+        debugger
+    }
     else if (kind == NodeKind.DEREFERENCE) {
         let value = node.unaryValue();
         resolveAsExpression(context, value, parentScope);
