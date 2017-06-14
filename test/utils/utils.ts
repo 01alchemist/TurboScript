@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as child from "child_process";
 import * as path from "path";
+import {Terminal} from "../../src/utils/terminal";
 
 //Windows spawn work around
 let spawnSync: any = child.spawnSync;
@@ -62,11 +63,15 @@ export async function getWasmInstanceFromString(sourceString: string, imports: a
         if(typeof global["TURBO_PATH"] === "undefined"){
             global["TURBO_PATH"] = "";
         }
-        exports.turbo = require("../../lib/turbo.js");
+        exports.turbo = require("../../lib/turboscript.js");
     }
-    let wasmBinary = exports.turbo.compileString(sourceString);
-    const result: WebAssembly.ResultObject = await WebAssembly.instantiate(wasmBinary.array, imports);
-    return result.instance;
+    let compileResult = exports.turbo.compileString(sourceString);
+    if(compileResult.success){
+        const result: WebAssembly.ResultObject = await WebAssembly.instantiate(compileResult.wasm.array, imports);
+        return result.instance;
+    } else{
+        return null;
+    }
 }
 
 /**

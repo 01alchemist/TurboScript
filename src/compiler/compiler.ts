@@ -1,5 +1,5 @@
 ///<reference path="../declarations.d.ts" />
-import {CheckContext, CheckMode, resolve, initialize} from "./analyzer/type-checker";
+import {CheckContext, CheckMode, initialize, resolve} from "./analyzer/type-checker";
 import {Node, NODE_FLAG_LIBRARY, NodeKind} from "./core/node";
 import {ByteArray} from "../utils/bytearray";
 import {Log, Source} from "../utils/log";
@@ -8,9 +8,6 @@ import {Scope} from "./core/scope";
 import {tokenize} from "./scanner/scanner";
 import {parse} from "./parser/parser";
 import {treeShaking} from "./optimizer/shaking";
-import {StringBuilder_new} from "../utils/stringbuilder";
-import {cppEmit} from "../backends/c++/c++";
-import {jsEmit} from "../backends/javascript/js";
 import {wasmEmit} from "../backends/webassembly/webassembly";
 import {Library} from "../library/library";
 import {preparse} from "./parser/preparser";
@@ -38,7 +35,7 @@ export class Compiler {
     outputCPP: string;
     outputH: string;
 
-    static mallocRequired:boolean = false;
+    static mallocRequired: boolean = false;
 
     initialize(target: CompileTarget, outputName: string): void {
         assert(this.log == null);
@@ -103,7 +100,7 @@ export class Compiler {
         return source;
     }
 
-    addInputBefore(name: string, contents: string, nextSource:Source): Source {
+    addInputBefore(name: string, contents: string, nextSource: Source): Source {
         let source = new Source();
         source.name = name;
         source.contents = contents;
@@ -121,8 +118,8 @@ export class Compiler {
 
         let source = this.firstSource;
         while (source != null) {
-            if(!preparse(source, this, this.log)){
-                 return false;
+            if (!preparse(source, this, this.log)) {
+                return false;
             }
             source = source.next;
         }
@@ -230,7 +227,6 @@ export class Compiler {
 }
 
 export function replaceFileExtension(path: string, extension: string): string {
-    let builder = StringBuilder_new();
     let dot = path.lastIndexOf(".");
     let forward = path.lastIndexOf("/");
     let backward = path.lastIndexOf("\\");
@@ -240,5 +236,5 @@ export function replaceFileExtension(path: string, extension: string): string {
         path = path.slice(0, dot);
     }
 
-    return builder.append(path).append(extension).finish();
+    return path + extension;
 }

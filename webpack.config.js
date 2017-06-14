@@ -27,9 +27,9 @@ module.exports = {
         ]
     },
     output: {
-        filename: "turbo.js",
+        filename: "turboscript.js",
         path: path.resolve(__dirname, "lib"),
-        library: "turbo",
+        library: "turboscript",
         libraryTarget: "umd"
     }
 };

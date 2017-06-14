@@ -1,6 +1,6 @@
 import {Token} from "../compiler/scanner/scanner";
 import {Node} from "../compiler/core/node";
-import {StringBuilder, StringBuilder_new} from "./stringbuilder";
+import {StringBuilder} from "./stringbuilder";
 import {Color} from "./color";
 import {assert} from "./assert";
 import {Terminal} from "./terminal";
@@ -22,14 +22,14 @@ export class Source {
     file: Node;
 
     indexToLineColumn(index: int32): LineColumn {
-        var contents = this.contents;
-        var column = 0;
-        var line = 0;
-        var i = 0;
+        let contents = this.contents;
+        let column = 0;
+        let line = 0;
+        let i = 0;
 
         // Just count the number of lines from the beginning of the file for now
         while (i < index) {
-            var c = contents.charCodeAt(i);
+            let c = contents.charCodeAt(i);
 
             if (c == '\n'.charCodeAt(0)) {
                 line = line + 1;
@@ -44,7 +44,7 @@ export class Source {
             i = i + 1;
         }
 
-        var location = new LineColumn();
+        let location = new LineColumn();
         location.line = line;
         location.column = column;
         return location;
@@ -65,15 +65,15 @@ export class SourceRange {
     }
 
     enclosingLine(): SourceRange {
-        var contents = this.source.contents;
-        var start = this.start;
-        var end = this.start;
+        let contents = this.source.contents;
+        let start = this.start;
+        let end = this.start;
 
         while (start > 0 && contents[start - 1] != '\n') {
             start = start - 1;
         }
 
-        var length = contents.length;
+        let length = contents.length;
         while (end < length && contents[end] != '\n') {
             end = end + 1;
         }
@@ -88,7 +88,7 @@ export class SourceRange {
 
 export function createRange(source: Source, start: int32, end: int32): SourceRange {
     assert(start <= end);
-    var range = new SourceRange();
+    let range = new SourceRange();
     range.source = source;
     range.start = start;
     range.end = end;
@@ -113,55 +113,41 @@ export class Diagnostic {
     kind: DiagnosticKind;
     next: Diagnostic;
 
-    appendSourceName(builder: StringBuilder, location: LineColumn): void {
-        builder
-            .append(this.range.source.name)
-            .append(':')
-            .append((location.line + 1).toString())
-            .append(':')
-            .append((location.column + 1).toString())
-            .append(": ");
+    sourceName(location: LineColumn): string {
+        return `${this.range.source.name}:${location.line + 1}:${location.column + 1}: `;
     }
 
-    appendKind(builder: StringBuilder): void {
-        builder.append(this.kind == DiagnosticKind.ERROR ? "error: " : "warning: ");
+    lineContents(): string {
+        let range = this.range.enclosingLine();
+        return range.source.contents.slice(range.start, range.end) + "\n";
     }
 
-    appendMessage(builder: StringBuilder): void {
-        builder.append(this.message).append('\n');
-    }
-
-    appendLineContents(builder: StringBuilder, location: LineColumn): void {
-        var range = this.range.enclosingLine();
-        builder.appendSlice(range.source.contents, range.start, range.end).append('\n');
-    }
-
-    appendRange(builder: StringBuilder, location: LineColumn): void {
-        var range = this.range;
-        var column = location.column;
-        var contents = range.source.contents;
-
+    sourceRange(location: LineColumn): string {
+        let range = this.range;
+        let column = location.column;
+        let contents = range.source.contents;
+        let rangeStr = "";
         // Whitespace
         while (column > 0) {
-            builder.append(' ');
+            rangeStr += ' ';
             column = column - 1;
         }
 
         // Single character
         if (range.end - range.start <= 1) {
-            builder.append('^');
+            rangeStr += '^';
         }
 
         // Multiple characters
         else {
-            var i = range.start;
+            let i = range.start;
             while (i < range.end && contents[i] != '\n') {
-                builder.append('~');
+                rangeStr += '~';
                 i = i + 1;
             }
         }
 
-        builder.append('\n');
+        return rangeStr + '\n';
     }
 }
 
@@ -178,7 +164,7 @@ export class Log {
     }
 
     append(range: SourceRange, message: string, kind: DiagnosticKind): void {
-        var diagnostic = new Diagnostic();
+        let diagnostic = new Diagnostic();
         diagnostic.range = range;
         diagnostic.message = message;
         diagnostic.kind = kind;
@@ -189,24 +175,24 @@ export class Log {
     }
 
     toString(): string {
-        var builder = StringBuilder_new();
-        var diagnostic = this.first;
+        let str = "";
+        let diagnostic = this.first;
 
         while (diagnostic != null) {
-            var location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
-            diagnostic.appendSourceName(builder, location);
-            diagnostic.appendKind(builder);
-            diagnostic.appendMessage(builder);
-            diagnostic.appendLineContents(builder, location);
-            diagnostic.appendRange(builder, location);
+            let location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
+            str += diagnostic.sourceName(location);
+            str += diagnostic.kind == DiagnosticKind.ERROR ? "ERROR: " : "WARN: ";
+            str += diagnostic.message + "\n";
+            str += diagnostic.lineContents();
+            str += diagnostic.sourceRange(location);
             diagnostic = diagnostic.next;
         }
 
-        return builder.finish();
+        return str;
     }
 
     hasErrors(): boolean {
-        var diagnostic = this.first;
+        let diagnostic = this.first;
 
         while (diagnostic != null) {
             if (diagnostic.kind == DiagnosticKind.ERROR) {
@@ -227,34 +213,27 @@ export function writeLogToTerminal(log: Log): void {
             let location = diagnostic.range.source.indexToLineColumn(diagnostic.range.start);
 
             // Source
-            let builder = StringBuilder_new();
-            diagnostic.appendSourceName(builder, location);
+            let diagnosticMessage = diagnostic.sourceName(location);
             Terminal.setBoldText();
-            Terminal.write(builder.finish());
+            Terminal.write(diagnosticMessage);
 
             // Kind
-            builder = StringBuilder_new();
-            diagnostic.appendKind(builder);
-            Terminal.setTextColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.MAGENTA);
-            Terminal.write(builder.finish());
+            diagnosticMessage = diagnostic.kind == DiagnosticKind.ERROR ? "ERROR: " : "WARN: ";
+            Terminal.setTextColor(diagnostic.kind == DiagnosticKind.ERROR ? Color.RED : Color.ORANGE);
+            Terminal.write(diagnosticMessage);
 
             // Message
-            builder = StringBuilder_new();
-            diagnostic.appendMessage(builder);
             Terminal.setBoldText();
-            Terminal.write(builder.finish());
+            Terminal.write(diagnostic.message + "\n");
 
             // Line contents
-            builder = StringBuilder_new();
-            diagnostic.appendLineContents(builder, location);
             Terminal.clearColor();
-            Terminal.write(builder.finish());
+            Terminal.write(diagnostic.lineContents());
 
             // SourceRange
-            builder = StringBuilder_new();
-            diagnostic.appendRange(builder, location);
+            diagnosticMessage = diagnostic.sourceRange(location);
             Terminal.setTextColor(Color.GREEN);
-            Terminal.write(builder.finish());
+            Terminal.write(diagnosticMessage);
 
         } else {
             Terminal.setTextColor(Color.RED);

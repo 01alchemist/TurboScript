@@ -1,17 +1,69 @@
-import {Token, TokenKind, tokenToString, splitToken, isKeyword} from "../scanner/scanner";
-import {SourceRange, Log, spanRanges, createRange} from "../../utils/log";
-import {StringBuilder_new} from "../../utils/stringbuilder";
+import {isKeyword, splitToken, Token, TokenKind, tokenToString} from "../scanner/scanner";
+import {createRange, Log, SourceRange, spanRanges} from "../../utils/log";
 import {
-    Node, NodeKind, isUnary, createUnary, createBinary, createName, createNull, createThis,
-    createParseError, createInt, createString, createboolean, createNew, createAlignOf, createSizeOf, createDot,
-    createCast, createIndex, createCall, createHook, createIf, createWhile, createBlock, createReturn, createEmpty,
-    NodeFlag, createEnum, allFlags, createVariable, createParameters, createParameter, createClass, createExtends,
-    createImplements, appendFlag, NODE_FLAG_GET, NODE_FLAG_SET, createFunction, NODE_FLAG_OPERATOR, createConstants,
-    createVariables, NODE_FLAG_DECLARE, NODE_FLAG_EXPORT, NODE_FLAG_PRIVATE, NODE_FLAG_PROTECTED,
-    NODE_FLAG_PUBLIC, NODE_FLAG_STATIC, NODE_FLAG_UNSAFE, createExpression, NODE_FLAG_POSITIVE, createUndefined,
-    NODE_FLAG_VIRTUAL, createModule, createFloat, NODE_FLAG_START,
-    createDelete, createImports, createImport, NODE_FLAG_ANYFUNC,
-    createAny, NODE_FLAG_JAVASCRIPT, createImportFrom, createDouble, NODE_FLAG_IMPORT
+    allFlags,
+    appendFlag,
+    createAlignOf,
+    createAny,
+    createBinary,
+    createBlock,
+    createboolean,
+    createCall,
+    createCast,
+    createClass,
+    createConstants,
+    createDelete,
+    createDot,
+    createDouble,
+    createEmpty,
+    createEnum,
+    createExpression,
+    createExtends,
+    createFloat,
+    createFunction,
+    createHook,
+    createIf,
+    createImplements,
+    createImport,
+    createImportFrom,
+    createImports,
+    createIndex,
+    createInt,
+    createModule,
+    createName,
+    createNew,
+    createNull,
+    createParameter,
+    createParameters,
+    createParseError,
+    createReturn,
+    createSizeOf,
+    createString,
+    createThis,
+    createUnary,
+    createUndefined,
+    createVariable,
+    createVariables,
+    createWhile,
+    isUnary,
+    Node,
+    NODE_FLAG_ANYFUNC,
+    NODE_FLAG_DECLARE,
+    NODE_FLAG_EXPORT,
+    NODE_FLAG_GET,
+    NODE_FLAG_JAVASCRIPT,
+    NODE_FLAG_OPERATOR,
+    NODE_FLAG_POSITIVE,
+    NODE_FLAG_PRIVATE,
+    NODE_FLAG_PROTECTED,
+    NODE_FLAG_PUBLIC,
+    NODE_FLAG_SET,
+    NODE_FLAG_START,
+    NODE_FLAG_STATIC,
+    NODE_FLAG_UNSAFE,
+    NODE_FLAG_VIRTUAL,
+    NodeFlag,
+    NodeKind
 } from "../core/node";
 import {assert} from "../../utils/assert";
 import {Terminal} from "../../utils/terminal";
@@ -80,10 +132,7 @@ class ParserContext {
     unexpectedToken(): void {
         if (this.lastError != this.current) {
             this.lastError = this.current;
-            this.log.error(this.current.range, StringBuilder_new()
-                .append("Unexpected ")
-                .append(tokenToString(this.current.kind))
-                .finish());
+            this.log.error(this.current.range, `Unexpected ${tokenToString(this.current.kind)}`);
         }
     }
 
@@ -97,19 +146,12 @@ class ParserContext {
 
                 // Show missing token errors on the previous line for clarity
                 if (kind != TokenKind.IDENTIFIER && !previousLine.equals(currentLine)) {
-                    this.log.error(previousLine.rangeAtEnd(), StringBuilder_new()
-                        .append("Expected ")
-                        .append(tokenToString(kind))
-                        .finish());
+                    this.log.error(previousLine.rangeAtEnd(), `Expected ${tokenToString(kind)}`);
                 }
 
                 else {
-                    this.log.error(this.current.range, StringBuilder_new()
-                        .append("Expected ")
-                        .append(tokenToString(kind))
-                        .append(" but found ")
-                        .append(tokenToString(this.current.kind))
-                        .finish());
+                    this.log.error(this.current.range,
+                        `Expected ${tokenToString(kind)} but found ${tokenToString(this.current.kind)}`);
                 }
             }
 
@@ -169,29 +211,25 @@ class ParserContext {
         let end = range.start + 1;
         let limit = range.end - 1;
         let start = end;
-        let builder = StringBuilder_new();
+        let quotedString = "";
 
         while (end < limit) {
             let c = text[end];
 
             if (c == '\\') {
-                builder.appendSlice(text, start, end);
+                quotedString += text.slice(start, end);
                 end = end + 1;
                 start = end + 1;
                 c = text[end];
 
-                if (c == '0') builder.appendChar('\0');
-                else if (c == 't') builder.appendChar('\t');
-                else if (c == 'n') builder.appendChar('\n');
-                else if (c == 'r') builder.appendChar('\r');
+                if (c == '0') quotedString += '\0';
+                else if (c == 't') quotedString += '\t';
+                else if (c == 'n') quotedString += '\n';
+                else if (c == 'r') quotedString += '\r';
                 else if (c == '"' || c == '\'' || c == '`' || c == '\n' || c == '\\') start = end;
                 else {
                     let escape = createRange(range.source, range.start + end - 1, range.start + end + 1);
-                    this.log.error(escape, StringBuilder_new()
-                        .append("Invalid escape code '")
-                        .append(escape.toString())
-                        .appendChar('\'')
-                        .finish());
+                    this.log.error(escape, `Invalid escape code '${escape.toString()}'`);
                     return null;
                 }
             }
@@ -199,7 +237,7 @@ class ParserContext {
             end = end + 1;
         }
 
-        return builder.appendSlice(text, start, end).finish();
+        return quotedString + text.slice(start, end);
     }
 
     parsePrefix(mode: ParseKind): Node {
@@ -888,11 +926,8 @@ class ParserContext {
 
                 // Recover from an extra variable tokens
                 else if (oldKind == TokenKind.CONST || oldKind == TokenKind.LET || oldKind == TokenKind.VAR) {
-                    this.log.error(childName.range, StringBuilder_new()
-                        .append("Instance variables don't need the '")
-                        .append(childName.range.toString())
-                        .append("' keyword")
-                        .finish());
+                    this.log.error(childName.range,
+                        `Instance variables don't need the '${childName.range.toString()}' keyword`);
 
                     // Get the real identifier
                     childName = this.current;
@@ -1050,11 +1085,8 @@ class ParserContext {
 
                 // Recover from an extra variable tokens
                 else if (oldKind == TokenKind.CONST || oldKind == TokenKind.LET || oldKind == TokenKind.VAR) {
-                    this.log.error(childName.range, StringBuilder_new()
-                        .append("Instance variables don't need the '")
-                        .append(childName.range.toString())
-                        .append("' keyword")
-                        .finish());
+                    this.log.error(childName.range,
+                        `Instance variables don't need the '${childName.range.toString()}' keyword`);
 
                     // Get the real identifier
                     childName = this.current;
@@ -1151,16 +1183,13 @@ class ParserContext {
                 name = nameRange.toString();
 
                 // Recover from an invalid operator name
-                this.log.error(nameRange, StringBuilder_new()
-                    .append("The operator '")
-                    .append(name)
-                    .append("' cannot be implemented")
-                    .append(
-                        end.kind == TokenKind.NOT_EQUAL ? " (it is automatically derived from '==')" :
-                            end.kind == TokenKind.LESS_THAN_EQUAL ? " (it is automatically derived from '>')" :
-                                end.kind == TokenKind.GREATER_THAN_EQUAL ? " (it is automatically derived from '<')" :
-                                    "")
-                    .finish());
+                this.log.error(nameRange,
+                    `The operator '${name}' cannot be implemented ${
+                        end.kind == TokenKind.NOT_EQUAL ? "(it is automatically derived from '==')" :
+                            end.kind == TokenKind.LESS_THAN_EQUAL ? "(it is automatically derived from '>')" :
+                                end.kind == TokenKind.GREATER_THAN_EQUAL ? "(it is automatically derived from '<')" :
+                                    ""
+                        }`);
             }
 
             else {
@@ -1606,7 +1635,7 @@ class ParserContext {
             if (child == null) {
                 return false;
             }
-            if(child.kind === NodeKind.RETURN){
+            if (child.kind === NodeKind.RETURN) {
                 parent.returnNode = child;
             }
             parent.appendChild(child);

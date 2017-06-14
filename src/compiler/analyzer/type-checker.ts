@@ -53,7 +53,6 @@ import {
 import {CompileTarget} from "../compile-target";
 import {Log, SourceRange, spanRanges} from "../../utils/log";
 import {FindNested, Scope, ScopeHint} from "../core/scope";
-import {StringBuilder_new} from "../../utils/stringbuilder";
 import {alignToNextMultipleOf, isPositivePowerOf2} from "../../utils/utils";
 import {MAX_INT32_VALUE, MAX_UINT32_VALUE, MIN_INT32_VALUE} from "../const";
 import {assert} from "../../utils/assert";
@@ -483,10 +482,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         }
 
         else if (node.isSet()) {
-            symbol.rename = StringBuilder_new()
-                .append("set_")
-                .append(symbol.name)
-                .finish();
+            symbol.rename = `set_${symbol.name}`;
 
             // Validate argument count including "this"
             if (argumentCount != 2) {
@@ -498,21 +494,13 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
         else if (node.isOperator()) {
             if (symbol.name == "~" || symbol.name == "++" || symbol.name == "--") {
                 if (argumentCount != 1) {
-                    context.log.error(symbol.range, StringBuilder_new()
-                        .append("Operator '")
-                        .append(symbol.name)
-                        .append("' must not have any arguments")
-                        .finish());
+                    context.log.error(symbol.range, `Operator '${symbol.name}' must not have any arguments`);
                 }
             }
 
             else if (symbol.name == "+" || symbol.name == "-") {
                 if (argumentCount > 2) {
-                    context.log.error(symbol.range, StringBuilder_new()
-                        .append("Operator '")
-                        .append(symbol.name)
-                        .append("' must have at most one argument")
-                        .finish());
+                    context.log.error(symbol.range, `Operator '${symbol.name}' must have at most one argument`);
                 }
             }
 
@@ -523,11 +511,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             }
 
             else if (argumentCount != 2) {
-                context.log.error(symbol.range, StringBuilder_new()
-                    .append("Operator '")
-                    .append(symbol.name)
-                    .append("' must have exactly one argument")
-                    .finish());
+                context.log.error(symbol.range, `Operator '${symbol.name}' must have exactly one argument`);
             }
         }
 
@@ -566,11 +550,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             if (shouldConvertInstanceToGlobal) {
                 symbol.kind = SymbolKind.FUNCTION_GLOBAL;
                 symbol.flags = symbol.flags | SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL;
-                symbol.rename = StringBuilder_new()
-                    .append(parent.name)
-                    .appendChar('_')
-                    .append(symbol.rename != null ? symbol.rename : symbol.name)
-                    .finish();
+                symbol.rename = `${parent.name}_${symbol.rename != null ? symbol.rename : symbol.name}`;
                 let argument = node.functionFirstArgument();
                 assert(argument.symbol.name == "this");
                 argument.symbol.rename = "__this";
@@ -631,11 +611,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
         // Validate the variable type
         if (symbol.resolvedType == context.voidType || symbol.resolvedType == context.nullType) {
-            context.log.error(node.internalRange, StringBuilder_new()
-                .append("Cannot create a variable with type '")
-                .append(symbol.resolvedType.toString())
-                .appendChar('\'')
-                .finish());
+            context.log.error(node.internalRange, `Cannot create a variable with type '${symbol.resolvedType.toString()}'`);
             symbol.resolvedType = context.errorType;
         }
 
@@ -681,11 +657,10 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
             while (scope != null) {
                 let shadowed = scope.findLocal(symbol.name, ScopeHint.NORMAL);
                 if (shadowed != null) {
-                    context.log.error(node.internalRange, StringBuilder_new()
-                        .append("The symbol '")
-                        .append(symbol.name)
-                        .append("' shadows another symbol with the same name in a parent scope")
-                        .finish());
+                    context.log.error(
+                        node.internalRange,
+                        `The symbol '${symbol.name}' shadows another symbol with the same name in a parent scope`
+                    );
                     break;
                 }
 
@@ -998,13 +973,11 @@ export function canConvert(context: CheckContext, node: Node, to: Type, kind: Co
 
 export function checkConversion(context: CheckContext, node: Node, to: Type, kind: ConversionKind): void {
     if (!canConvert(context, node, to, kind)) {
-        context.log.error(node.range, StringBuilder_new()
-            .append("Cannot convert from type '")
-            .append(node.resolvedType.toString())
-            .append("' to type '")
-            .append(to.toString())
-            .append(kind == ConversionKind.IMPLICIT && canConvert(context, node, to, ConversionKind.EXPLICIT) ? "' without a cast" : "'")
-            .finish());
+        context.log.error(node.range,
+            `Cannot convert from type '${node.resolvedType.toString()}' to type '${to.toString()}' ${
+                kind == ConversionKind.IMPLICIT &&
+                canConvert(context, node, to, ConversionKind.EXPLICIT) ? "without a cast" : ""}`
+        );
         node.resolvedType = context.errorType;
     }
 }
@@ -1147,11 +1120,7 @@ export function isBinaryDouble(node: Node): boolean {
 
 export function isSymbolAccessAllowed(context: CheckContext, symbol: Symbol, node: Node, range: SourceRange): boolean {
     if (symbol.isUnsafe() && !context.isUnsafeAllowed) {
-        context.log.error(range, StringBuilder_new()
-            .append("Cannot use symbol '")
-            .append(symbol.name)
-            .append("' outside an 'unsafe' block")
-            .finish());
+        context.log.error(range, `Cannot use symbol '${symbol.name}' outside an 'unsafe' block`);
         return false;
     }
 
@@ -1159,30 +1128,18 @@ export function isSymbolAccessAllowed(context: CheckContext, symbol: Symbol, nod
         let parent = symbol.parent();
 
         if (parent != null && context.enclosingClass != parent) {
-            context.log.error(range, StringBuilder_new()
-                .append("Cannot access private symbol '")
-                .append(symbol.name)
-                .append("' here")
-                .finish());
+            context.log.error(range, `Cannot access private symbol '${symbol.name}' here`);
             return false;
         }
     }
 
     if (isFunction(symbol.kind) && (symbol.isSetter() ? !node.isAssignTarget() : !node.isCallValue())) {
         if (symbol.isSetter()) {
-            context.log.error(range, StringBuilder_new()
-                .append("Cannot use setter '")
-                .append(symbol.name)
-                .append("' here")
-                .finish());
+            context.log.error(range, `Cannot use setter '${symbol.name}' here`);
         }
 
         else {
-            context.log.error(range, StringBuilder_new()
-                .append("Must call function '")
-                .append(symbol.name)
-                .appendChar('\'')
-                .finish());
+            context.log.error(range, `Must call function '${symbol.name}'`);
         }
 
         return false;
@@ -1387,11 +1344,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     node.resolvedType = target.resolvedType.pointerTo.symbol.resolvedType;
                 } else {
 
-                    context.log.error(node.internalRange, StringBuilder_new()
-                        .append("Cannot index into type '")
-                        .append(target.resolvedType.toString())
-                        .appendChar('\'')
-                        .finish());
+                    context.log.error(node.internalRange,
+                        `Cannot index into type '${target.resolvedType.toString()}'`);
                 }
             }
 
@@ -1446,34 +1400,29 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let symbol = parentScope.findNested(name, ScopeHint.NORMAL, FindNested.NORMAL);
 
         if (symbol == null) {
-            let builder = StringBuilder_new()
-                .append("No symbol named '")
-                .append(name)
-                .append("' here");
+            let errorMessage = `No symbol named '${name}' here`;
 
             // In JavaScript, "this." before instance symbols is required
             symbol = parentScope.findNested(name, ScopeHint.NORMAL, FindNested.ALLOW_INSTANCE_ERRORS);
             if (symbol != null) {
-                builder
-                    .append(", did you mean 'this.")
-                    .append(symbol.name)
-                    .append("'?");
+                errorMessage += `, did you mean 'this.${symbol.name}'?`;
             }
 
             // People may try to use types from TypeScript
-            else if (name == "number") builder.append(", you cannot use generic number type from TypeScript!");
+            else if (name == "number") {
+                // TODO: convert to float64 automatically
+                errorMessage += ", you cannot use generic number type from TypeScript!";
+            }
 
-            else if (name == "bool") builder.append(", did you mean 'boolean'?");
+            else if (name == "bool") {
+                errorMessage += ", did you mean 'boolean'?";
+            }
 
-            context.log.error(node.range, builder.finish());
+            context.log.error(node.range, errorMessage);
         }
 
         else if (symbol.state == SymbolState.INITIALIZING) {
-            context.log.error(node.range, StringBuilder_new()
-                .append("Cyclic reference to symbol '")
-                .append(name)
-                .append("' here")
-                .finish());
+            context.log.error(node.range, `Cyclic reference to symbol '${name}' here`);
         }
 
         else if (isSymbolAccessAllowed(context, symbol, node, node.range)) {
@@ -1558,13 +1507,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     let symbol = target.resolvedType.findMember(name, node.isAssignTarget() ? ScopeHint.PREFER_SETTER : ScopeHint.PREFER_GETTER);
 
                     if (symbol == null) {
-                        context.log.error(node.internalRange, StringBuilder_new()
-                            .append("No member named '")
-                            .append(name)
-                            .append("' on type '")
-                            .append(target.resolvedType.toString())
-                            .appendChar('\'')
-                            .finish());
+                        context.log.error(
+                            node.internalRange,
+                            `No member named '${name}' on type '${target.resolvedType.toString()}'`
+                        );
                     }
 
                     // Automatically call getters
@@ -1597,11 +1543,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
 
             else {
-                context.log.error(node.internalRange, StringBuilder_new()
-                    .append("The type '")
-                    .append(target.resolvedType.toString())
-                    .append("' has no members")
-                    .finish());
+                context.log.error(
+                    node.internalRange,
+                    `The type '${target.resolvedType.toString()}' has no members`
+                );
             }
         }
     }
@@ -1615,11 +1560,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             // Only functions are callable
             if (symbol == null || !isFunction(symbol.kind)) {
-                context.log.error(value.range, StringBuilder_new()
-                    .append("Cannot call value of type '")
-                    .append(value.resolvedType.toString())
-                    .appendChar('\'')
-                    .finish());
+                context.log.error(
+                    value.range,
+                    `Cannot call value of type '${value.resolvedType.toString()}'`);
             }
 
             else {
@@ -1649,11 +1592,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 if (returnType.resolvedType != context.anyType) {
 
                     if (argumentVariable != returnType && !argumentVariable.hasVariableValue()) {
-                        context.log.error(node.internalRange, StringBuilder_new()
-                            .append("Not enough arguments for function '")
-                            .append(symbol.name)
-                            .appendChar('\'')
-                            .finish());
+                        context.log.error(
+                            node.internalRange,
+                            `Not enough arguments for function '${symbol.name}'`);
                     }
 
                     // Too many arguments?
@@ -1662,11 +1603,9 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                             resolveAsExpression(context, argumentValue, parentScope);
                             argumentValue = argumentValue.nextSibling;
                         }
-                        context.log.error(node.internalRange, StringBuilder_new()
-                            .append("Too many arguments for function '")
-                            .append(symbol.name)
-                            .appendChar('\'')
-                            .finish());
+                        context.log.error(
+                            node.internalRange,
+                            `Too many arguments for function '${symbol.name}'`);
                     }
                 }
 
@@ -1691,11 +1630,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         else {
-            context.log.error(node.range, StringBuilder_new()
-                .append("Expected delete value '")
-                .append(context.currentReturnType.toString())
-                .appendChar('\'')
-                .finish());
+            context.log.error(
+                node.range,
+                `Expected delete value '${context.currentReturnType.toString()}'`
+            );
         }
     }
 
@@ -1725,11 +1663,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         }
 
         else if (context.currentReturnType != null && context.currentReturnType != context.voidType) {
-            context.log.error(node.range, StringBuilder_new()
-                .append("Expected return value in function returning '")
-                .append(context.currentReturnType.toString())
-                .appendChar('\'')
-                .finish());
+            context.log.error(
+                node.range,
+                `Expected return value in function returning '${context.currentReturnType.toString()}'`
+            );
         }
     }
 
@@ -1792,13 +1729,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let commonType = (yes.resolvedType == context.nullType ? no : yes).resolvedType;
         if (yes.resolvedType != commonType && (yes.resolvedType != context.nullType || !commonType.isReference()) &&
             no.resolvedType != commonType && (no.resolvedType != context.nullType || !commonType.isReference())) {
-            context.log.error(spanRanges(yes.range, no.range), StringBuilder_new()
-                .append("Type '")
-                .append(yes.resolvedType.toString())
-                .append("' is not the same as type '")
-                .append(no.resolvedType.toString())
-                .appendChar('\'')
-                .finish());
+            context.log.error(
+                spanRanges(yes.range, no.range),
+                `Type '${yes.resolvedType.toString()}' is not the same as type '${no.resolvedType.toString()}'`
+            );
         }
         node.resolvedType = commonType;
     }
@@ -1823,11 +1757,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                         left.resolvedType = target.resolvedType.pointerTo.symbol.resolvedType;
                     } else {
 
-                        context.log.error(left.internalRange, StringBuilder_new()
-                            .append("Cannot index into type '")
-                            .append(target.resolvedType.toString())
-                            .appendChar('\'')
-                            .finish());
+                        context.log.error(
+                            left.internalRange,
+                            `Cannot index into type '${target.resolvedType.toString()}'`
+                        );
                     }
                 }
 
@@ -1850,7 +1783,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        if(!left.resolvedType) {
+        if (!left.resolvedType) {
             resolveAsExpression(context, left, parentScope);
         }
 
@@ -1880,11 +1813,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
         if (type.resolvedType != context.errorType) {
             if (!type.resolvedType.isClass()) {
-                context.log.error(type.range, StringBuilder_new()
-                    .append("Cannot construct type '")
-                    .append(type.resolvedType.toString())
-                    .appendChar('\'')
-                    .finish());
+                context.log.error(
+                    type.range,
+                    `Cannot construct type '${type.resolvedType.toString()}'`
+                );
             }
 
             else {
@@ -1928,17 +1860,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             let type = value.resolvedType;
 
             if (type != context.errorType) {
-                // if ((!type.isInteger() && !type.symbol.node.isTurbo()) && type.pointerTo == null) {
-                //     context.log.error(node.internalRange, StringBuilder_new()
-                //         .append("Cannot create a pointer to non-integer type '")
-                //         .append(type.toString())
-                //         .appendChar('\'')
-                //         .finish());
-                // }
-                //
-                // else {
                 node.resolvedType = type.pointerType();
-                // }
             }
         }
     }
@@ -1953,11 +1875,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
         if (type != context.errorType) {
             if (type.pointerTo == null) {
-                context.log.error(node.internalRange, StringBuilder_new()
-                    .append("Cannot dereference type '")
-                    .append(type.toString())
-                    .appendChar('\'')
-                    .finish());
+                context.log.error(node.internalRange, `Cannot dereference type '${type.toString()}'`);
             }
 
             else {
@@ -2064,13 +1982,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
 
             else {
-                context.log.error(node.internalRange, StringBuilder_new()
-                    .append("Cannot use unary operator '")
-                    .append(name)
-                    .append("' with type '")
-                    .append(value.resolvedType.toString())
-                    .appendChar('\'')
-                    .finish());
+                context.log.error(node.internalRange,
+                    `Cannot use unary operator '${name}' with type '${value.resolvedType.toString()}'`);
             }
         }
     }
@@ -2110,13 +2023,8 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
             // Both pointer types must be exactly the same
             if (leftType != rightType) {
-                context.log.error(node.internalRange, StringBuilder_new()
-                    .append("Cannot compare type '")
-                    .append(leftType.toString())
-                    .append("' with type '")
-                    .append(rightType.toString())
-                    .appendChar('\'')
-                    .finish());
+                context.log.error(node.internalRange,
+                    `Cannot compare type '${leftType.toString()}' with type '${rightType.toString()}'`);
             }
         }
 
@@ -2299,25 +2207,21 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             else if (kind == NodeKind.EQUAL || kind == NodeKind.NOT_EQUAL) {
                 node.resolvedType = context.booleanType;
 
-                if (leftType != context.errorType && rightType != context.errorType && leftType != rightType && !canConvert(context, right, leftType, ConversionKind.IMPLICIT) && !canConvert(context, left, rightType, ConversionKind.IMPLICIT)) {
-                    context.log.error(node.internalRange, StringBuilder_new()
-                        .append("Cannot compare type '")
-                        .append(leftType.toString())
-                        .append("' with type '")
-                        .append(rightType.toString())
-                        .appendChar('\'')
-                        .finish());
+                if (
+                    leftType != context.errorType &&
+                    rightType != context.errorType &&
+                    leftType != rightType &&
+                    !canConvert(context, right, leftType, ConversionKind.IMPLICIT) &&
+                    !canConvert(context, left, rightType, ConversionKind.IMPLICIT)
+                ) {
+                    context.log.error(node.internalRange,
+                        `Cannot compare type '${leftType.toString()}' with type '${rightType.toString()}'`);
                 }
             }
 
             else {
-                context.log.error(node.internalRange, StringBuilder_new()
-                    .append("Cannot use binary operator '")
-                    .append(name)
-                    .append("' with type '")
-                    .append(leftType.toString())
-                    .appendChar('\'')
-                    .finish());
+                context.log.error(node.internalRange,
+                    `Cannot use binary operator '${name}' with type '${leftType.toString()}'`);
             }
         }
     }

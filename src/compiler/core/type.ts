@@ -1,12 +1,15 @@
 import {
-    Symbol, SymbolKind, SYMBOL_FLAG_NATIVE_INTEGER, SYMBOL_FLAG_IS_UNSIGNED,
-    SYMBOL_FLAG_NATIVE_FLOAT, SYMBOL_FLAG_IS_REFERENCE, SYMBOL_FLAG_NATIVE_LONG, SYMBOL_FLAG_NATIVE_DOUBLE,
-    SYMBOL_FLAG_IS_ARRAY
+    Symbol,
+    SYMBOL_FLAG_IS_REFERENCE,
+    SYMBOL_FLAG_IS_UNSIGNED,
+    SYMBOL_FLAG_NATIVE_DOUBLE,
+    SYMBOL_FLAG_NATIVE_FLOAT,
+    SYMBOL_FLAG_NATIVE_INTEGER,
+    SYMBOL_FLAG_NATIVE_LONG,
+    SymbolKind
 } from "./symbol";
 import {CheckContext} from "../analyzer/type-checker";
-import {StringBuilder_new} from "../../utils/stringbuilder";
 import {ScopeHint} from "./scope";
-import {MAX_UINT32_VALUE} from "../const";
 
 export enum ConversionKind {
     IMPLICIT,
@@ -65,8 +68,8 @@ export class Type {
     isTypedArray(): boolean {
         return this.symbol != null &&
             (this.symbol.name == "Float32Array" || this.symbol.name == "Float64Array" ||
-            this.symbol.name == "Int8Array" || this.symbol.name == "Int16Array"|| this.symbol.name == "Int32Array" ||
-            this.symbol.name == "Uint8Array" || this.symbol.name == "Uint16Array"|| this.symbol.name == "Uint32Array");
+            this.symbol.name == "Int8Array" || this.symbol.name == "Int16Array" || this.symbol.name == "Int32Array" ||
+            this.symbol.name == "Uint8Array" || this.symbol.name == "Uint16Array" || this.symbol.name == "Uint32Array");
     }
 
     isReference(): boolean {
@@ -102,7 +105,7 @@ export class Type {
     }
 
     pointerType(): Type {
-        var type = this.cachedPointerType;
+        let type = this.cachedPointerType;
         if (type == null) {
             type = new Type();
             type.pointerTo = this;
@@ -114,19 +117,19 @@ export class Type {
     toString(): string {
         if (this.cachedToString == null) {
             this.cachedToString =
-                this.pointerTo != null ? StringBuilder_new().appendChar('*').append(this.pointerTo.toString()).finish() :
+                this.pointerTo != null ? "*" + this.pointerTo.toString() :
                     this.symbol.name;
         }
         return this.cachedToString;
     }
 
     findMember(name: string, hint: ScopeHint): Symbol {
-        var symbol = this.symbol;
+        let symbol = this.symbol;
         return symbol != null && symbol.scope != null ? symbol.scope.findLocal(name, hint) : null;
     }
 
     hasInstanceMembers(): boolean {
-        var symbol = this.symbol;
+        let symbol = this.symbol;
         return symbol != null && (symbol.kind == SymbolKind.TYPE_TEMPLATE || symbol.kind == SymbolKind.TYPE_CLASS || symbol.kind == SymbolKind.TYPE_NATIVE);
     }
 }

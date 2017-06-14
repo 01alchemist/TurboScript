@@ -1,7 +1,6 @@
 import {createRange, Log, Source} from "../../utils/log";
 import {Compiler} from "../compiler";
 import {isAlpha, isNumber, TokenKind} from "../scanner/scanner";
-import {StringBuilder_new} from "../../utils/stringbuilder";
 import {FileSystem} from "../../utils/filesystem";
 import {Terminal} from "../../utils/terminal";
 
@@ -147,7 +146,7 @@ function resolveImport(importPath: string, original:string): string {
         contents = FileSystem.readTextFile(importPath);
     }
     if (contents == null) {
-        Terminal.error(StringBuilder_new().append("Cannot read from ").append(importPath).finish());
+        Terminal.error(`Cannot read from ${importPath}`);
         return null;
     }
     return contents;

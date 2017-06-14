@@ -1,6 +1,5 @@
 import {Symbol, SymbolKind, SymbolState} from "./symbol";
 import {Log} from "../../utils/log";
-import {StringBuilder_new} from "../../utils/stringbuilder";
 import {Type} from "./type";
 export enum FindNested {
   NORMAL,
@@ -62,19 +61,13 @@ export class Scope {
   }
 
   define(log: Log, symbol: Symbol, hint: ScopeHint): boolean {
-    var existing = this.findLocal(symbol.name, hint);
+    let existing = this.findLocal(symbol.name, hint);
     if (existing != null) {
       if (symbol.name == "this") {
-        log.warning(symbol.range, StringBuilder_new()
-            .append("Duplicate 'this' symbol")
-            .finish());
+        log.warning(symbol.range, "Duplicate 'this' symbol");
         return true;
       } else {
-        log.error(symbol.range, StringBuilder_new()
-            .append("Duplicate symbol '")
-            .append(symbol.name)
-            .append("'")
-            .finish());
+        log.error(symbol.range, `Duplicate symbol '${symbol.name}'`);
         return false;
       }
     }

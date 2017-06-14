@@ -1,5 +1,4 @@
-import {SourceRange, createRange, Source, Log} from "../../utils/log";
-import {StringBuilder_new} from "../../utils/stringbuilder";
+import {createRange, Log, Source, SourceRange} from "../../utils/log";
 import {assert} from "../../utils/assert";
 /**
  * Author: Nidin Vinayakan
@@ -389,14 +388,13 @@ export function tokenize(source: Source, log: Log): Token {
                 let exponentFound: boolean = false;
                 // Scan the payload
                 while (i < limit && (isDigit(contents[i], base) ||
-                    (exponentFound = contents[i] === "e") ||
-                    (floatFound = contents[i] === ".")))
-                {
+                (exponentFound = contents[i] === "e") ||
+                (floatFound = contents[i] === "."))) {
                     i = i + 1;
 
                     if (exponentFound) {
                         isFloat = true;
-                        if(contents[i] === "+" || contents[i] === "-"){
+                        if (contents[i] === "+" || contents[i] === "-") {
                             i = i + 1;
                         }
                     }
@@ -421,11 +419,8 @@ export function tokenize(source: Source, log: Log): Token {
                         i = i + 1;
                     }
 
-                    log.error(createRange(source, start, i), StringBuilder_new()
-                        .append(`Invalid ${isFloat ? "float" : "integer"} literal: '`)
-                        .appendSlice(contents, start, i)
-                        .appendChar('\'')
-                        .finish());
+                    log.error(createRange(source, start, i),
+                        `Invalid ${isFloat ? "float" : "integer"} literal: '${contents.slice(start, i)}'`);
                     return null;
                 }
             }
@@ -670,33 +665,33 @@ export function tokenize(source: Source, log: Log): Token {
             }
 
             else {
-                var builder = StringBuilder_new().append("Invalid preprocessor token '").append(text).appendChar('\'');
+                let errorMessage = `Invalid preprocessor token '${text}'`;
 
                 // Check for #if typos
                 if (text == "#ifdef") {
-                    builder.append(", did you mean '#if'?");
+                    errorMessage += ", did you mean '#if'?";
                     kind = TokenKind.PREPROCESSOR_IF;
                 }
 
                 // Check for #elif typos
                 else if (text == "#elsif" || text == "#elseif") {
-                    builder.append(", did you mean '#elif'?");
+                    errorMessage += ", did you mean '#elif'?";
                     kind = TokenKind.PREPROCESSOR_ELIF;
                 }
 
                 // Check for #endif typos
                 else if (text == "#end") {
-                    builder.append(", did you mean '#endif'?");
+                    errorMessage += ", did you mean '#endif'?";
                     kind = TokenKind.PREPROCESSOR_ENDIF;
                 }
 
-                log.error(createRange(source, start, i), builder.finish());
+                log.error(createRange(source, start, i), errorMessage);
             }
 
             // All preprocessor directives must be on a line by themselves
             if (last != null && last.kind != TokenKind.PREPROCESSOR_NEWLINE) {
-                var end = last.range.end;
-                var j = i - 1;
+                let end = last.range.end;
+                let j = i - 1;
                 while (j >= end) {
                     if (contents[j] == '\n') {
                         break;
@@ -704,10 +699,7 @@ export function tokenize(source: Source, log: Log): Token {
                     j = j - 1;
                 }
                 if (j < end) {
-                    log.error(createRange(source, start, i), StringBuilder_new()
-                        .append("Expected newline before ")
-                        .append(tokenToString(kind))
-                        .finish());
+                    log.error(createRange(source, start, i), `Expected newline before ${tokenToString(kind)}`);
                 }
             }
 
@@ -715,18 +707,14 @@ export function tokenize(source: Source, log: Log): Token {
             wantNewline = true;
         }
 
-        var range = createRange(source, start, i);
+        let range = createRange(source, start, i);
 
         if (kind == TokenKind.END_OF_FILE) {
-            log.error(range, StringBuilder_new()
-                .append("Syntax error: '")
-                .appendSlice(contents, start, start + 1)
-                .appendChar('\'')
-                .finish());
+            log.error(range, `Syntax error: '${contents.slice(start, start + 1)}'`);
             return null;
         }
 
-        var token = new Token();
+        let token = new Token();
         token.kind = kind;
         token.range = range;
 
@@ -735,7 +723,7 @@ export function tokenize(source: Source, log: Log): Token {
         last = token;
     }
 
-    var eof = new Token();
+    let eof = new Token();
     eof.kind = TokenKind.END_OF_FILE;
     eof.range = createRange(source, limit, limit);
 
@@ -745,7 +733,7 @@ export function tokenize(source: Source, log: Log): Token {
 
     // Pass a "flag" for whether the preprocessor is needed back to the caller
     if (needsPreprocessor) {
-        var token = new Token();
+        let token = new Token();
         token.kind = TokenKind.PREPROCESSOR_NEEDED;
         token.next = first;
         return token;

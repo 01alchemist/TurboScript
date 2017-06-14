@@ -1,10 +1,8 @@
 ///<reference path="declarations.d.ts" />
 import {writeLogToTerminal} from "./utils/log";
-import {StringBuilder_new} from "./utils/stringbuilder";
 import {Compiler, replaceFileExtension} from "./compiler/compiler";
 import {CompileTarget} from "./compiler/compile-target";
 import {Terminal} from "./utils/terminal";
-import {Color} from "./utils/color";
 import {FileSystem} from "./utils/filesystem";
 
 /**
@@ -78,7 +76,7 @@ export function main_entry(): int32 {
                 argument = argument.next;
                 output = argument.text;
             } else {
-                Terminal.error(StringBuilder_new().append("Invalid flag: ").append(text).finish());
+                Terminal.error("Invalid flag: " + text);
                 return 1;
             }
         } else {
@@ -128,7 +126,7 @@ export function main_entry(): int32 {
         } else if (!text.startsWith("-")) {
             let contents = FileSystem.readTextFile(text);
             if (contents == null) {
-                Terminal.error(StringBuilder_new().append("Cannot read from ").append(text).finish());
+                Terminal.error("Cannot read from " + text);
                 return 1;
             }
             compiler.addInput(text, contents);
@@ -151,7 +149,7 @@ export function main_entry(): int32 {
             return 0;
         }
 
-        Terminal.error(StringBuilder_new().append("Cannot write to ").append(output).finish());
+        Terminal.error("Cannot write to " + output);
     }
 
     Terminal.write("\n");
@@ -165,9 +163,9 @@ export const main = {
     entry: main_entry
 };
 
-export function compileString(source:string, target:CompileTarget = CompileTarget.WEBASSEMBLY) {
+export function compileString(source: string, target: CompileTarget = CompileTarget.WEBASSEMBLY) {
     Terminal.silent = true;
-    if(typeof TURBO_PATH === "undefined"){
+    if (typeof TURBO_PATH === "undefined") {
         TURBO_PATH = "";
     }
     let input = "tmp-string-source.tbs";
@@ -179,9 +177,22 @@ export function compileString(source:string, target:CompileTarget = CompileTarge
     compiler.finish();
     Terminal.silent = false;
     if (!compiler.log.hasErrors()) {
-        return compiler.outputWASM;
+        return {
+            success: true,
+            wasm: compiler.outputWASM,
+            wast: "Not yet supported"
+        };
     } else {
         writeLogToTerminal(compiler.log);
-        return null;
+        return {
+            success: false,
+            log: compiler.log
+        };
     }
+}
+
+export default {
+    version: "1.0.0-beta",
+    main: main,
+    compileString: compileString
 }

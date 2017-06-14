@@ -29,8 +29,6 @@ const WASM_SET_MAX_MEMORY = false;
 const WASM_MAX_MEMORY = 1024 * 1024 * 1024;
 const WASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
 
-global["debug"] = true;
-
 class WasmModule {
 
     firstImport: WasmImport;

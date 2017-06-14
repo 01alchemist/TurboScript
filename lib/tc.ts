@@ -28,7 +28,7 @@ global["TURBO_PATH"] = process.env.TURBO_PATH;
 console.log("TURBO_PATH:" + global["TURBO_PATH"]);
 
 //Import compiler
-const turbo = require("./turbo.js");
+const turbo = require("./turboscript.js");
 
 const Color = turbo.Color;
 const turboMain = turbo.main;

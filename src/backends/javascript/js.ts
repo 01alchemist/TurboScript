@@ -630,8 +630,8 @@ export function jsKindCastsOperandsToInt(kind: NodeKind): boolean {
 }
 
 export function jsEmit(compiler: Compiler): void {
-    var code = StringBuilder_new();
-    var result = new JsResult();
+    let code = StringBuilder_new();
+    let result = new JsResult();
     result.context = compiler.context;
     result.code = code;
 
