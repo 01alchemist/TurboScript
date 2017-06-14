@@ -20,14 +20,39 @@ TurboScript is an experimental programming language for parallel programming for
 
 This is still an experiment and isn't intended for real use yet but we are working towards an MVP release. Please feel free to open issues if it stop working or need a new feature.
 
-## Usage
+## Install
 `npm install -g turboscript`
 
-#### Example script
+## Syntax
+
+### variables
+```typescript
+var myGlobal:int32 = 1;
+let evaluatedVar:int32 = myGlobal + 1;
+// let is same as var. 
+```
+
+### function
 ```typescript
 // add.tbs
 export function add(a:int32, b:int32):int32 {
     return a + b;
+}
+```
+
+### class
+```typescript
+// vector3D.tbs
+export class Vector3D {
+    x:float32;
+    y:float32;
+    z:float32;
+    
+    constructor(x:float32, y:float32, z:float32){
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
 }
 ```
 
