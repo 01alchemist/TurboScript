@@ -181,7 +181,7 @@ export function compileString(source: string, options: CompilerOptions = default
             wast: "WebAssembly text format output is not yet supported!\nPlease check wasm binary data."
         };
     } else {
-        if(!options.silent || options.logError){
+        if (!options.silent || options.logError) {
             writeLogToTerminal(compiler.log);
         }
         return {
@@ -191,8 +191,10 @@ export function compileString(source: string, options: CompilerOptions = default
     }
 }
 
+export const version = "1.0.0-beta";
+
 export default {
-    version: "1.0.0-beta",
+    version: version,
     main: main,
     compileString: compileString
 }
