@@ -56,6 +56,91 @@ export class Vector3D {
 }
 ```
 
+### Generic
+```typescript
+class Foo<T> {
+    value:T;
+    constructor(value:T){
+        this.value = value;
+    }
+    getValue():T {
+        return this.value;
+    }
+}
+
+export function testI32(value:int32):int32 {
+    let instance = new Foo<int32>(value);
+    return instance.getValue();
+}
+```
+
+### Operator overload
+```typescript
+class Array<T> {
+
+    bytesLength: int32;
+    elementSize: int32;
+
+    constructor(bytesLength: int32, elementSize: int32) {
+        this.bytesLength = bytesLength;
+        this.elementSize = elementSize;
+    }
+
+    operator [] (index: int32): T {
+        let stripe = index * this.elementSize;
+        if (stripe >= 0 && stripe < this.bytesLength) {
+            return *((this as *uint8 + 8 + stripe) as *T);
+        }
+        return null as T;
+    }
+
+    operator []= (index: int32, value: T): void {
+        let stripe = index * this.elementSize;
+        if (stripe >= 0 && stripe < this.bytesLength) {
+            *((this as *uint8 + 8 + stripe) as *T) = value;
+        }
+    }
+
+    get length(): int32 {
+        return this.bytesLength / this.elementSize;
+    }
+}
+```
+
+### Array
+```typescript
+// f64-array.tbs
+var a: Array<float64> = null;
+
+export function test(num:int32): Array<float64> {
+    a = new Array<float64>(num);
+    let i:int32 = 0;
+    while (i < num) {
+        a[i] = 0.0;
+        i = i + 1;
+    }
+    return a;
+}
+
+export function getArrayByteLength(value:Array<float64>):int32 {
+    return value.bytesLength;
+}
+export function getArrayElementSize(value:Array<float64>):int32 {
+    return value.elementSize;
+}
+
+export function getArray(): Array<float64> {
+    return a;
+}
+export function getData(index:int32):float64 {
+    return a[index];
+}
+export function setData(index:int32, value:float64):void {
+    a[index] = value;
+}
+
+```
+
 #### Compile to wasm
 `tc add.tbs --wasm --out add.wasm`
 
