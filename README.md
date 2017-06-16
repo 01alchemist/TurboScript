@@ -35,13 +35,13 @@ let evaluatedVar:int32 = myGlobal + 1;
 ### Number Literals
 ```typescript
 let integer:int32 = 1234;
-let integer:int64 = 1234;
-let floatingPoint32bit:float32 = 1.234f;
+let integer64bit:int64 = 1234;
+let floatingPoint:float32 = 1.234f;
 let floatingPoint64bit:float64 = 1.234; // default floating point number is 64 bit
 
 // You can also omit type since compiler infer type from the literal
 let integer = 1234; // default integer is 32 bit, use type :int64 for 64 bit integer 
-let floatingPoint32bit = 1.234f;
+let floatingPoint = 1.234f;
 let floatingPoint64bit = 1.234;
 ```
 
