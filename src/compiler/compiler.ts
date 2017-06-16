@@ -36,6 +36,7 @@ export class Compiler {
     outputH: string;
 
     static mallocRequired: boolean = false;
+    static debug:boolean = false;
 
     initialize(target: CompileTarget, outputName: string): void {
         assert(this.log == null);

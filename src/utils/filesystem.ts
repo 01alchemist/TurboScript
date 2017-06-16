@@ -4,6 +4,13 @@ import {Terminal} from "./terminal";
 /**
  * Created by n.vinayakan on 06.06.17.
  */
+if(typeof Map === "undefined") {
+    var Map = function () {
+        this.get = (key) => { return this[key]; };
+        this.set = (key, value) => { return this[key] = value; };
+    };
+}
+
 let fs = null;
 let virtualFileSystem = {
     fileMap: new Map(),

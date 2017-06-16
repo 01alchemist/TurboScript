@@ -18,13 +18,14 @@
     "fs": "^0.0.1-security",
     "fs-extra": "^2.1.2",
     "jest": "^19.0.2",
-    "prepack-webpack-plugin": "^1.1.0",
     "raw-loader": "^0.5.1",
     "request": "^2.81.0",
     "ts-jest": "^19.0.9",
     "ts-loader": "^2.1.0",
     "ts-node": "^3.0.2",
     "typescript": "^2.3.4",
+    "uglify-js": "git://github.com/mishoo/UglifyJS2#harmony-v2.8.22",
+    "uglifyjs-webpack-plugin": "^0.4.3",
     "webpack": "^2.6.1"
   },
   "bin": {

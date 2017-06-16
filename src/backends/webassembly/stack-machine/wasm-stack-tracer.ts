@@ -7,6 +7,9 @@ import {Terminal} from "../../../utils/terminal";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
+
+const clz32 = Math["clz32"] || function (value) {};
+
 export class WasmStackItem {
     constructor(public type: WasmType, public value: number) {}
 }
@@ -389,7 +392,7 @@ export class WasmStackTracer {
             case WasmOpcode.I32_CLZ:
             case WasmOpcode.I64_CLZ: {
                 let a = this.context.stack.pop();
-                this.context.stack.push(new WasmStackItem(type, Math.clz32(a.value)));
+                this.context.stack.push(new WasmStackItem(type, clz32(a.value)));
                 break;
             }
 
