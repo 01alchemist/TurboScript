@@ -23,6 +23,24 @@ This is still an experiment and isn't intended for real use yet but we are worki
 ## Install
 `npm install -g turboscript`
 
+## Types
+Type      | Native type | Description
+----------|-------------|-------------
+`int8`   | i32         | An 8-bit signed integer.
+`uint8`    | i32         | An 8-bit unsigned integer.
+`int16`   | i32         | A 16-bit signed integer.
+`uint16`  | i32         | A 16-bit unsigned integer.
+`int32`     | i32         | A 32-bit signed integer.
+`uint32`    | i32         | A 32-bit unsigned integer.
+`int64`    | i64         | A 64-bit signed integer.
+`uint64`   | i64         | A 64-bit unsigned integer.
+`boolean`    | i32         | A 1-bit unsigned integer.
+`float32`   | f32         | A 32-bit floating point number.
+`float64`  | f64         | A 64-bit floating point number.
+`void`    | none        | No return type.
+`string`    | i32        | A utf-8 encoded textual data type.
+`Array<T>`    | i32        | A generic array data type.
+
 ## Syntax
 
 ### variables
