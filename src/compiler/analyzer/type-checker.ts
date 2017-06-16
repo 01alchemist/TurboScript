@@ -1026,6 +1026,10 @@ export function createDefaultValueForType(context: CheckContext, type: Type): No
         return createNull();
     }
 
+    if (type.isGeneric()) {
+        return createNull();
+    }
+
     assert(type.isReference());
     return createNull();
 }

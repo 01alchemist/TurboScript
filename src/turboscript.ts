@@ -1,5 +1,5 @@
 ///<reference path="declarations.d.ts" />
-import {writeLogToTerminal} from "./utils/log";
+import {Log, writeLogToTerminal} from "./utils/log";
 import {Compiler, replaceFileExtension} from "./compiler/compiler";
 import {CompileTarget} from "./compiler/compile-target";
 import {Terminal} from "./utils/terminal";
@@ -164,7 +164,14 @@ export const main = {
     entry: main_entry
 };
 
-export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions) {
+export interface CompileResult {
+    success: boolean;
+    wasm?: Uint8Array;
+    wast?: string;
+    log?: Log;
+}
+
+export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions):CompileResult {
     Terminal.silent = options.silent;
     let input = "/virtual/inline.tbs";
     let output = "/virtual/inline.wasm";
