@@ -32,6 +32,19 @@ let evaluatedVar:int32 = myGlobal + 1;
 // let is same as var.
 ```
 
+### Number Literals
+```typescript
+let integer:int32 = 1234;
+let integer:int64 = 1234;
+let floatingPoint32bit:float32 = 1.234f;
+let floatingPoint64bit:float64 = 1.234; // default floating point number is 64 bit
+
+// You can also omit type since compiler infer type from the literal
+let integer = 1234; // default integer is 32 bit, use type :int64 for 64 bit integer 
+let floatingPoint32bit = 1.234f;
+let floatingPoint64bit = 1.234;
+```
+
 ### function
 ```typescript
 // add.tbs
@@ -92,34 +105,30 @@ export function testF64(value:float64):float64 {
 
 ### Operator overload
 ```typescript
-class Array<T> {
+class Vector3D {
+    x:float32;
+    y:float32;
+    z:float32;
 
-    bytesLength: int32;
-    elementSize: int32;
-
-    constructor(bytesLength: int32, elementSize: int32) {
-        this.bytesLength = bytesLength;
-        this.elementSize = elementSize;
+    constructor(x:float32, y:float32, z:float32){
+        this.x = x;
+        this.y = y;
+        this.z = z;
     }
 
-    operator [] (index: int32): T {
-        let stripe = index * this.elementSize;
-        if (stripe >= 0 && stripe < this.bytesLength) {
-            return *((this as *uint8 + 8 + stripe) as *T);
-        }
-        return null as T;
+    operator + (other:Vector3D):Vector3D {
+        return new Vector3D(this.x + other.x, this.y + other.y, this.z + other.z);
     }
 
-    operator []= (index: int32, value: T): void {
-        let stripe = index * this.elementSize;
-        if (stripe >= 0 && stripe < this.bytesLength) {
-            *((this as *uint8 + 8 + stripe) as *T) = value;
-        }
+    operator - (other:Vector3D):Vector3D {
+        return new Vector3D(this.x - other.x, this.y - other.y, this.z - other.z);
     }
-
-    get length(): int32 {
-        return this.bytesLength / this.elementSize;
-    }
+}
+export function test():boolean {
+    let a = new Vector3D(1.0f,1.0f,1.0f);
+    let b = new Vector3D(1.0f,1.0f,1.0f);
+    let c = a + b;
+    return c.x == 2.0f && c.y == 2.0f && c.z == 2.0f;
 }
 ```
 
