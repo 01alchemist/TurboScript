@@ -1,6 +1,6 @@
 {
   "name": "turboscript",
-  "version": "1.0.0-beta",
+  "version": "1.0.1-beta",
   "description": "Super charged JavaScript for parallel programming and WebAssembly",
   "main": "index.js",
   "directories": {
