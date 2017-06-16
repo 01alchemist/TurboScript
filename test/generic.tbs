@@ -12,3 +12,19 @@ export function testI32(value:int32):int32 {
     let instance = new Foo<int32>(value);
     return instance.getValue();
 }
+
+export function testI64(value:int32):int32 {
+    let value2 = value as int64;
+    let instance = new Foo<int64>(value2);
+    return instance.getValue() as int32;
+}
+
+export function testF32(value:float32):float32 {
+    let instance = new Foo<float32>(value);
+    return instance.getValue();
+}
+
+export function testF64(value:float64):float64 {
+    let instance = new Foo<float64>(value);
+    return instance.getValue();
+}

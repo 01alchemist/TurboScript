@@ -1,18 +1,16 @@
 import {Terminal} from "./terminal";
+import {Compiler} from "../compiler/compiler";
 /**
  * Created by n.vinayakan on 06.06.17.
  */
 export function assert(truth) {
     if (!truth) {
-        if(typeof self["debug"] !== "undefined" && self["debug"]){
-            debugger;
-        }
-        let error = new Error('Assertion failed');
-        Terminal.error(error);
+        debugger;
+        Terminal.error('Assertion failed');
         if(typeof process !== "undefined"){
             process.exit(1);
         } else{
-            throw error;
+            throw 'Assertion failed';
         }
     }
 }
