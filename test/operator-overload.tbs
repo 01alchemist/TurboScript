@@ -1,0 +1,25 @@
+class Vector3D {
+    x:float32;
+    y:float32;
+    z:float32;
+
+    constructor(x:float32, y:float32, z:float32){
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    operator + (other:Vector3D):Vector3D {
+        return new Vector3D(this.x + other.x, this.y + other.y, this.z + other.z);
+    }
+
+    operator - (other:Vector3D):Vector3D {
+        return new Vector3D(this.x - other.x, this.y - other.y, this.z - other.z);
+    }
+}
+export function test():boolean {
+    let a = new Vector3D(1.0f,1.0f,1.0f);
+    let b = new Vector3D(1.0f,1.0f,1.0f);
+    let c = a + b;
+    return c.x == 2.0f && c.y == 2.0f && c.z == 2.0f;
+}
