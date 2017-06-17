@@ -198,8 +198,8 @@ export function compileString(source: string, options: CompilerOptions = default
         };
     }
 }
-
-export const version = "1.0.0-beta";
+declare const VERSION:string;
+export const version = VERSION;
 
 export default {
     version: version,
