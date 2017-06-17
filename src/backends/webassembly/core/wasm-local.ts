@@ -5,7 +5,8 @@ import {WasmType} from "./wasm-type";
  */
 export class WasmLocalEntry {
     constructor(public type: WasmType,
-                public name: string) {
+                public name: string,
+                public isArgument: boolean = false) {
 
     }
 }

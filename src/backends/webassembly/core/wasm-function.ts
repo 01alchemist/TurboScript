@@ -15,6 +15,8 @@ export class WasmFunction {
     firstLocal: WasmLocal;
     lastLocal: WasmLocal;
     localEntries: WasmLocalEntry[];
+    argumentEntries: WasmLocalEntry[];
+    localVariables: WasmLocalEntry[];
     localCount: int32 = 0;
     returnType: WasmType;
     body: ByteArray;
@@ -22,6 +24,6 @@ export class WasmFunction {
     next: WasmFunction;
 
     constructor() {
-        this.localEntries = [];
+        this.localVariables = [];
     }
 }

@@ -1,9 +1,10 @@
 import {WasmType} from "../core/wasm-type";
 import {WasmOpcode} from "../opcode";
-import {WasmRuntimeLocal} from "./wasm-runtime-local";
+import {WasmRuntimeProperty} from "./wasm-runtime-local";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmSignature} from "../core/wasm-signature";
 import {Terminal} from "../../../utils/terminal";
+import {WasmGlobalEntry} from "../core/wasm-global";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -50,7 +51,7 @@ export class WasmRuntimeFunction {
     name: string;
     isImport: boolean;
     signature: WasmSignature;
-    locals: WasmRuntimeLocal[];
+    locals: WasmRuntimeProperty[];
 
     constructor() {
 
@@ -91,10 +92,10 @@ export class WasmStackTracer {
         this.memory = new ByteArray();
     }
 
-    setGlobals(globalEntries: WasmType[]) {
+    setGlobals(globalEntries: WasmGlobalEntry[]) {
         this.globals = [];
-        globalEntries.forEach(globalType => {
-            this.globals.push(new WasmRuntimeLocal(globalType));
+        globalEntries.forEach(globalEntry => {
+            this.globals.push(new WasmRuntimeProperty(globalEntry.type, globalEntry.name));
         });
     }
 
@@ -154,7 +155,8 @@ export class WasmStackTracer {
             case WasmOpcode.CALL:
                 if (value !== undefined) {
                     this.callFunction(value);
-                    return `call ${value}`;
+                    let fn = this.functions[value];
+                    return `call $${fn.name}`;
                 }
                 break;
 
@@ -186,8 +188,9 @@ export class WasmStackTracer {
                         throw errorMsg;
                     } else {
                         let a = this.context.stack.pop();
+                        let local = this.context.fn.locals[value];
                         this.context.fn.locals[value].value = a.value;
-                        return `${WasmOpcode[opcode]} ${value}`;
+                        return `${WasmOpcode[opcode]} $${local.name}`;
                     }
                 }
                 break;
@@ -196,7 +199,7 @@ export class WasmStackTracer {
                 if (value !== undefined) {
                     let a = this.context.fn.locals[value];
                     this.context.stack.push(new WasmStackItem(a.type, a.value));
-                    return `${WasmOpcode[opcode]} ${value}`;
+                    return `${WasmOpcode[opcode]} $${a.name}`;
                 }
             // break;
 

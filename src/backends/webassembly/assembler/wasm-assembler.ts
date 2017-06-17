@@ -7,10 +7,11 @@ import {SectionBuffer} from "../buffer/section-buffer";
 import {log} from "../utils/logger";
 import {WasmSection} from "../core/wasm-section";
 import {WasmImport} from "../core/wasm-import";
-import {WasmRuntimeLocal} from "../stack-machine/wasm-runtime-local";
+import {WasmRuntimeProperty} from "../stack-machine/wasm-runtime-local";
 import {WasmType} from "../core/wasm-type";
 import {WasmLocalEntry} from "../core/wasm-local";
 import {Terminal} from "../../../utils/terminal";
+import {getWasmFunctionName} from "../utils/index";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -42,12 +43,12 @@ export class WasmAssembler {
         });
         this.functionList.forEach((_wasmFunc: WasmFunction) => {
             let fn = new WasmRuntimeFunction();
-            fn.name = _wasmFunc.symbol.name;
+            fn.name = getWasmFunctionName(_wasmFunc.symbol);
             fn.signature = _wasmFunc.signature;
             fn.isImport = false;
             fn.locals = [];
             _wasmFunc.localEntries.forEach((local: WasmLocalEntry) => {
-                fn.locals.push(new WasmRuntimeLocal(local.type));
+                fn.locals.push(new WasmRuntimeProperty(local.type, local.name));
             });
             runtimeFunctions.push(fn);
         });
