@@ -1,9 +1,10 @@
 import {WasmType} from "../core/wasm-type";
 import {WasmOpcode} from "../opcode";
-import {WasmRuntimeLocal} from "./wasm-runtime-local";
+import {WasmRuntimeProperty} from "./wasm-runtime-local";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmSignature} from "../core/wasm-signature";
 import {Terminal} from "../../../utils/terminal";
+import {WasmGlobalEntry} from "../core/wasm-global";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -50,7 +51,7 @@ export class WasmRuntimeFunction {
     name: string;
     isImport: boolean;
     signature: WasmSignature;
-    locals: WasmRuntimeLocal[];
+    locals: WasmRuntimeProperty[];
 
     constructor() {
 
@@ -91,10 +92,10 @@ export class WasmStackTracer {
         this.memory = new ByteArray();
     }
 
-    setGlobals(globalEntries: WasmType[]) {
+    setGlobals(globalEntries: WasmGlobalEntry[]) {
         this.globals = [];
-        globalEntries.forEach(globalType => {
-            this.globals.push(new WasmRuntimeLocal(globalType));
+        globalEntries.forEach(globalEntry => {
+            this.globals.push(new WasmRuntimeProperty(globalEntry.type, globalEntry.name));
         });
     }
 
@@ -127,21 +128,23 @@ export class WasmStackTracer {
         }
     }
 
-    pushOpcode(opcode: number): void {
+    pushOpcode(opcode: number): string {
         if (this.context !== null) {
             this.context.opcodes.push(opcode);
             this.context.lastOpcode = opcode;
-            this.updateStack(opcode);
+            return this.updateStack(opcode);
         }
+        return null;
     }
 
-    pushValue(value: number): void {
+    pushValue(value: number): string {
         if (this.context !== null) {
-            this.updateStack(this.context.lastOpcode, value);
+            return this.updateStack(this.context.lastOpcode, value);
         }
+        return null;
     }
 
-    private updateStack(opcode: number, value?: number) {
+    private updateStack(opcode: number, value?: number): string {
         let type: WasmType = null;
         if (opcode !== undefined && opcode !== null) {
             type = getOprandType(opcode);
@@ -152,18 +155,20 @@ export class WasmStackTracer {
             case WasmOpcode.CALL:
                 if (value !== undefined) {
                     this.callFunction(value);
+                    let fn = this.functions[value];
+                    return `call $${fn.name}`;
                 }
                 break;
 
             case WasmOpcode.END:
                 this.context.stack.clear();
-                break;
+                return "end";
 
             case WasmOpcode.RETURN:
                 if (this.context.stack.length == 0) {
                     Terminal.warn(`Empty stack on return in function ${this.context.fn.name}`);
                 }
-                break;
+                return "return";
 
             case WasmOpcode.I32_CONST:
             case WasmOpcode.I64_CONST:
@@ -171,6 +176,7 @@ export class WasmStackTracer {
             case WasmOpcode.F64_CONST:
                 if (value !== undefined) {
                     this.context.stack.push(new WasmStackItem(type, value));
+                    return `${WasmOpcode[opcode]} ${value}`;
                 }
                 break;
 
@@ -182,7 +188,9 @@ export class WasmStackTracer {
                         throw errorMsg;
                     } else {
                         let a = this.context.stack.pop();
+                        let local = this.context.fn.locals[value];
                         this.context.fn.locals[value].value = a.value;
+                        return `${WasmOpcode[opcode]} $${local.name}`;
                     }
                 }
                 break;
@@ -191,8 +199,9 @@ export class WasmStackTracer {
                 if (value !== undefined) {
                     let a = this.context.fn.locals[value];
                     this.context.stack.push(new WasmStackItem(a.type, a.value));
+                    return `${WasmOpcode[opcode]} $${a.name}`;
                 }
-                break;
+            // break;
 
             case WasmOpcode.SET_GLOBAL:
                 if (value !== undefined) {
@@ -203,6 +212,7 @@ export class WasmStackTracer {
                     } else {
                         let a = this.context.stack.pop();
                         this.globals[value].value = a.value;
+                        return `${WasmOpcode[opcode]} ${value}`;
                     }
                 }
                 break;
@@ -211,6 +221,7 @@ export class WasmStackTracer {
                 if (value !== undefined) {
                     let a = this.globals[value];
                     this.context.stack.push(new WasmStackItem(a.type, a.value));
+                    return `${WasmOpcode[opcode]} ${value}`;
                 }
                 break;
 
@@ -222,7 +233,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value + b.value));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //SUB
@@ -233,7 +244,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value - b.value));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //MUL
@@ -244,7 +255,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value * b.value));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //DIV
@@ -268,7 +279,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value % b.value));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //GT
@@ -281,7 +292,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value > b.value ? 1 : 0));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //GE
@@ -294,7 +305,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value >= b.value ? 1 : 0));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //LT
@@ -307,7 +318,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value < b.value ? 1 : 0));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //LE
@@ -320,7 +331,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value <= b.value ? 1 : 0));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //EQ
@@ -331,7 +342,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value === b.value ? 1 : 0));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //NE
@@ -342,7 +353,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value !== b.value ? 1 : 0));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //EQZ
@@ -350,7 +361,7 @@ export class WasmStackTracer {
             case WasmOpcode.I64_EQZ: {
                 let a = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value === 0 ? 1 : 0));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //AND
@@ -359,7 +370,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value & b.value));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //OR
@@ -368,7 +379,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value | b.value));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //XOR
@@ -377,7 +388,7 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop();
                 let b = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, a.value ^ b.value));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //CTZ
@@ -393,7 +404,7 @@ export class WasmStackTracer {
             case WasmOpcode.I64_CLZ: {
                 let a = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, clz32(a.value)));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //CLZ
@@ -401,7 +412,7 @@ export class WasmStackTracer {
             case WasmOpcode.I64_ROTL: {
                 // let a = this.context.stack.pop();
                 // this.context.stack.push(new WasmStackItem(type, rotl(a.value)));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //SHR
@@ -411,7 +422,7 @@ export class WasmStackTracer {
             case WasmOpcode.I64_SHR_U: {
                 // let a = this.context.stack.pop();
                 // this.context.stack.push(new WasmStackItem(type, shr(a.value)));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //SHR
@@ -419,7 +430,7 @@ export class WasmStackTracer {
             case WasmOpcode.I64_SHL: {
                 // let a = this.context.stack.pop();
                 // this.context.stack.push(new WasmStackItem(type, shl(a.value)));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //POPCNT
@@ -427,14 +438,14 @@ export class WasmStackTracer {
             case WasmOpcode.I64_POPCNT: {
                 // let a = this.context.stack.pop();
                 // this.context.stack.push(new WasmStackItem(type, popcnt(a.value)));
-                break;
+                return WasmOpcode[opcode];
             }
 
             case WasmOpcode.F32_SQRT:
             case WasmOpcode.F64_SQRT: {
                 let a = this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(a.type, Math.sqrt(a.value)));
-                break;
+                return WasmOpcode[opcode];
             }
 
             //LOAD
@@ -453,7 +464,7 @@ export class WasmStackTracer {
                 this.context.stack.pop();
                 this.context.stack.push(new WasmStackItem(type, 0));
                 this.context.lastOpcode = null;
-                break;
+                return WasmOpcode[opcode];
             }
 
             //STORE
@@ -468,20 +479,33 @@ export class WasmStackTracer {
                 let a = this.context.stack.pop(); // address
                 let b = this.context.stack.pop(); // offset
                 this.context.lastOpcode = null;
-                break;
+                return WasmOpcode[opcode];
             }
 
-            case WasmOpcode.IF:
-            case WasmOpcode.BR_IF:
+            case WasmOpcode.IF: {
                 let a = this.context.stack.pop();
                 this.context.lastOpcode = null;
+                return WasmOpcode[opcode];
+            }
+
+            case WasmOpcode.BR_IF:
+                if (value !== undefined) {
+                    let a = this.context.stack.pop();
+                    this.context.lastOpcode = null;
+                    return `${WasmOpcode[opcode]} ${value}`;
+                }
                 break;
 
             case WasmOpcode.IF_ELSE:
             case WasmOpcode.BLOCK:
             case WasmOpcode.LOOP:
-            case WasmOpcode.BR:
                 //ignore
+                return WasmOpcode[opcode];
+
+            case WasmOpcode.BR:
+                if (value !== undefined) {
+                    return `${WasmOpcode[opcode]} ${value}`;
+                }
                 break;
 
             case WasmOpcode.I32_WRAP_I64:
@@ -511,7 +535,7 @@ export class WasmStackTracer {
             case WasmOpcode.F64_CONVERT_S_I64:
             case WasmOpcode.F64_CONVERT_U_I64:
                 //ignore  > pop > push
-                break;
+                return WasmOpcode[opcode];
 
             case null:
             case undefined:
@@ -522,6 +546,7 @@ export class WasmStackTracer {
                 Terminal.warn(`Unhandled Opcode ${opcode} => ${WasmOpcode[opcode]}`);
                 break;
         }
+        return null;
     }
 }
 
@@ -707,4 +732,5 @@ function getOprandType(opcode: number): WasmType {
             Terminal.warn(`Unhandled Opcode ${opcode} => ${WasmOpcode[opcode]}`);
             break;
     }
+    return null;
 }

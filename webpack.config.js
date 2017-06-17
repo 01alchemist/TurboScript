@@ -1,13 +1,14 @@
 // Prepack Disabled due to Invariant Violation error also prepack not yet compatible with node 8
 // const PrepackWebpackPlugin = require("prepack-webpack-plugin").default;
 const path = require("path");
+const webpack = require("webpack");
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = {
     target: "node",
     entry: {
         "turboscript": "./src/index.ts",
-        "turboscript.min": "./src/index.ts"
+        // "turboscript.min": "./src/index.ts"
     },
     devtool: "source-map",
     resolve: {
@@ -16,6 +17,9 @@ module.exports = {
     },
     plugins: [
         // new PrepackWebpackPlugin({})
+        new webpack.DefinePlugin({
+            VERSION: JSON.stringify(require("./package.json").version)
+        }),
         new UglifyJsPlugin({
             mangle: false, compress: true,
             minimize: true,

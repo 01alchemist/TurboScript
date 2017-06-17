@@ -7,10 +7,11 @@ import {SectionBuffer} from "../buffer/section-buffer";
 import {log} from "../utils/logger";
 import {WasmSection} from "../core/wasm-section";
 import {WasmImport} from "../core/wasm-import";
-import {WasmRuntimeLocal} from "../stack-machine/wasm-runtime-local";
+import {WasmRuntimeProperty} from "../stack-machine/wasm-runtime-local";
 import {WasmType} from "../core/wasm-type";
 import {WasmLocalEntry} from "../core/wasm-local";
 import {Terminal} from "../../../utils/terminal";
+import {getWasmFunctionName} from "../utils/index";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -27,6 +28,7 @@ export class WasmAssembler {
 
     constructor() {
         this.stackTracer = new WasmStackTracer();
+        this.textOutput = ";; Experimental wast emitter\n(module\n";
     }
 
     sealFunctions() {
@@ -41,12 +43,12 @@ export class WasmAssembler {
         });
         this.functionList.forEach((_wasmFunc: WasmFunction) => {
             let fn = new WasmRuntimeFunction();
-            fn.name = _wasmFunc.symbol.name;
+            fn.name = getWasmFunctionName(_wasmFunc.symbol);
             fn.signature = _wasmFunc.signature;
             fn.isImport = false;
             fn.locals = [];
             _wasmFunc.localEntries.forEach((local: WasmLocalEntry) => {
-                fn.locals.push(new WasmRuntimeLocal(local.type));
+                fn.locals.push(new WasmRuntimeProperty(local.type, local.name));
             });
             runtimeFunctions.push(fn);
         });
@@ -57,11 +59,13 @@ export class WasmAssembler {
         let section: SectionBuffer = new SectionBuffer(id, name);
         section.offset = array.length;
         log(array, 0, null, ` - section: ${WasmSection[id]} [0x${toHex(id, 2)}]`);
+        this.currentSection = section;
         this.sectionList.push(section);
         return section;
     }
 
     endSection(array: ByteArray, section: SectionBuffer): void {
+        this.currentSection = null;
         section.publish(array);
     }
 
@@ -73,42 +77,77 @@ export class WasmAssembler {
             while (item !== undefined && max > 0) {
                 Terminal.warn(WasmType[item.type]);
                 array.append(WasmOpcode.DROP);
+                this.currentSection.code.append("drop\n");
                 item = this.stackTracer.context.stack.pop(true);
                 max--;
             }
         }
     }
 
-    appendOpcode(array: ByteArray, offset = 0, opcode: number, inline_value?) {
+    appendOpcode(array: ByteArray, offset = 0, opcode: number, inline_value?, skip: boolean = false) {
         logOpcode(array, offset, opcode, inline_value);
         array.append(opcode);
-        this.stackTracer.pushOpcode(opcode);
+        let opcodeWithoutOperand = this.stackTracer.pushOpcode(opcode);
+        if (opcodeWithoutOperand !== null && !skip) {
+            let isEnd = opcode === WasmOpcode.END;
+            let indent = this.isBlock(opcode) ? 1 : (isEnd ? -1 : 0);
+            if (isEnd) {
+                this.currentSection.code.clearIndent(1);
+            }
+            this.currentSection.code.append(opcodeWithoutOperand + "\n", indent);
+        }
+    }
+
+    private isBlock(opcode: number): boolean {
+        return opcode === WasmOpcode.BLOCK ||
+            opcode === WasmOpcode.LOOP ||
+            opcode === WasmOpcode.IF ||
+            opcode === WasmOpcode.IF_ELSE;
     }
 
     writeUnsignedLEB128(array: ByteArray, value: number): void {
         array.writeUnsignedLEB128(value);
-        this.stackTracer.pushValue(value);
+        let opcodeAndOperand = this.stackTracer.pushValue(value);
+        if (opcodeAndOperand !== null) {
+            this.currentSection.code.append(opcodeAndOperand + "\n");
+        }
     }
 
     writeLEB128(array: ByteArray, value: number): void {
         array.writeLEB128(value);
-        this.stackTracer.pushValue(value);
+        let opcodeAndOperand = this.stackTracer.pushValue(value);
+        if (opcodeAndOperand !== null) {
+            this.currentSection.code.append(opcodeAndOperand + "\n");
+        }
     }
 
     writeFloat(array: ByteArray, value: number): void {
         array.writeFloat(value);
-        this.stackTracer.pushValue(value);
+        let opcodeAndOperand = this.stackTracer.pushValue(value);
+        if (opcodeAndOperand !== null) {
+            this.currentSection.code.append(opcodeAndOperand + "\n");
+        }
     }
 
     writeDouble(array: ByteArray, value: number): void {
         array.writeDouble(value);
-        this.stackTracer.pushValue(value);
+        let opcodeAndOperand = this.stackTracer.pushValue(value);
+        if (opcodeAndOperand !== null) {
+            this.currentSection.code.append(opcodeAndOperand + "\n");
+        }
     }
 
     writeWasmString(array: ByteArray, value: string): void {
         array.writeWasmString(value);
     }
 
+    finish() {
+        this.textOutput += "  ";
+        this.sectionList.forEach((section) => {
+            this.textOutput += section.code.finish();
+        });
+        this.textOutput += ")\n";
+    }
 }
 
 export function append(array: ByteArray, offset = 0, value = null, msg = null) {

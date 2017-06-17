@@ -8,19 +8,26 @@ import {Compiler} from "../../compiler/compiler";
 import {WasmOpcode} from "./opcode";
 import {getBuiltinOpcode, isBuiltin} from "./builtins-helper";
 import {assert} from "../../utils/assert";
-import {WasmType, WasmWrappedType} from "./core/wasm-type";
+import {WasmType, WasmTypeToString, WasmWrappedType} from "./core/wasm-type";
 import {log, logData} from "./utils/logger";
 import {wasmAreSignaturesEqual, WasmSignature} from "./core/wasm-signature";
 import {Bitness} from "../bitness";
 import {WasmSection} from "./core/wasm-section";
 import {WasmExternalKind} from "./core/wasm-external-kind";
-import {WasmGlobal} from "./core/wasm-global";
+import {WasmGlobal, WasmGlobalEntry} from "./core/wasm-global";
 import {WasmFunction} from "./core/wasm-function";
 import {WasmImport} from "./core/wasm-import";
 import {WasmLocal, WasmLocalEntry} from "./core/wasm-local";
 import {WasmSharedOffset} from "./core/wasm-shared-offset";
 import {append, WasmAssembler} from "./assembler/wasm-assembler";
 import {Terminal} from "../../utils/terminal";
+import {
+    getTypedArrayElementSize,
+    getWasmFunctionName,
+    symbolToValueType,
+    typeToDataType,
+    wasmWrapType
+} from "./utils/index";
 
 const WASM_MAGIC = 0x6d736100; //'\0' | 'a' << 8 | 's' << 16 | 'm' << 24;
 const WASM_VERSION = 0x1;
@@ -37,7 +44,7 @@ class WasmModule {
     globalCount: int32 = 0;
     firstGlobal: WasmGlobal;
     lastGlobal: WasmGlobal;
-    globalEntries: WasmType[];
+    globalEntries: WasmGlobalEntry[];
 
     firstFunction: WasmFunction;
     lastFunction: WasmFunction;
@@ -101,7 +108,7 @@ class WasmModule {
         }
         else this.lastGlobal.next = global;
         this.lastGlobal = global;
-        this.globalEntries.push(global.type);
+        this.globalEntries.push(new WasmGlobalEntry(global.type, false, symbol.name));
         this.globalCount = this.globalCount + 1;
         return global;
     }
@@ -171,7 +178,8 @@ class WasmModule {
         this.emitElements(array);
         this.emitFunctionBodies(array);
         this.emitDataSegments(array);
-        this.emitNames(array);
+        // this.emitNames(array);
+        this.assembler.finish();
     }
 
     emitSignatures(array: ByteArray): void {
@@ -193,16 +201,23 @@ class WasmModule {
                 count = count + 1;
                 type = type.next;
             }
-
+            section.code.append(`(type (;${sigCount};) (func`);
             log(section.data, array.position, WasmType.func, "func sig " + sigCount++);
             this.assembler.writeUnsignedLEB128(section.data, WasmType.func); //form, the value for the func type constructor
             log(section.data, array.position, count, "num params");
             this.assembler.writeUnsignedLEB128(section.data, count); //param_count, the number of parameters to the function
             type = signature.argumentTypes;
+            if (count > 0) {
+                section.code.append(` (param`);
+            }
             while (type != null) {
                 log(section.data, array.position, type.id, WasmType[type.id]);
                 this.assembler.writeUnsignedLEB128(section.data, type.id); //value_type, the parameter types of the function
+                section.code.append(` ${WasmTypeToString[type.id]}`);
                 type = type.next;
+            }
+            if (count > 0) {
+                section.code.append(`)`);
             }
             let returnTypeId = signature.returnType.id;
             if (returnTypeId > 0) {
@@ -210,10 +225,11 @@ class WasmModule {
                 this.assembler.writeUnsignedLEB128(section.data, 1); //return_count, the number of results from the function
                 log(section.data, array.position, signature.returnType.id, WasmType[signature.returnType.id]);
                 this.assembler.writeUnsignedLEB128(section.data, signature.returnType.id);
+                section.code.append(` (result ${WasmTypeToString[signature.returnType.id]})`);
             } else {
                 this.assembler.writeUnsignedLEB128(section.data, 0);
             }
-
+            section.code.append("))\n");
             signature = signature.next;
         }
 
@@ -229,10 +245,11 @@ class WasmModule {
         log(section.data, array.position, this.importCount, "num imports");
         this.assembler.writeUnsignedLEB128(section.data, this.importCount);
 
-        let current = this.firstImport;
+        let current: WasmImport = this.firstImport;
         let count = 0;
         while (current != null) {
             log(section.data, array.position, null, `import func (${count}) ${current.module} ${current.name}`);
+            this.assembler.currentSection.code.append(`(import "${current.module}" "${current.name}" (func (;${count};) (type ${current.signatureIndex})))\n`);
             this.assembler.writeWasmString(section.data, current.module);
             this.assembler.writeWasmString(section.data, current.name);
             this.assembler.writeUnsignedLEB128(section.data, WasmExternalKind.Function);
@@ -282,6 +299,7 @@ class WasmModule {
             log(section.data, array.position, WASM_MAX_MEMORY, "maximum memory");
             this.assembler.writeUnsignedLEB128(section.data, WASM_MAX_MEMORY);// maximum, only present if specified by flags
         }
+        section.code.append("(memory (;0;) 1)\n");
         this.assembler.endSection(array, section);
     }
 
@@ -297,6 +315,7 @@ class WasmModule {
         this.assembler.stackTracer.setGlobals(this.globalEntries);
 
         let global = this.firstGlobal;
+        let count = 0;
         while (global) {
             let dataType: string = typeToDataType(global.symbol.resolvedType, this.bitness);
             let value = global.symbol.node.variableValue();
@@ -330,7 +349,8 @@ class WasmModule {
                     this.assembler.writeDouble(section.data, rawValue);
                     break;
             }
-
+            let wasmTypeStr = WasmTypeToString[WasmType[dataType]];
+            section.code.append(`(global (;${count++};) (mut ${wasmTypeStr}) (${wasmTypeStr}.const ${rawValue}))\n`);
             this.assembler.appendOpcode(section.data, array.position, WasmOpcode.END);
 
             global = global.next;
@@ -374,7 +394,7 @@ class WasmModule {
         this.assembler.writeUnsignedLEB128(section.data, WasmExternalKind.Memory);
         log(section.data, array.position, 0, "export memory index");
         this.assembler.writeUnsignedLEB128(section.data, 0);
-
+        section.code.append(`(export "memory" (memory 0))\n`);
         let i = this.importCount;
         fn = this.firstFunction;
         while (fn != null) {
@@ -387,6 +407,8 @@ class WasmModule {
                 this.assembler.writeUnsignedLEB128(section.data, WasmExternalKind.Function);
                 log(section.data, array.position, i, "export func index");
                 this.assembler.writeUnsignedLEB128(section.data, i);
+
+                section.code.append(`(export "${fnName}" (func $${fnName}))\n`);
             }
             fn = fn.next;
             i = i + 1;
@@ -399,6 +421,7 @@ class WasmModule {
         if (this.startFunctionIndex != -1) {
             let section = this.assembler.startSection(array, WasmSection.Start, "start_function");
             log(section.data, array.position, this.startFunctionIndex, "start function index");
+            section.code.append(`(start ${this.importCount + this.startFunctionIndex})\n`);
             this.assembler.writeUnsignedLEB128(section.data, this.importCount + this.startFunctionIndex);
             this.assembler.endSection(array, section);
         }
@@ -427,21 +450,34 @@ class WasmModule {
 
             this.assembler.stackTracer.startFunction(this.importCount + count);
 
-            if (fn.localCount > 0) {
-                bodyData.writeUnsignedLEB128(fn.localCount); //local_count
+            /* wasm text format */
+            section.code.append(`(func $${wasmFunctionName} (type ${fn.signatureIndex})`);
+
+            fn.argumentEntries.forEach((argumentEntry) => {
+                section.code.append(` (param $${argumentEntry.name} ${WasmTypeToString[argumentEntry.type]}) `);
+            });
+
+            if (fn.signature.returnType.id !== WasmType.VOID) {
+                section.code.append(`(result ${WasmTypeToString[fn.signature.returnType.id]})`);
+            }
+            section.code.append("\n", 1);
+
+            if (fn.localVariables.length > 0) {
+                bodyData.writeUnsignedLEB128(fn.localVariables.length); //local_count
 
                 // TODO: Optimize local declarations
-                //local_entry
-                let local = fn.firstLocal;
-                while (local) {
+                fn.localVariables.forEach((localVariableEntry) => {
                     log(bodyData, sectionOffset, 1, "local index");
                     bodyData.writeUnsignedLEB128(1); //count
-                    log(bodyData, sectionOffset, local.type, WasmType[local.type]);
-                    bodyData.append(local.type); //value_type
-                    local = local.next;
-                }
+                    log(bodyData, sectionOffset, localVariableEntry.type, WasmType[localVariableEntry.type]);
+                    bodyData.append(localVariableEntry.type); //value_type
 
-            } else {
+                    section.code.append(`(local $${localVariableEntry.name} ${WasmTypeToString[localVariableEntry.type]}) `);
+                });
+
+                section.code.append("\n");
+            }
+            else {
                 bodyData.writeUnsignedLEB128(0);
             }
 
@@ -471,7 +507,7 @@ class WasmModule {
                 this.assembler.dropStack(bodyData);
             }
 
-            this.assembler.appendOpcode(bodyData, sectionOffset, WasmOpcode.END); //end, 0x0b, indicating the end of the body
+            this.assembler.appendOpcode(bodyData, sectionOffset, WasmOpcode.END, null, true); //end, 0x0b, indicating the end of the body
 
             this.assembler.stackTracer.endFunction();
 
@@ -482,10 +518,16 @@ class WasmModule {
             section.data.log += bodyData.log;
             section.data.copy(bodyData);
 
+            section.code.indent -= 1;
+            section.code.removeLastLinebreak();
+            section.code.append(`)\n`);
+
             fn = fn.next;
         }
 
-        this.assembler.endSection(array, section);
+        this
+            .assembler
+            .endSection(array, section);
     }
 
     emitDataSegments(array: ByteArray): void {
@@ -521,6 +563,7 @@ class WasmModule {
         log(section.data, array.position, null, " - data segment data 0");
         //data, sequence of size bytes
         // Copy the entire memory initializer (also includes zero-initialized data for now)
+        section.code.append(`(data (i32.const ${WASM_MEMORY_INITIALIZER_BASE}) "  `);
         let i = 0;
         let value;
         while (i < initializerLength) {
@@ -528,13 +571,14 @@ class WasmModule {
                 if (i + j < initializerLength) {
                     value = memoryInitializer.get(i + j);
                     section.data.append(value);
+                    section.code.append("\\" + toHex(value, 2));
                     logData(section.data, array.position, value, j == 0);
                 }
             }
             section.data.log += "\n";
             i = i + 16;
         }
-
+        section.code.append('")\n');
         // section.data.copy(memoryInitializer, initializerLength);
 
         this.assembler.endSection(array, section);
@@ -581,7 +625,8 @@ class WasmModule {
     }
 
     prepareToEmit(node: Node): void {
-        if (node.kind == NodeKind.STRING) {
+        if (node.kind == NodeKind.STRING
+        ) {
             let text = node.stringValue;
             let length = text.length;
             let offset = this.context.allocateGlobalVariableOffset(length * 2 + 4, 4);
@@ -675,6 +720,7 @@ class WasmModule {
             let argumentTypesLast: WasmWrappedType = null;
             let symbol = node.symbol;
             let isConstructor: boolean = symbol.name == "constructor";
+            let wasmFunctionName: string = getWasmFunctionName(symbol);
 
             // Make sure to include the implicit "this" variable as a normal argument
             let argument = node.isExternalImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
@@ -682,7 +728,7 @@ class WasmModule {
             let argumentList: WasmLocalEntry[] = [];
             while (argument != returnType) {
                 let wasmType = this.getWasmType(argument.variableType().resolvedType);
-                argumentList.push(new WasmLocalEntry(wasmType, argument.symbol.name));
+                argumentList.push(new WasmLocalEntry(wasmType, argument.symbol.name, true));
 
                 let type = wasmWrapType(wasmType);
 
@@ -701,7 +747,6 @@ class WasmModule {
 
             // Functions without bodies are imports
             if (body == null) {
-                let wasmFunctionName: string = getWasmFunctionName(symbol);
                 if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.importCount;
@@ -714,7 +759,7 @@ class WasmModule {
             }
 
             let fn = this.allocateFunction(symbol, signatureIndex);
-            fn.localEntries = argumentList.concat(fn.localEntries);
+            fn.argumentEntries = argumentList;
             fn.isConstructor = isConstructor;
             fn.returnType = wasmReturnType;
 
@@ -741,6 +786,7 @@ class WasmModule {
             }
 
             wasmAssignLocalVariableOffsets(fn, body, shared, this.bitness);
+            fn.localEntries = argumentList.concat(fn.localVariables);
             fn.localCount = shared.localCount;
         }
 
@@ -824,7 +870,8 @@ class WasmModule {
 
     emitStoreToMemory(array: ByteArray, byteOffset: int32, type: Type, relativeBase: Node, offset: int32, value: Node): void {
         // Relative address
-        if (relativeBase != null) {
+        if (relativeBase != null
+        ) {
             this.emitNode(array, byteOffset, relativeBase);
         }
         // Absolute address
@@ -997,7 +1044,8 @@ class WasmModule {
         this.assembler.appendOpcode(array, byteOffset, WasmOpcode.CALL, mallocIndex);
         this.assembler.writeUnsignedLEB128(array, mallocIndex);
         this.assembler.appendOpcode(array, byteOffset, WasmOpcode.SET_LOCAL, fn.signature.argumentCount);
-        this.assembler.writeUnsignedLEB128(array, fn.signature.argumentCount);// Set self pointer to first local variable which is immediate after the argument variable
+        this.assembler.writeUnsignedLEB128(array, fn.signature.argumentCount);
+        // Set self pointer to first local variable which is immediate after the argument variable
     }
 
     emitNode(array: ByteArray, byteOffset: int32, node: Node): int32 {
@@ -1015,6 +1063,8 @@ class WasmModule {
                 if (node.returnNode !== undefined) {
                     log(array, byteOffset, this.currentFunction.returnType, WasmType[this.currentFunction.returnType]);
                     array.append(this.currentFunction.returnType);
+                    this.assembler.currentSection.code.removeLastLinebreak();
+                    this.assembler.currentSection.code.append(" (result " + WasmTypeToString[this.currentFunction.returnType] + ")\n", 1);
                 } else {
                     log(array, byteOffset, WasmType.block_type, WasmType[WasmType.block_type]);
                     array.append(WasmType.block_type);
@@ -1028,6 +1078,8 @@ class WasmModule {
             }
 
             if (!skipBlock) {
+                this.assembler.currentSection.code.clearIndent(1);
+                this.assembler.currentSection.code.indent -= 1;
                 this.assembler.appendOpcode(array, byteOffset, WasmOpcode.END);
             }
         }
@@ -1126,6 +1178,8 @@ class WasmModule {
                 if (returnNode !== null) {
                     let returnType: WasmType = symbolToValueType(returnNode.resolvedType.symbol);
                     append(array, 0, returnType, WasmType[returnType]);
+                    this.assembler.currentSection.code.removeLastLinebreak();
+                    this.assembler.currentSection.code.append(` (result ${WasmTypeToString[returnType]})\n`);
                     if (branch == null) {
                         needEmptyElse = true;
                     }
@@ -1137,9 +1191,13 @@ class WasmModule {
             this.emitNode(array, byteOffset, node.ifTrue());
 
             if (branch != null) {
+                this.assembler.currentSection.code.indent -= 1;
+                this.assembler.currentSection.code.clearIndent(1);
                 this.assembler.appendOpcode(array, byteOffset, WasmOpcode.IF_ELSE);
                 this.emitNode(array, byteOffset, branch);
             } else if (needEmptyElse) {
+                this.assembler.currentSection.code.indent -= 1;
+                this.assembler.currentSection.code.clearIndent(1);
                 this.assembler.appendOpcode(array, byteOffset, WasmOpcode.IF_ELSE);
                 let dataType: string = typeToDataType(returnNode.resolvedType, this.bitness);
                 this.assembler.appendOpcode(array, byteOffset, WasmOpcode[`${dataType}_CONST`]);
@@ -1461,7 +1519,7 @@ class WasmModule {
 
             // i32 > f32
             else if (
-                (from == context.nullType || from == context.booleanType  || from == context.int32Type || from == context.uint32Type) &&
+                (from == context.nullType || from == context.booleanType || from == context.int32Type || from == context.uint32Type) &&
                 type == context.float32Type
             ) {
                 if (value.kind == NodeKind.NULL) {
@@ -2045,78 +2103,10 @@ class WasmModule {
     }
 }
 
-function getWasmFunctionName(symbol: Symbol): string {
-    let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().internalName : "";
-    return (moduleName == "" ? "" : moduleName + "_") + symbol.internalName;
-}
-
-function wasmWrapType(id: WasmType): WasmWrappedType {
-    assert(id == WasmType.VOID || id == WasmType.I32 || id == WasmType.I64 || id == WasmType.F32 || id == WasmType.F64);
-    let type = new WasmWrappedType();
-    type.id = id;
-    return type;
-}
-
-function symbolToValueType(symbol: Symbol, bitness?: Bitness): WasmType {
-    let type = symbol.resolvedType;
-    if (type.isFloat()) {
-        return WasmType.F32;
-    }
-    else if (type.isDouble()) {
-        return WasmType.F64;
-    }
-    else if (type.isInteger() || (bitness == Bitness.x32 && type.pointerTo)) {
-        return WasmType.I32;
-    }
-    else if (type.isLong() || (bitness == Bitness.x64 && type.pointerTo)) {
-        return WasmType.I64;
-    } else {
-        return WasmType.I32;
-    }
-}
-
-function typeToDataType(type: Type, bitness?: Bitness): string {
-    if (type.isFloat()) {
-        return "F32";
-    }
-    else if (type.isDouble()) {
-        return "F64";
-    }
-    else if (type.isInteger() || (bitness == Bitness.x32 && type.pointerTo)) {
-        return "I32";
-    }
-    else if (type.isLong() || (bitness == Bitness.x64 && type.pointerTo)) {
-        return "I64";
-    }
-    else {
-        return "I32";
-    }
-}
-
-function getTypedArrayElementSize(name: string): int32 {
-    switch (name) {
-        case "Uint8ClampedArray":
-        case "Uint8Array":
-        case "Int8Array":
-            return 1;
-        case "Uint16Array":
-        case "Int16Array":
-            return 2;
-        case "Uint32Array":
-        case "Int32Array":
-        case "Float32Array":
-            return 4;
-        case "Float64Array":
-            return 8;
-        default :
-            throw "unknown typed array";
-    }
-}
-
 function wasmAssignLocalVariableOffsets(fn: WasmFunction, node: Node, shared: WasmSharedOffset, bitness: Bitness): void {
     if (node.kind == NodeKind.VARIABLE) {
         assert(node.symbol.kind == SymbolKind.VARIABLE_LOCAL);
-        node.symbol.offset = shared.nextLocalOffset;
+        // node.symbol.offset = shared.nextLocalOffset;
         shared.nextLocalOffset = shared.nextLocalOffset + 1;
         shared.localCount = shared.localCount + 1;
 
@@ -2126,7 +2116,8 @@ function wasmAssignLocalVariableOffsets(fn: WasmFunction, node: Node, shared: Wa
         if (fn.firstLocal == null) fn.firstLocal = local;
         else fn.lastLocal.next = local;
         fn.lastLocal = local;
-        fn.localEntries.push(new WasmLocalEntry(local.type, local.symbol.name));
+        node.symbol.offset = fn.argumentEntries.length + fn.localVariables.length;
+        fn.localVariables.push(new WasmLocalEntry(local.type, local.symbol.name));
     }
 
     let child = node.firstChild;
@@ -2163,4 +2154,5 @@ export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32): vo
 
     compiler.outputWASM = new ByteArray();
     module.emitModule(compiler.outputWASM);
+    compiler.outputWAST = module.assembler.textOutput;
 }

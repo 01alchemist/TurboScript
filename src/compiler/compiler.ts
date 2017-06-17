@@ -31,6 +31,7 @@ export class Compiler {
     wrapperSource: string;
     outputName: string;
     outputWASM: ByteArray;
+    outputWAST: string;
     outputJS: string;
     outputCPP: string;
     outputH: string;
