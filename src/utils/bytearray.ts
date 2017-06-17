@@ -112,11 +112,12 @@ export class ByteArray {
         this._array[index] = value;
     }
 
-    append(value: byte): void {
+    append(value: byte): number {
         let index = this.position;
         this.resize(index + 1);
         this._array[index] = value;
         this.position++;
+        return index;
     }
 
     resize(length: number): ByteArray {

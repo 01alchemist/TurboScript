@@ -1,0 +1,5 @@
+export function test(value:int32):int32 {
+    let a = value + 1;
+    let b = a + 1;
+    return b;
+}
