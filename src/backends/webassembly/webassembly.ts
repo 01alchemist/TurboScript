@@ -28,6 +28,7 @@ import {
     typeToDataType,
     wasmWrapType
 } from "./utils/index";
+import {WasmOptimizer} from "./optimizer/wasm-optimizer";
 
 const WASM_MAGIC = 0x6d736100; //'\0' | 'a' << 8 | 's' << 16 | 'm' << 24;
 const WASM_VERSION = 0x1;
@@ -2127,7 +2128,7 @@ function wasmAssignLocalVariableOffsets(fn: WasmFunction, node: Node, shared: Wa
     }
 }
 
-export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32): void {
+export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32, optimize: boolean = true): void {
     let module = new WasmModule(bitness);
     module.context = compiler.context;
     module.memoryInitializer = new ByteArray();
@@ -2154,5 +2155,10 @@ export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32): vo
 
     compiler.outputWASM = new ByteArray();
     module.emitModule(compiler.outputWASM);
+
+    if (optimize) {
+        WasmOptimizer.optimize(compiler.outputWASM)
+    }
+
     compiler.outputWAST = module.assembler.textOutput;
 }
