@@ -1,6 +1,6 @@
 {
   "name": "turboscript",
-  "version": "1.0.1-beta",
+  "version": "1.0.2-beta",
   "description": "Super charged JavaScript for parallel programming and WebAssembly",
   "main": "index.js",
   "directories": {
@@ -33,7 +33,7 @@
   },
   "scripts": {
     "build": "webpack --config webpack.config.js && tsc -p ./lib",
-    "watch-build": "webpack --progress --colors --watch",
+    "watch-build": "NODE_ENV='dev' webpack --progress --colors --watch",
     "test": "node ./node_modules/jest/bin/jest.js",
     "watch-test": "node ./node_modules/jest/bin/jest.js --watch"
   },

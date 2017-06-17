@@ -4,12 +4,14 @@ const path = require("path");
 const webpack = require("webpack");
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
+const entry = process.env.NODE_ENV === "dev" ? {"turboscript": "./src/index.ts"} : {
+    "turboscript": "./src/index.ts",
+    "turboscript.min": "./src/index.ts"
+};
+
 module.exports = {
     target: "node",
-    entry: {
-        "turboscript": "./src/index.ts",
-        // "turboscript.min": "./src/index.ts"
-    },
+    entry: entry,
     devtool: "source-map",
     resolve: {
         // Add ".ts" and ".tsx" as a resolvable extension.
