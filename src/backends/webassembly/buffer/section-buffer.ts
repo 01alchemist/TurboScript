@@ -1,15 +1,19 @@
 import {log} from "../utils/logger";
 import {ByteArray} from "../../../utils/bytearray";
+import {StringBuilder} from "../../../utils/stringbuilder";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
 export class SectionBuffer {
 
     data: ByteArray;
+    code: StringBuilder;
     offset: number;
 
     constructor(public id, public name?: string) {
         this.data = new ByteArray();
+        this.code = new StringBuilder(2);
+        this.code.indent = 1;
     }
 
     publish(array: ByteArray) {

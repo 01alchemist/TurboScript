@@ -42,26 +42,45 @@ declare function StringBuilder_append(a: string, b: string): string;
 
 export class StringBuilder {
     indent: int32 = 0;
+    private _indentSize: int32;
+    private indentStr: string;
     next: StringBuilder;
     _text: string;
     chunks: string[] = [];
+
+    constructor(indentSize: int32 = 4) {
+        this.indentSize = indentSize;
+        this._text = "";
+    }
+
+    get indentSize(): int32 {
+        return this._indentSize;
+    }
+
+    set indentSize(value: int32) {
+        this._indentSize = value;
+        this.indentStr = "";
+        for (let i: int32 = 0; i < value; i++) {
+            this.indentStr += " ";
+        }
+    }
 
     clear(): void {
         this._text = "";
     }
 
     clearIndent(delta: number = 0): void {
-        this._text = this._text.substr(0, this._text.length - (delta * 4));
+        this._text = this._text.substr(0, this._text.length - (delta * this.indentSize));
     }
 
     emitIndent(delta: number = 0): void {
         if (delta < 0) {
-            this._text = this._text.substr(0, this._text.length + (delta * 4));
+            this._text = this._text.substr(0, this._text.length + (delta * this.indentSize));
         }
         this.indent += delta;
         let i = this.indent;
         while (i > 0) {
-            this._text += "    ";
+            this._text += this.indentStr;
             i = i - 1;
         }
     }
@@ -108,6 +127,14 @@ export class StringBuilder {
         });
 
         return this;
+    }
+
+    removeLastChar() {
+        this._text = this._text.substring(0, this._text.length - 1);
+    }
+
+    removeLastLinebreak() {
+        this._text = this._text.substring(0, this._text.lastIndexOf("\n"));
     }
 
     // This also "frees" this object (puts it back in the pool)

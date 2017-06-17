@@ -145,6 +145,7 @@ export function main_entry(): int32 {
             FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
             target == CompileTarget.JAVASCRIPT && FileSystem.writeTextFile(output, compiler.outputJS) ||
             target == CompileTarget.WEBASSEMBLY && FileSystem.writeBinaryFile(output, compiler.outputWASM) &&
+            FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST) &&
             FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log)) {
             Terminal.write("\n");
             return 0;

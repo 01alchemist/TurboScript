@@ -27,6 +27,7 @@ export class WasmAssembler {
 
     constructor() {
         this.stackTracer = new WasmStackTracer();
+        this.textOutput = ";; Experimental wast emitter\n(module\n";
     }
 
     sealFunctions() {
@@ -57,11 +58,13 @@ export class WasmAssembler {
         let section: SectionBuffer = new SectionBuffer(id, name);
         section.offset = array.length;
         log(array, 0, null, ` - section: ${WasmSection[id]} [0x${toHex(id, 2)}]`);
+        this.currentSection = section;
         this.sectionList.push(section);
         return section;
     }
 
     endSection(array: ByteArray, section: SectionBuffer): void {
+        this.currentSection = null;
         section.publish(array);
     }
 
@@ -73,42 +76,77 @@ export class WasmAssembler {
             while (item !== undefined && max > 0) {
                 Terminal.warn(WasmType[item.type]);
                 array.append(WasmOpcode.DROP);
+                this.currentSection.code.append("drop\n");
                 item = this.stackTracer.context.stack.pop(true);
                 max--;
             }
         }
     }
 
-    appendOpcode(array: ByteArray, offset = 0, opcode: number, inline_value?) {
+    appendOpcode(array: ByteArray, offset = 0, opcode: number, inline_value?, skip: boolean = false) {
         logOpcode(array, offset, opcode, inline_value);
         array.append(opcode);
-        this.stackTracer.pushOpcode(opcode);
+        let opcodeWithoutOperand = this.stackTracer.pushOpcode(opcode);
+        if (opcodeWithoutOperand !== null && !skip) {
+            let isEnd = opcode === WasmOpcode.END;
+            let indent = this.isBlock(opcode) ? 1 : (isEnd ? -1 : 0);
+            if (isEnd) {
+                this.currentSection.code.clearIndent(1);
+            }
+            this.currentSection.code.append(opcodeWithoutOperand + "\n", indent);
+        }
+    }
+
+    private isBlock(opcode: number): boolean {
+        return opcode === WasmOpcode.BLOCK ||
+            opcode === WasmOpcode.LOOP ||
+            opcode === WasmOpcode.IF ||
+            opcode === WasmOpcode.IF_ELSE;
     }
 
     writeUnsignedLEB128(array: ByteArray, value: number): void {
         array.writeUnsignedLEB128(value);
-        this.stackTracer.pushValue(value);
+        let opcodeAndOperand = this.stackTracer.pushValue(value);
+        if (opcodeAndOperand !== null) {
+            this.currentSection.code.append(opcodeAndOperand + "\n");
+        }
     }
 
     writeLEB128(array: ByteArray, value: number): void {
         array.writeLEB128(value);
-        this.stackTracer.pushValue(value);
+        let opcodeAndOperand = this.stackTracer.pushValue(value);
+        if (opcodeAndOperand !== null) {
+            this.currentSection.code.append(opcodeAndOperand + "\n");
+        }
     }
 
     writeFloat(array: ByteArray, value: number): void {
         array.writeFloat(value);
-        this.stackTracer.pushValue(value);
+        let opcodeAndOperand = this.stackTracer.pushValue(value);
+        if (opcodeAndOperand !== null) {
+            this.currentSection.code.append(opcodeAndOperand + "\n");
+        }
     }
 
     writeDouble(array: ByteArray, value: number): void {
         array.writeDouble(value);
-        this.stackTracer.pushValue(value);
+        let opcodeAndOperand = this.stackTracer.pushValue(value);
+        if (opcodeAndOperand !== null) {
+            this.currentSection.code.append(opcodeAndOperand + "\n");
+        }
     }
 
     writeWasmString(array: ByteArray, value: string): void {
         array.writeWasmString(value);
     }
 
+    finish() {
+        this.textOutput += "  ";
+        this.sectionList.forEach((section) => {
+            this.textOutput += section.code.finish();
+        });
+        this.textOutput += ")\n";
+    }
 }
 
 export function append(array: ByteArray, offset = 0, value = null, msg = null) {

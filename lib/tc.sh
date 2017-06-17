@@ -26,7 +26,7 @@ fi
 ts-node ${TURBO_PATH}/lib/tc.ts $1 $2 $3 $4.$ext
 if [ $? == 0 ] && [ $2 == --wasm ];
     then
-        wasm2wast $4.$ext -o $4.wast -v
+        wasm2wast $4.$ext -o $4.wabt.wast -v
 fi
 
 exit $?

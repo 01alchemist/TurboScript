@@ -16,3 +16,13 @@ export class WasmWrappedType {
     id: WasmType;
     next: WasmWrappedType;
 }
+
+const idTostring = {};
+idTostring[WasmType.VOID] = "void";
+idTostring[WasmType.I32] = "i32";
+idTostring[WasmType.I64] = "i64";
+idTostring[WasmType.F32] = "f32";
+idTostring[WasmType.F64] = "f64";
+
+export const WasmTypeToString = idTostring;
+

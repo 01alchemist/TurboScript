@@ -7,7 +7,7 @@ module.exports = {
     target: "node",
     entry: {
         "turboscript": "./src/index.ts",
-        "turboscript.min": "./src/index.ts"
+        // "turboscript.min": "./src/index.ts"
     },
     devtool: "source-map",
     resolve: {
