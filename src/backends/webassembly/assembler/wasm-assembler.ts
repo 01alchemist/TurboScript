@@ -1,4 +1,4 @@
-import {WasmRuntimeFunction, WasmStackTracer} from "../stack-machine/wasm-stack-tracer";
+import {WasmRuntimeFunction, WasmStackTracer} from "../wasm-machine/wasm-stack-tracer";
 import {WasmFunction} from "../core/wasm-function";
 import {toHex} from "../../../utils/utils";
 import {ByteArray} from "../../../utils/bytearray";
@@ -7,7 +7,7 @@ import {SectionBuffer} from "../buffer/section-buffer";
 import {log} from "../utils/logger";
 import {WasmSection} from "../core/wasm-section";
 import {WasmImport} from "../core/wasm-import";
-import {WasmRuntimeProperty} from "../stack-machine/wasm-runtime-local";
+import {WasmRuntimeProperty} from "../wasm-machine/wasm-runtime-local";
 import {WasmType} from "../core/wasm-type";
 import {WasmLocalEntry} from "../core/wasm-local";
 import {Terminal} from "../../../utils/terminal";
