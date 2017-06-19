@@ -5,6 +5,7 @@ import {CompileTarget} from "./compiler/compile-target";
 import {Terminal} from "./utils/terminal";
 import {FileSystem} from "./utils/filesystem";
 import {CompilerOptions, defaultCompilerOptions} from "./compiler/compiler-options";
+import {Color} from "./utils/color";
 
 /**
  * TurboScript compiler main entry
@@ -200,6 +201,11 @@ export function compileString(source: string, options: CompilerOptions = default
 }
 declare const VERSION:string;
 export const version = VERSION;
+
+Terminal.setTextColor(Color.MAGENTA);
+Terminal.write(`~~~~~~~~~~~~~~~~~~~~~~~~~`);
+Terminal.write(`| TurboScript ${version} |`);
+Terminal.write(`~~~~~~~~~~~~~~~~~~~~~~~~~`);
 
 export default {
     version: version,

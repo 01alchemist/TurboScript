@@ -35,6 +35,10 @@ module.exports = {
                 loader: "raw-loader"
             },
             {
+                test: /\.(wasm)$/,
+                loader: "bin-loader"
+            },
+            {
                 test: /\.tsx?$/,
                 loader: "ts-loader",
                 exclude: /node_modules/,

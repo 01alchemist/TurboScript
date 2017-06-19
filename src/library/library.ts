@@ -1,4 +1,6 @@
 import {CompileTarget} from "../compiler/compile-target";
+import {Terminal} from "../utils/terminal";
+import {Color} from "../utils/color";
 // library files
 const math = require('./common/math.tbs');
 const types = require('./common/types.tbs');
@@ -7,6 +9,7 @@ const jstypes = require('./turbo/types.tbs');
 const runtime = require('raw-loader!./turbo/runtime.js');
 const wrapper = require('raw-loader!./turbo/wrapper.js');
 const malloc = require('./common/malloc.tbs');
+const mallocBinary = require('./common/malloc/build/malloc.wasm') as Uint8Array;
 const builtins = require('./webassembly/builtins.tbs');
 const initializer = require('./webassembly/initializer.tbs');
 
