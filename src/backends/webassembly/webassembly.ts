@@ -37,7 +37,7 @@ const WASM_SET_MAX_MEMORY = false;
 const WASM_MAX_MEMORY = 1024 * 1024 * 1024;
 const WASM_MEMORY_INITIALIZER_BASE = 8; // Leave space for "null"
 
-class WasmModule {
+class WasmModuleEmitter {
 
     firstImport: WasmImport;
     lastImport: WasmImport;
@@ -1970,14 +1970,18 @@ class WasmModule {
 
             else if (node.kind == NodeKind.BITWISE_AND) {
                 if (isFloat || isDouble) {
-                    throw "Cannot do bitwise operations on floating point number";
+                    let error = "Cannot do bitwise operations on floating point number"
+                    Terminal.error(error);
+                    throw error;
                 }
                 this.emitBinaryExpression(array, byteOffset, node, WasmOpcode[`${dataTypeLeft}_AND`]);
             }
 
             else if (node.kind == NodeKind.BITWISE_OR) {
                 if (isFloat || isDouble) {
-                    throw "Cannot do bitwise operations on floating point number";
+                    let error = "Cannot do bitwise operations on floating point number";
+                    Terminal.error(error);
+                    throw error;
                 }
                 this.emitBinaryExpression(array, byteOffset, node, WasmOpcode[`${dataTypeLeft}_OR`]);
             }
@@ -2000,7 +2004,9 @@ class WasmModule {
 
             else if (node.kind == NodeKind.SHIFT_LEFT) {
                 if (isFloat || isDouble) {
-                    throw "Cannot do bitwise operations on floating point number";
+                    let error = "Cannot do bitwise operations on floating point number";
+                    Terminal.error(error);
+                    throw error;
                 }
                 this.emitBinaryExpression(array, byteOffset, node, WasmOpcode[`${dataTypeLeft}_SHL`]);
             }
@@ -2046,7 +2052,9 @@ class WasmModule {
 
             else if (node.kind == NodeKind.REMAINDER) {
                 if (isFloat || isDouble) {
-                    throw "Floating point remainder is not yet supported in WebAssembly. Please import javascript function to handle this";
+                    let error = "Floating point remainder is not yet supported in WebAssembly. Please import javascript function to handle this";
+                    Terminal.error(error);
+                    throw error;
                 }
                 this.emitBinaryExpression(array, byteOffset, node, isUnsigned ?
                     WasmOpcode[`${dataTypeLeft}_REM_U`] : WasmOpcode[`${dataTypeLeft}_REM_S`]);
@@ -2054,7 +2062,9 @@ class WasmModule {
 
             else if (node.kind == NodeKind.SHIFT_RIGHT) {
                 if (isFloat || isDouble) {
-                    throw "Cannot do bitwise operations on floating point number";
+                    let error = "Cannot do bitwise operations on floating point number";
+                    Terminal.error(error);
+                    throw error;
                 }
                 this.emitBinaryExpression(array, byteOffset, node, isUnsigned ?
                     WasmOpcode[`${dataTypeLeft}_SHR_U`] : WasmOpcode[`${dataTypeLeft}_SHR_S`]);
@@ -2129,7 +2139,7 @@ function wasmAssignLocalVariableOffsets(fn: WasmFunction, node: Node, shared: Wa
 }
 
 export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32, optimize: boolean = true): void {
-    let module = new WasmModule(bitness);
+    let module = new WasmModuleEmitter(bitness);
     module.context = compiler.context;
     module.memoryInitializer = new ByteArray();
 
@@ -2143,15 +2153,6 @@ export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32, opt
     // Emission requires two passes
     module.prepareToEmit(compiler.global);
     module.assembler.sealFunctions();
-
-    // The standard library must be included
-    // assert(module.mallocFunctionIndex != -1);
-    // assert(module.freeFunctionIndex != -1);
-    // assert(module.currentHeapPointer != -1);
-    // assert(module.originalHeapPointer != -1);
-
-    // module.mallocFunctionIndex += module.importCount;
-    // module.freeFunctionIndex += module.importCount;
 
     compiler.outputWASM = new ByteArray();
     module.emitModule(compiler.outputWASM);

@@ -100,14 +100,12 @@ export function main_entry(): int32 {
     }
 
     // Automatically set the target based on the file extension
-    //C emitter and vanilla javascript emitter is disabled due to outdated code base.
     if (target == CompileTarget.NONE) {
         if (output.endsWith(".wasm")) target = CompileTarget.WEBASSEMBLY;
-        // else if (output.endsWith(".c")) target = CompileTarget.C;
-        // else if (output.endsWith(".js")) target = CompileTarget.TURBO_JAVASCRIPT;
+        // else if (output.endsWith(".cpp")) target = CompileTarget.CPP;
+        // else if (output.endsWith(".js")) target = CompileTarget.JAVASCRIPT;
         else {
-            // Terminal.error("Missing a target (use either --c, --js, --asmjs or --wasm)");
-            Terminal.error("Missing a target (use either --asmjs or --wasm)");
+            Terminal.error("Missing a target (use either --js or --wasm)");
             return 1;
         }
     }
@@ -203,9 +201,8 @@ declare const VERSION:string;
 export const version = VERSION;
 
 Terminal.setTextColor(Color.MAGENTA);
-Terminal.write(`~~~~~~~~~~~~~~~~~~~~~~~~~`);
-Terminal.write(`| TurboScript ${version} |`);
-Terminal.write(`~~~~~~~~~~~~~~~~~~~~~~~~~`);
+Terminal.write(`~~~~~~~~~~~~~~~~~~~~~~~~~| TurboScript ${version} |~~~~~~~~~~~~~~~~~~~~~~~~~`);
+Terminal.clearColor();
 
 export default {
     version: version,
