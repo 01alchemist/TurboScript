@@ -187,7 +187,7 @@ export function compileString(source: string, options: CompilerOptions = default
         return {
             success: true,
             wasm: compiler.outputWASM.array,
-            wast: "WebAssembly text format output is not yet supported!\nPlease check wasm binary data."
+            wast: compiler.outputWAST
         };
     } else {
         if (!options.silent || options.logError) {
