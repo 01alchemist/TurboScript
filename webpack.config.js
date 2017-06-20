@@ -31,13 +31,13 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.(tbs|txt)$/,
+                test: /\.(wasm|tbs|txt)$/,
                 loader: "raw-loader"
             },
-            {
-                test: /\.(wasm)$/,
-                loader: "bin-loader"
-            },
+            // {
+            //     test: /\.(wasm)$/,
+            //     loader: "bin-loader"
+            // },
             {
                 test: /\.tsx?$/,
                 loader: "ts-loader",

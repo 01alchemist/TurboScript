@@ -50,7 +50,7 @@ util.run(path.join(util.bindir, "wasm-opt"), [
   "--pick-load-signs",
   "--precompute",
   "--remove-unused-brs",
-  "--remove-unused-module-elements",
+  "--remove-unused-namespace-elements",
   "--reorder-locals",
   "--simplify-locals",
   "--vacuum",

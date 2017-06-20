@@ -11,14 +11,7 @@ export function getWasmFunctionName(symbol: Symbol): string {
     return (moduleName == "" ? "" : moduleName + "_") + symbol.internalName;
 }
 
-export function wasmWrapType(id: WasmType): WasmWrappedType {
-    assert(id == WasmType.VOID || id == WasmType.I32 || id == WasmType.I64 || id == WasmType.F32 || id == WasmType.F64);
-    let type = new WasmWrappedType();
-    type.id = id;
-    return type;
-}
-
-export function symbolToValueType(symbol: Symbol, bitness?: Bitness): WasmType {
+export function symbolToWasmType(symbol: Symbol, bitness?: Bitness): WasmType {
     let type = symbol.resolvedType;
     if (type.isFloat()) {
         return WasmType.F32;

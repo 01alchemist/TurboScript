@@ -27,3 +27,11 @@ export function alignToNextMultipleOf(offset: int32, alignment: int32): int32 {
     assert(isPositivePowerOf2(alignment));
     return (offset + alignment - 1) & -alignment;
 }
+
+export function sizeOfNumber(value:number):number{
+    return value.toString(2).length / 8;
+}
+
+export function isSigned(value:number):boolean {
+    return value < 0;
+}

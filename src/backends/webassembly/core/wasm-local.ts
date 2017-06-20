@@ -3,15 +3,11 @@ import {WasmType} from "./wasm-type";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
-export class WasmLocalEntry {
+export class WasmLocal {
     constructor(public type: WasmType,
                 public name: string,
+                symbol?: Symbol,
                 public isArgument: boolean = false) {
 
     }
-}
-export class WasmLocal {
-    type: WasmType;
-    symbol: Symbol;
-    next: WasmLocal;
 }

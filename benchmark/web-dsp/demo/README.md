@@ -26,7 +26,7 @@ Use jsFallback() in the catch block to handle browsers that don't support .wasm
 var webdsp = {};
 loadWASM().then(module => {
   webdsp = module;
-  // things to execute on page load only after module is loaded
+  namespace
 });
 ```
 Note WebAssembly modules need to be loaded with an HTTP request (fetch). Chrome does not support local file access via HTTP, so the files must be loaded using a server. In Firefox, it is possible to load the module without a server as a plain HTML file. 

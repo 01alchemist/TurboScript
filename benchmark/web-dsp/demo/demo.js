@@ -16,7 +16,7 @@ loadTurboWASM()
   .then(module => {
     wam = module;
 }).catch((err) => {
-  console.log('Error in fetching module: ', err);
+  console.log('Error in fetching namespace: ', err);
 }).then(() => {
     window.onload = (() => {
       createStats();

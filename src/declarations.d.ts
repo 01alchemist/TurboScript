@@ -22,5 +22,3 @@ interface Math {
     imul(a: number, b: number): number
     log2(a: number): number
 }
-declare class ByteArray {
-}

@@ -5,7 +5,7 @@ import {WasmSignature} from "./wasm-signature";
 export class WasmImport {
     signatureIndex: int32;
     signature: WasmSignature;
-    module: string;
+    namespace: string;
     name: string;
     next: WasmImport;
 }

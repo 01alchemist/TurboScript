@@ -5,12 +5,16 @@ import {ByteArray} from "../../../../utils/bytearray";
  * Created by 01 on 2017-06-17.
  */
 export class MemorySection extends WasmSectionBinary {
-    constructor(){
+    constructor(payload = new ByteArray()) {
         super(
             WasmSection.Memory,
-            0,
+            payload.length,
             null, null,
-            new ByteArray()
+            payload
         )
+    }
+
+    publish(data: ByteArray): void {
+        super.publish(data);
     }
 }

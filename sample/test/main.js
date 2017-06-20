@@ -342,7 +342,7 @@ function loadModel(file) {
      console.log(item, loaded, total);
      };*/
     manager.onLoad = function () {
-        //console.log(arguments);
+        //console.log(argumentVariables);
     };
 
     var onProgress = function (xhr) {

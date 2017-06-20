@@ -12,30 +12,35 @@ import {WasmType} from "../core/wasm-type";
 import {WasmLocalEntry} from "../core/wasm-local";
 import {Terminal} from "../../../utils/terminal";
 import {getWasmFunctionName} from "../utils/index";
+import {WasmModule} from "../wasm/wasm-module";
+import {createSection} from "../wasm/wasm-parser";
+import {WasmSectionBinary} from "../wasm/wasm-binary-section";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
 export class WasmAssembler {
 
+    module:WasmModule;
     binaryOutput: ByteArray;
     textOutput: string;
     stackTracer: WasmStackTracer;
     sectionList: SectionBuffer[] = [];
     importList: WasmImport[] = [];
     functionList: WasmFunction[] = [];
-    currentSection: SectionBuffer = null;
+    currentSection: WasmSectionBinary = null;
     currentFunction: WasmFunction = null;
 
     constructor() {
+        this.module = new WasmModule();
         this.stackTracer = new WasmStackTracer();
-        this.textOutput = ";; Experimental wast emitter\n(module\n";
+        this.textOutput = ";; Experimental wast emitter\n(namespace\n";
     }
 
     sealFunctions() {
         let runtimeFunctions = [];
         this.importList.forEach(_import => {
             let fn = new WasmRuntimeFunction();
-            fn.module = _import.module;
+            fn.module = _import.namespace;
             fn.name = _import.name;
             fn.signature = _import.signature;
             fn.isImport = true;
@@ -47,7 +52,7 @@ export class WasmAssembler {
             fn.signature = _wasmFunc.signature;
             fn.isImport = false;
             fn.locals = [];
-            _wasmFunc.localEntries.forEach((local: WasmLocalEntry) => {
+            _wasmFunc.locals.forEach((local: WasmLocalEntry) => {
                 fn.locals.push(new WasmRuntimeProperty(local.type, local.name));
             });
             runtimeFunctions.push(fn);
@@ -55,18 +60,16 @@ export class WasmAssembler {
         this.stackTracer.functions = runtimeFunctions;
     }
 
-    startSection(array: ByteArray, id: int32, name: string): SectionBuffer {
-        let section: SectionBuffer = new SectionBuffer(id, name);
-        section.offset = array.length;
+    startSection(id: int32, name: string): WasmSectionBinary {
+        let section: WasmSectionBinary = createSection(id, name);
+        this.module.binary.sections.push(section);
         log(array, 0, null, ` - section: ${WasmSection[id]} [0x${toHex(id, 2)}]`);
         this.currentSection = section;
-        this.sectionList.push(section);
         return section;
     }
 
-    endSection(array: ByteArray, section: SectionBuffer): void {
+    endSection(section: WasmSectionBinary): void {
         this.currentSection = null;
-        section.publish(array);
     }
 
     dropStack(array: ByteArray, max: number = 1) {

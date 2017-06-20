@@ -58,7 +58,7 @@ if (ENVIRONMENT_IS_NODE) {
             Module["thisProgram"] = "unknown-program"
         }
     }
-    Module["arguments"] = process["argv"].slice(2);
+    Module["argumentVariables"] = process["argv"].slice(2);
     if (typeof module !== "undefined") {
         module["exports"] = Module
     }
@@ -89,9 +89,9 @@ if (ENVIRONMENT_IS_NODE) {
         return data
     };
     if (typeof scriptArgs != "undefined") {
-        Module["arguments"] = scriptArgs
+        Module["argumentVariables"] = scriptArgs
     } else if (typeof arguments != "undefined") {
-        Module["arguments"] = arguments
+        Module["argumentVariables"] = arguments
     }
     if (typeof quit === "function") {
         Module["quit"] = (function (status, toThrow) {
@@ -129,7 +129,7 @@ if (ENVIRONMENT_IS_NODE) {
         xhr.send(null)
     };
     if (typeof arguments != "undefined") {
-        Module["arguments"] = arguments
+        Module["argumentVariables"] = arguments
     }
     if (typeof console !== "undefined") {
         if (!Module["print"]) Module["print"] = function print(x) {
@@ -171,8 +171,8 @@ if (!Module["print"]) {
 if (!Module["printErr"]) {
     Module["printErr"] = Module["print"]
 }
-if (!Module["arguments"]) {
-    Module["arguments"] = []
+if (!Module["argumentVariables"]) {
+    Module["argumentVariables"] = []
 }
 if (!Module["thisProgram"]) {
     Module["thisProgram"] = "./this.program"
@@ -432,7 +432,7 @@ var cwrap, ccall;
                 var arg = argNames[i], type = argTypes[i];
                 if (type === "number")continue;
                 var convertCode = JSsource[type + "ToC"];
-                funcstr += "var " + convertCode.arguments + " = " + arg + ";";
+                funcstr += "var " + convertCode.argumentVariables + " = " + arg + ";";
                 funcstr += convertCode.body + ";";
                 funcstr += arg + "=(" + convertCode.returnValue + ");"
             }
@@ -1218,7 +1218,7 @@ function integrateWasmJS(Module) {
             }
         }
         if (typeof Module["asm"] !== "function") {
-            Module["printErr"]("asm evalling did not set the module properly");
+            Module["printErr"]("asm evalling did not set the namespace properly");
             return false
         }
         return Module["asm"](global, env, providedBuffer)
@@ -1758,7 +1758,7 @@ Module["callMain"] = Module.callMain = function callMain(args) {
     }
 };
 function run(args) {
-    args = args || Module["arguments"];
+    args = args || Module["argumentVariables"];
     if (preloadStartTime === null) preloadStartTime = Date.now();
     if (runDependencies > 0) {
         return

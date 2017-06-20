@@ -1,4 +1,5 @@
 import {assert} from "./assert";
+import {isSigned, sizeOfNumber} from "./utils";
 export function ByteArray_set16(array: ByteArray, index: number, value: number): void {
     array.set(index, value);
     array.set(index + 1, (value >> 8));
@@ -215,6 +216,121 @@ export class ByteArray {
             this.data = new DataView(buffer, offset, length > 0 ? length : buffer.byteLength);
         } else {
         }
+    }
+
+    readU8LEB() {
+        return this.readUnsignedLEB128(1)
+    }
+
+    readU16LEB() {
+        return this.readUnsignedLEB128(2)
+    }
+
+    readU32LEB() {
+        return this.readUnsignedLEB128(4)
+    }
+
+    readU64LEB() {
+        return this.readUnsignedLEB128(8)
+    }
+
+    readS8LEB() {
+        return this.readLEB128(1)
+    }
+
+    readS16LEB() {
+        return this.readLEB128(2)
+    }
+
+    readS32LEB() {
+        return this.readLEB128(4)
+    }
+
+    readS64LEB() {
+        return this.readLEB128(8)
+    }
+
+    /**
+     * Read unsigned Little Endian Base 128
+     */
+    readUnsignedLEB128(size): number {
+        let value = 0;
+        let shift = 0;
+        let byte;
+        while (true) {
+            byte = this.readUnsignedByte();
+            let last:boolean = !(byte & 128);
+            let payload:number = byte & 127;
+            let shift_mask = 0 == shift ? ~0
+                : ((1 << (size * 8 - shift)) - 1);
+            let significant_payload = payload & shift_mask;
+
+            if (significant_payload != payload) {
+                if (!(value < 0 && last)) {
+                    throw "LEB dropped bits only valid for signed LEB";
+                }
+            }
+
+            value |= significant_payload << shift;
+
+            if (last) break;
+            shift += 7;
+            if (sizeOfNumber(shift) >= size * 8) {
+                throw "LEB overflow";
+            }
+        }
+        return value;
+    }
+
+    /**
+     * Read signed Little Endian Base 128
+     */
+    readLEB128(size): number {
+        let value = 0;
+        let shift = 0;
+        let sizeOfShift = 0;
+        let byte;
+        while (true) {
+            byte = this.readByte();
+            let last = !(byte & 128);
+            let payload = byte & 127;
+            let shift_mask = 0 == shift
+                ? ~0
+                : ((1 << (size * 8 - shift)) - 1);
+            let significant_payload = payload & shift_mask;
+
+            if (significant_payload != payload) {
+                if (!(isSigned(value) && last)) {
+                    throw "LEB dropped bits only valid for signed LEB";
+                }
+            }
+
+            value |= significant_payload << shift;
+
+            if (last) break;
+            shift += 7;
+            sizeOfShift = sizeOfNumber(shift);
+            if (sizeOfShift >= size * 8) {
+                throw "LEB overflow";
+            }
+        }
+
+        // If signed LEB, then we might need to sign-extend. (compile should
+        // optimize this out if not needed).
+        if (isSigned(value)) {
+            shift += 7;
+            sizeOfShift = sizeOfNumber(shift);
+            if ((byte & 64) && sizeOfShift < 8 * size) {
+                let sext_bits = 8 * size - sizeOfShift;
+                value <<= sext_bits;
+                value >>= sext_bits;
+                if (value >= 0) {
+                    throw "LEB sign-extend should produce a negative value";
+                }
+            }
+        }
+
+        return value;
     }
 
     /**

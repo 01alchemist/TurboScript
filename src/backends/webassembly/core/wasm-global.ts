@@ -3,15 +3,11 @@ import {WasmType} from "./wasm-type";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
-export class WasmGlobalEntry {
+export class WasmGlobal {
     constructor(public type: WasmType,
                 public immutable: boolean,
-                public name: string) {
+                public name: string,
+                public symbol?: Symbol) {
 
     }
-}
-export class WasmGlobal {
-    symbol: Symbol;
-    type: WasmType;
-    next: WasmGlobal;
 }

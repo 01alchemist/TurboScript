@@ -201,7 +201,7 @@ declare const VERSION:string;
 export const version = VERSION;
 
 Terminal.setTextColor(Color.MAGENTA);
-Terminal.write(`~~~~~~~~~~~~~~~~~~~~~~~~~| TurboScript ${version} |~~~~~~~~~~~~~~~~~~~~~~~~~`);
+Terminal.write(`~~~~~~~~~~~~~~~~~~~~~~~~~| TurboScript ${version} |~~~~~~~~~~~~~~~~~~~~~~~~~\n`);
 Terminal.clearColor();
 
 export default {

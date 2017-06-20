@@ -405,10 +405,10 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
     // Module
     if (symbol.kind == SymbolKind.TYPE_MODULE) {
-        forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a module");
-        forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a module");
-        forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a module");
-        forbidFlag(context, node, NODE_FLAG_PRIVATE, "Cannot use 'private' on a module");
+        forbidFlag(context, node, NODE_FLAG_GET, "Cannot use 'get' on a namespace");
+        forbidFlag(context, node, NODE_FLAG_SET, "Cannot use 'set' on a namespace");
+        forbidFlag(context, node, NODE_FLAG_PUBLIC, "Cannot use 'public' on a namespace");
+        forbidFlag(context, node, NODE_FLAG_PRIVATE, "Cannot use 'private' on a namespace");
     }
 
     // Class
@@ -477,7 +477,7 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
 
             // Validate argument count including "this"
             if (argumentCount != 1) {
-                context.log.error(symbol.range, "Getters must not have any arguments");
+                context.log.error(symbol.range, "Getters must not have any argumentVariables");
             }
         }
 
@@ -1592,7 +1592,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     argumentValue = argumentValue.nextSibling;
                 }
 
-                // Not enough arguments?
+                // Not enough argumentVariables?
                 if (returnType.resolvedType != context.anyType) {
 
                     if (argumentVariable != returnType && !argumentVariable.hasVariableValue()) {
@@ -1601,7 +1601,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                             `Not enough arguments for function '${symbol.name}'`);
                     }
 
-                    // Too many arguments?
+                    // Too many argumentVariables?
                     else if (argumentValue != null) {
                         while (argumentValue != null) {
                             resolveAsExpression(context, argumentValue, parentScope);
@@ -1828,7 +1828,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             }
         }
 
-        //Constructors arguments
+        //Constructors argumentVariables
         let child = type.nextSibling;
         let constructorNode = node.constructorNode();
         let argumentVariable = constructorNode.functionFirstArgument();
@@ -2081,7 +2081,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                 checkConversion(context, right, commonType, ConversionKind.IMPLICIT);
                 node.resolvedType = commonType;
 
-                // Type conversion
+                // Signature conversion
                 if (commonType == context.int64Type) {
                     if (left.kind == NodeKind.INT32) {
                         left.kind = NodeKind.INT64;

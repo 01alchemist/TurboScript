@@ -4,12 +4,12 @@ import {ByteArray} from "../../../../utils/bytearray";
 /**
  * Created by 01 on 2017-06-17.
  */
-export class GlobalSection extends WasmSectionBinary {
-    constructor(payload = new ByteArray()) {
+export class CustomSection extends WasmSectionBinary {
+    constructor(name:string, payload = new ByteArray()) {
         super(
-            WasmSection.Global,
+            WasmSection.Custom,
             payload.length,
-            null, null,
+            -1, name,
             payload
         )
     }
