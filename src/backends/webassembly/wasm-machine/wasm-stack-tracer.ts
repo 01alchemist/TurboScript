@@ -4,7 +4,7 @@ import {WasmRuntimeProperty} from "./wasm-runtime-local";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmSignature} from "../core/wasm-signature";
 import {Terminal} from "../../../utils/terminal";
-import {WasmGlobalEntry} from "../core/wasm-global";
+import {WasmGlobal} from "../core/wasm-global";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -58,7 +58,7 @@ export class WasmRuntimeFunction {
     }
 
     get returnType(): WasmType {
-        return this.signature.returnType.id;
+        return this.signature.returnType;
     }
 
     execute(...param): WasmStackItem {
@@ -92,10 +92,10 @@ export class WasmStackTracer {
         this.memory = new ByteArray();
     }
 
-    setGlobals(globalEntries: WasmGlobalEntry[]) {
+    setGlobals(globals: WasmGlobal[]) {
         this.globals = [];
-        globalEntries.forEach(globalEntry => {
-            this.globals.push(new WasmRuntimeProperty(globalEntry.type, globalEntry.name));
+        globals.forEach(global => {
+            this.globals.push(new WasmRuntimeProperty(global.type, global.name));
         });
     }
 
@@ -120,7 +120,7 @@ export class WasmStackTracer {
             throw "Function not defined at index " + index;
         }
         let returnType = fn.returnType;
-        for (let i: int32 = 0; i < fn.signature.argumentCount; i++) {
+        for (let i: int32 = 0; i < fn.signature.argumentTypes.length; i++) {
             this.context.stack.pop();
         }
         if (returnType !== WasmType.VOID) {

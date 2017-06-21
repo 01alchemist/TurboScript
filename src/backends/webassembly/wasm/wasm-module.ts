@@ -15,53 +15,34 @@ import {Symbol} from "../../../compiler/core/symbol";
 import {symbolToWasmType} from "../utils/index";
 import {WasmType} from "../core/wasm-type";
 import {assert} from "../../../utils/assert";
+import {WasmSection} from "../core/wasm-section";
+import {ImportSection} from "./sections/import-section";
 /**
  * Created by 01 on 2017-06-19.
  */
 export class WasmModule {
+    private imports:WasmImport[]; // Reference to section imports.
+    get importCount():int32 {
+        return this.imports.length;
+    }
+
+    private globals:WasmGlobal[]; // Reference to section globals.
+    get globalCount():int32 {
+        return this.globals.length;
+    }
+
+    private functions:WasmFunction[]; // Reference to section functions.
+    get functionCount():int32 {
+        return this.functions.length;
+    }
+
+    private signatures:WasmSignature[]; // Reference to section signatures.
+    get signatureCount():int32 {
+        return this.signatures.length;
+    }
 
     binary: WasmBinary;
     text: string;
-
-    // Imports
-    imports: WasmImport[];
-    importMap: Map<string, int32>;
-
-    // Globals
-    globals: WasmGlobal[];
-    globalMap: Map<string, int32>;
-
-    // Tables
-    tables: WasmTable[];
-    tableMap: Map<string, int32>;
-
-    // Elements
-    elements: WasmElement[];
-    elementMap: Map<string, int32>;
-
-    // Signatures
-    signatures: WasmSignature[];
-    signatureMap: Map<string, int32>;
-
-    // Function declarations
-    declarations: WasmFunctionDeclaration[];
-    declarationMap: Map<string, int32>;
-
-    // Functions
-    functions: WasmFunction[];
-    functionMap: Map<string, int32>;
-
-    // Data
-    dataSegments: WasmData[];
-    dataSegmentMap: Map<string, int32>;
-
-    // Memories
-    memories: WasmMemory[];
-    memoryMap: Map<string, int32>;
-
-    // Exports
-    exports: WasmExport[];
-    exportMap: Map<string, int32>;
 
     constructor(binary?: Uint8Array | ByteArray | WasmBinary) {
         this.reset();
@@ -69,20 +50,14 @@ export class WasmModule {
             this.read(binary);
         } else {
             this.binary = new WasmBinary();
+            this.binary.initializeSections();
         }
+
+        this.imports = (this.binary.getSection(WasmSection.Import) as ImportSection).imports;
     }
 
     reset(): void {
-        this.imports = [];
-        this.globals = [];
-        this.tables = [];
-        this.elements = [];
-        this.signatures = [];
-        this.declarations = [];
-        this.functions = [];
-        this.dataSegments = [];
-        this.memories = [];
-        this.exports = [];
+        this.binary.reset();
     }
 
     read(binary: Uint8Array | ByteArray | WasmBinary): void {
@@ -95,7 +70,7 @@ export class WasmModule {
     }
 
     publish(): void {
-
+        this.binary.publish();
     }
 
     allocateGlobal(symbol: Symbol, bitness: Bitness): WasmGlobal {

@@ -1,4 +1,4 @@
-import {WasmSectionBinary} from "./wasm-binary-section";
+import {IWasmSectionBinary, WasmSectionBinary} from "./wasm-binary-section";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmSection} from "../core/wasm-section";
 import {SignatureSection} from "./sections/signature-section";
@@ -13,6 +13,7 @@ import {ElementSection} from "./sections/element-section";
 import {CodeSection} from "./sections/code-section";
 import {DataSection} from "./sections/data-section";
 import {CustomSection} from "./sections/name-section";
+import {Terminal} from "../../../utils/terminal";
 /**
  * Created by 01 on 2017-06-19.
  */
@@ -22,8 +23,8 @@ export class WasmParser {
     }
 }
 
-export function createSection(id:WasmSection, name?:string): WasmSectionBinary {
-    let sectionBinary;
+export function createSection(id: WasmSection, name?: string): WasmSectionBinary {
+    let sectionBinary = null;
     switch (id) {
         case WasmSection.Signature:
             sectionBinary = new SignatureSection(new ByteArray());
@@ -59,8 +60,19 @@ export function createSection(id:WasmSection, name?:string): WasmSectionBinary {
             sectionBinary = new DataSection(new ByteArray());
             break;
         case WasmSection.Custom:
-            sectionBinary = new CustomSection(name, new ByteArray());
+            if (name !== undefined) {
+                sectionBinary = new CustomSection(name, new ByteArray());
+            } else {
+                let error = "Cannot create custom section without name";
+                Terminal.error(error);
+                throw error;
+            }
             break;
+    }
+    if (sectionBinary === null) {
+        let error = `Unknown section name:${name}, id:${id}`;
+        Terminal.error(error);
+        throw error;
     }
     return sectionBinary;
 }
@@ -75,7 +87,7 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
     }
     let payload_len = data.readU32LEB();
     let payload = data.readBytes(new ByteArray(), 0, payload_len);
-    let sectionBinary;
+    let sectionBinary: IWasmSectionBinary;
 
     switch (id) {
         case WasmSection.Signature:

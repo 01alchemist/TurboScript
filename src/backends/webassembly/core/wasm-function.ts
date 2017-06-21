@@ -2,11 +2,13 @@ import {WasmType} from "./wasm-type";
 import {Symbol} from "../../../compiler/core/symbol";
 import {WasmLocal} from "./wasm-local";
 import {ByteArray} from "../../../utils/bytearray";
+import {WasmSignature} from "./wasm-signature";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
 export class WasmFunction {
     signatureIndex: int32;
+    signature: WasmSignature;
 
     isExported: boolean;
     isConstructor: boolean;

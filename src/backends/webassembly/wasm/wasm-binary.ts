@@ -1,8 +1,8 @@
-import {WasmSectionBinary} from "./wasm-binary-section";
+import {IWasmSectionBinary, WasmSectionBinary} from "./wasm-binary-section";
 import {ByteArray} from "../../../utils/bytearray";
 import {Terminal} from "../../../utils/terminal";
 import {WasmSection} from "../core/wasm-section";
-import {parseSection} from "./wasm-parser";
+import {createSection, parseSection} from "./wasm-parser";
 /**
  * Created by n.vinayakan on 17.06.17.
  */
@@ -19,7 +19,7 @@ export class WasmBinary {
     sections: WasmSectionBinary[];
     sectionMap: Map<WasmSection, int32>;
 
-    constructor(data?: Uint8Array | ByteArray) {
+    constructor(data?: Uint8Array | ByteArray | Buffer) {
         this.sections = [];
         this.sectionMap = new Map<WasmSection, int32>();
         if (data !== undefined) {
@@ -43,7 +43,7 @@ export class WasmBinary {
             let version = this.data.readUnsignedInt();
 
             if (magic !== WasmBinary.MAGIC) {
-                console.log("Unknown WASM magic number", magic, WasmBinary.MAGIC);
+                console.log(`Got unknown WASM magic number ${magic} instead of ${WasmBinary.MAGIC}`);
             } else {
                 console.log("WASM Version:" + version);
             }
@@ -54,16 +54,59 @@ export class WasmBinary {
     readNextSection() {
         if (this.data.bytesAvailable > 0) {
             let section = parseSection(this.data);
-            this.sections.push(section);
+            this.sectionMap.set(section.id, this.sections.push(section) - 1);
         } else {
             Terminal.write(`${this.sections.length} Sections parsed!`);
         }
     }
 
-    publish():void {
+    publish(): void {
         this.sections.forEach(section => {
-            section.publish(this.data);
+            if(section.payload.length > 0) {
+                section.publish(this.data);
+            }
         })
     }
 
+    reset() {
+        this.sections = null;
+        this.sections = [];
+        this.sectionMap = null;
+        this.sectionMap = new Map<WasmSection, int32>();
+        this.data = new ByteArray();
+        this.data.log = "";
+        this.data.writeUnsignedInt(WasmBinary.MAGIC);
+        this.data.writeUnsignedInt(WasmBinary.VERSION);
+        this.data.log += '0000000: 0061 736d             ; WASM_BINARY_MAGIC\n';
+        this.data.log += '0000004: 0100 0000             ; WASM_BINARY_VERSION\n';
+    }
+
+    appendSection(section: WasmSectionBinary) {
+        this.sectionMap.set(section.id, this.sections.push(section) - 1);
+    }
+
+    getSection(id: WasmSection): IWasmSectionBinary {
+        let index = this.sectionMap.get(id);
+        if (index !== undefined) {
+            return this.sections[index];
+        } else {
+            let error = `Section ${WasmSection[id]} not defined yet!`;
+            Terminal.error(error);
+        }
+    }
+
+    initializeSections() {
+        this.appendSection(createSection(WasmSection.Signature));
+        this.appendSection(createSection(WasmSection.Import));
+        this.appendSection(createSection(WasmSection.Function));
+        this.appendSection(createSection(WasmSection.Table));
+        this.appendSection(createSection(WasmSection.Memory));
+        this.appendSection(createSection(WasmSection.Global));
+        this.appendSection(createSection(WasmSection.Export));
+        this.appendSection(createSection(WasmSection.Start));
+        this.appendSection(createSection(WasmSection.Element));
+        this.appendSection(createSection(WasmSection.Code));
+        this.appendSection(createSection(WasmSection.Data));
+        this.appendSection(createSection(WasmSection.Custom, "name"));
+    }
 }

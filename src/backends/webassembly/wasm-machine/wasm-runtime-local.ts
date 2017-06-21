@@ -4,7 +4,6 @@ import {WasmType} from "../core/wasm-type";
  */
 export class WasmRuntimeProperty {
     value: number;
-
     constructor(public type: WasmType, public name?:string) {
 
     }

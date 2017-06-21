@@ -23,7 +23,7 @@ export class SignatureSection extends WasmSectionBinary {
 
     read() {
         let signatureCount: int32 = this.payload.readU32LEB();
-        console.log(`signatureCount: ${signatureCount}`);
+        console.log(`WasmSignatures : ${signatureCount}`);
         for (let i: int32 = 0; i < signatureCount; i++) {
             let signature = new WasmSignature();
             let form = this.payload.readUnsignedByte();
@@ -49,38 +49,5 @@ export class SignatureSection extends WasmSectionBinary {
 
     publish(data: ByteArray): void {
         super.publish(data);
-
-        // this.signatures.forEach((signature, index) => {
-        //     // Emit signature
-        //     section.code.append(`(type (;${index};) (func`);
-        //     log(section.data, array.position, WasmType.func, "func sig " + index);
-        //     this.assembler.writeUnsignedLEB128(section.data, WasmType.func); //form, the value for the func type constructor
-        //     log(section.data, array.position, signature.argumentTypes.length, "num params");
-        //     this.assembler.writeUnsignedLEB128(section.data, signature.argumentTypes.length); //param_count, the number of parameters to the function
-        //     if (signature.argumentTypes.length > 0) {
-        //         section.code.append(` (param`);
-        //     }
-        //
-        //     signature.argumentTypes.forEach(type => {
-        //         log(section.data, array.position, type, WasmType[type]);
-        //         this.assembler.writeUnsignedLEB128(section.data, type); //value_type, the parameter types of the function
-        //         section.code.append(` ${WasmTypeToString[type]}`);
-        //     });
-        //
-        //     if (signature.argumentTypes.length > 0) {
-        //         section.code.append(`)`);
-        //     }
-        //     if (signature.returnType !== WasmType.VOID) {
-        //         log(section.data, array.position, "01", "num results");
-        //         this.assembler.writeUnsignedLEB128(section.data, 1); //return_count, the number of results from the function
-        //         log(section.data, array.position, signature.returnType, WasmType[signature.returnType]);
-        //         this.assembler.writeUnsignedLEB128(section.data, signature.returnType);
-        //         section.code.append(` (result ${WasmTypeToString[signature.returnType]})`);
-        //     } else {
-        //         this.assembler.writeUnsignedLEB128(section.data, 0);
-        //     }
-        //     section.code.append("))\n");
-        //
-        // });
     }
 }
