@@ -18,6 +18,7 @@ export class SignatureSection extends WasmSectionBinary {
             null, null,
             payload
         );
+        this.signatures = [];
     }
 
     read() {
@@ -30,21 +31,20 @@ export class SignatureSection extends WasmSectionBinary {
                 Terminal.error("Wrong function type");
             }
             let numArguments = this.payload.readU32LEB();
-            console.log(`numArguments:${numArguments}`);
             for (let j: int32 = 0; j < numArguments; j++) {
-                let type = this.payload.readU8LEB();
-                console.log(`wasm type:${WasmType[type]}`);
-                signature.argumentTypes.push(this.payload.readU8LEB());
+                let type = this.payload.readU32LEB();
+                signature.argumentTypes.push(type);
             }
 
             let numResults = this.payload.readU8LEB();
             if (numResults > 0) {
-                signature.returnType = this.payload.readU8LEB();
+                signature.returnType = this.payload.readU32LEB();
             } else {
                 signature.returnType = WasmType.VOID;
             }
-            console.log(`numResults:${numResults}`);
+            this.signatures.push(signature);
         }
+        console.log(this.signatures);
     }
 
     publish(data: ByteArray): void {

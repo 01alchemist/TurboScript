@@ -2,7 +2,7 @@ import {WasmBinary} from "./wasm-binary";
 import {WasmFunction} from "../core/wasm-function";
 import {WasmImport} from "../core/wasm-import";
 import {wasmAreSignaturesEqual, WasmSignature} from "../core/wasm-signature";
-import {WasmGlobal, WasmGlobalEntry} from "../core/wasm-global";
+import {WasmGlobal} from "../core/wasm-global";
 import {WasmMemory} from "../core/wasm-memory";
 import {WasmExport} from "../core/wasm-export";
 import {WasmFunctionDeclaration} from "../core/wasm-declaration";

@@ -34,13 +34,10 @@ export class WasmBinary {
         }
     }
 
-    read(data: Uint8Array | ByteArray) {
+    read(data: Uint8Array | ByteArray | Buffer) {
         if (data !== null && data !== undefined) {
-            this.data = new ByteArray(data.buffer);
+            this.data = new ByteArray(data.buffer, data.byteOffset, data.byteLength);
             this.data.endian = ByteArray.LITTLE_ENDIAN;
-            console.log("Test1");
-            console.log("byteLength:" + data.buffer.byteLength);
-            console.log("pos:" + this.data.position);
             // Check magic number
             let magic = this.data.readUnsignedInt();
             let version = this.data.readUnsignedInt();

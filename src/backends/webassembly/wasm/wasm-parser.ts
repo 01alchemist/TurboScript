@@ -66,14 +66,14 @@ export function createSection(id:WasmSection, name?:string): WasmSectionBinary {
 }
 
 export function parseSection(data: ByteArray): WasmSectionBinary {
-    let id = data.readUnsignedLEB128(1);
+    let id = data.readS32LEB();
     let name_len = 0;
     let name = null;
     if (this.id == 0) {
-        name_len = data.readUnsignedLEB128(4);
+        name_len = data.readU32LEB();
         name = data.readUTFBytes(name_len);
     }
-    let payload_len = data.readUnsignedLEB128(4);
+    let payload_len = data.readU32LEB();
     let payload = data.readBytes(new ByteArray(), 0, payload_len);
     let sectionBinary;
 
