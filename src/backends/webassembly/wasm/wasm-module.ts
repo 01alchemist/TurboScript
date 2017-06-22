@@ -3,12 +3,6 @@ import {WasmFunction} from "../core/wasm-function";
 import {WasmImport} from "../core/wasm-import";
 import {wasmAreSignaturesEqual, WasmSignature} from "../core/wasm-signature";
 import {WasmGlobal} from "../core/wasm-global";
-import {WasmMemory} from "../core/wasm-memory";
-import {WasmExport} from "../core/wasm-export";
-import {WasmFunctionDeclaration} from "../core/wasm-declaration";
-import {WasmTable} from "../core/wasm-table";
-import {WasmElement} from "../core/wasm-element";
-import {WasmData} from "../core/wasm-data";
 import {ByteArray} from "../../../utils/bytearray";
 import {Bitness} from "../../bitness";
 import {Symbol} from "../../../compiler/core/symbol";
@@ -21,39 +15,36 @@ import {ImportSection} from "./sections/import-section";
  * Created by 01 on 2017-06-19.
  */
 export class WasmModule {
-    private imports:WasmImport[]; // Reference to section imports.
-    get importCount():int32 {
+    private imports: WasmImport[]; // Reference to section imports.
+    get importCount(): int32 {
         return this.imports.length;
     }
 
-    private globals:WasmGlobal[]; // Reference to section globals.
-    get globalCount():int32 {
+    private globals: WasmGlobal[]; // Reference to section globals.
+    get globalCount(): int32 {
         return this.globals.length;
     }
 
-    private functions:WasmFunction[]; // Reference to section functions.
-    get functionCount():int32 {
-        return this.functions.length;
+    private signatures: WasmSignature[]; // Reference to section signatures.
+    get signatureCount(): int32 {
+        return this.signatures.length;
     }
 
-    private signatures:WasmSignature[]; // Reference to section signatures.
-    get signatureCount():int32 {
-        return this.signatures.length;
+    private functions: WasmFunction[]; // Reference to section functions.
+    get functionCount(): int32 {
+        return this.functions.length;
     }
 
     binary: WasmBinary;
     text: string;
 
     constructor(binary?: Uint8Array | ByteArray | WasmBinary) {
-        this.reset();
         if (binary !== undefined) {
             this.read(binary);
         } else {
             this.binary = new WasmBinary();
             this.binary.initializeSections();
         }
-
-        this.imports = (this.binary.getSection(WasmSection.Import) as ImportSection).imports;
     }
 
     reset(): void {
@@ -67,6 +58,8 @@ export class WasmModule {
         else {
             this.binary = new WasmBinary(binary);
         }
+
+        //this.imports = (this.binary.getSection(WasmSection.Import) as ImportSection).imports;
     }
 
     publish(): void {

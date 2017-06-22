@@ -5,7 +5,7 @@ import {WasmFunction} from "../../core/wasm-function";
 /**
  * Created by 01 on 2017-06-17.
  */
-export class FunctionSection extends WasmSectionBinary {
+export class FunctionDeclarationSection extends WasmSectionBinary {
     functions:WasmFunction[];
     constructor(payload = new ByteArray()) {
         super(

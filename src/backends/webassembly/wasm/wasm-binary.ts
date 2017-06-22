@@ -1,4 +1,4 @@
-import {IWasmSectionBinary, WasmSectionBinary} from "./wasm-binary-section";
+import {WasmSectionBinary} from "./wasm-binary-section";
 import {ByteArray} from "../../../utils/bytearray";
 import {Terminal} from "../../../utils/terminal";
 import {WasmSection} from "../core/wasm-section";
@@ -62,7 +62,7 @@ export class WasmBinary {
 
     publish(): void {
         this.sections.forEach(section => {
-            if(section.payload.length > 0) {
+            if (section.payload.length > 0) {
                 section.publish(this.data);
             }
         })
@@ -85,7 +85,7 @@ export class WasmBinary {
         this.sectionMap.set(section.id, this.sections.push(section) - 1);
     }
 
-    getSection(id: WasmSection): IWasmSectionBinary {
+    getSection(id: WasmSection): WasmSectionBinary {
         let index = this.sectionMap.get(id);
         if (index !== undefined) {
             return this.sections[index];

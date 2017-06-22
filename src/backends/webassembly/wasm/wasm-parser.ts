@@ -1,9 +1,9 @@
-import {IWasmSectionBinary, WasmSectionBinary} from "./wasm-binary-section";
+import {WasmSectionBinary} from "./wasm-binary-section";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmSection} from "../core/wasm-section";
 import {SignatureSection} from "./sections/signature-section";
 import {ImportSection} from "./sections/import-section";
-import {FunctionSection} from "./sections/function-section";
+import {FunctionDeclarationSection} from "./sections/function-section";
 import {TableSection} from "./sections/table-section";
 import {MemorySection} from "./sections/memory-section";
 import {GlobalSection} from "./sections/global-section";
@@ -33,7 +33,7 @@ export function createSection(id: WasmSection, name?: string): WasmSectionBinary
             sectionBinary = new ImportSection(new ByteArray());
             break;
         case WasmSection.Function:
-            sectionBinary = new FunctionSection(new ByteArray());
+            sectionBinary = new FunctionDeclarationSection(new ByteArray());
             break;
         case WasmSection.Table:
             sectionBinary = new TableSection(new ByteArray());
@@ -87,7 +87,7 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
     }
     let payload_len = data.readU32LEB();
     let payload = data.readBytes(new ByteArray(), 0, payload_len);
-    let sectionBinary: IWasmSectionBinary;
+    let sectionBinary: WasmSectionBinary;
 
     switch (id) {
         case WasmSection.Signature:
@@ -96,9 +96,10 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
             break;
         case WasmSection.Import:
             sectionBinary = new ImportSection(payload);
+            sectionBinary.read();
             break;
         case WasmSection.Function:
-            sectionBinary = new FunctionSection(payload);
+            sectionBinary = new FunctionDeclarationSection(payload);
             break;
         case WasmSection.Table:
             sectionBinary = new TableSection(payload);

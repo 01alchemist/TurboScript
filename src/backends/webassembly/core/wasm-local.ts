@@ -6,7 +6,7 @@ import {WasmType} from "./wasm-type";
 export class WasmLocal {
     constructor(public type: WasmType,
                 public name: string,
-                symbol?: Symbol,
+                public symbol?: Symbol,
                 public isArgument: boolean = false) {
 
     }

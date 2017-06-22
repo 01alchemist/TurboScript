@@ -9,8 +9,6 @@ import {WasmGlobal} from "../core/wasm-global";
  * Created by n.vinayakan on 02.06.17.
  */
 
-const clz32 = Math["clz32"] || function (value) {};
-
 export class WasmStackItem {
     constructor(public type: WasmType, public value: number) {}
 }

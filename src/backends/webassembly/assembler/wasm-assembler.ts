@@ -13,8 +13,8 @@ import {WasmLocal} from "../core/wasm-local";
 import {Terminal} from "../../../utils/terminal";
 import {getWasmFunctionName} from "../utils/index";
 import {WasmModule} from "../wasm/wasm-module";
-import {createSection} from "../wasm/wasm-parser";
 import {WasmSectionBinary} from "../wasm/wasm-binary-section";
+import {StringBuilder} from "../../../utils/stringbuilder";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -29,6 +29,8 @@ export class WasmAssembler {
     functionList: WasmFunction[] = [];
     currentSection: WasmSectionBinary = null;
     currentFunction: WasmFunction = null;
+    activePayload:ByteArray;
+    activeCode:StringBuilder;
 
     constructor() {
         this.module = new WasmModule();
@@ -64,11 +66,42 @@ export class WasmAssembler {
         let section: WasmSectionBinary = this.module.binary.getSection(id);
         log(section.payload, 0, null, ` - section: ${WasmSection[id]} [0x${toHex(id, 2)}]`);
         this.currentSection = section;
+        this.activePayload = section.payload;
+        this.activeCode = section.code;
         return section;
     }
 
     endSection(section: WasmSectionBinary): void {
         this.currentSection = null;
+        this.activePayload = null;
+        this.activeCode = null;
+    }
+
+    setCurrentSection(id: WasmSection): WasmSectionBinary {
+        let section: WasmSectionBinary = this.module.binary.getSection(id);
+        this.currentSection = section;
+        this.activePayload = section.payload;
+        this.activeCode = section.code;
+        return section;
+    }
+
+    endCurrentSection() {
+        this.currentSection = null;
+        this.activePayload = null;
+        this.activeCode = null;
+    }
+
+    startFunction(fn:WasmFunction, index: int32): void {
+        this.currentFunction = fn;
+        this.stackTracer.startFunction(this.module.importCount + index);
+        this.activePayload = fn.body;
+        this.activeCode = fn.code;
+    }
+
+    endFunction() {
+        this.stackTracer.endFunction();
+        this.activePayload = this.currentSection.payload;
+        this.activeCode = this.currentSection.code;
     }
 
     dropStack(max: number = 1) {
@@ -78,25 +111,32 @@ export class WasmAssembler {
 
             while (item !== undefined && max > 0) {
                 Terminal.warn(WasmType[item.type]);
-                this.currentSection.payload.append(WasmOpcode.DROP);
-                this.currentSection.code.append("drop\n");
+                this.currentFunction.body.append(WasmOpcode.DROP);
+                this.currentFunction.code.append("drop\n");
                 item = this.stackTracer.context.stack.pop(true);
                 max--;
             }
         }
     }
 
+    append(offset = 0, value = null, msg = null) {
+        this.currentSection.payload.log += (value != null ? `${toHex(offset + this.currentSection.payload.position)}: ${toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
+        if (value) {
+            this.currentSection.payload.append(value);
+        }
+    }
+
     appendOpcode(offset = 0, opcode: number, inline_value?, skip: boolean = false) {
-        logOpcode(this.currentSection.payload, offset, opcode, inline_value);
-        this.currentSection.payload.append(opcode);
+        logOpcode(this.activePayload, offset, opcode, inline_value);
+        this.activePayload.append(opcode);
         let opcodeWithoutOperand = this.stackTracer.pushOpcode(opcode);
         if (opcodeWithoutOperand !== null && !skip) {
             let isEnd = opcode === WasmOpcode.END;
             let indent = this.isBlock(opcode) ? 1 : (isEnd ? -1 : 0);
             if (isEnd) {
-                this.currentSection.code.clearIndent(1);
+                this.activeCode.clearIndent(1);
             }
-            this.currentSection.code.append(opcodeWithoutOperand + "\n", indent);
+            this.activeCode.append(opcodeWithoutOperand + "\n", indent);
         }
     }
 
@@ -108,7 +148,7 @@ export class WasmAssembler {
     }
 
     writeUnsignedLEB128(value: number): void {
-        this.currentSection.payload.writeUnsignedLEB128(value);
+        this.activePayload.writeUnsignedLEB128(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
             this.currentSection.code.append(opcodeAndOperand + "\n");
@@ -116,7 +156,7 @@ export class WasmAssembler {
     }
 
     writeLEB128(value: number): void {
-        this.currentSection.payload.writeLEB128(value);
+        this.activePayload.writeLEB128(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
             this.currentSection.code.append(opcodeAndOperand + "\n");
@@ -124,7 +164,7 @@ export class WasmAssembler {
     }
 
     writeFloat(value: number): void {
-        this.currentSection.payload.writeFloat(value);
+        this.activePayload.writeFloat(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
             this.currentSection.code.append(opcodeAndOperand + "\n");
@@ -132,7 +172,7 @@ export class WasmAssembler {
     }
 
     writeDouble(value: number): void {
-        this.currentSection.payload.writeDouble(value);
+        this.activePayload.writeDouble(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
             this.currentSection.code.append(opcodeAndOperand + "\n");
@@ -140,7 +180,7 @@ export class WasmAssembler {
     }
 
     writeWasmString(value: string): void {
-        this.currentSection.payload.writeWasmString(value);
+        this.activePayload.writeWasmString(value);
     }
 
     finish() {
@@ -152,13 +192,6 @@ export class WasmAssembler {
     }
 }
 
-export function append(offset = 0, value = null, msg = null) {
-    this.currentSection.payload.log += (value != null ? `${toHex(offset + this.currentSection.payload.position)}: ${toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
-    if (value) {
-        this.currentSection.payload.append(value);
-    }
-}
-
-export function logOpcode(offset = 0, opcode, inline_value?) {
-    this.currentSection.payload.log += `${toHex(offset + this.currentSection.payload.position)}: ${toHex(opcode, 2)}                    ; ${WasmOpcode[opcode]} ${inline_value ? inline_value : ""}\n`;
+export function logOpcode(payload: ByteArray, offset = 0, opcode, inline_value?) {
+    payload.log += `${toHex(offset + payload.position)}: ${toHex(opcode, 2)}                    ; ${WasmOpcode[opcode]} ${inline_value ? inline_value : ""}\n`;
 }

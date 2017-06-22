@@ -380,6 +380,14 @@ export class ByteArray {
     }
 
     /**
+     * Read WASM String
+     */
+    readWasmString():string {
+        let length = this.readUnsignedLEB128(4);
+        return this.readUTFBytes(length);
+    }
+
+    /**
      * Write WASM String
      */
     writeWasmString(value: string) {

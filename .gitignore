@@ -27,7 +27,7 @@ src/**/*.js
 !src/library/asmjs/runtime.js
 !src/library/webassembly/wrapper.js
 !src/library/turbo/runtime.js
-!src/library/turbo/wrapper.js
+!src/library/turbo/wrapper.tjs
 lib/tc.js.map
 test/snapshots/
 tests/bin/

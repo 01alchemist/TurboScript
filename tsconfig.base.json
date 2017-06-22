@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es5",
     "lib":[
-      "ES2015"
+      "es2015"
     ],
     "types": [
       "node"
