@@ -11,7 +11,7 @@ export class WasmFunction {
     signatureIndex: int32;
     signature: WasmSignature;
 
-    isExported: boolean;
+    isExported: boolean = false;
     isConstructor: boolean;
 
     argumentVariables: WasmLocal[];
@@ -28,5 +28,9 @@ export class WasmFunction {
         this.localVariables = [];
         this.returnType = WasmType.VOID;
         this.code = new StringBuilder(2);
+    }
+
+    toString():string {
+        return `[WasmFunction]:: ${this.name}()[${this.signatureIndex}]`;
     }
 }

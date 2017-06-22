@@ -55,8 +55,9 @@ export class WasmBinary {
         if (this.data.bytesAvailable > 0) {
             let section = parseSection(this.data);
             this.sectionMap.set(section.id, this.sections.push(section) - 1);
+            this.readNextSection();
         } else {
-            Terminal.write(`${this.sections.length} Sections parsed!`);
+            Terminal.log(`${this.sections.length} Sections parsed!`);
         }
     }
 
@@ -90,8 +91,10 @@ export class WasmBinary {
         if (index !== undefined) {
             return this.sections[index];
         } else {
-            let error = `Section ${WasmSection[id]} not defined yet!`;
-            Terminal.error(error);
+            let section = createSection(id);
+            let warn = `Section ${WasmSection[id]} created! Reason: Requested section not found in the imported wasm module`;
+            Terminal.warn(warn);
+            return section;
         }
     }
 

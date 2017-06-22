@@ -7,5 +7,4 @@ export class WasmImport {
     signature: WasmSignature;
     namespace: string;
     name: string;
-    next: WasmImport;
 }

@@ -11,6 +11,13 @@ import {WasmType} from "../core/wasm-type";
 import {assert} from "../../../utils/assert";
 import {WasmSection} from "../core/wasm-section";
 import {ImportSection} from "./sections/import-section";
+import {WasmExport} from "../core/wasm-export";
+import {ExportSection} from "./sections/export-section";
+import {GlobalSection} from "./sections/global-section";
+import {SignatureSection} from "./sections/signature-section";
+import {FunctionDeclarationSection} from "./sections/function-section";
+import {MemorySection} from "./sections/memory-section";
+import {WasmExternalKind} from "../core/wasm-external-kind";
 /**
  * Created by 01 on 2017-06-19.
  */
@@ -18,6 +25,10 @@ export class WasmModule {
     private imports: WasmImport[]; // Reference to section imports.
     get importCount(): int32 {
         return this.imports.length;
+    }
+    private exports: WasmExport[]; // Reference to section imports.
+    get exportCount(): int32 {
+        return this.exports.length;
     }
 
     private globals: WasmGlobal[]; // Reference to section globals.
@@ -44,7 +55,16 @@ export class WasmModule {
         } else {
             this.binary = new WasmBinary();
             this.binary.initializeSections();
+            this.getReferences();
         }
+    }
+
+    private getReferences():void {
+        this.imports = (this.binary.getSection(WasmSection.Import) as ImportSection).imports;
+        this.exports = (this.binary.getSection(WasmSection.Export) as ExportSection).exports;
+        this.globals = (this.binary.getSection(WasmSection.Global) as GlobalSection).globals;
+        this.signatures = (this.binary.getSection(WasmSection.Signature) as SignatureSection).signatures;
+        this.functions = (this.binary.getSection(WasmSection.Function) as FunctionDeclarationSection).functions;
     }
 
     reset(): void {
@@ -59,7 +79,7 @@ export class WasmModule {
             this.binary = new WasmBinary(binary);
         }
 
-        //this.imports = (this.binary.getSection(WasmSection.Import) as ImportSection).imports;
+        this.getReferences();
     }
 
     publish(): void {
@@ -69,7 +89,7 @@ export class WasmModule {
     allocateGlobal(symbol: Symbol, bitness: Bitness): WasmGlobal {
         let global = new WasmGlobal(
             symbolToWasmType(symbol, bitness),
-            false,
+            true,
             symbol.internalName,
             symbol
         );
@@ -110,11 +130,15 @@ export class WasmModule {
         return _import;
     }
 
-    allocateFunction(symbol: Symbol, signatureIndex: int32): WasmFunction {
+    allocateFunction(symbol: Symbol, signatureIndex: int32, isExported:boolean=false): WasmFunction {
         let _function = new WasmFunction(
             symbol.internalName,
             symbol
         );
+        _function.isExported = isExported;
+        if(isExported){
+            this.exports.push(new WasmExport(_function.name, WasmExternalKind.Function, this.functions.length - 1));
+        }
         _function.signatureIndex = signatureIndex;
         this.functions.push(_function);
         return _function;

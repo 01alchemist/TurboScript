@@ -70,7 +70,7 @@ export function createSection(id: WasmSection, name?: string): WasmSectionBinary
             break;
     }
     if (sectionBinary === null) {
-        let error = `Unknown section name:${name}, id:${id}`;
+        let error = `Unknown section id:${id} ${name !== undefined ? ", " + name : ""}`;
         Terminal.error(error);
         throw error;
     }
@@ -92,11 +92,9 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
     switch (id) {
         case WasmSection.Signature:
             sectionBinary = new SignatureSection(payload);
-            sectionBinary.read();
             break;
         case WasmSection.Import:
             sectionBinary = new ImportSection(payload);
-            sectionBinary.read();
             break;
         case WasmSection.Function:
             sectionBinary = new FunctionDeclarationSection(payload);
@@ -130,6 +128,7 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
             sectionBinary.name_len = name_len;
             break;
     }
+    sectionBinary.read();
     return sectionBinary;
 }
 

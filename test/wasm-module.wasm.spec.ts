@@ -7,7 +7,7 @@ import {ByteArray} from "../src/utils/bytearray";
 test('wasm-module', () => {
 
     // let wasmBinary = fs.readFileSync(path.resolve(__dirname, "../src/library/common/malloc/build/malloc.wasm"));
-    let wasmBinary = fs.readFileSync(path.resolve(__dirname, "./addtwo.wasm"));
+    let wasmBinary = fs.readFileSync(path.resolve(__dirname, "./golden-files/addtwo.wasm"));
     let wasmModule = new WasmModule(wasmBinary);
     expect(wasmModule).toBeTruthy();
 });

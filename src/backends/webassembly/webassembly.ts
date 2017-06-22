@@ -30,6 +30,7 @@ import {WasmBinary} from "./wasm/wasm-binary";
 import {GlobalSection} from "./wasm/sections/global-section";
 import {StartSection} from "./wasm/sections/start-section";
 import {CodeSection} from "./wasm/sections/code-section";
+import {ExportSection} from "./wasm/sections/export-section";
 
 class WasmModuleEmitter {
     memoryInitializer: ByteArray;
@@ -200,7 +201,7 @@ class WasmModuleEmitter {
             let wasmType: WasmType = symbolToWasmType(global.symbol, this.bitness);
             let value = global.symbol.node.variableValue();
             section.payload.append(wasmType); //content_type
-            this.assembler.writeUnsignedLEB128(1); //mutability, 0 if immutable, 1 if mutable. MVP only support immutable global variables
+            this.assembler.writeUnsignedLEB128(global.mutable?1:0); //mutability, 0 if immutable, 1 if mutable.
             let rawValue = 0;
             if (value) {
                 if (value.kind === NodeKind.NULL || value.kind === NodeKind.UNDEFINED) {
@@ -249,7 +250,41 @@ class WasmModuleEmitter {
     }
 
     emitExportTable(): void {
-        // TODO
+        if(this.assembler.module.exportCount === 0){
+            return;
+        }
+        let offset = 0;
+        let section = this.assembler.startSection(WasmSection.Export) as ExportSection;
+        let exports = section.exports;
+        log(section.payload, offset, exports.length, "num exports");
+        this.assembler.writeUnsignedLEB128(exports.length + 1); // +1 for memory
+
+        //Export main memory
+        let memoryName: string = "memory";
+
+        log(section.payload, offset, memoryName.length, "export name length");
+        log(section.payload, null, null, `${toHex(section.payload.position + offset + 4)}: ${memoryName} // export name`);
+
+        this.assembler.writeWasmString(memoryName);
+        log(section.payload, offset, WasmExternalKind.Memory, "export kind");
+        this.assembler.activePayload.writeUnsignedByte(WasmExternalKind.Memory);
+        log(section.payload, offset, 0, "export memory index");
+        this.assembler.writeUnsignedLEB128(0);
+        section.code.append(`(export "memory" (memory 0))\n`);
+
+        exports.forEach((_export, index) => {
+            log(section.payload, offset, _export.as.length, "export name length");
+            log(section.payload, null, null, `${toHex(section.payload.position + offset + 4)}: ${_export.as} // export name`);
+            this.assembler.writeWasmString(_export.as);
+            log(section.payload, offset, WasmExternalKind.Function, "export kind");
+            this.assembler.writeUnsignedLEB128(WasmExternalKind.Function);
+            log(section.payload, offset, index, "export func index");
+            this.assembler.writeUnsignedLEB128(index);
+
+            section.code.append(`(export "${_export.as}" (func $${_export.name}))\n`);
+        });
+
+        this.assembler.endSection(section);
     }
 
     emitStart(): void {
@@ -580,7 +615,7 @@ class WasmModuleEmitter {
                 symbol.offset = this.assembler.module.functionCount;
             }
 
-            let fn = this.assembler.module.allocateFunction(symbol, signatureIndex);
+            let fn = this.assembler.module.allocateFunction(symbol, signatureIndex, node.isExport());
             fn.argumentVariables = argumentVariables;
             fn.isConstructor = isConstructor;
             fn.returnType = wasmReturnType;
@@ -601,10 +636,6 @@ class WasmModuleEmitter {
                 this.startFunctionIndex = symbol.offset;
                 this.startFunction = fn;
                 this.startFunction.body = new ByteArray();
-            }
-
-            if (node.isExport()) {
-                fn.isExported = true;
             }
 
             wasmAssignLocalVariableOffsets(fn, body, shared, this.bitness);
