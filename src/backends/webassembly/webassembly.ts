@@ -71,7 +71,7 @@ class WasmModuleEmitter {
         this.emitElements();
         this.emitFunctionBodies();
         this.emitDataSegments();
-        // this.emitNames(array);
+        this.emitNames();
         this.assembler.finish();
     }
 
@@ -79,6 +79,7 @@ class WasmModuleEmitter {
         let section = this.assembler.startSection(WasmSection.Signature) as SignatureSection;
         let signatures = section.signatures;
         let offset = 0;
+        this.assembler.writeUnsignedLEB128(signatures.length);
         signatures.forEach((signature, index) => {
             // Emit signature
             section.code.append(`(type (;${index};) (func`);
@@ -196,7 +197,6 @@ class WasmModuleEmitter {
 
         this.assembler.writeUnsignedLEB128(globals.length);
         this.assembler.stackTracer.setGlobals(globals);
-
         globals.forEach((global, index) => {
             let wasmType: WasmType = symbolToWasmType(global.symbol, this.bitness);
             let value = global.symbol.node.variableValue();
@@ -244,6 +244,7 @@ class WasmModuleEmitter {
         let startFn = this.startFunction;
         this.assembler.setCurrentSection(WasmSection.Start);
         this.emitNode(0, value);
+        console.log("addGlobalToStartFunction", global.name);
         startFn.body.append(WasmOpcode.SET_GLOBAL);
         startFn.body.writeUnsignedLEB128(global.symbol.offset);
         this.assembler.endCurrentSection();
@@ -369,8 +370,11 @@ class WasmModuleEmitter {
                 child = child.nextSibling;
             }
 
-            if (fn.body) {
-                bodyData.copy(fn.body);
+            if (fn.chunks.length > 0) {
+                fn.chunks.forEach(chunk => {
+                    bodyData.copy(chunk.payload);
+                    section.code.appendRaw(chunk.code.finish());
+                });
             } else {
                 if (lastChild && lastChild.kind !== NodeKind.RETURN && fn.returnType != WasmType.VOID) {
                     this.assembler.appendOpcode(sectionOffset, WasmOpcode.RETURN);
@@ -915,12 +919,12 @@ class WasmModuleEmitter {
                 this.assembler.appendOpcode(byteOffset, WasmOpcode.BLOCK);
                 if (node.returnNode !== undefined) {
                     log(this.assembler.currentSection.payload, byteOffset, this.currentFunction.returnType, WasmType[this.currentFunction.returnType]);
-                    this.assembler.append(this.currentFunction.returnType);
+                    this.assembler.append(byteOffset, this.currentFunction.returnType);
                     this.assembler.currentSection.code.removeLastLinebreak();
                     this.assembler.currentSection.code.append(" (result " + WasmTypeToString[this.currentFunction.returnType] + ")\n", 1);
                 } else {
                     log(this.assembler.currentSection.payload, WasmType.block_type);
-                    this.assembler.append(WasmType.block_type);
+                    this.assembler.append(byteOffset, WasmType.block_type);
                 }
             }
 
@@ -948,10 +952,10 @@ class WasmModuleEmitter {
 
             this.assembler.appendOpcode(byteOffset, WasmOpcode.BLOCK);
             log(this.assembler.currentSection.payload, WasmType.block_type);
-            this.assembler.append(WasmType.block_type);
+            this.assembler.append(byteOffset, WasmType.block_type);
             this.assembler.appendOpcode(byteOffset, WasmOpcode.LOOP);
             log(this.assembler.currentSection.payload, 0, WasmType.block_type, WasmType[WasmType.block_type]);
-            this.assembler.append(WasmType.block_type);
+            this.assembler.append(byteOffset, WasmType.block_type);
 
             if (value.kind != NodeKind.BOOLEAN) {
                 this.emitNode(byteOffset, value);

@@ -17,6 +17,7 @@ import {GlobalSection} from "./sections/global-section";
 import {SignatureSection} from "./sections/signature-section";
 import {FunctionDeclarationSection} from "./sections/function-section";
 import {WasmExternalKind} from "../core/wasm-external-kind";
+import {Terminal} from "../../../utils/terminal";
 /**
  * Created by 01 on 2017-06-19.
  */
@@ -47,7 +48,7 @@ export class WasmModule {
     }
 
     binary: WasmBinary;
-    text: string = ";; Experimental wast emitter\n(module";
+    text: string = ";; Experimental wast emitter\n(module\n";
 
     constructor(binary?: Uint8Array | ByteArray | WasmBinary) {
         if (binary !== undefined) {
@@ -83,11 +84,10 @@ export class WasmModule {
     }
 
     publish(): void {
+        this.text += "  ";
         this.binary.sections.forEach(section => {
             if (section.payload.length > 0) {
                 section.publish(this.binary.data);
-                section.code.clearIndent(1);
-                // this.text += "\n";
                 this.text += section.code.finish();
             }
         });
@@ -102,7 +102,6 @@ export class WasmModule {
             symbol
         );
         symbol.offset = this.globals.length;
-
         this.globals.push(global);
         return global;
     }

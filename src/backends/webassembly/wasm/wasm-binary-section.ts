@@ -33,6 +33,7 @@ export class WasmSectionBinary {
             data.writeUnsignedLEB128(this.payload.length);//size of this section in bytes
         }
         data.copy(this.payload);
+        data.log += this.payload.log;
     }
 
     read() {

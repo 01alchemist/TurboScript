@@ -15,6 +15,7 @@ import {getWasmFunctionName} from "../utils/index";
 import {WasmModule} from "../wasm/wasm-module";
 import {WasmSectionBinary} from "../wasm/wasm-binary-section";
 import {StringBuilder} from "../../../utils/stringbuilder";
+import {WasmFunctionChunk} from "../core/wasm-function-chunk";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -27,6 +28,8 @@ export class WasmAssembler {
     currentFunction: WasmFunction = null;
     activePayload:ByteArray;
     activeCode:StringBuilder;
+    prevPayload:ByteArray;
+    prevCode:StringBuilder;
 
     constructor() {
         this.module = new WasmModule();
@@ -97,6 +100,19 @@ export class WasmAssembler {
         this.stackTracer.endFunction();
         this.activePayload = this.currentSection.payload;
         this.activeCode = this.currentSection.code;
+    }
+
+    startFunctionChunk(fn:WasmFunction){
+        let chunk = new WasmFunctionChunk();
+        fn.chunks.push(chunk);
+        this.prevPayload = this.activePayload;
+        this.activePayload = chunk.payload;
+        this.activeCode = chunk.code;
+    }
+
+    endFunctionChunk(){
+        this.activePayload = this.prevPayload;
+        this.activeCode = this.prevCode;
     }
 
     dropStack(max: number = 1) {
