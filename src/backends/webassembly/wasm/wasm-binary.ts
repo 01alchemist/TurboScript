@@ -61,14 +61,6 @@ export class WasmBinary {
         }
     }
 
-    publish(): void {
-        this.sections.forEach(section => {
-            if (section.payload.length > 0) {
-                section.publish(this.data);
-            }
-        })
-    }
-
     reset() {
         this.sections = null;
         this.sections = [];

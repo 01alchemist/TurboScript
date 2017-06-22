@@ -70,6 +70,10 @@ export class WasmStackContext {
     lastOpcode: number;
 
     constructor(public fn: WasmRuntimeFunction) {
+        if(fn === undefined){
+            Terminal.error("Undefined runtime function")
+            debugger;
+        }
         this.stack = new WasmStack();
         this.opcodes = [];
     }

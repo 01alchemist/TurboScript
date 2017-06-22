@@ -616,6 +616,7 @@ class WasmModuleEmitter {
             }
 
             let fn = this.assembler.module.allocateFunction(symbol, signatureIndex, node.isExport());
+            fn.signature = this.assembler.module.signatures[signatureIndex];
             fn.argumentVariables = argumentVariables;
             fn.isConstructor = isConstructor;
             fn.returnType = wasmReturnType;
@@ -2012,5 +2013,5 @@ export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32, opt
         WasmOptimizer.optimize(compiler.outputWASM)
     }
 
-    compiler.outputWAST = wasmEmitter.assembler.textOutput;
+    compiler.outputWAST = wasmEmitter.assembler.module.text;
 }

@@ -21,12 +21,8 @@ import {StringBuilder} from "../../../utils/stringbuilder";
 export class WasmAssembler {
 
     module: WasmModule;
-    binaryOutput: ByteArray;
-    textOutput: string;
     stackTracer: WasmStackTracer;
     sectionList: SectionBuffer[] = [];
-    importList: WasmImport[] = [];
-    functionList: WasmFunction[] = [];
     currentSection: WasmSectionBinary = null;
     currentFunction: WasmFunction = null;
     activePayload:ByteArray;
@@ -35,12 +31,11 @@ export class WasmAssembler {
     constructor() {
         this.module = new WasmModule();
         this.stackTracer = new WasmStackTracer();
-        this.textOutput = ";; Experimental wast emitter\n(namespace\n";
     }
 
     sealFunctions() {
         let runtimeFunctions = [];
-        this.importList.forEach(_import => {
+        this.module.imports.forEach(_import => {
             let fn = new WasmRuntimeFunction();
             fn.module = _import.namespace;
             fn.name = _import.name;
@@ -48,7 +43,7 @@ export class WasmAssembler {
             fn.isImport = true;
             runtimeFunctions.push(fn);
         });
-        this.functionList.forEach((_wasmFunc: WasmFunction) => {
+        this.module.functions.forEach((_wasmFunc: WasmFunction) => {
             let fn = new WasmRuntimeFunction();
             fn.name = getWasmFunctionName(_wasmFunc.symbol);
             fn.signature = _wasmFunc.signature;
@@ -184,11 +179,7 @@ export class WasmAssembler {
     }
 
     finish() {
-        this.textOutput += "  ";
-        this.sectionList.forEach((section) => {
-            this.textOutput += section.code.finish();
-        });
-        this.textOutput += ")\n";
+        this.module.publish();
     }
 }
 
