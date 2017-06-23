@@ -62,7 +62,6 @@ export class WasmAssembler {
 
     startSection(id: int32): WasmSectionBinary {
         let section: WasmSectionBinary = this.module.binary.getSection(id);
-        log(section.payload, 0, null, ` - section: ${WasmSection[id]} [0x${toHex(id, 2)}]`);
         this.currentSection = section;
         this.activePayload = section.payload;
         this.activeCode = section.code;
@@ -131,9 +130,9 @@ export class WasmAssembler {
     }
 
     append(offset = 0, value = null, msg = null) {
-        this.currentSection.payload.log += (value != null ? `${toHex(offset + this.currentSection.payload.position)}: ${toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
+        this.activePayload.log += (value != null ? `${toHex(offset + this.activePayload.position)}: ${toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
         if (value) {
-            this.currentSection.payload.append(value);
+            this.activePayload.append(value);
         }
     }
 

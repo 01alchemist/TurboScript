@@ -1,6 +1,8 @@
 import {ByteArray} from "../../../utils/bytearray";
 import {log} from "../utils/logger";
 import {StringBuilder} from "../../../utils/stringbuilder";
+import {WasmSection} from "../core/wasm-section";
+import {toHex} from "../../../utils/utils";
 
 /**
  * Created by n.vinayakan on 17.06.17.
@@ -22,6 +24,7 @@ export class WasmSectionBinary {
 
     publish(data: ByteArray): void {
         data.writeUnsignedLEB128(this.id);//section code
+        log(data, 0, null, ` - section: ${WasmSection[this.id]} [0x${toHex(this.id, 2)}]`);
         if (this.id == 0) {
             let strData: ByteArray = new ByteArray();
             strData.writeWasmString(this.name);

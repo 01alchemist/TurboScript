@@ -201,7 +201,7 @@ class WasmModuleEmitter {
             let wasmType: WasmType = symbolToWasmType(global.symbol, this.bitness);
             let value = global.symbol.node.variableValue();
             section.payload.append(wasmType); //content_type
-            this.assembler.writeUnsignedLEB128(global.mutable?1:0); //mutability, 0 if immutable, 1 if mutable.
+            this.assembler.writeUnsignedLEB128(global.mutable ? 1 : 0); //mutability, 0 if immutable, 1 if mutable.
             let rawValue = 0;
             if (value) {
                 if (value.kind === NodeKind.NULL || value.kind === NodeKind.UNDEFINED) {
@@ -251,7 +251,7 @@ class WasmModuleEmitter {
     }
 
     emitExportTable(): void {
-        if(this.assembler.module.exportCount === 0){
+        if (this.assembler.module.exportCount === 0) {
             return;
         }
         let offset = 0;
@@ -371,8 +371,9 @@ class WasmModuleEmitter {
             }
 
             if (fn.chunks.length > 0) {
-                fn.chunks.forEach(chunk => {
+                fn.chunks.forEach((chunk, index) => {
                     bodyData.copy(chunk.payload);
+                    section.code.append("  --chunk " + index + "\n");
                     section.code.appendRaw(chunk.code.finish());
                 });
             } else {
@@ -918,12 +919,12 @@ class WasmModuleEmitter {
             if (!skipBlock) {
                 this.assembler.appendOpcode(byteOffset, WasmOpcode.BLOCK);
                 if (node.returnNode !== undefined) {
-                    log(this.assembler.currentSection.payload, byteOffset, this.currentFunction.returnType, WasmType[this.currentFunction.returnType]);
+                    // log(this.assembler.activePayload, byteOffset, this.currentFunction.returnType, WasmType[this.currentFunction.returnType]);
                     this.assembler.append(byteOffset, this.currentFunction.returnType);
-                    this.assembler.currentSection.code.removeLastLinebreak();
-                    this.assembler.currentSection.code.append(" (result " + WasmTypeToString[this.currentFunction.returnType] + ")\n", 1);
+                    this.assembler.activeCode.removeLastLinebreak();
+                    this.assembler.activeCode.append(" (result " + WasmTypeToString[this.currentFunction.returnType] + ")\n", 1);
                 } else {
-                    log(this.assembler.currentSection.payload, WasmType.block_type);
+                    // log(this.assembler.activePayload, byteOffset, WasmType.block_type);
                     this.assembler.append(byteOffset, WasmType.block_type);
                 }
             }
@@ -935,8 +936,8 @@ class WasmModuleEmitter {
             }
 
             if (!skipBlock) {
-                this.assembler.currentSection.code.clearIndent(1);
-                this.assembler.currentSection.code.indent -= 1;
+                this.assembler.activeCode.clearIndent(1);
+                this.assembler.activeCode.indent -= 1;
                 this.assembler.appendOpcode(byteOffset, WasmOpcode.END);
             }
         }
@@ -951,10 +952,10 @@ class WasmModuleEmitter {
             }
 
             this.assembler.appendOpcode(byteOffset, WasmOpcode.BLOCK);
-            log(this.assembler.currentSection.payload, WasmType.block_type);
+            //log(this.assembler.activePayload, WasmType.block_type);
             this.assembler.append(byteOffset, WasmType.block_type);
             this.assembler.appendOpcode(byteOffset, WasmOpcode.LOOP);
-            log(this.assembler.currentSection.payload, 0, WasmType.block_type, WasmType[WasmType.block_type]);
+            //log(this.assembler.activePayload, 0, WasmType.block_type, WasmType[WasmType.block_type]);
             this.assembler.append(byteOffset, WasmType.block_type);
 
             if (value.kind != NodeKind.BOOLEAN) {
@@ -1035,8 +1036,8 @@ class WasmModuleEmitter {
                 if (returnNode !== null) {
                     let returnType: WasmType = symbolToWasmType(returnNode.resolvedType.symbol);
                     this.assembler.append(0, returnType, WasmType[returnType]);
-                    this.assembler.currentSection.code.removeLastLinebreak();
-                    this.assembler.currentSection.code.append(` (result ${WasmTypeToString[returnType]})\n`);
+                    this.assembler.activeCode.removeLastLinebreak();
+                    this.assembler.activeCode.append(` (result ${WasmTypeToString[returnType]})\n`);
                     if (branch == null) {
                         needEmptyElse = true;
                     }
@@ -1048,13 +1049,13 @@ class WasmModuleEmitter {
             this.emitNode(byteOffset, node.ifTrue());
 
             if (branch != null) {
-                this.assembler.currentSection.code.indent -= 1;
-                this.assembler.currentSection.code.clearIndent(1);
+                this.assembler.activeCode.indent -= 1;
+                this.assembler.activeCode.clearIndent(1);
                 this.assembler.appendOpcode(byteOffset, WasmOpcode.IF_ELSE);
                 this.emitNode(byteOffset, branch);
             } else if (needEmptyElse) {
-                this.assembler.currentSection.code.indent -= 1;
-                this.assembler.currentSection.code.clearIndent(1);
+                this.assembler.activeCode.indent -= 1;
+                this.assembler.activeCode.clearIndent(1);
                 this.assembler.appendOpcode(byteOffset, WasmOpcode.IF_ELSE);
                 let dataType: string = typeToDataType(returnNode.resolvedType, this.bitness);
                 this.assembler.appendOpcode(byteOffset, WasmOpcode[`${dataType}_CONST`]);
