@@ -19,6 +19,9 @@ export function wasmAreSignaturesEqual(a: WasmSignature, b: WasmSignature): bool
 
     let x = a.argumentTypes;
     let y = b.argumentTypes;
+    if(x.length !== y.length){
+        return false;
+    }
     let equal = true;
     x.some((x_id, index) => {
         if (x_id !== y[index]) {

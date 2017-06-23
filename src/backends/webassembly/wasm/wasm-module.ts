@@ -17,7 +17,6 @@ import {GlobalSection} from "./sections/global-section";
 import {SignatureSection} from "./sections/signature-section";
 import {FunctionDeclarationSection} from "./sections/function-section";
 import {WasmExternalKind} from "../core/wasm-external-kind";
-import {Terminal} from "../../../utils/terminal";
 /**
  * Created by 01 on 2017-06-19.
  */
@@ -91,6 +90,7 @@ export class WasmModule {
                 this.text += section.code.finish();
             }
         });
+        this.text = this.text.substring(0, this.text.lastIndexOf("\n"));
         this.text += ")\n";
     }
 
@@ -106,7 +106,7 @@ export class WasmModule {
         return global;
     }
 
-    allocateSignature(argumentTypes: WasmType[], returnType: WasmType): int32 {
+    allocateSignature(argumentTypes: WasmType[], returnType: WasmType): [int32, WasmSignature] {
         assert(returnType != null);
 
         let signature = new WasmSignature();
@@ -122,14 +122,15 @@ export class WasmModule {
         });
 
         if (signatureIndex > -1) {
-            return signatureIndex;
+            return [signatureIndex, this.signatures[signatureIndex]];
         }
 
-        return this.signatures.push(signature) - 1;
+        return [this.signatures.push(signature) - 1, signature];
     }
 
-    allocateImport(signatureIndex: int32, namespace: string, name: string): WasmImport {
+    allocateImport(signature: WasmSignature, signatureIndex: int32, namespace: string, name: string): WasmImport {
         let _import = new WasmImport();
+        _import.signature = signature;
         _import.signatureIndex = signatureIndex;
         _import.namespace = namespace;
         _import.name = name;
@@ -137,17 +138,18 @@ export class WasmModule {
         return _import;
     }
 
-    allocateFunction(symbol: Symbol, signatureIndex: int32, isExported: boolean = false): WasmFunction {
+    allocateFunction(name:string, signature: WasmSignature, signatureIndex: int32, symbol: Symbol, isExported: boolean = false): WasmFunction {
         let _function = new WasmFunction(
-            symbol.internalName,
+            name,
             symbol
         );
+        let fnIndex = this.functions.push(_function) - 1;
         _function.isExported = isExported;
         if (isExported) {
-            this.exports.push(new WasmExport(_function.name, WasmExternalKind.Function, this.functions.length - 1));
+            this.exports.push(new WasmExport(_function.name, WasmExternalKind.Function, fnIndex));
         }
+        _function.signature = signature;
         _function.signatureIndex = signatureIndex;
-        this.functions.push(_function);
         return _function;
     }
 }

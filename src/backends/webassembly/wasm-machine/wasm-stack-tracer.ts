@@ -70,7 +70,7 @@ export class WasmStackContext {
     lastOpcode: number;
 
     constructor(public fn: WasmRuntimeFunction) {
-        if(fn === undefined){
+        if (fn === undefined) {
             Terminal.error("Undefined runtime function")
             debugger;
         }
@@ -105,8 +105,8 @@ export class WasmStackTracer {
         this.context = new WasmStackContext(this.functions[index]);
     }
 
-    endFunction() {
-        if (this.context.stack.length > 0) {
+    endFunction(skip: boolean = false) {
+        if (!skip && this.context.stack.length > 0) {
             if (this.context.fn.returnType === WasmType.VOID) {
                 let error = `Function '${this.context.fn.name}' does not return anything but stack is not empty. Stack contains ${this.context.stack.length} items`
                 Terminal.error(error);
@@ -405,7 +405,7 @@ export class WasmStackTracer {
             case WasmOpcode.I32_CLZ:
             case WasmOpcode.I64_CLZ: {
                 let a = this.context.stack.pop();
-                this.context.stack.push(new WasmStackItem(type, clz32(a.value)));
+                this.context.stack.push(new WasmStackItem(type, Math.clz32(a.value)));
                 return WasmOpcode[opcode];
             }
 

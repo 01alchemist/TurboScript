@@ -93,7 +93,7 @@ export class Symbol {
     //
     offset: int32;
 
-    get internalName():string{
+    get internalName(): string {
         return this.rename != null ? this.rename : this.name;
     }
 

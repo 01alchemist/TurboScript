@@ -21,6 +21,6 @@ interface String {
 interface Math {
     imul(a: number, b: number): number
     log2(a: number): number;
+    clz32(x: number): number;
 }
 declare const window;
-declare function clz32(a:number):number;

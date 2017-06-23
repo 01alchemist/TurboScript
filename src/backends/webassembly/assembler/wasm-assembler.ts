@@ -4,9 +4,6 @@ import {toHex} from "../../../utils/utils";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmOpcode} from "../opcode";
 import {SectionBuffer} from "../buffer/section-buffer";
-import {log} from "../utils/logger";
-import {WasmSection} from "../core/wasm-section";
-import {WasmImport} from "../core/wasm-import";
 import {WasmRuntimeProperty} from "../wasm-machine/wasm-runtime-local";
 import {WasmType} from "../core/wasm-type";
 import {WasmLocal} from "../core/wasm-local";
@@ -26,10 +23,10 @@ export class WasmAssembler {
     sectionList: SectionBuffer[] = [];
     currentSection: WasmSectionBinary = null;
     currentFunction: WasmFunction = null;
-    activePayload:ByteArray;
-    activeCode:StringBuilder;
-    prevPayload:ByteArray;
-    prevCode:StringBuilder;
+    activePayload: ByteArray;
+    activeCode: StringBuilder;
+    prevPayload: ByteArray;
+    prevCode: StringBuilder;
 
     constructor() {
         this.module = new WasmModule();
@@ -74,21 +71,7 @@ export class WasmAssembler {
         this.activeCode = null;
     }
 
-    setCurrentSection(id: WasmSection): WasmSectionBinary {
-        let section: WasmSectionBinary = this.module.binary.getSection(id);
-        this.currentSection = section;
-        this.activePayload = section.payload;
-        this.activeCode = section.code;
-        return section;
-    }
-
-    endCurrentSection() {
-        this.currentSection = null;
-        this.activePayload = null;
-        this.activeCode = null;
-    }
-
-    startFunction(fn:WasmFunction, index: int32): void {
+    startFunction(fn: WasmFunction, index: int32): void {
         this.currentFunction = fn;
         this.stackTracer.startFunction(this.module.importCount + index);
         this.activePayload = fn.body;
@@ -96,22 +79,28 @@ export class WasmAssembler {
     }
 
     endFunction() {
+        this.activeCode.removeLastLinebreak();
         this.stackTracer.endFunction();
+        this.currentSection.code.appendRaw(this.activeCode.finish());
         this.activePayload = this.currentSection.payload;
         this.activeCode = this.currentSection.code;
     }
 
-    startFunctionChunk(fn:WasmFunction){
+    startFunctionChunk(fn: WasmFunction, index:int32): WasmFunctionChunk {
         let chunk = new WasmFunctionChunk();
         fn.chunks.push(chunk);
         this.prevPayload = this.activePayload;
+        this.prevCode = this.activeCode;
         this.activePayload = chunk.payload;
         this.activeCode = chunk.code;
+        this.stackTracer.startFunction(index);
+        return chunk;
     }
 
-    endFunctionChunk(){
+    endFunctionChunk() {
         this.activePayload = this.prevPayload;
         this.activeCode = this.prevCode;
+        this.stackTracer.endFunction(true);
     }
 
     dropStack(max: number = 1) {
@@ -121,8 +110,8 @@ export class WasmAssembler {
 
             while (item !== undefined && max > 0) {
                 Terminal.warn(WasmType[item.type]);
-                this.currentFunction.body.append(WasmOpcode.DROP);
-                this.currentFunction.code.append("drop\n");
+                this.activePayload.append(WasmOpcode.DROP);
+                this.activeCode.append("drop\n");
                 item = this.stackTracer.context.stack.pop(true);
                 max--;
             }
@@ -161,7 +150,7 @@ export class WasmAssembler {
         this.activePayload.writeUnsignedLEB128(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
-            this.currentSection.code.append(opcodeAndOperand + "\n");
+            this.activeCode.append(opcodeAndOperand + "\n");
         }
     }
 
@@ -169,7 +158,7 @@ export class WasmAssembler {
         this.activePayload.writeLEB128(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
-            this.currentSection.code.append(opcodeAndOperand + "\n");
+            this.activeCode.append(opcodeAndOperand + "\n");
         }
     }
 
@@ -177,7 +166,7 @@ export class WasmAssembler {
         this.activePayload.writeFloat(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
-            this.currentSection.code.append(opcodeAndOperand + "\n");
+            this.activeCode.append(opcodeAndOperand + "\n");
         }
     }
 
@@ -185,7 +174,7 @@ export class WasmAssembler {
         this.activePayload.writeDouble(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
-            this.currentSection.code.append(opcodeAndOperand + "\n");
+            this.activeCode.append(opcodeAndOperand + "\n");
         }
     }
 
