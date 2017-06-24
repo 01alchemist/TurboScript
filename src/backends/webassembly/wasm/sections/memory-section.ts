@@ -17,6 +17,10 @@ export class MemorySection extends WasmSectionBinary {
         this.memory = [];
     }
 
+    read(): void {
+
+    }
+
     publish(data: ByteArray): void {
         super.publish(data);
     }

@@ -15,6 +15,10 @@ export class StartSection extends WasmSectionBinary {
         )
     }
 
+    read(): void {
+        this.startFunctionIndex = this.payload.readU32LEB();
+    }
+
     publish(data: ByteArray): void {
         super.publish(data);
     }

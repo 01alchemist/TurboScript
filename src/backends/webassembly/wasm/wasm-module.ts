@@ -17,6 +17,7 @@ import {GlobalSection} from "./sections/global-section";
 import {SignatureSection} from "./sections/signature-section";
 import {FunctionDeclarationSection} from "./sections/function-section";
 import {WasmExternalKind} from "../core/wasm-external-kind";
+import {WasmBinaryImport} from "../../../importer/kinds/wasm-binary-import";
 /**
  * Created by 01 on 2017-06-19.
  */
@@ -151,5 +152,9 @@ export class WasmModule {
         _function.signature = signature;
         _function.signatureIndex = signatureIndex;
         return _function;
+    }
+
+    allocateBinaryImport(binaryImport: WasmBinaryImport) {
+
     }
 }

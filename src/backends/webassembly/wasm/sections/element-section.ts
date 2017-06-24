@@ -14,6 +14,10 @@ export class ElementSection extends WasmSectionBinary {
         )
     }
 
+    read(): void {
+
+    }
+
     publish(data: ByteArray): void {
         super.publish(data);
     }

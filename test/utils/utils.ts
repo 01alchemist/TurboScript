@@ -12,6 +12,31 @@ if (process.platform === 'win32') {
 }
 
 /**
+ * Compile TurboScript to WebAssembly synchronously
+ * @param sourcePath
+ * @param imports
+ * @param outputFile
+ * @returns {Buffer}
+ */
+export function compileWasmSync(sourcePath: string, imports: any = {}, outputFile?: string): Buffer {
+    outputFile = outputFile || getDefaultOutputFile(sourcePath);
+    clean(outputFile);
+    const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
+    if (compileInfo.error) {
+        let error = `Compiler Error! \n${compileInfo.error}`;
+        Terminal.error(error);
+        throw new Error(error);
+    }
+    else if (compileInfo.status > 0) {
+        let error = `Compile Error! \n${compileInfo.stderr}\n${compileInfo.stdout}`;
+        Terminal.error(error);
+        throw new Error(error);
+    }
+    const data = fs.readFileSync(outputFile);
+    return data;
+}
+
+/**
  * Compile TurboScript to WebAssembly and instantiate synchronously
  * @param sourcePath
  * @param imports

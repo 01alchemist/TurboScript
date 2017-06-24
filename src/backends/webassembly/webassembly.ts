@@ -31,6 +31,7 @@ import {GlobalSection} from "./wasm/sections/global-section";
 import {StartSection} from "./wasm/sections/start-section";
 import {CodeSection} from "./wasm/sections/code-section";
 import {ExportSection} from "./wasm/sections/export-section";
+import {getBinaryImport, isBinaryImport} from "./import/import-helper";
 
 class WasmModuleEmitter {
     memoryInitializer: ByteArray;
@@ -611,7 +612,10 @@ class WasmModuleEmitter {
 
             // Functions without bodies are imports
             if (body == null) {
-                if (!isBuiltin(wasmFunctionName)) {
+                if(isBinaryImport(wasmFunctionName)){
+                    this.assembler.module.allocateBinaryImport(getBinaryImport(wasmFunctionName));
+                }
+                else if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.assembler.module.importCount;
                     this.assembler.module.allocateImport(signature, signatureIndex, moduleName, symbol.name);
