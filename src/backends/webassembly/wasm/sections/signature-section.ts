@@ -23,7 +23,6 @@ export class SignatureSection extends WasmSectionBinary {
 
     read() {
         let signatureCount: int32 = this.payload.readU32LEB();
-        console.log(`WasmSignatures : ${signatureCount}`);
         for (let i: int32 = 0; i < signatureCount; i++) {
             let signature = new WasmSignature();
             let form = this.payload.readUnsignedByte();
@@ -44,7 +43,6 @@ export class SignatureSection extends WasmSectionBinary {
             }
             this.signatures.push(signature);
         }
-        console.log(this.signatures);
     }
 
     publish(data: ByteArray): void {

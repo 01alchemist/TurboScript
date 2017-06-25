@@ -25,7 +25,6 @@ export class ImportSection extends WasmSectionBinary {
 
     read(): void {
         let importCount: int32 = this.payload.readU32LEB();
-        console.log(`WasmImports : ${importCount}`);
         for (let i: int32 = 0; i < importCount; i++) {
             let _import = new WasmImport();
 
@@ -36,7 +35,6 @@ export class ImportSection extends WasmSectionBinary {
             _import.signatureIndex = this.payload.readU32LEB();
 
         }
-        console.log(this.imports);
     }
 
     publish(data: ByteArray): void {

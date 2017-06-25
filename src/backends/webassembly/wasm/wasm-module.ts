@@ -15,9 +15,8 @@ import {WasmExport} from "../core/wasm-export";
 import {ExportSection} from "./sections/export-section";
 import {GlobalSection} from "./sections/global-section";
 import {SignatureSection} from "./sections/signature-section";
-import {FunctionDeclarationSection} from "./sections/function-section";
+import {FunctionSection} from "./sections/function-section";
 import {WasmExternalKind} from "../core/wasm-external-kind";
-import {WasmBinaryImport} from "../../../importer/kinds/wasm-binary-import";
 /**
  * Created by 01 on 2017-06-19.
  */
@@ -65,7 +64,7 @@ export class WasmModule {
         this.exports = (this.binary.getSection(WasmSection.Export) as ExportSection).exports;
         this.globals = (this.binary.getSection(WasmSection.Global) as GlobalSection).globals;
         this.signatures = (this.binary.getSection(WasmSection.Signature) as SignatureSection).signatures;
-        this.functions = (this.binary.getSection(WasmSection.Function) as FunctionDeclarationSection).functions;
+        this.functions = (this.binary.getSection(WasmSection.Function) as FunctionSection).functions;
     }
 
     reset(): void {
@@ -129,17 +128,16 @@ export class WasmModule {
         return [this.signatures.push(signature) - 1, signature];
     }
 
-    allocateImport(signature: WasmSignature, signatureIndex: int32, namespace: string, name: string): WasmImport {
+    allocateImport(signature: WasmSignature, signatureIndex: int32, namespace: string, name: string): [WasmImport, int32] {
         let _import = new WasmImport();
         _import.signature = signature;
         _import.signatureIndex = signatureIndex;
         _import.namespace = namespace;
         _import.name = name;
-        this.imports.push(_import);
-        return _import;
+        return [_import, this.imports.push(_import) - 1];
     }
 
-    allocateFunction(name:string, signature: WasmSignature, signatureIndex: int32, symbol: Symbol, isExported: boolean = false): WasmFunction {
+    allocateFunction(name: string, signature: WasmSignature, signatureIndex: int32, symbol: Symbol, isExported: boolean = false): WasmFunction {
         let _function = new WasmFunction(
             name,
             symbol
@@ -152,9 +150,5 @@ export class WasmModule {
         _function.signature = signature;
         _function.signatureIndex = signatureIndex;
         return _function;
-    }
-
-    allocateBinaryImport(binaryImport: WasmBinaryImport) {
-
     }
 }

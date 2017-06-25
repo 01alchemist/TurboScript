@@ -24,14 +24,13 @@ import {getTypedArrayElementSize, getWasmFunctionName, symbolToWasmType, typeToD
 import {WasmOptimizer} from "./optimizer/wasm-optimizer";
 import {SignatureSection} from "./wasm/sections/signature-section";
 import {ImportSection} from "./wasm/sections/import-section";
-import {FunctionDeclarationSection} from "./wasm/sections/function-section";
+import {FunctionSection} from "./wasm/sections/function-section";
 import {MemorySection} from "./wasm/sections/memory-section";
 import {WasmBinary} from "./wasm/wasm-binary";
 import {GlobalSection} from "./wasm/sections/global-section";
 import {StartSection} from "./wasm/sections/start-section";
 import {CodeSection} from "./wasm/sections/code-section";
 import {ExportSection} from "./wasm/sections/export-section";
-import {getBinaryImport, isBinaryImport} from "./import/import-helper";
 
 class WasmModuleEmitter {
     memoryInitializer: ByteArray;
@@ -146,7 +145,7 @@ class WasmModuleEmitter {
             return;
         }
 
-        let section = this.assembler.startSection(WasmSection.Function) as FunctionDeclarationSection;
+        let section = this.assembler.startSection(WasmSection.Function) as FunctionSection;
         let functions = section.functions;
         let offset = 0;
         log(section.payload, offset, functions.length, "num functions");
@@ -310,7 +309,7 @@ class WasmModuleEmitter {
         }
         let offset = 0;
         let signatures = (this.assembler.module.binary.getSection(WasmSection.Signature) as SignatureSection).signatures;
-        let functions = (this.assembler.module.binary.getSection(WasmSection.Function) as FunctionDeclarationSection).functions;
+        let functions = (this.assembler.module.binary.getSection(WasmSection.Function) as FunctionSection).functions;
         let section = this.assembler.startSection(WasmSection.Code) as CodeSection;
         section.functions = functions;
         log(section.payload, offset, this.assembler.module.functionCount, "num functions");
@@ -467,7 +466,7 @@ class WasmModuleEmitter {
     //
     emitNames(): void {
         let section = this.assembler.startSection(WasmSection.Custom);
-        let functions = (this.assembler.module.binary.getSection(WasmSection.Function) as FunctionDeclarationSection).functions;
+        let functions = (this.assembler.module.binary.getSection(WasmSection.Function) as FunctionSection).functions;
         let subsectionFunc: ByteArray = new ByteArray();
         let subsectionLocal: ByteArray = new ByteArray();
 
@@ -612,13 +611,15 @@ class WasmModuleEmitter {
 
             // Functions without bodies are imports
             if (body == null) {
-                if(isBinaryImport(wasmFunctionName)){
-                    this.assembler.module.allocateBinaryImport(getBinaryImport(wasmFunctionName));
-                }
-                else if (!isBuiltin(wasmFunctionName)) {
+                if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.assembler.module.importCount;
-                    this.assembler.module.allocateImport(signature, signatureIndex, moduleName, symbol.name);
+                    let [_import, importIndex] = this.assembler.module.allocateImport(signature, signatureIndex, moduleName, symbol.name);
+                    if (wasmFunctionName == "mspace_malloc") {
+                        this.mallocFunctionIndex = importIndex;
+                    } else if (wasmFunctionName == "mspace_free") {
+                        this.freeFunctionIndex = importIndex;
+                    }
                 }
                 node = node.nextSibling;
                 return;
@@ -632,11 +633,11 @@ class WasmModuleEmitter {
             fn.returnType = wasmReturnType;
 
             // Make sure "malloc" is tracked
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "mspace_malloc") {
                 assert(this.mallocFunctionIndex == -1);
                 this.mallocFunctionIndex = symbol.offset;
             }
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "free") {
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "mspace_free") {
                 assert(this.freeFunctionIndex == -1);
                 this.freeFunctionIndex = symbol.offset;
             }

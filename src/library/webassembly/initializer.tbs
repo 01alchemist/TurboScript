@@ -10,6 +10,6 @@ function __WASM_INITIALIZER(): void {
     // numFreeChunks = 0;
     // firstFree = 0;
     // lastFree = 0;
-    //     originalHeapPointer = 40 as *uint8;//this will override by compiler
-    //     currentHeapPointer  = 40 as *uint8;//this will override by compiler
+    originalHeapPointer = 8;
+    currentHeapPointer = 8;
 }

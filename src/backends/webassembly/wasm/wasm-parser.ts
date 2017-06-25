@@ -3,7 +3,7 @@ import {ByteArray} from "../../../utils/bytearray";
 import {WasmSection} from "../core/wasm-section";
 import {SignatureSection} from "./sections/signature-section";
 import {ImportSection} from "./sections/import-section";
-import {FunctionDeclarationSection} from "./sections/function-section";
+import {FunctionSection} from "./sections/function-section";
 import {TableSection} from "./sections/table-section";
 import {MemorySection} from "./sections/memory-section";
 import {GlobalSection} from "./sections/global-section";
@@ -33,7 +33,7 @@ export function createSection(id: WasmSection, name?: string): WasmSectionBinary
             sectionBinary = new ImportSection(new ByteArray());
             break;
         case WasmSection.Function:
-            sectionBinary = new FunctionDeclarationSection(new ByteArray());
+            sectionBinary = new FunctionSection(new ByteArray());
             break;
         case WasmSection.Table:
             sectionBinary = new TableSection(new ByteArray());
@@ -97,7 +97,7 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
             sectionBinary = new ImportSection(payload);
             break;
         case WasmSection.Function:
-            sectionBinary = new FunctionDeclarationSection(payload);
+            sectionBinary = new FunctionSection(payload);
             break;
         case WasmSection.Table:
             sectionBinary = new TableSection(payload);

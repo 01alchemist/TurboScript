@@ -43,9 +43,7 @@ export class WasmBinary {
             let version = this.data.readUnsignedInt();
 
             if (magic !== WasmBinary.MAGIC) {
-                console.log(`Got unknown WASM magic number ${magic} instead of ${WasmBinary.MAGIC}`);
-            } else {
-                console.log("WASM Version:" + version);
+                Terminal.error(`Found unknown WASM magic number ${magic} instead of ${WasmBinary.MAGIC}`);
             }
             this.readNextSection();
         }

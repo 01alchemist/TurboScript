@@ -22,14 +22,14 @@ let virtualFileSystem = {
     }
 };
 if (isBrowser) {
-    // Terminal.write("----> Browser environment");
+    Terminal.write("----> Browser environment");
     fs = virtualFileSystem;
     window["Buffer"] = class NodeBuffer {
         constructor(public array) {
         }
     }
 } else if (isNode) {
-    // Terminal.write("----> NodeJS environment");
+    Terminal.write("----> NodeJS environment\n");
     fs = require("fs");
 } else {
     Terminal.error("----> Unknown host environment!!!. Where are we?");
@@ -64,6 +64,7 @@ export class FileSystem {
         try {
             return fs.readFileSync(path);
         } catch (e) {
+            Terminal.warn(`Requested file ${path} not found, searching in virtual file system`);
             let virtualFile = virtualFileSystem.readFileSync(path);
             return virtualFile === undefined ? null : virtualFile;
         }

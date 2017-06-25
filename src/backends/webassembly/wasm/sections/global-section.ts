@@ -20,7 +20,6 @@ export class GlobalSection extends WasmSectionBinary {
 
     read(): void {
         let globalCount: int32 = this.payload.readU32LEB();
-        console.log(`WasmGlobal : ${globalCount}`);
         for (let i: int32 = 0; i < globalCount; i++) {
             let _global = new WasmGlobal(
                 this.payload.readU8LEB(),

@@ -20,7 +20,6 @@ export class CodeSection extends WasmSectionBinary {
     }
 
     read(): void {
-        console.log("Reading CodeSection");
         this.functions = [];
         let length = this.payload.readU32LEB();
 
@@ -28,7 +27,6 @@ export class CodeSection extends WasmSectionBinary {
             let _function = new WasmFunction("<anonymous>");
             let pos = this.payload.position;
             let bodyLength = this.payload.readU32LEB();
-            console.log("bodyLength:" + bodyLength);
             // let localVariables: WasmLocal[] = []
             // let localVariableCount = this.payload.readU32LEB();
             // for (let j = 0; j < localVariableCount; j++) {
@@ -56,7 +54,6 @@ export class CodeSection extends WasmSectionBinary {
             // this.payload.position = pos + bodyLength;
             this.functions.push(_function);
         }
-        console.log(this.functions.length);
     }
 
     publish(data: ByteArray): void {

@@ -8,8 +8,7 @@ const array = require('./common/array.tbs');
 const jstypes = require('./turbo/types.tbs');
 const runtime = require('raw-loader!./turbo/runtime.tjs');
 const wrapper = require('raw-loader!./turbo/wrapper.tjs');
-const malloc = require('./common/malloc.tbs');
-const mallocBinary = require('./common/malloc/build/malloc.wasm') as Uint8Array;
+const malloc = require('./common/dlmalloc.tbs');
 const builtins = require('./webassembly/builtins.tbs');
 const initializer = require('./webassembly/initializer.tbs');
 

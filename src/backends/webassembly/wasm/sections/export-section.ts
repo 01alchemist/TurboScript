@@ -19,7 +19,6 @@ export class ExportSection extends WasmSectionBinary {
 
     read(): void {
         let exportCount: int32 = this.payload.readU32LEB();
-        console.log(`WasmExport : ${exportCount}`);
         for (let i: int32 = 0; i < exportCount; i++) {
 
             let _export = new WasmExport(

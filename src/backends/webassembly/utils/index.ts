@@ -29,6 +29,16 @@ export function symbolToWasmType(symbol: Symbol, bitness?: Bitness): WasmType {
     }
 }
 
+export function wasmToTurboType(type:WasmType): string {
+    switch(type){
+        case WasmType.VOID: return "void";
+        case WasmType.I32: return "int32";
+        case WasmType.I64: return "int64";
+        case WasmType.F32: return "float32";
+        case WasmType.F64: return "float64";
+    }
+}
+
 export function typeToDataType(type: Type, bitness?: Bitness): string {
     if (type.isFloat()) {
         return "F32";
