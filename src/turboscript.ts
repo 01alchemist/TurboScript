@@ -52,6 +52,7 @@ export function main_entry(): int32 {
     let argument = firstArgument;
     let inputCount = 0;
     let output: string;
+    let bundle: boolean = false;
 
     // Print usage by default
     if (firstArgument == null) {
@@ -77,6 +78,9 @@ export function main_entry(): int32 {
             } else if (text == "--out" && argument.next != null) {
                 argument = argument.next;
                 output = argument.text;
+            } else if (text == "--bundle" || text == "-b") {
+                argument = argument.next;
+                bundle = true;
             } else {
                 Terminal.error("Invalid flag: " + text);
                 return 1;
@@ -140,17 +144,38 @@ export function main_entry(): int32 {
 
     // Only emit the output if the compilation succeeded
     if (!compiler.log.hasErrors()) {
-        if (target == CompileTarget.CPP && FileSystem.writeTextFile(output, compiler.outputCPP) &&
-            FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
-            target == CompileTarget.JAVASCRIPT && FileSystem.writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.WEBASSEMBLY && FileSystem.writeBinaryFile(output, compiler.outputWASM) &&
-            FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST) &&
-            FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log)) {
-            Terminal.write("\n");
-            return 0;
-        }
+        try {
+            switch (target) {
+                case CompileTarget.CPP:
+                    FileSystem.writeTextFile(output, compiler.outputCPP);
+                    FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH);
+                    break;
+                case CompileTarget.JAVASCRIPT:
+                    FileSystem.writeTextFile(output, compiler.outputJS);
+                    break;
+                case CompileTarget.WEBASSEMBLY:
+                    FileSystem.writeBinaryFile(output, compiler.outputWASM);
+                    FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST);
+                    FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log);
+                    if(bundle){
 
-        Terminal.error("Cannot write to " + output);
+                    }
+                    break;
+            }
+        } catch (e) {
+            Terminal.error("Cannot write to " + output);
+        }
+        // if (target == CompileTarget.CPP && FileSystem.writeTextFile(output, compiler.outputCPP) &&
+        //     FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
+        //     target == CompileTarget.JAVASCRIPT && FileSystem.writeTextFile(output, compiler.outputJS) ||
+        //     target == CompileTarget.WEBASSEMBLY && FileSystem.writeBinaryFile(output, compiler.outputWASM) &&
+        //     FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST) &&
+        //     FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log)) {
+        //     Terminal.write("\n");
+        //     return 0;
+        // }
+        //
+        // Terminal.error("Cannot write to " + output);
     }
 
     Terminal.write("\n");
@@ -171,7 +196,7 @@ export interface CompileResult {
     log?: Log;
 }
 
-export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions):CompileResult {
+export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions): CompileResult {
     Terminal.silent = options.silent;
     let input = "/virtual/inline.tbs";
     let output = "/virtual/inline.wasm";
@@ -197,7 +222,7 @@ export function compileString(source: string, options: CompilerOptions = default
         };
     }
 }
-declare const VERSION:string;
+declare const VERSION: string;
 export const version = VERSION;
 
 Terminal.setTextColor(Color.MAGENTA);

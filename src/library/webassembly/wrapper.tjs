@@ -1,0 +1,18 @@
+/**
+ * Created by 01 on 2017-06-26.
+ */
+var malloc = new Uint8Array([]);
+var data = new Uint8Array([
+    /*WASM-DATA*/
+]);
+var turboModule;
+var turboInstance;
+if (typeof WebAssembly === "undefined") {
+    console.log("Sorry, Your environment doesn't support WebAssembly!");
+} else {
+    WebAssembly.instantiate(data, {}).then(result => {
+        "use strict";
+        turboModule = result.module;
+        turboInstance = result.instance;
+    });
+}

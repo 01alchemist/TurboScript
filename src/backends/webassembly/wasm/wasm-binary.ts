@@ -3,6 +3,18 @@ import {ByteArray} from "../../../utils/bytearray";
 import {Terminal} from "../../../utils/terminal";
 import {WasmSection} from "../core/wasm-section";
 import {createSection, parseSection} from "./wasm-parser";
+import {SignatureSection} from "./sections/signature-section";
+import {ImportSection} from "./sections/import-section";
+import {FunctionSection} from "./sections/function-section";
+import {TableSection} from "./sections/table-section";
+import {MemorySection} from "./sections/memory-section";
+import {GlobalSection} from "./sections/global-section";
+import {ExportSection} from "./sections/export-section";
+import {StartSection} from "./sections/start-section";
+import {ElementSection} from "./sections/element-section";
+import {CodeSection} from "./sections/code-section";
+import {DataSection} from "./sections/data-section";
+import {CustomSection} from "./sections/name-section";
 /**
  * Created by n.vinayakan on 17.06.17.
  */
@@ -101,5 +113,74 @@ export class WasmBinary {
         this.appendSection(createSection(WasmSection.Code));
         this.appendSection(createSection(WasmSection.Data));
         this.appendSection(createSection(WasmSection.Custom, "name"));
+    }
+
+    copySections(binary: WasmBinary) {
+        binary.sections.forEach(importedSection => {
+            switch (importedSection.id){
+                case WasmSection.Signature: {
+                    let section: SignatureSection = this.getSection(importedSection.id) as SignatureSection;
+                    section.signatures = section.signatures.concat((importedSection as SignatureSection).signatures);
+                    break;
+                }
+                case WasmSection.Import: {
+                    let section: ImportSection = this.getSection(importedSection.id) as ImportSection;
+                    section.imports = section.imports.concat((importedSection as ImportSection).imports);
+                    break;
+                }
+                case WasmSection.Function: {
+                    let section: FunctionSection = this.getSection(importedSection.id) as FunctionSection;
+                    section.functions = section.functions.concat((importedSection as FunctionSection).functions);
+                    break;
+                }
+                case WasmSection.Table: {
+                    let section: TableSection = this.getSection(importedSection.id) as TableSection;
+                    section.tables = section.tables.concat((importedSection as TableSection).tables);
+                    break;
+                }
+                case WasmSection.Memory: {
+                    let section: MemorySection = this.getSection(importedSection.id) as MemorySection;
+                    section.memory = section.memory.concat((importedSection as MemorySection).memory);
+                    break;
+                }
+                case WasmSection.Global: {
+                    let section: GlobalSection = this.getSection(importedSection.id) as GlobalSection;
+                    section.globals = section.globals.concat((importedSection as GlobalSection).globals);
+                    break;
+                }
+                case WasmSection.Export: {
+                    let section: ExportSection = this.getSection(importedSection.id) as ExportSection;
+                    section.exports = section.exports.concat((importedSection as ExportSection).exports);
+                    break;
+                }
+                case WasmSection.Start: {
+                    let section: StartSection = this.getSection(importedSection.id) as StartSection;
+                    if(section.startFunctionIndex === -1){
+                        section.startFunctionIndex = (importedSection as StartSection).startFunctionIndex;
+                    }
+                    break;
+                }
+                case WasmSection.Element: {
+                    let section: ElementSection = this.getSection(importedSection.id) as ElementSection;
+                    section.elements = section.elements.concat((importedSection as ElementSection).elements);
+                    break;
+                }
+                case WasmSection.Code: {
+                    let section: CodeSection = this.getSection(importedSection.id) as CodeSection;
+                    section.functions = section.functions.concat((importedSection as CodeSection).functions);
+                    break;
+                }
+                case WasmSection.Data: {
+                    let section: DataSection = this.getSection(importedSection.id) as DataSection;
+                    section.data = section.data.concat((importedSection as DataSection).data);
+                    break;
+                }
+                case WasmSection.Custom: {
+                    let section: CustomSection = this.getSection(importedSection.id) as CustomSection;
+                    section.names = section.names.concat((importedSection as CustomSection).names);
+                    break;
+                }
+            }
+        });
     }
 }

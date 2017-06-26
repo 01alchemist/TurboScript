@@ -26,14 +26,19 @@ export class ImportSection extends WasmSectionBinary {
     read(): void {
         let importCount: int32 = this.payload.readU32LEB();
         for (let i: int32 = 0; i < importCount; i++) {
-            let _import = new WasmImport();
-
-            _import.namespace = this.payload.readWasmString();
-            _import.name = this.payload.readWasmString();
+            let namespace = this.payload.readWasmString();
+            let name = this.payload.readWasmString();
             let type = this.payload.readUnsignedByte();
             assert(type === WasmExternalKind.Function);
-            _import.signatureIndex = this.payload.readU32LEB();
+            let signatureIndex = this.payload.readU32LEB();
 
+            let _import = new WasmImport(
+                namespace,
+                name,
+                type,
+                signatureIndex
+            );
+            this.imports.push(_import);
         }
     }
 

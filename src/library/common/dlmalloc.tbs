@@ -1,4 +1,7 @@
-import {mspace_init, mspace_malloc, mspace_free} from "./src/library/common/malloc/build/malloc.wasm";
+//import {mspace_init, mspace_malloc, mspace_free} from "./src/library/common/malloc/build/malloc.wasm";
+declare function mspace_init(base:int32):int32;
+declare function mspace_malloc(base:int32, size:int32):int32;
+declare function mspace_free(base:int32, size:int32):void;
 
 let originalHeapPointer: int32 = null;
 let currentHeapPointer: int32 = null;

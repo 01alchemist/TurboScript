@@ -31,7 +31,7 @@ import {GlobalSection} from "./wasm/sections/global-section";
 import {StartSection} from "./wasm/sections/start-section";
 import {CodeSection} from "./wasm/sections/code-section";
 import {ExportSection} from "./wasm/sections/export-section";
-import {isBinaryImport} from "../../importer/binary-importer";
+import {BinaryImporter, isBinaryImport} from "../../importer/binary-importer";
 
 class WasmModuleEmitter {
     memoryInitializer: ByteArray;
@@ -501,6 +501,14 @@ class WasmModuleEmitter {
         this.assembler.endSection(section);
     }
 
+    mergeBinaryImports():void {
+        // TODO: Merge only imported functions and it's dependencies
+        let binaryImports = BinaryImporter.binaries;
+        binaryImports.forEach(binary => {
+            this.assembler.mergeBinary(binary);
+        });
+    }
+
     prepareToEmit(node: Node): void {
         if (node.kind == NodeKind.STRING) {
             let text = node.stringValue;
@@ -589,12 +597,18 @@ class WasmModuleEmitter {
             (node.symbol.kind != SymbolKind.FUNCTION_INSTANCE ||
             node.symbol.kind == SymbolKind.FUNCTION_INSTANCE && !node.parent.isTemplate())) {
 
+            let symbol = node.symbol;
+            let wasmFunctionName: string = getWasmFunctionName(symbol);
+
+            if (isBinaryImport(wasmFunctionName)) {
+                node = node.nextSibling;
+                return;
+            }
+
             let returnType: Node = node.functionReturnType();
             let wasmReturnType = this.getWasmType(returnType.resolvedType);
             let shared = new WasmSharedOffset();
-            let symbol = node.symbol;
             let isConstructor: boolean = symbol.name == "constructor";
-            let wasmFunctionName: string = getWasmFunctionName(symbol);
 
             // Make sure to include the implicit "this" variable as a normal argument
             let argument = node.isExternalImport() ? node.functionFirstArgumentIgnoringThis() : node.functionFirstArgument();
@@ -614,23 +628,10 @@ class WasmModuleEmitter {
 
             // Functions without bodies are imports
             if (body == null) {
-                if(isBinaryImport(wasmFunctionName)){
-
-                }
-                else if (!isBuiltin(wasmFunctionName)) {
+                if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.assembler.module.importCount;
                     this.assembler.module.allocateImport(signature, signatureIndex, moduleName, symbol.name);
-                    // let [_import, importIndex] =
-                    // if (wasmFunctionName == "mspace_malloc") {
-                    //     // this.mallocFunctionIndex = importIndex;
-                    //     symbol.node.flags |= NODE_FLAG_IMPORT;
-                    // } else if (wasmFunctionName == "mspace_free") {
-                    //     // this.freeFunctionIndex = importIndex;
-                    //     symbol.node.flags |= NODE_FLAG_IMPORT;
-                    // } else if (wasmFunctionName == "mspace_init") {
-                    //     symbol.node.flags |= NODE_FLAG_IMPORT;
-                    // }
                 }
                 node = node.nextSibling;
                 return;
@@ -2024,6 +2025,7 @@ export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32, opt
     wasmEmitter.currentHeapPointer = -1;
     wasmEmitter.originalHeapPointer = -1;
 
+    // wasmEmitter.mergeBinaryImports();
     // Emission requires two passes
     wasmEmitter.prepareToEmit(compiler.global);
     wasmEmitter.assembler.sealFunctions();

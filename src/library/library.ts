@@ -9,10 +9,14 @@ const jstypes = require('./turbo/types.tbs');
 const runtime = require('raw-loader!./turbo/runtime.tjs');
 const wrapper = require('raw-loader!./turbo/wrapper.tjs');
 const malloc = require('./common/dlmalloc.tbs');
+const dlmallocBin = require('./common/malloc/build/malloc.wasm');
 const builtins = require('./webassembly/builtins.tbs');
 const initializer = require('./webassembly/initializer.tbs');
 
 export class Library {
+
+    static dlmallocBin:Uint8Array = dlmallocBin;
+
     static get(target: CompileTarget) {
         let lib;
 

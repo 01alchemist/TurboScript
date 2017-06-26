@@ -5,7 +5,7 @@ import {ByteArray} from "../../../../utils/bytearray";
  * Created by 01 on 2017-06-17.
  */
 export class StartSection extends WasmSectionBinary {
-    startFunctionIndex:int32;
+    startFunctionIndex:int32 = -1;
     constructor(payload = new ByteArray()) {
         super(
             WasmSection.Start,

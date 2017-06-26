@@ -12,6 +12,7 @@ export class WasmFunction {
     signatureIndex: int32;
     signature: WasmSignature;
 
+    isImported: boolean = false;
     isExported: boolean = false;
     isConstructor: boolean;
 
