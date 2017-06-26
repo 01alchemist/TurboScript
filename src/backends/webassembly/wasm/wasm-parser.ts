@@ -14,10 +14,16 @@ import {CodeSection} from "./sections/code-section";
 import {DataSection} from "./sections/data-section";
 import {CustomSection} from "./sections/name-section";
 import {Terminal} from "../../../utils/terminal";
+import {WasmFunction} from "../core/wasm-function";
+import {WasmSignature} from "../core/wasm-signature";
 /**
  * Created by 01 on 2017-06-19.
  */
 export class WasmParser {
+
+    static currentSignatures: WasmSignature[];
+    static currentFunctions: WasmFunction[];
+
     constructor() {
 
     }
@@ -92,12 +98,14 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
     switch (id) {
         case WasmSection.Signature:
             sectionBinary = new SignatureSection(payload);
+            WasmParser.currentSignatures = (sectionBinary as SignatureSection).signatures;
             break;
         case WasmSection.Import:
             sectionBinary = new ImportSection(payload);
             break;
         case WasmSection.Function:
             sectionBinary = new FunctionSection(payload);
+            WasmParser.currentFunctions = (sectionBinary as FunctionSection).functions;
             break;
         case WasmSection.Table:
             sectionBinary = new TableSection(payload);
@@ -119,19 +127,20 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
             break;
         case WasmSection.Code:
             sectionBinary = new CodeSection(payload);
+            (sectionBinary as CodeSection).functions = WasmParser.currentFunctions;
             break;
         case WasmSection.Data:
             sectionBinary = new DataSection(payload);
             break;
-        case WasmSection.Custom:
-            sectionBinary = new CustomSection(name, payload);
-            sectionBinary.name_len = name_len;
-            break;
+        // case WasmSection.Custom:
+        //     sectionBinary = new CustomSection(name, payload);
+        //     sectionBinary.name_len = name_len;
+        //     break;
     }
-    sectionBinary.read();
-    return sectionBinary;
-}
-
-function parseSignatures(): void {
-
+    if (sectionBinary !== undefined) {
+        sectionBinary.read();
+        return sectionBinary;
+    } else {
+        return null;
+    }
 }

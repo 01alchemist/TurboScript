@@ -4,7 +4,7 @@ import {Terminal} from "./terminal";
 /**
  * Created by n.vinayakan on 06.06.17.
  */
-if(typeof Map === "undefined") {
+if (typeof Map === "undefined") {
     var Map = function () {
         this.get = (key) => { return this[key]; };
         this.set = (key, value) => { return this[key] = value; };
@@ -15,10 +15,10 @@ let fs = null;
 let virtualFileSystem = {
     fileMap: new Map(),
     readFileSync: (path, options?) => {
-        return fs.fileMap.get(path);
+        return virtualFileSystem.fileMap.get(path);
     },
     writeFileSync: (path, data, options?) => {
-        return fs.fileMap.set(path, data);
+        return virtualFileSystem.fileMap.set(path, data);
     }
 };
 if (isBrowser) {
@@ -37,7 +37,11 @@ if (isBrowser) {
 
 export class FileSystem {
 
-    static readTextFile(path) {
+    static readTextFile(path, virtual = false) {
+        if (virtual) {
+            let virtualFile = virtualFileSystem.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+            return virtualFile === undefined ? null : virtualFile;
+        }
         try {
             return fs.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
         } catch (e) {
@@ -60,20 +64,24 @@ export class FileSystem {
     }
 
 
-    static readBinaryFile(path) {
+    static readBinaryFile(path, virtual = false) {
+        if (virtual) {
+            let virtualFile = virtualFileSystem.readFileSync(path);
+            return virtualFile === undefined ? null : virtualFile;
+        }
         try {
             return fs.readFileSync(path);
         } catch (e) {
-            Terminal.warn(`Requested file ${path} not found, searching in virtual file system`);
+            // Terminal.warn(`Requested file ${path} not found, searching in virtual file system`);
             let virtualFile = virtualFileSystem.readFileSync(path);
             return virtualFile === undefined ? null : virtualFile;
         }
     }
 
-    static writeBinaryFile(path, contents, virtual = false) {
+    static writeBinaryFile(path, contents, virtual = false, uint8: boolean = false) {
         try {
             if (virtual) {
-                virtualFileSystem.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
+                virtualFileSystem.writeFileSync(path, new Buffer(uint8 ? contents : contents.array.subarray(0, contents.length)));
             } else {
                 fs.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
             }

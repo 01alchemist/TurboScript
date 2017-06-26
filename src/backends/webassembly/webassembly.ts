@@ -314,6 +314,7 @@ class WasmModuleEmitter {
         let signatures = (this.assembler.module.binary.getSection(WasmSection.Signature) as SignatureSection).signatures;
         let functions = (this.assembler.module.binary.getSection(WasmSection.Function) as FunctionSection).functions;
         let section = this.assembler.startSection(WasmSection.Code) as CodeSection;
+        // FIXME: functions might overwrite
         section.functions = functions;
         log(section.payload, offset, this.assembler.module.functionCount, "num functions");
         this.assembler.writeUnsignedLEB128(this.assembler.module.functionCount);
@@ -322,90 +323,92 @@ class WasmModuleEmitter {
             this.currentFunction = fn;
             let sectionOffset = offset + section.payload.position;
             let wasmFunctionName = getWasmFunctionName(fn.symbol);
-            let bodyData = new ByteArray();
-            fn.body = bodyData;
-            log(bodyData, sectionOffset, fn.locals.length, "local var count");
 
-            this.assembler.startFunction(fn, index);
+            if (!fn.isExternal) {
+                let bodyData = new ByteArray();
+                fn.body = bodyData;
+                log(bodyData, sectionOffset, fn.locals.length, "local var count");
 
-            /* wasm text format */
-            this.assembler.activeCode.emitIndent();
-            this.assembler.activeCode.append(`(func $${wasmFunctionName} (type ${fn.signatureIndex}) `);
+                this.assembler.startFunction(fn, index);
 
-            fn.argumentVariables.forEach((argumentEntry) => {
-                this.assembler.activeCode.append(`(param $${argumentEntry.name} ${WasmTypeToString[argumentEntry.type]}) `);
-            });
-            let signature = signatures[fn.signatureIndex];
-            if (signature.returnType !== WasmType.VOID) {
-                this.assembler.activeCode.append(`(result ${WasmTypeToString[signature.returnType]})`);
-            }
-            this.assembler.activeCode.append("\n", 2);
+                /* wasm text format */
+                this.assembler.activeCode.emitIndent();
+                this.assembler.activeCode.append(`(func $${wasmFunctionName} (type ${fn.signatureIndex}) `);
 
-            if (fn.localVariables.length > 0) {
-                bodyData.writeUnsignedLEB128(fn.localVariables.length); //local_count
-
-                // TODO: Optimize local declarations
-                fn.localVariables.forEach((localVariableEntry) => {
-                    log(bodyData, sectionOffset, 1, "local index");
-                    bodyData.writeUnsignedLEB128(1); //count
-                    log(bodyData, sectionOffset, localVariableEntry.type, WasmType[localVariableEntry.type]);
-                    bodyData.append(localVariableEntry.type); //value_type
-
-                    this.assembler.activeCode.append(`(local $${localVariableEntry.name} ${WasmTypeToString[localVariableEntry.type]}) `);
+                fn.argumentVariables.forEach((argumentEntry) => {
+                    this.assembler.activeCode.append(`(param $${argumentEntry.name} ${WasmTypeToString[argumentEntry.type]}) `);
                 });
-
-                this.assembler.activeCode.append("\n");
-            }
-            else {
-                bodyData.writeUnsignedLEB128(0);
-            }
-
-            let lastChild;
-            if (fn.isConstructor) {
-                // this is <CLASS>__ctr function
-                this.emitConstructor(sectionOffset, fn)
-            }
-
-            let child = fn.symbol.node.functionBody().firstChild;
-            while (child != null) {
-                lastChild = child;
-                this.emitNode(sectionOffset, child);
-                child = child.nextSibling;
-            }
-
-            if (fn.chunks.length > 0) {
-                this.assembler.activeCode.clearIndent(2);
-                fn.chunks.forEach((chunk, index) => {
-                    bodyData.copy(chunk.payload);
-                    bodyData.log += chunk.payload.log;
-                    chunk.code.removeLastLinebreak();
-                    this.assembler.activeCode.appendRaw(chunk.code.finish());
-                });
-            } else {
-                if (lastChild && lastChild.kind !== NodeKind.RETURN && fn.returnType != WasmType.VOID) {
-                    this.assembler.appendOpcode(sectionOffset, WasmOpcode.RETURN);
+                let signature = signatures[fn.signatureIndex];
+                if (signature.returnType !== WasmType.VOID) {
+                    this.assembler.activeCode.append(`(result ${WasmTypeToString[signature.returnType]})`);
                 }
+                this.assembler.activeCode.append("\n", 2);
+
+                if (fn.localVariables.length > 0) {
+                    bodyData.writeUnsignedLEB128(fn.localVariables.length); //local_count
+
+                    // TODO: Optimize local declarations
+                    fn.localVariables.forEach((localVariableEntry) => {
+                        log(bodyData, sectionOffset, 1, "local index");
+                        bodyData.writeUnsignedLEB128(1); //count
+                        log(bodyData, sectionOffset, localVariableEntry.type, WasmType[localVariableEntry.type]);
+                        bodyData.append(localVariableEntry.type); //value_type
+
+                        this.assembler.activeCode.append(`(local $${localVariableEntry.name} ${WasmTypeToString[localVariableEntry.type]}) `);
+                    });
+
+                    this.assembler.activeCode.append("\n");
+                }
+                else {
+                    bodyData.writeUnsignedLEB128(0);
+                }
+
+                let lastChild;
+                if (fn.isConstructor) {
+                    // this is <CLASS>__ctr function
+                    this.emitConstructor(sectionOffset, fn)
+                }
+
+                let child = fn.symbol.node.functionBody().firstChild;
+                while (child != null) {
+                    lastChild = child;
+                    this.emitNode(sectionOffset, child);
+                    child = child.nextSibling;
+                }
+
+                if (fn.chunks.length > 0) {
+                    this.assembler.activeCode.clearIndent(2);
+                    fn.chunks.forEach((chunk, index) => {
+                        bodyData.copy(chunk.payload);
+                        bodyData.log += chunk.payload.log;
+                        chunk.code.removeLastLinebreak();
+                        this.assembler.activeCode.appendRaw(chunk.code.finish());
+                    });
+                } else {
+                    if (lastChild && lastChild.kind !== NodeKind.RETURN && fn.returnType != WasmType.VOID) {
+                        this.assembler.appendOpcode(sectionOffset, WasmOpcode.RETURN);
+                    }
+                }
+
+                if (fn.returnType === WasmType.VOID) {
+                    // Drop stack if not empty
+                    this.assembler.dropStack();
+                }
+
+                this.assembler.appendOpcode(sectionOffset, WasmOpcode.END, null, true); //end, 0x0b, indicating the end of the body
+
+                this.assembler.endFunction();
+
+                this.assembler.activeCode.removeLastLinebreak();
+                this.assembler.activeCode.append(`)\n`);
             }
 
-            if (fn.returnType === WasmType.VOID) {
-                // Drop stack if not empty
-                this.assembler.dropStack();
-            }
-
-            this.assembler.appendOpcode(sectionOffset, WasmOpcode.END, null, true); //end, 0x0b, indicating the end of the body
-
-            this.assembler.endFunction();
-
-            //Copy and finish section
-            section.payload.writeUnsignedLEB128(bodyData.length);
+            section.payload.writeUnsignedLEB128(fn.body.length);
             log(section.payload, offset, null, ` - func body ${this.assembler.module.importCount + (index)} (${wasmFunctionName})`);
-            log(section.payload, offset, bodyData.length, "func body size");
-            section.payload.log += bodyData.log;
-            section.payload.copy(bodyData);
+            log(section.payload, offset, fn.body.length, "func body size");
+            section.payload.log += fn.body.log;
+            section.payload.copy(fn.body);
 
-            // this.assembler.activeCode.indent -= 1;
-            this.assembler.activeCode.removeLastLinebreak();
-            this.assembler.activeCode.append(`)\n`);
         });
 
         this.assembler.endSection(section);
@@ -468,7 +471,7 @@ class WasmModuleEmitter {
     // Custom section for debug names
     //
     emitNames(): void {
-        let section = this.assembler.startSection(WasmSection.Custom);
+        let section = this.assembler.startSection(WasmSection.Custom, "name");
         let functions = (this.assembler.module.binary.getSection(WasmSection.Function) as FunctionSection).functions;
         let subsectionFunc: ByteArray = new ByteArray();
         let subsectionLocal: ByteArray = new ByteArray();
@@ -480,12 +483,15 @@ class WasmModuleEmitter {
             subsectionFunc.writeUnsignedLEB128(fnIndex);
             subsectionFunc.writeWasmString(fn.name);
             subsectionLocal.writeUnsignedLEB128(fnIndex);
-            subsectionLocal.writeUnsignedLEB128(fn.locals.length);
 
-            fn.locals.forEach((local, index) => {
-                subsectionLocal.writeUnsignedLEB128(index);
-                subsectionLocal.writeWasmString(local.name);
-            });
+            if (fn.locals !== undefined) {
+                subsectionLocal.writeUnsignedLEB128(fn.locals.length);
+
+                fn.locals.forEach((local, index) => {
+                    subsectionLocal.writeUnsignedLEB128(index);
+                    subsectionLocal.writeWasmString(local.name);
+                });
+            }
         });
 
         //subsection for function names
@@ -501,7 +507,7 @@ class WasmModuleEmitter {
         this.assembler.endSection(section);
     }
 
-    mergeBinaryImports():void {
+    mergeBinaryImports(): void {
         // TODO: Merge only imported functions and it's dependencies
         let binaryImports = BinaryImporter.binaries;
         binaryImports.forEach(binary => {
@@ -600,10 +606,10 @@ class WasmModuleEmitter {
             let symbol = node.symbol;
             let wasmFunctionName: string = getWasmFunctionName(symbol);
 
-            if (isBinaryImport(wasmFunctionName)) {
-                node = node.nextSibling;
-                return;
-            }
+            // if (isBinaryImport(wasmFunctionName)) {
+            //     node = node.nextSibling;
+            //     return;
+            // }
 
             let returnType: Node = node.functionReturnType();
             let wasmReturnType = this.getWasmType(returnType.resolvedType);
@@ -628,6 +634,9 @@ class WasmModuleEmitter {
 
             // Functions without bodies are imports
             if (body == null) {
+                if (isBinaryImport(wasmFunctionName)) {
+                    symbol.flags |= NODE_FLAG_IMPORT;
+                }
                 if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.assembler.module.importCount;

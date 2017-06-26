@@ -12,7 +12,7 @@ export class WasmFunction {
     signatureIndex: int32;
     signature: WasmSignature;
 
-    isImported: boolean = false;
+    isExternal: boolean = false;
     isExported: boolean = false;
     isConstructor: boolean;
 
@@ -26,7 +26,7 @@ export class WasmFunction {
     code: StringBuilder;
     offset: int32;
 
-    constructor(public name: string,
+    constructor(public name: string = "<anonymous>",
                 public symbol?: Symbol) {
         this.localVariables = [];
         this.returnType = WasmType.VOID;
@@ -34,7 +34,7 @@ export class WasmFunction {
         this.chunks = [];
     }
 
-    toString():string {
+    toString(): string {
         return `[WasmFunction]:: ${this.name}()[${this.signatureIndex}]`;
     }
 }

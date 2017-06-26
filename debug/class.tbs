@@ -1,11 +1,13 @@
 class Child {
-    value:float64;
+    value: float64;
 
-    constructor(value:float64){
+    constructor(value: float64) {
         this.value = value;
+        return this;
     }
 }
 
-export function test():void{
-    let child = new Child(1.1);
+export function test(value: float64): float64 {
+    let child = new Child(value);
+    return child.value;
 }

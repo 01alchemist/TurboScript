@@ -1,6 +1,7 @@
 import {CompileTarget} from "../compiler/compile-target";
 import {Terminal} from "../utils/terminal";
 import {Color} from "../utils/color";
+import {FileSystem} from "../utils/filesystem";
 // library files
 const math = require('./common/math.tbs');
 const types = require('./common/types.tbs');
@@ -13,9 +14,9 @@ const dlmallocBin = require('./common/malloc/build/malloc.wasm');
 const builtins = require('./webassembly/builtins.tbs');
 const initializer = require('./webassembly/initializer.tbs');
 
-export class Library {
+FileSystem.writeBinaryFile("/library/dlmalloc.wasm", dlmallocBin, true, true);
 
-    static dlmallocBin:Uint8Array = dlmallocBin;
+export class Library {
 
     static get(target: CompileTarget) {
         let lib;

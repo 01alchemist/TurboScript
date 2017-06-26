@@ -48,18 +48,20 @@ export class WasmAssembler {
             let fn = new WasmRuntimeFunction();
             fn.name = getWasmFunctionName(_wasmFunc.symbol);
             fn.signature = _wasmFunc.signature;
-            fn.isImport = false;
-            fn.locals = [];
-            _wasmFunc.locals.forEach((local: WasmLocal) => {
-                fn.locals.push(new WasmRuntimeProperty(local.type, local.name));
-            });
+            fn.isImport = _wasmFunc.isExternal;
+            if (!_wasmFunc.isExternal) {
+                fn.locals = [];
+                _wasmFunc.locals.forEach((local: WasmLocal) => {
+                    fn.locals.push(new WasmRuntimeProperty(local.type, local.name));
+                });
+            }
             runtimeFunctions.push(fn);
         });
         this.stackTracer.functions = runtimeFunctions;
     }
 
-    startSection(id: int32): WasmSectionBinary {
-        let section: WasmSectionBinary = this.module.binary.getSection(id);
+    startSection(id: int32, name?:string): WasmSectionBinary {
+        let section: WasmSectionBinary = this.module.binary.getSection(id, name);
         this.currentSection = section;
         this.activePayload = section.payload;
         this.activeCode = section.code;
@@ -87,7 +89,7 @@ export class WasmAssembler {
         this.activeCode = this.currentSection.code;
     }
 
-    startFunctionChunk(fn: WasmFunction, index:int32): WasmFunctionChunk {
+    startFunctionChunk(fn: WasmFunction, index: int32): WasmFunctionChunk {
         let chunk = new WasmFunctionChunk();
         fn.chunks.push(chunk);
         this.prevPayload = this.activePayload;

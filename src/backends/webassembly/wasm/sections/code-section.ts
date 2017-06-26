@@ -2,7 +2,6 @@ import {WasmSectionBinary} from "../wasm-binary-section";
 import {WasmSection} from "../../core/wasm-section";
 import {ByteArray} from "../../../../utils/bytearray";
 import {WasmFunction} from "../../core/wasm-function";
-import {WasmLocal} from "../../core/wasm-local";
 /**
  * Created by 01 on 2017-06-17.
  */
@@ -20,11 +19,17 @@ export class CodeSection extends WasmSectionBinary {
     }
 
     read(): void {
-        this.functions = [];
+        if (this.functions === undefined || this.functions === null) {
+            this.functions = [];
+        }
         let length = this.payload.readU32LEB();
 
         for (let i = 0; i < length; i++) {
-            let _function = new WasmFunction("<anonymous>");
+            let _function = this.functions[i];
+            if (_function === undefined) {
+                _function = new WasmFunction();
+                this.functions.push(_function);
+            }
             let bodyLength = this.payload.readU32LEB();
             // let localVariables: WasmLocal[] = []
             // let localVariableCount = this.payload.readU32LEB();
@@ -50,7 +55,6 @@ export class CodeSection extends WasmSectionBinary {
             // }
             //skip content
             _function.body = this.payload.readBytes(null, this.payload.position, bodyLength);
-            this.functions.push(_function);
         }
     }
 

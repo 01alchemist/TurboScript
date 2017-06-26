@@ -154,16 +154,21 @@ export function main_entry(): int32 {
                     FileSystem.writeTextFile(output, compiler.outputJS);
                     break;
                 case CompileTarget.WEBASSEMBLY:
-                    FileSystem.writeBinaryFile(output, compiler.outputWASM);
-                    FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST);
-                    FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log);
-                    if(bundle){
+                    if (compiler.outputWASM !== undefined) {
+                        FileSystem.writeBinaryFile(output, compiler.outputWASM);
+                        FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST);
+                        FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log);
+                        if (bundle) {
 
+                        }
+                    } else {
+                        Terminal.error("Compile error!");
                     }
                     break;
             }
         } catch (e) {
             Terminal.error("Cannot write to " + output);
+            console.error(e);
         }
         // if (target == CompileTarget.CPP && FileSystem.writeTextFile(output, compiler.outputCPP) &&
         //     FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||

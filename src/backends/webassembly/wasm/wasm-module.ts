@@ -70,8 +70,8 @@ export class WasmModule {
         if (binary !== undefined) {
             this.read(binary);
         } else {
-            this.binary = new WasmBinary(Library.dlmallocBin);
-            //this.binary.initializeSections();
+            this.binary = new WasmBinary();
+            this.binary.initializeSections();
             this.getReferences();
         }
     }
