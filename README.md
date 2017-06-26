@@ -20,6 +20,8 @@ TurboScript is an experimental programming language for parallel programming for
 
 This is still an experiment and isn't intended for real use yet but we are working towards an MVP release. Please feel free to open issues if it stop working or need a new feature.
 
+## [Try online](https://maxgraey.github.io/Assembleash/#TurboScript)
+
 ## Install
 `npm install -g turboscript`
 
