@@ -1,13 +1,14 @@
 {
   "name": "turboscript",
-  "version": "1.0.4-beta",
+  "version": "1.0.5-beta",
   "description": "Super charged JavaScript for parallel programming and WebAssembly",
   "main": "index.js",
   "directories": {
     "test": "tests"
   },
   "dependencies": {
-    "binaryen": "1.37.13-nightly.20170617"
+    "binaryen": "1.37.13-nightly.20170617",
+    "has-flag": "^2.0.0"
   },
   "devDependencies": {
     "@types/debug": "^0.0.29",

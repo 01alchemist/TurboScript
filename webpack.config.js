@@ -49,6 +49,6 @@ module.exports = {
         filename: "[name].js",
         path: path.resolve(__dirname, "lib"),
         library: "turboscript",
-        libraryTarget: "var"
+        libraryTarget: "umd"
     }
 };

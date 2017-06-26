@@ -21,7 +21,7 @@ if (process.platform === 'win32') {
 export function compileWasmSync(sourcePath: string, imports: any = {}, outputFile?: string): Buffer {
     outputFile = outputFile || getDefaultOutputFile(sourcePath);
     clean(outputFile);
-    const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
+    const compileInfo = spawnSync(path.resolve(process.cwd(), './bin/tc'), [sourcePath, '--out', outputFile]);
     if (compileInfo.error) {
         let error = `Compiler Error! \n${compileInfo.error}`;
         Terminal.error(error);
@@ -46,7 +46,7 @@ export function compileWasmSync(sourcePath: string, imports: any = {}, outputFil
 export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outputFile?: string): WebAssembly.Instance {
     outputFile = outputFile || getDefaultOutputFile(sourcePath);
     clean(outputFile);
-    const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
+    const compileInfo = spawnSync(path.resolve(process.cwd(), './bin/tc'), [sourcePath, '--out', outputFile]);
     if (compileInfo.error) {
         let error = `Compiler Error! \n${compileInfo.error}`;
         Terminal.error(error);
@@ -72,7 +72,7 @@ export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outpu
 export async function getWasmInstance(sourcePath: string, imports: any = {}, outputFile?: string): Promise<WebAssembly.Instance> {
     outputFile = outputFile || getDefaultOutputFile(sourcePath);
     clean(outputFile);
-    const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
+    const compileInfo = spawnSync(path.resolve(process.cwd(), './bin/tc'), [sourcePath, '--out', outputFile]);
     if (compileInfo.error) {
         let error = `Compiler Error! \n${compileInfo.error}`;
         Terminal.error(error);
@@ -124,7 +124,7 @@ export async function getWasmInstanceFromString(sourceString: string, imports: a
 export async function getAsmjsInstance(sourcePath: string, imports: any = {}, outputFile?: string): Promise<{ exports: any }> {
     outputFile = outputFile || getDefaultOutputFile(sourcePath, "asm.js");
     clean(outputFile);
-    const compileInfo = spawnSync(path.join(__dirname, '../../bin/tc'), [sourcePath, '--out', outputFile]);
+    const compileInfo = spawnSync(path.resolve(process.cwd(), './bin/tc'), [sourcePath, '--out', outputFile]);
     if (compileInfo.error) {
         let error = `Compiler Error! \n${compileInfo.error}`;
         Terminal.error(error);
