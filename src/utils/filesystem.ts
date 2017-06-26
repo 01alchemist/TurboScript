@@ -1,4 +1,4 @@
-import {isBrowser, isNode} from "./env";
+import {isBrowser, isNode, isWorker} from "./env";
 import {Terminal} from "./terminal";
 
 /**
@@ -21,13 +21,15 @@ let virtualFileSystem = {
         return virtualFileSystem.fileMap.set(path, data);
     }
 };
-if (isBrowser) {
+if (isWorker) {
+    Terminal.write("----> Worker environment");
+    fs = virtualFileSystem;
+    window["Buffer"] = Uint8Array;
+}
+else if (isBrowser) {
     Terminal.write("----> Browser environment");
     fs = virtualFileSystem;
-    window["Buffer"] = class NodeBuffer {
-        constructor(public array) {
-        }
-    }
+    window["Buffer"] = Uint8Array;
 } else if (isNode) {
     Terminal.write("----> NodeJS environment\n");
     fs = require("fs");
@@ -59,6 +61,7 @@ export class FileSystem {
             }
             return true;
         } catch (e) {
+            Terminal.error(e.message);
             return false;
         }
     }
@@ -72,21 +75,23 @@ export class FileSystem {
         try {
             return fs.readFileSync(path);
         } catch (e) {
-            // Terminal.warn(`Requested file ${path} not found, searching in virtual file system`);
+            Terminal.warn(`Requested file ${path} not found, searching in virtual file system`);
             let virtualFile = virtualFileSystem.readFileSync(path);
             return virtualFile === undefined ? null : virtualFile;
         }
     }
 
-    static writeBinaryFile(path, contents, virtual = false, uint8: boolean = false) {
+    static writeBinaryFile(path, contents, virtual = false) {
+        let uint8: boolean = contents instanceof Uint8Array;
         try {
             if (virtual) {
                 virtualFileSystem.writeFileSync(path, new Buffer(uint8 ? contents : contents.array.subarray(0, contents.length)));
             } else {
-                fs.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
+                fs.writeFileSync(path, new Buffer(uint8 ? contents : contents.array.subarray(0, contents.length)));
             }
             return true;
         } catch (e) {
+            Terminal.error(e.message);
             return false;
         }
     }

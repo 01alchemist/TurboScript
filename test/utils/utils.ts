@@ -2,7 +2,6 @@ import * as fs from "fs";
 import * as child from "child_process";
 import * as path from "path";
 import {Terminal} from "../../src/utils/terminal";
-import {Library} from "../../src/library/library";
 
 //Windows spawn work around
 let spawnSync: any = child.spawnSync;
@@ -98,7 +97,7 @@ export async function getWasmInstance(sourcePath: string, imports: any = {}, out
  */
 export async function getWasmInstanceFromString(sourceString: string, imports: any = {}, outputFile?: string): Promise<WebAssembly.Instance> {
     if (exports.turbo === undefined) {
-        exports.turbo = require("../../lib/turboscript.js");
+        exports.turbo = require(path.resolve(process.cwd(), "./lib/turboscript.js"));
     }
     let compileResult = exports.turbo.compileString(sourceString);
     if (compileResult.success) {
@@ -110,6 +109,7 @@ export async function getWasmInstanceFromString(sourceString: string, imports: a
         const result: WebAssembly.ResultObject = await WebAssembly.instantiate(compileResult.wasm, appendMalloc(imports));
         return result.instance;
     } else {
+        Terminal.error("Compile Error!");
         return null;
     }
 }
@@ -148,7 +148,13 @@ function getMallocInstance() {
 
 function appendMalloc(imports) {
     const mallocInstance = getMallocInstance();
-    imports.internal = mallocInstance.exports;
+    if (imports.internal === undefined) {
+        imports.internal = mallocInstance.exports;
+    } else {
+        let internal = imports.internal;
+        let malloc = mallocInstance.exports;
+        imports.internal = {...internal, ...malloc};
+    }
     return imports;
 }
 

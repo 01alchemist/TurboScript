@@ -14,7 +14,7 @@ const dlmallocBin = require('./common/malloc/build/malloc.wasm');
 const builtins = require('./webassembly/builtins.tbs');
 const initializer = require('./webassembly/initializer.tbs');
 
-FileSystem.writeBinaryFile("/library/dlmalloc.wasm", dlmallocBin, true, true);
+FileSystem.writeBinaryFile("/library/dlmalloc.wasm", dlmallocBin, true);
 
 export class Library {
 

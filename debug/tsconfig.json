@@ -5,6 +5,7 @@
      "outDir": "../.turbo"
   },
   "files": [
-    "wasm-module.ts"
+    "wasm-module.ts",
+    "compile-string.ts"
   ]
 }

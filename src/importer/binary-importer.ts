@@ -8,6 +8,7 @@ import {FunctionSection} from "../backends/webassembly/wasm/sections/function-se
 import {WasmExternalKind} from "../backends/webassembly/core/wasm-external-kind";
 import {Terminal} from "../utils/terminal";
 import {WasmBinaryImport} from "./kinds/wasm-binary-import";
+import {ImportSection} from "../backends/webassembly/wasm/sections/import-section";
 /**
  * Created by n.vinayakan on 23.06.17.
  */
@@ -22,10 +23,12 @@ export class BinaryImporter {
 
     static resolveWasmBinaryImport(imports: string[], from: string, importPath: string): string {
         let binary = FileSystem.readBinaryFile(importPath);
-        if (binary === null) {
+        if (binary === null || binary === undefined) {
             binary = FileSystem.readBinaryFile(from);
         }
         let wasmBinary = new WasmBinary(binary);
+        let importSection = wasmBinary.getSection(WasmSection.Import) as ImportSection;
+        let importCount = importSection.imports.length;
         let exportSection = wasmBinary.getSection(WasmSection.Export) as ExportSection;
         let signatureSection = wasmBinary.getSection(WasmSection.Signature) as SignatureSection;
         let functionSection = wasmBinary.getSection(WasmSection.Function) as FunctionSection;
@@ -36,7 +39,7 @@ export class BinaryImporter {
                 imports.forEach(_import => {
                     let matchedExport = exports.find(_export => _export.name === _import);
                     if (matchedExport !== undefined && matchedExport.kind === WasmExternalKind.Function) {
-                        let _function = functionSection.functions[matchedExport.index];
+                        let _function = functionSection.functions[matchedExport.index - importCount];
                         let signature = signatureSection.signatures[_function.signatureIndex];
                         let binaryImport: WasmBinaryImport = new WasmBinaryImport(_import, signature, matchedExport.index);
                         declarations += binaryImport.declaration + "\n";
