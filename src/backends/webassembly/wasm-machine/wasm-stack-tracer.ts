@@ -4,12 +4,10 @@ import {WasmRuntimeProperty} from "./wasm-runtime-local";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmSignature} from "../core/wasm-signature";
 import {Terminal} from "../../../utils/terminal";
-import {WasmGlobalEntry} from "../core/wasm-global";
+import {WasmGlobal} from "../core/wasm-global";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
-
-const clz32 = Math["clz32"] || function (value) {};
 
 export class WasmStackItem {
     constructor(public type: WasmType, public value: number) {}
@@ -58,7 +56,7 @@ export class WasmRuntimeFunction {
     }
 
     get returnType(): WasmType {
-        return this.signature.returnType.id;
+        return this.signature.returnType;
     }
 
     execute(...param): WasmStackItem {
@@ -72,6 +70,10 @@ export class WasmStackContext {
     lastOpcode: number;
 
     constructor(public fn: WasmRuntimeFunction) {
+        if (fn === undefined) {
+            Terminal.error("Undefined runtime function")
+            debugger;
+        }
         this.stack = new WasmStack();
         this.opcodes = [];
     }
@@ -92,10 +94,10 @@ export class WasmStackTracer {
         this.memory = new ByteArray();
     }
 
-    setGlobals(globalEntries: WasmGlobalEntry[]) {
+    setGlobals(globals: WasmGlobal[]) {
         this.globals = [];
-        globalEntries.forEach(globalEntry => {
-            this.globals.push(new WasmRuntimeProperty(globalEntry.type, globalEntry.name));
+        globals.forEach(global => {
+            this.globals.push(new WasmRuntimeProperty(global.type, global.name));
         });
     }
 
@@ -103,8 +105,8 @@ export class WasmStackTracer {
         this.context = new WasmStackContext(this.functions[index]);
     }
 
-    endFunction() {
-        if (this.context.stack.length > 0) {
+    endFunction(skip: boolean = false) {
+        if (!skip && this.context.stack.length > 0) {
             if (this.context.fn.returnType === WasmType.VOID) {
                 let error = `Function '${this.context.fn.name}' does not return anything but stack is not empty. Stack contains ${this.context.stack.length} items`
                 Terminal.error(error);
@@ -117,10 +119,12 @@ export class WasmStackTracer {
     callFunction(index: int32) {
         let fn = this.functions[index];
         if (fn === undefined) {
-            throw "Function not defined at index " + index;
+            let error = "Function not defined at index " + index;
+            Terminal.error(error);
+            throw error;
         }
         let returnType = fn.returnType;
-        for (let i: int32 = 0; i < fn.signature.argumentCount; i++) {
+        for (let i: int32 = 0; i < fn.signature.argumentTypes.length; i++) {
             this.context.stack.pop();
         }
         if (returnType !== WasmType.VOID) {
@@ -403,7 +407,7 @@ export class WasmStackTracer {
             case WasmOpcode.I32_CLZ:
             case WasmOpcode.I64_CLZ: {
                 let a = this.context.stack.pop();
-                this.context.stack.push(new WasmStackItem(type, clz32(a.value)));
+                this.context.stack.push(new WasmStackItem(type, Math.clz32(a.value)));
                 return WasmOpcode[opcode];
             }
 

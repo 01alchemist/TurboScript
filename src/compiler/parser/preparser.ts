@@ -3,18 +3,27 @@ import {Compiler} from "../compiler";
 import {isAlpha, isNumber, TokenKind} from "../scanner/scanner";
 import {FileSystem} from "../../utils/filesystem";
 import {Terminal} from "../../utils/terminal";
+import {BinaryImporter} from "../../importer/binary-importer";
+import {isNode} from "../../utils/env";
 
 const javascript = require("../../extras/javascript.tbs");
-
+let path;
+if (isNode) {
+    path = require("path");
+}
 export function preparse(source: Source, compiler: Compiler, log: Log): boolean {
-
+    if (isNode) {
+        source.name = path.resolve(source.name);
+    }
     let contents = source.contents;
     let limit = contents.length;
     let pathSeparator = source.name.indexOf("/") > -1 ? "/" : (source.name.indexOf("\\") > -1 ? "\\" : "/");
     let basePath: string = source.name.substring(0, source.name.lastIndexOf(pathSeparator));
     let wantNewline = false;
+    let captureImports = false;
     let captureImportFrom = false;
     let captureImportPath = false;
+    let imports: string[];
     let i = 0;
 
     while (i < limit) {
@@ -87,6 +96,7 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
                 let text = contents.slice(start, i);
 
                 if (text == "import") {
+                    captureImports = true;
                     captureImportFrom = true;
                 }
                 else if (text == "from" && captureImportFrom) {
@@ -95,7 +105,26 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
                 }
             }
         }
-        // Character or string
+        else if (captureImports && c == '{') {
+            captureImports = false;
+            imports = [];
+            let nextImportIndex = start;
+            while (i < limit) {
+                let next = contents[i];
+                i = i + 1;
+                let end = next === "}";
+                // capture all imports
+                if (next == "," || end) {
+                    let _import = contents.slice(nextImportIndex + 1, i - 1);
+                    imports.push(_import);
+                    kind = TokenKind.IMPORT;
+                    if (end) {
+                        break;
+                    }
+                    nextImportIndex = i;
+                }
+            }
+        }
         else if (captureImportPath && (c == '"' || c == '\'' || c == '`')) {
 
             captureImportPath = false;
@@ -119,11 +148,15 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
 
                     // End the string with a matching quote character
                     if (next == c) {
-                        let text = contents.slice(start + 1, i - 1);
+                        let from = contents.slice(start + 1, i - 1);
                         //FIXME: If the import already resolved don't add it again.
-                        let importContent = resolveImport(basePath + pathSeparator + text, text);
+                        let importContent = resolveImport(imports, from, basePath + pathSeparator + from);
                         if (importContent) {
-                            compiler.addInputBefore(text, importContent, source);
+                            if(source.isLibrary) {
+                                source.contents += importContent;
+                            } else {
+                                compiler.addInputBefore(from, importContent, source);
+                            }
                         } else {
                             return false;
                         }
@@ -138,11 +171,13 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
     return true;
 }
 
-function resolveImport(importPath: string, original:string): string {
+function resolveImport(imports: string[], from: string, importPath: string): string {
     let contents = null;
-    if (original === "javascript") {
+    if (from === "javascript") {
         contents = javascript;
-    }else {
+    } else if (from.endsWith(".wasm")) {
+        return BinaryImporter.resolveWasmBinaryImport(imports, from, importPath);
+    } else {
         contents = FileSystem.readTextFile(importPath);
     }
     if (contents == null) {

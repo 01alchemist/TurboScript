@@ -7,9 +7,9 @@ function __WASM_INITIALIZER(): void {
     // 🔥 WARNING 🔥
     // DON'T RETURN ANYTHING FROM THIS FUNCTION
     // Global variable initialization expressions will be appended to this function
-    numFreeChunks = 0;
-    firstFree = 0;
-    lastFree = 0;
-    //     originalHeapPointer = 40 as *uint8;//this will override by compiler
-    //     currentHeapPointer  = 40 as *uint8;//this will override by compiler
+    // numFreeChunks = 0;
+    // firstFree = 0;
+    // lastFree = 0;
+    originalHeapPointer = mspace_init(40); // size of null, originalHeapPointer & currentHeapPointer
+    currentHeapPointer = originalHeapPointer;
 }

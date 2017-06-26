@@ -1,16 +1,23 @@
 import {CompileTarget} from "../compiler/compile-target";
+import {Terminal} from "../utils/terminal";
+import {Color} from "../utils/color";
+import {FileSystem} from "../utils/filesystem";
 // library files
 const math = require('./common/math.tbs');
 const types = require('./common/types.tbs');
 const array = require('./common/array.tbs');
 const jstypes = require('./turbo/types.tbs');
-const runtime = require('raw-loader!./turbo/runtime.js');
-const wrapper = require('raw-loader!./turbo/wrapper.js');
-const malloc = require('./common/malloc.tbs');
+const runtime = require('raw-loader!./turbo/runtime.tjs');
+const wrapper = require('raw-loader!./turbo/wrapper.tjs');
+const malloc = require('./common/dlmalloc.tbs');
+const dlmallocBin = require('./common/malloc/build/malloc.wasm');
 const builtins = require('./webassembly/builtins.tbs');
 const initializer = require('./webassembly/initializer.tbs');
 
+FileSystem.writeBinaryFile("/library/dlmalloc.wasm", dlmallocBin, true);
+
 export class Library {
+
     static get(target: CompileTarget) {
         let lib;
 

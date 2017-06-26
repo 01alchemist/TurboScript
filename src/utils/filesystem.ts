@@ -1,10 +1,10 @@
-import {isBrowser, isNode} from "./env";
+import {isBrowser, isNode, isWorker} from "./env";
 import {Terminal} from "./terminal";
 
 /**
  * Created by n.vinayakan on 06.06.17.
  */
-if(typeof Map === "undefined") {
+if (typeof Map === "undefined") {
     var Map = function () {
         this.get = (key) => { return this[key]; };
         this.set = (key, value) => { return this[key] = value; };
@@ -15,21 +15,23 @@ let fs = null;
 let virtualFileSystem = {
     fileMap: new Map(),
     readFileSync: (path, options?) => {
-        return fs.fileMap.get(path);
+        return virtualFileSystem.fileMap.get(path);
     },
     writeFileSync: (path, data, options?) => {
-        return fs.fileMap.set(path, data);
+        return virtualFileSystem.fileMap.set(path, data);
     }
 };
-if (isBrowser) {
-    // Terminal.write("----> Browser environment");
+if (isWorker) {
+    Terminal.write("----> Worker environment");
     fs = virtualFileSystem;
-    window["Buffer"] = class NodeBuffer {
-        constructor(public array) {
-        }
-    }
+    window["Buffer"] = Uint8Array;
+}
+else if (isBrowser) {
+    Terminal.write("----> Browser environment");
+    fs = virtualFileSystem;
+    window["Buffer"] = Uint8Array;
 } else if (isNode) {
-    // Terminal.write("----> NodeJS environment");
+    Terminal.write("----> NodeJS environment\n");
     fs = require("fs");
 } else {
     Terminal.error("----> Unknown host environment!!!. Where are we?");
@@ -37,7 +39,11 @@ if (isBrowser) {
 
 export class FileSystem {
 
-    static readTextFile(path) {
+    static readTextFile(path, virtual = false) {
+        if (virtual) {
+            let virtualFile = virtualFileSystem.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+            return virtualFile === undefined ? null : virtualFile;
+        }
         try {
             return fs.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
         } catch (e) {
@@ -55,29 +61,37 @@ export class FileSystem {
             }
             return true;
         } catch (e) {
+            Terminal.error(e.message);
             return false;
         }
     }
 
 
-    static readBinaryFile(path) {
+    static readBinaryFile(path, virtual = false) {
+        if (virtual) {
+            let virtualFile = virtualFileSystem.readFileSync(path);
+            return virtualFile === undefined ? null : virtualFile;
+        }
         try {
             return fs.readFileSync(path);
         } catch (e) {
+            Terminal.warn(`Requested file ${path} not found, searching in virtual file system`);
             let virtualFile = virtualFileSystem.readFileSync(path);
             return virtualFile === undefined ? null : virtualFile;
         }
     }
 
     static writeBinaryFile(path, contents, virtual = false) {
+        let uint8: boolean = contents instanceof Uint8Array;
         try {
             if (virtual) {
-                virtualFileSystem.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
+                virtualFileSystem.writeFileSync(path, new Buffer(uint8 ? contents : contents.array.subarray(0, contents.length)));
             } else {
-                fs.writeFileSync(path, new Buffer(contents.array.subarray(0, contents.length)));
+                fs.writeFileSync(path, new Buffer(uint8 ? contents : contents.array.subarray(0, contents.length)));
             }
             return true;
         } catch (e) {
+            Terminal.error(e.message);
             return false;
         }
     }

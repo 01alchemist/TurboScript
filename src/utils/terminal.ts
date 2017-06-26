@@ -1,5 +1,5 @@
-import { isNode } from "./env";
-import { Color, HexColor } from "./color";
+import {isNode} from "./env";
+import {Color, HexColor} from "./color";
 /**
  * Created by n.vinayakan on 06.06.17.
  */
@@ -13,6 +13,10 @@ export class Terminal {
         bold: false
     };
 
+    static log(text) {
+        Terminal.write(text + "\n");
+    }
+
     static write(text) {
         Terminal.history += text;
         if (Terminal.silent) {
@@ -23,9 +27,9 @@ export class Terminal {
         } else {
             console.log(
                 `%c${text}`,
-                `background: ${Terminal.browserStyles.background};`+
-                `color: ${Terminal.browserStyles.text};`+
-                `font-weight: ${Terminal.browserStyles.bold?"700":"100"};`
+                `background: ${Terminal.browserStyles.background};` +
+                `color: ${Terminal.browserStyles.text};` +
+                `font-weight: ${Terminal.browserStyles.bold ? "700" : "100"};`
             );
         }
     }

@@ -5,6 +5,7 @@ import {CompileTarget} from "./compiler/compile-target";
 import {Terminal} from "./utils/terminal";
 import {FileSystem} from "./utils/filesystem";
 import {CompilerOptions, defaultCompilerOptions} from "./compiler/compiler-options";
+import {Color} from "./utils/color";
 
 /**
  * TurboScript compiler main entry
@@ -51,6 +52,7 @@ export function main_entry(): int32 {
     let argument = firstArgument;
     let inputCount = 0;
     let output: string;
+    let bundle: boolean = false;
 
     // Print usage by default
     if (firstArgument == null) {
@@ -76,6 +78,9 @@ export function main_entry(): int32 {
             } else if (text == "--out" && argument.next != null) {
                 argument = argument.next;
                 output = argument.text;
+            } else if (text == "--bundle" || text == "-b") {
+                argument = argument.next;
+                bundle = true;
             } else {
                 Terminal.error("Invalid flag: " + text);
                 return 1;
@@ -99,14 +104,12 @@ export function main_entry(): int32 {
     }
 
     // Automatically set the target based on the file extension
-    //C emitter and vanilla javascript emitter is disabled due to outdated code base.
     if (target == CompileTarget.NONE) {
         if (output.endsWith(".wasm")) target = CompileTarget.WEBASSEMBLY;
-        // else if (output.endsWith(".c")) target = CompileTarget.C;
-        // else if (output.endsWith(".js")) target = CompileTarget.TURBO_JAVASCRIPT;
+        // else if (output.endsWith(".cpp")) target = CompileTarget.CPP;
+        // else if (output.endsWith(".js")) target = CompileTarget.JAVASCRIPT;
         else {
-            // Terminal.error("Missing a target (use either --c, --js, --asmjs or --wasm)");
-            Terminal.error("Missing a target (use either --asmjs or --wasm)");
+            Terminal.error("Missing a target (use either --js or --wasm)");
             return 1;
         }
     }
@@ -141,17 +144,46 @@ export function main_entry(): int32 {
 
     // Only emit the output if the compilation succeeded
     if (!compiler.log.hasErrors()) {
-        if (target == CompileTarget.CPP && FileSystem.writeTextFile(output, compiler.outputCPP) &&
-            FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
-            target == CompileTarget.JAVASCRIPT && FileSystem.writeTextFile(output, compiler.outputJS) ||
-            target == CompileTarget.WEBASSEMBLY && FileSystem.writeBinaryFile(output, compiler.outputWASM) &&
-            FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST) &&
-            FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log)) {
-            Terminal.write("\n");
-            return 0;
-        }
+        try {
+            switch (target) {
+                case CompileTarget.CPP:
+                    FileSystem.writeTextFile(output, compiler.outputCPP);
+                    FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH);
+                    break;
+                case CompileTarget.JAVASCRIPT:
+                    FileSystem.writeTextFile(output, compiler.outputJS);
+                    break;
+                case CompileTarget.WEBASSEMBLY:
+                    if (compiler.outputWASM !== undefined) {
+                        FileSystem.writeBinaryFile(output, compiler.outputWASM);
+                        FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST);
+                        FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log);
+                        if (bundle) {
 
-        Terminal.error("Cannot write to " + output);
+                        }
+                    } else {
+                        Terminal.error("Compile error!");
+                        return 1;
+                    }
+                    break;
+            }
+            return 0;
+        } catch (e) {
+            Terminal.error("Cannot write to " + output);
+            console.error(e);
+            return 1;
+        }
+        // if (target == CompileTarget.CPP && FileSystem.writeTextFile(output, compiler.outputCPP) &&
+        //     FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||
+        //     target == CompileTarget.JAVASCRIPT && FileSystem.writeTextFile(output, compiler.outputJS) ||
+        //     target == CompileTarget.WEBASSEMBLY && FileSystem.writeBinaryFile(output, compiler.outputWASM) &&
+        //     FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST) &&
+        //     FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log)) {
+        //     Terminal.write("\n");
+        //     return 0;
+        // }
+        //
+        // Terminal.error("Cannot write to " + output);
     }
 
     Terminal.write("\n");
@@ -172,7 +204,7 @@ export interface CompileResult {
     log?: Log;
 }
 
-export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions):CompileResult {
+export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions): CompileResult {
     Terminal.silent = options.silent;
     let input = "/virtual/inline.tbs";
     let output = "/virtual/inline.wasm";
@@ -198,8 +230,12 @@ export function compileString(source: string, options: CompilerOptions = default
         };
     }
 }
-declare const VERSION:string;
+declare const VERSION: string;
 export const version = VERSION;
+
+Terminal.setTextColor(Color.MAGENTA);
+Terminal.write(`~~~~~~~~~~~~~~~~~~~~~~~~~| TurboScript ${version} |~~~~~~~~~~~~~~~~~~~~~~~~~\n`);
+Terminal.clearColor();
 
 export default {
     version: version,

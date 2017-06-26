@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var Color = xray.Color;
 var Color3 = xray.Color3;
 var Camera = xray.Camera;
@@ -43,7 +44,7 @@ var xRayTracer = (function () {
     };
     xRayTracer.prototype.trace = function (data) {
         if (this.flags[this.id] === 2) {
-            console.log("exit:1");
+            Terminal.write("exit:1");
             this.lock();
             return;
         }
@@ -52,7 +53,7 @@ var xRayTracer = (function () {
         this.hitSamples = data.hitSamples || this.hitSamples;
         this.iterations = data.init_iterations || 0;
         if (this.locked) {
-            console.log("restarted:" + this.iterations, "samples:" + this.checkSamples());
+            Terminal.write("restarted:" + this.iterations, "samples:" + this.checkSamples());
             this.locked = false;
         }
         if (this.iterations > 0 && data.blockIterations) {
@@ -96,7 +97,7 @@ var xRayTracer = (function () {
         for (var y = this.yoffset; y < this.yoffset + this.height; y++) {
             for (var x = this.xoffset; x < this.xoffset + this.width; x++) {
                 if (this.flags[this.id] === 2) {
-                    console.log("exit:3");
+                    Terminal.write("exit:3");
                     this.lock();
                     return;
                 }
@@ -131,7 +132,7 @@ var xRayTracer = (function () {
     };
     xRayTracer.prototype.updatePixel = function (color, si) {
         if (this.flags[this.id] === 2) {
-            console.log("exit:8");
+            Terminal.write("exit:8");
             this.lock();
             return;
         }

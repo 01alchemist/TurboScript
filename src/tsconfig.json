@@ -1,21 +1,10 @@
 {
+  "extends": "../tsconfig.base.json",
+  "compileOnSave": true,
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es5",
-    "sourceMap": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "types": [
-      "node"
-    ],
-    "outDir": "../.turbo"
+     "outDir": "../.turbo"
   },
   "files": [
     "index.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "bin",
-    "tests"
   ]
 }

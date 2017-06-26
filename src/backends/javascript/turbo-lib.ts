@@ -45,7 +45,7 @@ var RuntimeConstructor = (function () {
     }
     RuntimeConstructor.prototype.init = function (buffer, start, limit, initialize) {
         if (arguments.length < 3) {
-            throw new Error("Required arguments: buffer, start, limit");
+            throw new Error("Required argumentVariables: buffer, start, limit");
         }
         if ((start | 0) != start || (limit | 0) != limit) {
             throw new Error("Invalid bounds: " + start + " " + limit);

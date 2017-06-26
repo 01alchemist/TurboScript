@@ -1,4 +1,5 @@
 import {assert} from "./assert";
+import {isSigned, sizeOfNumber} from "./utils";
 export function ByteArray_set16(array: ByteArray, index: number, value: number): void {
     array.set(index, value);
     array.set(index + 1, (value >> 8));
@@ -83,7 +84,7 @@ export class ByteArray {
     public write_position: number;
     public endian: string;
 
-    constructor(buffer?: ArrayBuffer, offset: number = 0, length: number = 0) {
+    constructor(buffer?: ArrayBuffer, byteOffset: number = 0, byteLength: number = 0) {
 
         if (buffer == undefined) {
             buffer = new ArrayBuffer(this.BUFFER_EXT_SIZE);
@@ -92,10 +93,10 @@ export class ByteArray {
         else if (buffer == null) {
             this.write_position = 0;
         } else {
-            this.write_position = length > 0 ? length : buffer.byteLength;
+            this.write_position = byteLength > 0 ? byteLength : buffer.byteLength;
         }
         if (buffer) {
-            this.data = new DataView(buffer, offset, length > 0 ? length : buffer.byteLength);
+            this.data = new DataView(buffer, byteOffset, byteLength > 0 ? byteLength : buffer.byteLength);
             this._array = new Uint8Array(this.data.buffer, this.data.byteOffset, this.data.byteLength);
         }
         this._position = 0;
@@ -112,11 +113,12 @@ export class ByteArray {
         this._array[index] = value;
     }
 
-    append(value: byte): void {
+    append(value: byte): number {
         let index = this.position;
         this.resize(index + 1);
         this._array[index] = value;
         this.position++;
+        return index;
     }
 
     resize(length: number): ByteArray {
@@ -169,8 +171,12 @@ export class ByteArray {
         return this._position + this.data.byteOffset;
     }
 
-    get bufferOffset(): number {
+    get byteOffset(): number {
         return this.data.byteOffset;
+    }
+
+    get byteLength(): number {
+        return this.data.byteLength;
     }
 
     get position(): number {
@@ -216,6 +222,121 @@ export class ByteArray {
         }
     }
 
+    readU8LEB() {
+        return this.readUnsignedLEB128(1)
+    }
+
+    readU16LEB() {
+        return this.readUnsignedLEB128(2)
+    }
+
+    readU32LEB() {
+        return this.readUnsignedLEB128(4)
+    }
+
+    readU64LEB() {
+        return this.readUnsignedLEB128(8)
+    }
+
+    readS8LEB() {
+        return this.readLEB128(1)
+    }
+
+    readS16LEB() {
+        return this.readLEB128(2)
+    }
+
+    readS32LEB() {
+        return this.readLEB128(4)
+    }
+
+    readS64LEB() {
+        return this.readLEB128(8)
+    }
+
+    /**
+     * Read unsigned Little Endian Base 128
+     */
+    readUnsignedLEB128(size): number {
+        let value = 0;
+        let shift = 0;
+        let byte;
+        while (true) {
+            byte = this.readUnsignedByte();
+            let last: boolean = !(byte & 128);
+            let payload: number = byte & 127;
+            let shift_mask = 0 == shift ? ~0
+                : ((1 << (size * 8 - shift)) - 1);
+            let significant_payload = payload & shift_mask;
+
+            if (significant_payload != payload) {
+                if (!(value < 0 && last)) {
+                    throw "LEB dropped bits only valid for signed LEB";
+                }
+            }
+
+            value |= significant_payload << shift;
+
+            if (last) break;
+            shift += 7;
+            if (sizeOfNumber(shift) >= size * 8) {
+                throw "LEB overflow";
+            }
+        }
+        return value;
+    }
+
+    /**
+     * Read signed Little Endian Base 128
+     */
+    readLEB128(size): number {
+        let value = 0;
+        let shift = 0;
+        let sizeOfShift = 0;
+        let byte;
+        while (true) {
+            byte = this.readByte();
+            let last = !(byte & 128);
+            let payload = byte & 127;
+            let shift_mask = 0 == shift
+                ? ~0
+                : ((1 << (size * 8 - shift)) - 1);
+            let significant_payload = payload & shift_mask;
+
+            if (significant_payload != payload) {
+                if (!(isSigned(value) && last)) {
+                    throw "LEB dropped bits only valid for signed LEB";
+                }
+            }
+
+            value |= significant_payload << shift;
+
+            if (last) break;
+            shift += 7;
+            sizeOfShift = sizeOfNumber(shift);
+            if (sizeOfShift >= size * 8) {
+                throw "LEB overflow";
+            }
+        }
+
+        // If signed LEB, then we might need to sign-extend. (compile should
+        // optimize this out if not needed).
+        if (isSigned(value)) {
+            shift += 7;
+            sizeOfShift = sizeOfNumber(shift);
+            if ((byte & 64) && sizeOfShift < 8 * size) {
+                let sext_bits = 8 * size - sizeOfShift;
+                value <<= sext_bits;
+                value >>= sext_bits;
+                if (value >= 0) {
+                    throw "LEB sign-extend should produce a negative value";
+                }
+            }
+        }
+
+        return value;
+    }
+
     /**
      * Write unsigned Little Endian Base 128
      */
@@ -256,6 +377,14 @@ export class ByteArray {
                 this.append(b);
             }
         } while (true);
+    }
+
+    /**
+     * Read WASM String
+     */
+    readWasmString():string {
+        let length = this.readUnsignedLEB128(4);
+        return this.readUTFBytes(length);
     }
 
     /**
@@ -320,7 +449,7 @@ export class ByteArray {
         } else {
             //Offset argument ignored
             _bytes = _bytes == null ? new ByteArray(null) : _bytes;
-            _bytes.dataView = new DataView(this.data.buffer, this.bufferOffset + this.position, length);
+            _bytes.dataView = new DataView(this.data.buffer, this.byteOffset + this.position, length);
             this.position += length;
         }
 
@@ -539,7 +668,7 @@ export class ByteArray {
     public readUTFBytes(length: number): string {
         if (!this.validate(length)) return null;
 
-        var _bytes: Uint8Array = new Uint8Array(this.buffer, this.bufferOffset + this.position, length);
+        var _bytes: Uint8Array = new Uint8Array(this.buffer, this.byteOffset + this.position, length);
         this.position += length;
         /*var _bytes: Uint8Array = new Uint8Array(new ArrayBuffer(length));
          for (var i = 0; i < length; i++) {
@@ -927,7 +1056,7 @@ export class ByteArray {
     public readUint8Array(length: number, createNewBuffer: boolean = true): Uint8Array {
         if (!this.validate(length)) return null;
         if (!createNewBuffer) {
-            var result: Uint8Array = new Uint8Array(this.buffer, this.bufferOffset + this.position, length);
+            var result: Uint8Array = new Uint8Array(this.buffer, this.byteOffset + this.position, length);
             this.position += length;
         } else {
             result = new Uint8Array(new ArrayBuffer(length));
@@ -947,7 +1076,7 @@ export class ByteArray {
         var size: number = length * ByteArray.SIZE_OF_UINT16;
         if (!this.validate(size)) return null;
         if (!createNewBuffer) {
-            var result: Uint16Array = new Uint16Array(this.buffer, this.bufferOffset + this.position, length);
+            var result: Uint16Array = new Uint16Array(this.buffer, this.byteOffset + this.position, length);
             this.position += size;
         }
         else {
@@ -968,7 +1097,7 @@ export class ByteArray {
         var size: number = length * ByteArray.SIZE_OF_UINT32;
         if (!this.validate(size)) return null;
         if (!createNewBuffer) {
-            var result: Uint32Array = new Uint32Array(this.buffer, this.bufferOffset + this.position, length);
+            var result: Uint32Array = new Uint32Array(this.buffer, this.byteOffset + this.position, length);
             this.position += size;
         }
         else {
@@ -988,7 +1117,7 @@ export class ByteArray {
     public readInt8Array(length: number, createNewBuffer: boolean = true): Int8Array {
         if (!this.validate(length)) return null;
         if (!createNewBuffer) {
-            var result: Int8Array = new Int8Array(this.buffer, this.bufferOffset + this.position, length);
+            var result: Int8Array = new Int8Array(this.buffer, this.byteOffset + this.position, length);
             this.position += length;
         }
         else {
@@ -1009,7 +1138,7 @@ export class ByteArray {
         var size: number = length * ByteArray.SIZE_OF_INT16;
         if (!this.validate(size)) return null;
         if (!createNewBuffer) {
-            var result: Int16Array = new Int16Array(this.buffer, this.bufferOffset + this.position, length);
+            var result: Int16Array = new Int16Array(this.buffer, this.byteOffset + this.position, length);
             this.position += size;
         }
         else {
@@ -1031,8 +1160,8 @@ export class ByteArray {
         if (!this.validate(size)) return null;
         if (!createNewBuffer) {
 
-            if ((this.bufferOffset + this.position) % 4 == 0) {
-                var result: Int32Array = new Int32Array(this.buffer, this.bufferOffset + this.position, length);
+            if ((this.byteOffset + this.position) % 4 == 0) {
+                var result: Int32Array = new Int32Array(this.buffer, this.byteOffset + this.position, length);
                 this.position += size;
             } else {
                 var tmp: Uint8Array = new Uint8Array(new ArrayBuffer(size));
@@ -1061,8 +1190,8 @@ export class ByteArray {
         var size: number = length * ByteArray.SIZE_OF_FLOAT32;
         if (!this.validate(size)) return null;
         if (!createNewBuffer) {
-            if ((this.bufferOffset + this.position) % 4 == 0) {
-                var result: Float32Array = new Float32Array(this.buffer, this.bufferOffset + this.position, length);
+            if ((this.byteOffset + this.position) % 4 == 0) {
+                var result: Float32Array = new Float32Array(this.buffer, this.byteOffset + this.position, length);
                 this.position += size;
             } else {
                 var tmp: Uint8Array = new Uint8Array(new ArrayBuffer(size));

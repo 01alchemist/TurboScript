@@ -200,7 +200,7 @@ function loadWASM() {
                             _free(mem);
                             return filtered;
                         };
-                        //bindLastArgs is defined and hoisted from below the module load
+                        //bindLastArgs is defined and hoisted from below the namespace load
                         let mag = 127, mult = 2, adj = 4;
                         let filt = wam['multiFilter'];
                         let filtFloat = wam['multiFilterFloat'];
@@ -371,7 +371,7 @@ function loadTurboWASM() {
                             turbo.free(mem);
                             return filtered;
                         };
-                        //bindLastArgs is defined and hoisted from below the module load
+                        //bindLastArgs is defined and hoisted from below the namespace load
                         let mag = 127, mult = 2, adj = 4;
                         let filt = wam['multiFilter'];
                         let filtFloat = wam['multiFilterFloat'];
@@ -453,7 +453,7 @@ function loadTurboWASM() {
     });
 }
 
-//to bind arguments in the right order
+//to bind argumentVariables in the right order
 function bindLastArgs(func, ...boundArgs) {
     return function (...baseArgs) {
         return func(...baseArgs, ...boundArgs);

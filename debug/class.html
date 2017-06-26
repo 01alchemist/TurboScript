@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WASM Class</title>
+</head>
+<body>
+<script>
+
+    async function init() {
+        let data = await fetch("./bin/class.wasm");
+        let wasmBytes = await data.arrayBuffer();
+        try {
+            return WebAssembly.compile(wasmBytes).then(function (compiled) {
+                let instance = new WebAssembly.Instance(compiled);
+                window.exports = instance.exports;
+                console.log("WASM Compiled!");
+                return window.exports;
+            })
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    init().then((exports) => {
+    });
+</script>
+</body>
+</html>

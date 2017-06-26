@@ -7,18 +7,12 @@ import {SymbolKind, Symbol} from "../../../compiler/core/symbol";
  * Created by n.vinayakan on 17.06.17.
  */
 export function getWasmFunctionName(symbol: Symbol): string {
+    if (symbol === undefined || symbol === null) return "";
     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().internalName : "";
     return (moduleName == "" ? "" : moduleName + "_") + symbol.internalName;
 }
 
-export function wasmWrapType(id: WasmType): WasmWrappedType {
-    assert(id == WasmType.VOID || id == WasmType.I32 || id == WasmType.I64 || id == WasmType.F32 || id == WasmType.F64);
-    let type = new WasmWrappedType();
-    type.id = id;
-    return type;
-}
-
-export function symbolToValueType(symbol: Symbol, bitness?: Bitness): WasmType {
+export function symbolToWasmType(symbol: Symbol, bitness?: Bitness): WasmType {
     let type = symbol.resolvedType;
     if (type.isFloat()) {
         return WasmType.F32;
@@ -33,6 +27,21 @@ export function symbolToValueType(symbol: Symbol, bitness?: Bitness): WasmType {
         return WasmType.I64;
     } else {
         return WasmType.I32;
+    }
+}
+
+export function wasmToTurboType(type: WasmType): string {
+    switch (type) {
+        case WasmType.VOID:
+            return "void";
+        case WasmType.I32:
+            return "int32";
+        case WasmType.I64:
+            return "int64";
+        case WasmType.F32:
+            return "float32";
+        case WasmType.F64:
+            return "float64";
     }
 }
 

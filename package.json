@@ -6,34 +6,42 @@
   "directories": {
     "test": "tests"
   },
-  "dependencies": {},
+  "dependencies": {
+    "binaryen": "1.37.13-nightly.20170617"
+  },
   "devDependencies": {
     "@types/debug": "^0.0.29",
     "@types/fs-extra": "^2.1.0",
     "@types/jest": "^19.2.2",
     "@types/node": "^7.0.12",
-    "@types/webassembly-js-api": "^0.0.0",
+    "@types/webassembly-js-api": "^0.0.1",
     "babel-jest": "^19.0.0",
+    "bin-loader": "^0.1.0",
+    "cross-env": "^5.0.1",
     "debug": "^2.6.3",
     "fs": "^0.0.1-security",
     "fs-extra": "^2.1.2",
-    "jest": "^19.0.2",
+    "jest": "^20.0.4",
     "raw-loader": "^0.5.1",
     "request": "^2.81.0",
     "ts-jest": "^19.0.9",
+    "ts-lint": "^4.5.1",
     "ts-loader": "^2.1.0",
     "ts-node": "^3.0.2",
     "typescript": "^2.3.4",
     "uglify-js": "git://github.com/mishoo/UglifyJS2#harmony-v2.8.22",
     "uglifyjs-webpack-plugin": "^0.4.3",
+    "webassembly": "^0.11.0",
     "webpack": "^2.6.1"
   },
   "bin": {
     "tc": "./bin/tc"
   },
   "scripts": {
-    "build": "webpack --config webpack.config.js && tsc -p ./lib",
-    "watch-build": "NODE_ENV='dev' webpack --progress --colors --watch",
+    "build:malloc": "node scripts/build-malloc",
+    "build:turboscript": "webpack --config webpack.config.js && tsc -p ./lib",
+    "build": "yarn build:malloc && yarn build:turboscript",
+    "watch-build": "cross-env NODE_ENV=dev webpack --progress --colors --watch",
     "test": "node ./node_modules/jest/bin/jest.js",
     "watch-test": "node ./node_modules/jest/bin/jest.js --watch"
   },

@@ -1,100 +1,144 @@
-import {WasmRuntimeFunction, WasmStackTracer} from "../stack-machine/wasm-stack-tracer";
+import {WasmRuntimeFunction, WasmStackTracer} from "../wasm-machine/wasm-stack-tracer";
 import {WasmFunction} from "../core/wasm-function";
 import {toHex} from "../../../utils/utils";
 import {ByteArray} from "../../../utils/bytearray";
 import {WasmOpcode} from "../opcode";
 import {SectionBuffer} from "../buffer/section-buffer";
-import {log} from "../utils/logger";
-import {WasmSection} from "../core/wasm-section";
-import {WasmImport} from "../core/wasm-import";
-import {WasmRuntimeProperty} from "../stack-machine/wasm-runtime-local";
+import {WasmRuntimeProperty} from "../wasm-machine/wasm-runtime-local";
 import {WasmType} from "../core/wasm-type";
-import {WasmLocalEntry} from "../core/wasm-local";
+import {WasmLocal} from "../core/wasm-local";
 import {Terminal} from "../../../utils/terminal";
 import {getWasmFunctionName} from "../utils/index";
+import {WasmModule} from "../wasm/wasm-module";
+import {WasmSectionBinary} from "../wasm/wasm-binary-section";
+import {StringBuilder} from "../../../utils/stringbuilder";
+import {WasmFunctionChunk} from "../core/wasm-function-chunk";
+import {WasmBinary} from "../wasm/wasm-binary";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
 export class WasmAssembler {
 
-    binaryOutput: ByteArray;
-    textOutput: string;
+    module: WasmModule;
     stackTracer: WasmStackTracer;
     sectionList: SectionBuffer[] = [];
-    importList: WasmImport[] = [];
-    functionList: WasmFunction[] = [];
-    currentSection: SectionBuffer = null;
+    currentSection: WasmSectionBinary = null;
     currentFunction: WasmFunction = null;
+    activePayload: ByteArray;
+    activeCode: StringBuilder;
+    prevPayload: ByteArray;
+    prevCode: StringBuilder;
 
     constructor() {
+        this.module = new WasmModule();
         this.stackTracer = new WasmStackTracer();
-        this.textOutput = ";; Experimental wast emitter\n(module\n";
     }
 
     sealFunctions() {
         let runtimeFunctions = [];
-        this.importList.forEach(_import => {
+        this.module.imports.forEach(_import => {
             let fn = new WasmRuntimeFunction();
-            fn.module = _import.module;
+            fn.module = _import.namespace;
             fn.name = _import.name;
             fn.signature = _import.signature;
             fn.isImport = true;
             runtimeFunctions.push(fn);
         });
-        this.functionList.forEach((_wasmFunc: WasmFunction) => {
+        this.module.functions.forEach((_wasmFunc: WasmFunction) => {
             let fn = new WasmRuntimeFunction();
             fn.name = getWasmFunctionName(_wasmFunc.symbol);
             fn.signature = _wasmFunc.signature;
-            fn.isImport = false;
-            fn.locals = [];
-            _wasmFunc.localEntries.forEach((local: WasmLocalEntry) => {
-                fn.locals.push(new WasmRuntimeProperty(local.type, local.name));
-            });
+            fn.isImport = _wasmFunc.isExternal;
+            if (!_wasmFunc.isExternal) {
+                fn.locals = [];
+                _wasmFunc.locals.forEach((local: WasmLocal) => {
+                    fn.locals.push(new WasmRuntimeProperty(local.type, local.name));
+                });
+            }
             runtimeFunctions.push(fn);
         });
         this.stackTracer.functions = runtimeFunctions;
     }
 
-    startSection(array: ByteArray, id: int32, name: string): SectionBuffer {
-        let section: SectionBuffer = new SectionBuffer(id, name);
-        section.offset = array.length;
-        log(array, 0, null, ` - section: ${WasmSection[id]} [0x${toHex(id, 2)}]`);
+    startSection(id: int32, name?:string): WasmSectionBinary {
+        let section: WasmSectionBinary = this.module.binary.getSection(id, name);
         this.currentSection = section;
-        this.sectionList.push(section);
+        this.activePayload = section.payload;
+        this.activeCode = section.code;
         return section;
     }
 
-    endSection(array: ByteArray, section: SectionBuffer): void {
+    endSection(section: WasmSectionBinary): void {
         this.currentSection = null;
-        section.publish(array);
+        this.activePayload = null;
+        this.activeCode = null;
     }
 
-    dropStack(array: ByteArray, max: number = 1) {
+    startFunction(fn: WasmFunction, index: int32): void {
+        this.currentFunction = fn;
+        this.stackTracer.startFunction(this.module.importCount + index);
+        this.activePayload = fn.body;
+        this.activeCode = fn.code;
+    }
+
+    endFunction() {
+        this.activeCode.removeLastLinebreak();
+        this.stackTracer.endFunction();
+        this.currentSection.code.appendRaw(this.activeCode.finish());
+        this.activePayload = this.currentSection.payload;
+        this.activeCode = this.currentSection.code;
+    }
+
+    startFunctionChunk(fn: WasmFunction, index: int32): WasmFunctionChunk {
+        let chunk = new WasmFunctionChunk();
+        fn.chunks.push(chunk);
+        this.prevPayload = this.activePayload;
+        this.prevCode = this.activeCode;
+        this.activePayload = chunk.payload;
+        this.activeCode = chunk.code;
+        this.stackTracer.startFunction(index);
+        return chunk;
+    }
+
+    endFunctionChunk() {
+        this.activePayload = this.prevPayload;
+        this.activeCode = this.prevCode;
+        this.stackTracer.endFunction(true);
+    }
+
+    dropStack(max: number = 1) {
         if (this.stackTracer.context.stack.length > 0) {
             Terminal.warn(`Dropping stack items, '${this.stackTracer.context.fn.name}' func stack contains ${this.stackTracer.context.stack.length} items`);
             let item = this.stackTracer.context.stack.pop(true);
 
             while (item !== undefined && max > 0) {
                 Terminal.warn(WasmType[item.type]);
-                array.append(WasmOpcode.DROP);
-                this.currentSection.code.append("drop\n");
+                this.activePayload.append(WasmOpcode.DROP);
+                this.activeCode.append("drop\n");
                 item = this.stackTracer.context.stack.pop(true);
                 max--;
             }
         }
     }
 
-    appendOpcode(array: ByteArray, offset = 0, opcode: number, inline_value?, skip: boolean = false) {
-        logOpcode(array, offset, opcode, inline_value);
-        array.append(opcode);
+    append(offset = 0, value = null, msg = null) {
+        this.activePayload.log += (value != null ? `${toHex(offset + this.activePayload.position)}: ${toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
+        if (value) {
+            this.activePayload.append(value);
+        }
+    }
+
+    appendOpcode(offset = 0, opcode: number, inline_value?, skip: boolean = false) {
+        logOpcode(this.activePayload, offset, opcode, inline_value);
+        this.activePayload.append(opcode);
         let opcodeWithoutOperand = this.stackTracer.pushOpcode(opcode);
         if (opcodeWithoutOperand !== null && !skip) {
             let isEnd = opcode === WasmOpcode.END;
             let indent = this.isBlock(opcode) ? 1 : (isEnd ? -1 : 0);
             if (isEnd) {
-                this.currentSection.code.clearIndent(1);
+                this.activeCode.clearIndent(1);
             }
-            this.currentSection.code.append(opcodeWithoutOperand + "\n", indent);
+            this.activeCode.append(opcodeWithoutOperand + "\n", indent);
         }
     }
 
@@ -105,58 +149,51 @@ export class WasmAssembler {
             opcode === WasmOpcode.IF_ELSE;
     }
 
-    writeUnsignedLEB128(array: ByteArray, value: number): void {
-        array.writeUnsignedLEB128(value);
+    writeUnsignedLEB128(value: number): void {
+        this.activePayload.writeUnsignedLEB128(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
-            this.currentSection.code.append(opcodeAndOperand + "\n");
+            this.activeCode.append(opcodeAndOperand + "\n");
         }
     }
 
-    writeLEB128(array: ByteArray, value: number): void {
-        array.writeLEB128(value);
+    writeLEB128(value: number): void {
+        this.activePayload.writeLEB128(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
-            this.currentSection.code.append(opcodeAndOperand + "\n");
+            this.activeCode.append(opcodeAndOperand + "\n");
         }
     }
 
-    writeFloat(array: ByteArray, value: number): void {
-        array.writeFloat(value);
+    writeFloat(value: number): void {
+        this.activePayload.writeFloat(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
-            this.currentSection.code.append(opcodeAndOperand + "\n");
+            this.activeCode.append(opcodeAndOperand + "\n");
         }
     }
 
-    writeDouble(array: ByteArray, value: number): void {
-        array.writeDouble(value);
+    writeDouble(value: number): void {
+        this.activePayload.writeDouble(value);
         let opcodeAndOperand = this.stackTracer.pushValue(value);
         if (opcodeAndOperand !== null) {
-            this.currentSection.code.append(opcodeAndOperand + "\n");
+            this.activeCode.append(opcodeAndOperand + "\n");
         }
     }
 
-    writeWasmString(array: ByteArray, value: string): void {
-        array.writeWasmString(value);
+    writeWasmString(value: string): void {
+        this.activePayload.writeWasmString(value);
+    }
+
+    mergeBinary(binary: WasmBinary) {
+        this.module.binary.copySections(binary);
     }
 
     finish() {
-        this.textOutput += "  ";
-        this.sectionList.forEach((section) => {
-            this.textOutput += section.code.finish();
-        });
-        this.textOutput += ")\n";
+        this.module.publish();
     }
 }
 
-export function append(array: ByteArray, offset = 0, value = null, msg = null) {
-    array.log += (value != null ? `${toHex(offset + array.position)}: ${toHex(value, 2)}                    ; ` : "") + (msg != null ? `${msg}\n` : "\n");
-    if (value) {
-        array.append(value);
-    }
-}
-
-export function logOpcode(array: ByteArray, offset = 0, opcode, inline_value?) {
-    array.log += `${toHex(offset + array.position)}: ${toHex(opcode, 2)}                    ; ${WasmOpcode[opcode]} ${inline_value ? inline_value : ""}\n`;
+export function logOpcode(payload: ByteArray, offset = 0, opcode, inline_value?) {
+    payload.log += `${toHex(offset + payload.position)}: ${toHex(opcode, 2)}                    ; ${WasmOpcode[opcode]} ${inline_value ? inline_value : ""}\n`;
 }
