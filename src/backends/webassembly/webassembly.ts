@@ -3,7 +3,7 @@ import {isFunction, Symbol, SymbolKind} from "../../compiler/core/symbol";
 import {ByteArray, ByteArray_set32, ByteArray_setString} from "../../utils/bytearray";
 import {CheckContext} from "../../compiler/analyzer/type-checker";
 import {alignToNextMultipleOf, toHex} from "../../utils/utils";
-import {isExpression, isUnary, isUnaryPostfix, Node, NodeKind} from "../../compiler/core/node";
+import {isExpression, isUnary, isUnaryPostfix, Node, NODE_FLAG_IMPORT, NodeKind} from "../../compiler/core/node";
 import {Type} from "../../compiler/core/type";
 import {Compiler} from "../../compiler/compiler";
 import {WasmOpcode} from "./opcode";
@@ -31,11 +31,14 @@ import {GlobalSection} from "./wasm/sections/global-section";
 import {StartSection} from "./wasm/sections/start-section";
 import {CodeSection} from "./wasm/sections/code-section";
 import {ExportSection} from "./wasm/sections/export-section";
+import {isBinaryImport} from "../../importer/binary-importer";
 
 class WasmModuleEmitter {
     memoryInitializer: ByteArray;
+
     currentHeapPointer: int32;
     originalHeapPointer: int32;
+
     mallocFunctionIndex: int32;
     freeFunctionIndex: int32;
     startFunctionIndex: int32;
@@ -611,15 +614,23 @@ class WasmModuleEmitter {
 
             // Functions without bodies are imports
             if (body == null) {
-                if (!isBuiltin(wasmFunctionName)) {
+                if(isBinaryImport(wasmFunctionName)){
+
+                }
+                else if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.assembler.module.importCount;
-                    let [_import, importIndex] = this.assembler.module.allocateImport(signature, signatureIndex, moduleName, symbol.name);
-                    if (wasmFunctionName == "mspace_malloc") {
-                        this.mallocFunctionIndex = importIndex;
-                    } else if (wasmFunctionName == "mspace_free") {
-                        this.freeFunctionIndex = importIndex;
-                    }
+                    this.assembler.module.allocateImport(signature, signatureIndex, moduleName, symbol.name);
+                    // let [_import, importIndex] =
+                    // if (wasmFunctionName == "mspace_malloc") {
+                    //     // this.mallocFunctionIndex = importIndex;
+                    //     symbol.node.flags |= NODE_FLAG_IMPORT;
+                    // } else if (wasmFunctionName == "mspace_free") {
+                    //     // this.freeFunctionIndex = importIndex;
+                    //     symbol.node.flags |= NODE_FLAG_IMPORT;
+                    // } else if (wasmFunctionName == "mspace_init") {
+                    //     symbol.node.flags |= NODE_FLAG_IMPORT;
+                    // }
                 }
                 node = node.nextSibling;
                 return;
@@ -633,11 +644,11 @@ class WasmModuleEmitter {
             fn.returnType = wasmReturnType;
 
             // Make sure "malloc" is tracked
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "mspace_malloc") {
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "malloc") {
                 assert(this.mallocFunctionIndex == -1);
                 this.mallocFunctionIndex = symbol.offset;
             }
-            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "mspace_free") {
+            if (symbol.kind == SymbolKind.FUNCTION_GLOBAL && symbol.name == "free") {
                 assert(this.freeFunctionIndex == -1);
                 this.freeFunctionIndex = symbol.offset;
             }
@@ -1946,7 +1957,7 @@ class WasmModuleEmitter {
     }
 
     getWasmFunctionCallIndex(symbol: Symbol): int32 {
-        return symbol.node.isExternalImport() ? symbol.offset : this.assembler.module.importCount + symbol.offset;
+        return (symbol.node.isImport() || symbol.node.isExternalImport()) ? symbol.offset : this.assembler.module.importCount + symbol.offset;
     }
 
     getWasmType(type: Type): WasmType {

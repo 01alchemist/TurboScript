@@ -10,6 +10,6 @@ function __WASM_INITIALIZER(): void {
     // numFreeChunks = 0;
     // firstFree = 0;
     // lastFree = 0;
-    originalHeapPointer = 8;
-    currentHeapPointer = 8;
+    originalHeapPointer = mspace_init(40); // size of null, originalHeapPointer & currentHeapPointer
+    currentHeapPointer = originalHeapPointer;
 }

@@ -49,4 +49,15 @@ export class BinaryImporter {
         }
         return declarations;
     }
+
+    static get
+}
+
+export function isBinaryImport(name: string): boolean {
+    let found: boolean = false;
+    BinaryImporter.imports.some(_import => {
+        found = _import.name === name;
+        return found;
+    });
+    return found;
 }

@@ -4,7 +4,7 @@ import {getWasmInstanceSync} from "./utils/utils";
 let instance: WebAssembly.Instance;
 
 test('it should compile "class.tbs" correctly', () => {
-    instance = getWasmInstanceSync(path.join(__dirname, 'class.tbs'))
+    instance = getWasmInstanceSync(path.resolve(__dirname, 'class.tbs'));
 });
 
 test('test should instantiate class "Child" with parameter value and return same value', () => {

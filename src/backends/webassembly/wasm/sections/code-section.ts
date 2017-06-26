@@ -25,7 +25,6 @@ export class CodeSection extends WasmSectionBinary {
 
         for (let i = 0; i < length; i++) {
             let _function = new WasmFunction("<anonymous>");
-            let pos = this.payload.position;
             let bodyLength = this.payload.readU32LEB();
             // let localVariables: WasmLocal[] = []
             // let localVariableCount = this.payload.readU32LEB();
@@ -51,7 +50,6 @@ export class CodeSection extends WasmSectionBinary {
             // }
             //skip content
             _function.body = this.payload.readBytes(null, this.payload.position, bodyLength);
-            // this.payload.position = pos + bodyLength;
             this.functions.push(_function);
         }
     }

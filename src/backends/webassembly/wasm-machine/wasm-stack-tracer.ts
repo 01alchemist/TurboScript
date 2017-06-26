@@ -119,7 +119,9 @@ export class WasmStackTracer {
     callFunction(index: int32) {
         let fn = this.functions[index];
         if (fn === undefined) {
-            throw "Function not defined at index " + index;
+            let error = "Function not defined at index " + index;
+            Terminal.error(error);
+            throw error;
         }
         let returnType = fn.returnType;
         for (let i: int32 = 0; i < fn.signature.argumentTypes.length; i++) {

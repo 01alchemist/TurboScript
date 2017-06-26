@@ -2,3 +2,14 @@ import {mspace_init, mspace_malloc, mspace_free} from "./src/library/common/mall
 
 let originalHeapPointer: int32 = null;
 let currentHeapPointer: int32 = null;
+
+// export function malloc_init(value:int32):int32 {
+//     return mspace_init(value);
+// }
+
+export function malloc(value:int32):int32 {
+    return mspace_malloc(originalHeapPointer, value);
+}
+export function free(value:int32):void {
+    mspace_free(originalHeapPointer, value);
+}
