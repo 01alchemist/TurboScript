@@ -22,6 +22,9 @@ export class BinaryImporter {
 
     static resolveWasmBinaryImport(imports: string[], from: string, importPath: string): string {
         let binary = FileSystem.readBinaryFile(importPath);
+        if (binary === null) {
+            binary = FileSystem.readBinaryFile(from);
+        }
         let wasmBinary = new WasmBinary(binary);
         let exportSection = wasmBinary.getSection(WasmSection.Export) as ExportSection;
         let signatureSection = wasmBinary.getSection(WasmSection.Signature) as SignatureSection;

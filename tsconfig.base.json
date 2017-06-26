@@ -1,14 +1,18 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib":[
+    "lib": [
       "es2015"
     ],
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
     "types": [
-      "node"
+      "node",
+      "webassembly-js-api"
     ],
     "module": "commonjs",
-    "moduleResolution": "Node",
+    "moduleResolution": "node",
     "sourceMap": true,
     "allowJs": false,
     "alwaysStrict": false,

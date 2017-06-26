@@ -634,13 +634,15 @@ class WasmModuleEmitter {
 
             // Functions without bodies are imports
             if (body == null) {
-                if (isBinaryImport(wasmFunctionName)) {
-                    symbol.flags |= NODE_FLAG_IMPORT;
-                }
                 if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.assembler.module.importCount;
-                    this.assembler.module.allocateImport(signature, signatureIndex, moduleName, symbol.name);
+                    if (isBinaryImport(wasmFunctionName)) {
+                        this.assembler.module.allocateImport(signature, signatureIndex, "internal", symbol.name);
+                        symbol.node.flags |= NODE_FLAG_IMPORT;
+                    } else {
+                        this.assembler.module.allocateImport(signature, signatureIndex, moduleName, symbol.name);
+                    }
                 }
                 node = node.nextSibling;
                 return;

@@ -163,12 +163,15 @@ export function main_entry(): int32 {
                         }
                     } else {
                         Terminal.error("Compile error!");
+                        return 1;
                     }
                     break;
             }
+            return 0;
         } catch (e) {
             Terminal.error("Cannot write to " + output);
             console.error(e);
+            return 1;
         }
         // if (target == CompileTarget.CPP && FileSystem.writeTextFile(output, compiler.outputCPP) &&
         //     FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH) ||

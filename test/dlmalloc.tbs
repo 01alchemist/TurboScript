@@ -1,6 +1,0 @@
-export function test ():uint32 {
-    let mspace = mspace_init(currentHeapPointer as int32);
-    return mspace_malloc(mspace, 4);
-    // return mspace;
-    // return currentHeapPointer as uint32;
-}
