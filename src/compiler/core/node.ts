@@ -1256,6 +1256,16 @@ export function createWhile(value: Node, body: Node): Node {
     return node;
 }
 
+export function createFor(value: Node, body: Node): Node {
+    assert(isExpression(value));
+    assert(body.kind == NodeKind.BLOCK);
+    let node = new Node();
+    node.kind = NodeKind.FOR;
+    node.appendChild(value);
+    node.appendChild(body);
+    return node;
+}
+
 export function createReturn(value: Node): Node {
     assert(value == null || isExpression(value));
     let node = new Node();

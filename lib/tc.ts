@@ -22,8 +22,6 @@ const path = require('path');
 //Import compiler
 const turbo = require("./turboscript.js");
 
-console.log(turbo);
-
 const Color = turbo.Color;
 const turboMain = turbo.main;
 

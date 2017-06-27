@@ -92,6 +92,7 @@ export enum TokenKind {
     VIRTUAL,
     VAR,
     WHILE,
+    FOR,
 
         // Preprocessor
     PREPROCESSOR_DEFINE,
@@ -220,6 +221,7 @@ export function tokenToString(token: TokenKind): string {
     if (token == TokenKind.VIRTUAL) return "'@virtual'";
     if (token == TokenKind.VAR) return "'var'";
     if (token == TokenKind.WHILE) return "'while'";
+    if (token == TokenKind.FOR) return "'for'";
 
     // Preprocessor
     if (token == TokenKind.PREPROCESSOR_DEFINE) return "'#define'";
@@ -310,6 +312,7 @@ export function tokenize(source: Source, log: Log): Token {
                     if (text == "let") kind = TokenKind.LET;
                     else if (text == "new") kind = TokenKind.NEW;
                     else if (text == "var") kind = TokenKind.VAR;
+                    else if (text == "for") kind = TokenKind.FOR;
                     else if (text == "@JS") kind = TokenKind.JAVASCRIPT;
                 }
 

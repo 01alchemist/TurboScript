@@ -642,6 +642,45 @@ class ParserContext {
         return createWhile(value, body).withRange(spanRanges(token.range, body.range));
     }
 
+    parseFor(): Node {
+        let token = this.current;
+        assert(token.kind == TokenKind.FOR);
+        this.advance();
+
+        if (!this.expect(TokenKind.LEFT_PARENTHESIS)) {
+            return null;
+        }
+
+        assert(token.kind == TokenKind.CONST || token.kind == TokenKind.LET || token.kind == TokenKind.VAR);
+        this.advance();
+
+        let node = token.kind == TokenKind.CONST ? createConstants() : createVariables();
+        node.firstFlag = firstFlag;
+
+        let value: Node;
+
+        // Recover from a missing value
+        if (this.peek(TokenKind.RIGHT_PARENTHESIS)) {
+            this.unexpectedToken();
+            this.advance();
+            value = createParseError();
+        }
+
+        else {
+            value = this.parseExpression(Precedence.LOWEST, ParseKind.EXPRESSION);
+            if (value == null || !this.expect(TokenKind.RIGHT_PARENTHESIS)) {
+                return null;
+            }
+        }
+
+        let body = this.parseBody();
+        if (body == null) {
+            return null;
+        }
+
+        return createFor(value, body).withRange(spanRanges(token.range, body.range));
+    }
+
     parseBody(): Node {
         let node = this.parseStatement(StatementMode.NORMAL);
         if (node == null) {
@@ -1613,6 +1652,7 @@ class ParserContext {
         if (this.peek(TokenKind.CONTINUE)) return this.parseLoopJump(NodeKind.CONTINUE);
         if (this.peek(TokenKind.IF)) return this.parseIf();
         if (this.peek(TokenKind.WHILE)) return this.parseWhile();
+        if (this.peek(TokenKind.FOR)) return this.parseFor();
         if (this.peek(TokenKind.DELETE)) return this.parseDelete();
         if (this.peek(TokenKind.RETURN)) return this.parseReturn();
         if (this.peek(TokenKind.SEMICOLON)) return this.parseEmpty();
