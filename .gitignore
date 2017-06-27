@@ -23,6 +23,7 @@ node-v8/
 *.swp
 src/**/*.js
 *.js.map
+.turbo
 /TurboScript.iml
 !src/library/asmjs/runtime.js
 !src/library/webassembly/wrapper.js

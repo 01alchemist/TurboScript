@@ -9,6 +9,7 @@ import {tokenize} from "./scanner/scanner";
 import {parse} from "./parser/parser";
 import {treeShaking} from "./optimizer/shaking";
 import {wasmEmit} from "../backends/webassembly/webassembly";
+import {Bitness} from "../backends/bitness";
 import {Library} from "../library/library";
 import {preparse} from "./parser/preparser";
 import {CompileTarget} from "./compile-target";
@@ -36,17 +37,19 @@ export class Compiler {
     outputJS: string;
     outputCPP: string;
     outputH: string;
+    options: {[key: string]: any};
 
     static mallocRequired: boolean = false;
     static debug:boolean = false;
     static binaryImports: WasmBinary[];
 
-    initialize(target: CompileTarget, outputName: string): void {
+    initialize(target: CompileTarget, outputName: string, options: {[key: string]: any} = {}): void {
         assert(this.log == null);
         this.log = new Log();
         this.preprocessor = new Preprocessor();
         Compiler.binaryImports = [];
         this.target = target;
+        this.options = options;
         this.outputName = outputName;
         this.librarySource = this.addInput("<native>", Library.get(target));
         this.librarySource.isLibrary = true;
@@ -220,7 +223,8 @@ export class Compiler {
         // } else
 
         if (this.target == CompileTarget.WEBASSEMBLY) {
-            wasmEmit(this);
+            const { longPtr, optimize } = this.options;
+            wasmEmit(this, longPtr ? Bitness.x64 : Bitness.x32, optimize);
         }
 
         Terminal.timeEnd("emitting");
