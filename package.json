@@ -7,8 +7,7 @@
     "test": "tests"
   },
   "dependencies": {
-    "binaryen": "1.37.13-nightly.20170617",
-    "has-flag": "^2.0.0"
+    "binaryen": "1.37.13-nightly.20170617"
   },
   "devDependencies": {
     "@types/debug": "^0.0.29",
@@ -33,7 +32,8 @@
     "uglify-js": "git://github.com/mishoo/UglifyJS2#harmony-v2.8.22",
     "uglifyjs-webpack-plugin": "^0.4.3",
     "webassembly": "^0.11.0",
-    "webpack": "^2.6.1"
+    "webpack": "^2.6.1",
+    "has-flag": "^2.0.0"
   },
   "bin": {
     "tc": "./bin/tc"
@@ -42,7 +42,7 @@
     "build:malloc": "node scripts/build-malloc",
     "build:turboscript": "webpack --config webpack.config.js",
     "build:tc": "tsc -p ./lib",
-    "build": "yarn build:malloc && yarn build:turboscript && yarn build:tc",
+    "build": "npm run build:malloc && npm run build:turboscript && npm run build:tc",
     "watch-build": "cross-env NODE_ENV=dev webpack --progress --colors --watch",
     "test": "node ./node_modules/jest/bin/jest.js",
     "watch-test": "node ./node_modules/jest/bin/jest.js --watch"

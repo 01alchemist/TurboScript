@@ -20,8 +20,8 @@ install:
   - npm update
 
 script:
-  - yarn build
-  - yarn test
+  - npm run build
+  - npm run test
 
 cache:
   yarn: true
