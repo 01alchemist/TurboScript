@@ -30,6 +30,7 @@ export enum NodeKind {
     CONTINUE,
     EMPTY,
     ENUM,
+    EXPRESSIONS,
     EXPRESSION,
     FUNCTION,
     IF,
@@ -39,6 +40,7 @@ export enum NodeKind {
     START,
     VARIABLES,
     WHILE,
+    FOR,
 
         // Expressions
     ALIGN_OF,
@@ -917,6 +919,31 @@ export class Node {
         return this.firstChild.nextSibling.intValue;
     }
 
+    forInitializationStatement(): Node {
+        assert(this.kind == NodeKind.FOR);
+        assert(this.childCount() == 4);
+        return this.firstChild;
+    }
+
+    forTerminationStatement(): Node {
+        assert(this.kind == NodeKind.FOR);
+        assert(this.childCount() == 4);
+        return this.firstChild.nextSibling.expressionValue();
+    }
+
+    forUpdateStatements(): Node {
+        assert(this.kind == NodeKind.FOR);
+        assert(this.childCount() == 4);
+        return this.firstChild.nextSibling.nextSibling;
+    }
+
+    forBody(): Node {
+        assert(this.kind == NodeKind.FOR);
+        assert(this.childCount() == 4);
+        assert(this.lastChild.kind == NodeKind.BLOCK);
+        return this.lastChild;
+    }
+
     whileValue(): Node {
         assert(this.kind == NodeKind.WHILE);
         assert(this.childCount() == 2);
@@ -1256,12 +1283,16 @@ export function createWhile(value: Node, body: Node): Node {
     return node;
 }
 
-export function createFor(value: Node, body: Node): Node {
-    assert(isExpression(value));
+export function createFor(initializationStmt: Node, terminationStmt: Node, updateStmt: Node, body: Node): Node {
+    // assert(isExpression(initializationStmt));
+    // assert(isExpression(terminationStmt));
+    // assert(isExpression(updateStmt));
     assert(body.kind == NodeKind.BLOCK);
     let node = new Node();
     node.kind = NodeKind.FOR;
-    node.appendChild(value);
+    node.appendChild(initializationStmt);
+    node.appendChild(terminationStmt);
+    node.appendChild(updateStmt);
     node.appendChild(body);
     return node;
 }

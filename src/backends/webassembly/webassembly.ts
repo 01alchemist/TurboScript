@@ -1008,6 +1008,45 @@ class WasmModuleEmitter {
             this.assembler.appendOpcode(byteOffset, WasmOpcode.END); // end outer block
         }
 
+        else if (node.kind == NodeKind.FOR) {
+            let initializationStmt = node.forInitializationStatement();
+            let terminationStmt = node.forTerminationStatement();
+            let updateStmt = node.forUpdateStatements();
+            let body = node.forBody();
+
+            this.assembler.appendOpcode(byteOffset, WasmOpcode.BLOCK);
+            //log(this.assembler.activePayload, WasmType.block_type);
+            this.assembler.append(byteOffset, WasmType.block_type);
+
+            this.emitNode(byteOffset, initializationStmt);
+
+            this.assembler.appendOpcode(byteOffset, WasmOpcode.LOOP);
+            //log(this.assembler.activePayload, 0, WasmType.block_type, WasmType[WasmType.block_type]);
+            this.assembler.append(byteOffset, WasmType.block_type);
+
+            if (terminationStmt.kind != NodeKind.BOOLEAN) {
+                this.emitNode(byteOffset, terminationStmt);
+                this.assembler.appendOpcode(byteOffset, WasmOpcode.I32_EQZ);
+                this.assembler.appendOpcode(byteOffset, WasmOpcode.BR_IF);
+                this.assembler.writeUnsignedLEB128(1); // Break out of the immediately enclosing loop
+            }
+
+            let child = body.firstChild;
+            while (child != null) {
+                this.emitNode(byteOffset, child);
+                child = child.nextSibling;
+            }
+
+            this.emitNode(byteOffset, updateStmt);
+
+            // Jump back to the top (this doesn't happen automatically)
+            this.assembler.appendOpcode(byteOffset, WasmOpcode.BR);
+            this.assembler.writeUnsignedLEB128(0); // Continue back to the immediately enclosing loop
+
+            this.assembler.appendOpcode(byteOffset, WasmOpcode.END); // end inner block
+            this.assembler.appendOpcode(byteOffset, WasmOpcode.END); // end outer block
+        }
+
         else if (node.kind == NodeKind.BREAK || node.kind == NodeKind.CONTINUE) {
             let label = 0;
             let parent = node.parent;
@@ -1026,6 +1065,14 @@ class WasmModuleEmitter {
 
         else if (node.kind == NodeKind.EMPTY) {
             return 0;
+        }
+
+        else if (node.kind == NodeKind.EXPRESSIONS) {
+            let child = node.firstChild;
+            while(child) {
+                this.emitNode(byteOffset, child.expressionValue());
+                child = child.nextSibling;
+            }
         }
 
         else if (node.kind == NodeKind.EXPRESSION) {
