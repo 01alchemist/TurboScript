@@ -1697,6 +1697,14 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         context.log.error(node.range, "Interfaces are not implemented yet");
     }
 
+    else if (kind == NodeKind.EXPRESSIONS) {
+        let child = node.firstChild;
+        while(child) {
+            resolveAsExpression(context, child.expressionValue(), parentScope);
+            child = child.nextSibling;
+        }
+    }
+
     else if (kind == NodeKind.EXPRESSION) {
         resolveAsExpression(context, node.expressionValue(), parentScope);
     }
@@ -1706,6 +1714,18 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         let body = node.whileBody();
         resolveAsExpression(context, value, parentScope);
         checkConversion(context, value, context.booleanType, ConversionKind.IMPLICIT);
+        resolve(context, body, parentScope);
+    }
+
+    else if (kind == NodeKind.FOR) {
+        let initializationStmt = node.forInitializationStatement();
+        let terminationStmt = node.forTerminationStatement();
+        let updateStmts = node.forUpdateStatements();
+        let body = node.forBody();
+        resolve(context, initializationStmt, parentScope);
+        resolveAsExpression(context, terminationStmt, parentScope);
+        resolve(context, updateStmts, parentScope);
+        checkConversion(context, terminationStmt, context.booleanType, ConversionKind.IMPLICIT);
         resolve(context, body, parentScope);
     }
 

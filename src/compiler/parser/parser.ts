@@ -20,6 +20,7 @@ import {
     createExpression,
     createExtends,
     createFloat,
+    createFor,
     createFunction,
     createHook,
     createIf,
@@ -99,6 +100,7 @@ enum ParseKind {
 enum StatementMode {
     NORMAL,
     FILE,
+    UNTERMINATED,
 }
 
 class ParserContext {
@@ -640,6 +642,44 @@ class ParserContext {
         }
 
         return createWhile(value, body).withRange(spanRanges(token.range, body.range));
+    }
+
+    parseFor(): Node {
+        let token = this.current;
+        assert(token.kind == TokenKind.FOR);
+        this.advance();
+
+        if (!this.expect(TokenKind.LEFT_PARENTHESIS)) {
+            return null;
+        }
+
+        let initializationStmt: Node = this.parseStatement(StatementMode.NORMAL);
+        let terminationStmt: Node = this.parseStatement(StatementMode.NORMAL);
+        let updateStmts: Node = new Node();
+        updateStmts.kind = NodeKind.EXPRESSIONS;
+        let updateStmt: Node = this.parseStatement(StatementMode.UNTERMINATED);
+
+        while (updateStmt !== null) {
+            updateStmts.appendChild(updateStmt);
+            if (!this.eat(TokenKind.COMMA)) {
+                updateStmt = null;
+                break;
+            }
+            updateStmt = this.parseStatement(StatementMode.UNTERMINATED);
+        }
+
+        if (!this.expect(TokenKind.RIGHT_PARENTHESIS)) {
+            this.unexpectedToken();
+            this.advance();
+            return createParseError();
+        }
+
+        let body = this.parseBody();
+        if (body == null) {
+            return null;
+        }
+
+        return createFor(initializationStmt, terminationStmt, updateStmts, body).withRange(spanRanges(token.range, body.range));
     }
 
     parseBody(): Node {
@@ -1428,7 +1468,7 @@ class ParserContext {
         return node.withRange(spanRanges(token.range, block.range)).withInternalRange(nameRange);
     }
 
-    parseVariables(firstFlag: NodeFlag, parent: Node): Node {
+    parseVariables(firstFlag: NodeFlag = null, parent: Node = null): Node {
         let token = this.current;
 
         // Variables inside class declarations don't use "var"
@@ -1613,6 +1653,7 @@ class ParserContext {
         if (this.peek(TokenKind.CONTINUE)) return this.parseLoopJump(NodeKind.CONTINUE);
         if (this.peek(TokenKind.IF)) return this.parseIf();
         if (this.peek(TokenKind.WHILE)) return this.parseWhile();
+        if (this.peek(TokenKind.FOR)) return this.parseFor();
         if (this.peek(TokenKind.DELETE)) return this.parseDelete();
         if (this.peek(TokenKind.RETURN)) return this.parseReturn();
         if (this.peek(TokenKind.SEMICOLON)) return this.parseEmpty();
@@ -1625,13 +1666,15 @@ class ParserContext {
         }
 
         let semicolon = this.current;
-        this.expect(TokenKind.SEMICOLON);
+        if (mode !== StatementMode.UNTERMINATED) {
+            this.expect(TokenKind.SEMICOLON);
+        }
         return createExpression(value).withRange(spanRanges(value.range, semicolon.range));
     }
 
-    parseStatements(parent: Node): boolean {
+    parseStatements(parent: Node, mode: StatementMode = StatementMode.NORMAL): boolean {
         while (!this.peek(TokenKind.END_OF_FILE) && !this.peek(TokenKind.RIGHT_BRACE)) {
-            let child = this.parseStatement(parent.kind == NodeKind.FILE ? StatementMode.FILE : StatementMode.NORMAL);
+            let child = this.parseStatement(parent.kind == NodeKind.FILE ? StatementMode.FILE : mode);
             if (child == null) {
                 return false;
             }

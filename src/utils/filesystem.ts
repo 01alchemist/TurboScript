@@ -41,14 +41,14 @@ export class FileSystem {
 
     static readTextFile(path, virtual = false) {
         if (virtual) {
-            let virtualFile = virtualFileSystem.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
-            return virtualFile === undefined ? null : virtualFile;
+            let virtualFile = virtualFileSystem.readFileSync(path, 'utf8');
+            return virtualFile === undefined ? null : virtualFile.replace(/\r\n/g, '\n');
         }
         try {
             return fs.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
         } catch (e) {
-            let virtualFile = virtualFileSystem.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
-            return virtualFile === undefined ? null : virtualFile;
+            let virtualFile = virtualFileSystem.readFileSync(path, 'utf8');
+            return virtualFile === undefined ? null : virtualFile.replace(/\r\n/g, '\n');
         }
     }
 
