@@ -1,0 +1,4 @@
+let a: Array<float32> = new Array<float32>(3);
+export function test(): int32 {
+    return 1;
+}
