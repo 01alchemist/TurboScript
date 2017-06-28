@@ -58,6 +58,9 @@
     "moduleFileExtensions": [
       "ts",
       "js"
+    ],
+    "modulePathIgnorePatterns": [
+      "bin"
     ]
   },
   "repository": {

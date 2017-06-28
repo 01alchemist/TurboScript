@@ -1,6 +1,4 @@
 import {CompileTarget} from "../compiler/compile-target";
-import {Terminal} from "../utils/terminal";
-import {Color} from "../utils/color";
 import {FileSystem} from "../utils/filesystem";
 // library files
 const math = require('./common/math.tbs');
@@ -9,6 +7,7 @@ const array = require('./common/array.tbs');
 const jstypes = require('./turbo/types.tbs');
 const runtime = require('raw-loader!./turbo/runtime.tjs');
 const wrapper = require('raw-loader!./turbo/wrapper.tjs');
+const wasmWrapper = require('raw-loader!./webassembly/wrapper.tjs');
 const malloc = require('./common/dlmalloc.tbs');
 const dlmallocBin = require('./common/malloc/build/malloc.wasm');
 const builtins = require('./webassembly/builtins.tbs');
@@ -17,6 +16,10 @@ const initializer = require('./webassembly/initializer.tbs');
 FileSystem.writeBinaryFile("/library/dlmalloc.wasm", dlmallocBin, true);
 
 export class Library {
+
+    static get binary(): Uint8Array {
+        return dlmallocBin;
+    }
 
     static get(target: CompileTarget) {
         let lib;
@@ -49,10 +52,12 @@ export class Library {
         }
     }
 
-    static getWrapper(target): string {
+    static getWrapper(target:CompileTarget): string {
         switch (target) {
             case CompileTarget.JAVASCRIPT:
                 return wrapper + "\n";
+            case CompileTarget.WEBASSEMBLY:
+                return wasmWrapper + "\n";
             default:
                 return "";
         }

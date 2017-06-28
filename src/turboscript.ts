@@ -6,6 +6,7 @@ import {Terminal} from "./utils/terminal";
 import {FileSystem} from "./utils/filesystem";
 import {CompilerOptions, defaultCompilerOptions} from "./compiler/compiler-options";
 import {Color} from "./utils/color";
+import {Library} from "./library/library";
 
 /**
  * TurboScript compiler main entry
@@ -52,6 +53,8 @@ export function main_entry(): int32 {
     let argument = firstArgument;
     let inputCount = 0;
     let output: string;
+    let outputName: string;
+    let outputPath: string;
     let bundle: boolean = false;
 
     // Print usage by default
@@ -102,6 +105,9 @@ export function main_entry(): int32 {
         Terminal.error("Missing an output file (use the --out flag)");
         return 1;
     }
+
+    outputPath = FileSystem.getBasePath(output);
+    outputName = FileSystem.getFileName(output);
 
     // Automatically set the target based on the file extension
     if (target == CompileTarget.NONE) {
@@ -155,11 +161,13 @@ export function main_entry(): int32 {
                     break;
                 case CompileTarget.WEBASSEMBLY:
                     if (compiler.outputWASM !== undefined) {
+                        FileSystem.writeBinaryFile(outputPath + "/library.wasm", Library.binary);
                         FileSystem.writeBinaryFile(output, compiler.outputWASM);
                         FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST);
                         FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log);
                         if (bundle) {
-
+                            let wrapper = Library.getWrapper(CompileTarget.WEBASSEMBLY).replace("__TURBO_WASM__", `"${outputName}"`);
+                            FileSystem.writeTextFile(replaceFileExtension(output, ".bootstrap.js"), wrapper);
                         }
                     } else {
                         Terminal.error("Compile error!");

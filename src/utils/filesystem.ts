@@ -95,4 +95,14 @@ export class FileSystem {
             return false;
         }
     }
+
+    static getBasePath(path: string): string {
+        let pathSeparator = path.indexOf("/") > -1 ? "/" : (path.indexOf("\\") > -1 ? "\\" : "/");
+        return path.substring(0, path.lastIndexOf(pathSeparator));
+    }
+
+    static getFileName(path: string): string {
+        let pathSeparator = path.indexOf("/") > -1 ? "/" : (path.indexOf("\\") > -1 ? "\\" : "/");
+        return path.substring(path.lastIndexOf(pathSeparator) + 1, path.length);
+    }
 }

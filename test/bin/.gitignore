@@ -2,3 +2,4 @@
 *.wast
 *.log
 *.asm.js
+*.js

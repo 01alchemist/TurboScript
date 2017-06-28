@@ -15,10 +15,9 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
     if (isNode) {
         source.name = path.resolve(source.name);
     }
+    let basePath = FileSystem.getBasePath(source.name);
     let contents = source.contents;
     let limit = contents.length;
-    let pathSeparator = source.name.indexOf("/") > -1 ? "/" : (source.name.indexOf("\\") > -1 ? "\\" : "/");
-    let basePath: string = source.name.substring(0, source.name.lastIndexOf(pathSeparator));
     let wantNewline = false;
     let captureImports = false;
     let captureImportFrom = false;
@@ -150,9 +149,9 @@ export function preparse(source: Source, compiler: Compiler, log: Log): boolean 
                     if (next == c) {
                         let from = contents.slice(start + 1, i - 1);
                         //FIXME: If the import already resolved don't add it again.
-                        let importContent = resolveImport(imports, from, basePath + pathSeparator + from);
+                        let importContent = resolveImport(imports, from, basePath + "/" + from);
                         if (importContent) {
-                            if(source.isLibrary) {
+                            if (source.isLibrary) {
                                 source.contents += importContent;
                             } else {
                                 compiler.addInputBefore(from, importContent, source);

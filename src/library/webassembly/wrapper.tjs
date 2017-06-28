@@ -1,18 +1,39 @@
 /**
  * Created by 01 on 2017-06-26.
  */
-var malloc = new Uint8Array([]);
-var data = new Uint8Array([
-    /*WASM-DATA*/
-]);
-var turboModule;
-var turboInstance;
-if (typeof WebAssembly === "undefined") {
-    console.log("Sorry, Your environment doesn't support WebAssembly!");
-} else {
-    WebAssembly.instantiate(data, {}).then(result => {
+turbo = typeof turbo === "undefined" ? {} : turbo;
+(function (turbo) {
+    "use strict";
+    if (typeof WebAssembly === "undefined") {
+        console.error("Sorry, Your environment doesn't support WebAssembly!");
+        return;
+    }
+    function fetchBinary(file) {
         "use strict";
-        turboModule = result.module;
-        turboInstance = result.instance;
-    });
-}
+        return fetch(file).then(data => data.arrayBuffer());
+    }
+
+    if (turbo.mallocModule === undefined) {
+        fetchBinary("library.wasm").then(malloc => {
+            turbo.mallocModule = new WebAssembly.Module(malloc);
+            initialize();
+        });
+    } else {
+        initialize();
+    }
+
+    function initialize() {
+        fetchBinary(__TURBO_WASM__).then(data => {
+            WebAssembly.instantiate(turbo.mallocModule).then(result => {
+                let mallocInstance = result;
+                let turboModule;
+                let turboInstance;
+                WebAssembly.instantiate(data, {Math: Math, internal: mallocInstance.exports}).then(result => {
+                    "use strict";
+                    turboModule = result.module;
+                    turboInstance = result.instance;
+                });
+            });
+        });
+    }
+})(turbo);
