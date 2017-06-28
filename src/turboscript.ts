@@ -38,7 +38,7 @@ Usage: tc [FLAGS] [INPUTS]
 
   --help           Print this message.
   --out [PATH]     Emit code to PATH (the target format is the file extension).
-    --wasm         Explicit webassembly output 
+    --wasm         Explicit webassembly output
   --define [NAME]  Define the flag NAME in all input files.
 
 Examples:
@@ -202,6 +202,8 @@ export interface CompileResult {
     wasm?: Uint8Array;
     wast?: string;
     log?: Log;
+    optimize?: boolean;
+    longPtr?: boolean;
 }
 
 export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions): CompileResult {
@@ -210,7 +212,7 @@ export function compileString(source: string, options: CompilerOptions = default
     let output = "/virtual/inline.wasm";
     FileSystem.writeTextFile(input, source, true);
     let compiler = new Compiler();
-    compiler.initialize(options.target, output);
+    compiler.initialize(options.target, output, options);
     compiler.addInput(input, source);
     compiler.finish();
     Terminal.silent = false;
