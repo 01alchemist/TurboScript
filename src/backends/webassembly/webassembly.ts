@@ -198,6 +198,21 @@ class WasmModuleEmitter {
 
         this.assembler.writeUnsignedLEB128(globals.length);
         this.assembler.stackTracer.setGlobals(globals);
+
+        // Initialize mspace before initializing globals
+        if (Compiler.mallocRequired) {
+            // write mspace_init
+            let mspace_init_index = getMergedCallIndex("mspace_init");
+            this.assembler.startFunctionChunk(this.startFunction, this.startFunctionIndex);
+            this.assembler.appendOpcode(0, WasmOpcode.I32_CONST);
+            this.assembler.writeUnsignedLEB128(40);
+            this.assembler.appendOpcode(0, WasmOpcode.CALL);
+            this.assembler.writeUnsignedLEB128(mspace_init_index);
+            this.assembler.appendOpcode(0, WasmOpcode.SET_GLOBAL);
+            this.assembler.writeUnsignedLEB128(this.HEAP_BASE_INDEX);
+            this.assembler.endFunctionChunk();
+        }
+
         globals.forEach((global, index) => {
             let wasmType: WasmType = symbolToWasmType(global.symbol, this.bitness);
             let value = global.symbol.node.variableValue();
@@ -327,19 +342,6 @@ class WasmModuleEmitter {
             let wasmFunctionName = getWasmFunctionName(fn.symbol);
 
             if (!fn.isExternal) {
-
-                if (fn.name === "__WASM_INITIALIZER" && Compiler.mallocRequired) {
-                    // write mspace_init
-                    let mspace_init_index = getMergedCallIndex("mspace_init");
-                    this.assembler.startFunctionChunk(this.startFunction, this.startFunctionIndex);
-                    this.assembler.appendOpcode(0, WasmOpcode.I32_CONST);
-                    this.assembler.writeUnsignedLEB128(40);
-                    this.assembler.appendOpcode(0, WasmOpcode.CALL);
-                    this.assembler.writeUnsignedLEB128(mspace_init_index);
-                    this.assembler.appendOpcode(0, WasmOpcode.SET_GLOBAL);
-                    this.assembler.writeUnsignedLEB128(this.HEAP_BASE_INDEX);
-                }
-
                 let bodyData = new ByteArray();
                 fn.body = bodyData;
                 log(bodyData, sectionOffset, fn.locals.length, "local var count");
@@ -834,7 +836,7 @@ class WasmModuleEmitter {
      */
     emitInstance(byteOffset: int32, node: Node): void {
         let constructorNode = node.constructorNode();
-        if(constructorNode !== undefined) {
+        if (constructorNode !== undefined) {
             let callSymbol = constructorNode.symbol;
 
             let type = node.newType();

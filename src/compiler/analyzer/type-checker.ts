@@ -739,6 +739,7 @@ function deriveConcreteClass(context: CheckContext, type: Node, parameters: any[
     resolve(context, node, scope.parent);
 
     node.symbol.flags |= SYMBOL_FLAG_USED;
+    node.constructorFunctionNode.symbol.flags |= SYMBOL_FLAG_USED;
     type.symbol = node.symbol;
     node.symbol.rename = rename;
 
