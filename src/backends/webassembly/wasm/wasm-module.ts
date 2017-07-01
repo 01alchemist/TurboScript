@@ -157,7 +157,7 @@ export class WasmModule {
         if (duplicate === undefined) {
             this.exports.push(new WasmExport(name, kind, index, as));
         } else {
-            Terminal.error("Error! Duplicate export " + name + " as " + as);
+            Terminal.warn("Error! Duplicate export " + name + " as " + as);
         }
     }
 

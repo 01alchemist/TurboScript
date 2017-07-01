@@ -187,9 +187,9 @@ export class WasmAssembler {
     }
 
     mergeBinaries(binaries: WasmBinary[]) {
-        // this.module.binary.copySections(binary);
-        console.log("Merging binries");
+        Terminal.time("Merging binaries");
         WasmMerger.merge(binaries, this.module.binary);
+        Terminal.timeEnd("Merging binaries");
     }
 
     finish() {
