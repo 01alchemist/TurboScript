@@ -14,7 +14,7 @@ import {StartSection} from "./sections/start-section";
 import {ElementSection} from "./sections/element-section";
 import {CodeSection} from "./sections/code-section";
 import {DataSection} from "./sections/data-section";
-import {CustomSection} from "./sections/name-section";
+import {NameSection} from "./sections/name-section";
 /**
  * Created by n.vinayakan on 17.06.17.
  */
@@ -69,7 +69,7 @@ export class WasmBinary {
             }
             this.readNextSection();
         } else {
-            Terminal.log(`${this.sections.length} Sections parsed!`);
+            // Terminal.log(`${this.sections.length} Sections parsed!`);
         }
     }
 
@@ -97,8 +97,8 @@ export class WasmBinary {
         } else {
             let section = createSection(id, name);
             this.appendSection(section);
-            let warn = `Section ${WasmSection[id]} created! Reason: Requested section not found in the imported wasm module`;
-            Terminal.warn(warn);
+            // let warn = `Section ${WasmSection[id]} created! Reason: Requested section not found in the imported wasm module`;
+            // Terminal.warn(warn);
             return section;
         }
     }
@@ -179,8 +179,10 @@ export class WasmBinary {
                     break;
                 }
                 case WasmSection.Custom: {
-                    let section: CustomSection = this.getSection(importedSection.id) as CustomSection;
-                    section.names = section.names.concat((importedSection as CustomSection).names);
+                    if (importedSection.name === "name") {
+                        let section: NameSection = this.getSection(importedSection.id) as NameSection;
+                        // TODO
+                    }
                     break;
                 }
             }

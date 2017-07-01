@@ -2,7 +2,7 @@ import {Type} from "./type";
 import {isType, Symbol, SYMBOL_FLAG_IS_TEMPLATE, SymbolKind} from "./symbol";
 import {SourceRange} from "../../utils/log";
 import {Scope} from "./scope";
-import {CheckContext} from "../analyzer/type-checker";
+import {addScopeToSymbol, CheckContext, linkSymbolToNode} from "../analyzer/type-checker";
 import {assert} from "../../utils/assert";
 
 /**
@@ -541,6 +541,38 @@ export class Node {
             }
         }
         return false;
+    }
+
+    createEmptyConstructor(): Node {
+        let node = createFunction("constructor");
+        node.appendChild(createName(this.symbol.name));
+        let body = createBlock();
+        node.appendChild(body);
+        let variablesNode = createVariables();
+        variablesNode.appendChild(createVariable("this", createType(this.resolvedType), null));
+        body.appendChild(variablesNode);
+        let returnNode: Node = createReturn(createName("this"));
+        body.appendChild(returnNode);
+
+        // let symbol = new Symbol();
+        // symbol.kind = SymbolKind.FUNCTION_INSTANCE;
+        // symbol.name = node.stringValue;
+        // symbol.rename = "_ctr";
+        // addScopeToSymbol(symbol, this.scope);
+        // linkSymbolToNode(symbol, node);
+
+        return node;
+    }
+
+    firstInstanceFunction(): Node {
+        let child = this.firstChild;
+        while (child !== undefined) {
+            if (child.kind == NodeKind.FUNCTION) {
+                return child;
+            }
+            child = child.nextSibling;
+        }
+        return null;
     }
 
     appendChild(child: Node): void {

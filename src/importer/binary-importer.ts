@@ -67,3 +67,15 @@ export function isBinaryImport(name: string): boolean {
     });
     return found;
 }
+
+export function getMergedCallIndex(name: string): int32 {
+    let __import: WasmBinaryImport;
+    BinaryImporter.imports.some(_import => {
+        if(_import.name === name){
+            __import = _import;
+            return true;
+        }
+        return false;
+    });
+    return __import.functionIndex;
+}

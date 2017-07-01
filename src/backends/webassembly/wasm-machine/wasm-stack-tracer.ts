@@ -10,7 +10,7 @@ import {WasmGlobal} from "../core/wasm-global";
  */
 
 export class WasmStackItem {
-    constructor(public type: WasmType, public value: number) {}
+    constructor(public type: WasmType, public value: number) { }
 }
 
 export class WasmStack {
@@ -160,7 +160,7 @@ export class WasmStackTracer {
                 if (value !== undefined) {
                     this.callFunction(value);
                     let fn = this.functions[value];
-                    return `call $${fn.name}`;
+                    return `call ${fn.name ? "$" + fn.name : value}`;
                 }
                 break;
 
@@ -193,7 +193,9 @@ export class WasmStackTracer {
                     } else {
                         let a = this.context.stack.pop();
                         let local = this.context.fn.locals[value];
-                        this.context.fn.locals[value].value = a.value;
+                        if (a !== undefined) {
+                            this.context.fn.locals[value].value = a.value;
+                        }
                         return `${WasmOpcode[opcode]} $${local.name}`;
                     }
                 }

@@ -48,7 +48,12 @@ export class FileSystem {
             return fs.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
         } catch (e) {
             let virtualFile = virtualFileSystem.readFileSync(path, 'utf8');
-            return virtualFile === undefined ? null : virtualFile.replace(/\r\n/g, '\n');
+            if(virtualFile === undefined){
+                Terminal.warn(`Requested file ${path} not found`);
+                return null;
+            } else {
+                return virtualFile.replace(/\r\n/g, '\n');
+            }
         }
     }
 
@@ -75,9 +80,13 @@ export class FileSystem {
         try {
             return fs.readFileSync(path);
         } catch (e) {
-            Terminal.warn(`Requested file ${path} not found, searching in virtual file system`);
             let virtualFile = virtualFileSystem.readFileSync(path);
-            return virtualFile === undefined ? null : virtualFile;
+            if(virtualFile === undefined){
+                Terminal.warn(`Requested file ${path} not found`);
+                return null;
+            } else {
+                return virtualFile;
+            }
         }
     }
 

@@ -14,6 +14,7 @@ import {WasmSectionBinary} from "../wasm/wasm-binary-section";
 import {StringBuilder} from "../../../utils/stringbuilder";
 import {WasmFunctionChunk} from "../core/wasm-function-chunk";
 import {WasmBinary} from "../wasm/wasm-binary";
+import {WasmMerger} from "../wasm/wasm-merger";
 /**
  * Created by n.vinayakan on 02.06.17.
  */
@@ -185,8 +186,10 @@ export class WasmAssembler {
         this.activePayload.writeWasmString(value);
     }
 
-    mergeBinary(binary: WasmBinary) {
-        this.module.binary.copySections(binary);
+    mergeBinaries(binaries: WasmBinary[]) {
+        // this.module.binary.copySections(binary);
+        console.log("Merging binries");
+        WasmMerger.merge(binaries, this.module.binary);
     }
 
     finish() {

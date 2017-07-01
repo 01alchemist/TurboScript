@@ -1,0 +1,54 @@
+export class Data {
+
+    id: int32;
+
+    v1: float32;
+    v2: float32;
+    v3: float32;
+
+    constructor(id: int32) {
+        this.id = id;
+    }
+    set(v1:float32, v2:float32, v3:float32):void{
+        this.v1 = v1;
+        this.v2 = v2;
+        this.v3 = v3;
+    }
+}
+
+var a: Array<Data> = null;
+
+export function test(num:int32): Array<Data> {
+    a = new Array<Data>(num);
+    let i:int32 = 0;
+    while (i < num) {
+        let d = new Data(i);
+        // d.set(0.5, 0.5, 0.5);
+        a[i] = d;
+        i = i + 1;
+    }
+    return a;
+}
+
+export function getArrayByteLength(value:Array<Data>):int32 {
+    return value.bytesLength;
+}
+export function getArrayElementSize(value:Array<Data>):int32 {
+    return value.elementSize;
+}
+
+export function getArray(): Array<Data> {
+    return a;
+}
+export function getData(index:int32):Data {
+    return a[index];
+}
+
+// @JS
+// anyfunc function data_to_json(data:data) {
+//     return {
+//         v1:data.v1,
+//         v2:data.v2,
+//         v3:data.v3
+//     };
+// }

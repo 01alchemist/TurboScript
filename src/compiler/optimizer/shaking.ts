@@ -1,6 +1,8 @@
 import {isFunction, SYMBOL_FLAG_USED} from "../core/symbol";
 import {Node, NodeKind} from "../core/node";
 import {Compiler} from "../compiler";
+import { getWasmFunctionName } from "../../backends/webassembly/utils/index";
+import { isBinaryImport } from "../../importer/binary-importer";
 
 export function treeShakingMarkAllUsed(node: Node): void {
     var symbol = node.symbol;
@@ -14,7 +16,9 @@ export function treeShakingMarkAllUsed(node: Node): void {
         var type = node.newType().resolvedType;
         if (type.symbol != null) {
             type.symbol.flags |= SYMBOL_FLAG_USED;
-            type.symbol.node.constructorFunctionNode.symbol.flags = SYMBOL_FLAG_USED;
+            if(type.symbol.node.constructorFunctionNode !== undefined) {
+                type.symbol.node.constructorFunctionNode.symbol.flags = SYMBOL_FLAG_USED;
+            }
         }
     }
 
@@ -27,7 +31,7 @@ export function treeShakingMarkAllUsed(node: Node): void {
 
 export function treeShakingSearchForUsed(node: Node): void {
     if (node.kind == NodeKind.FUNCTION && (node.isExport() || node.isStart())) {
-        if ((node.symbol.name === "malloc" || node.symbol.name === "free") && !Compiler.mallocRequired) {
+        if ((isBinaryImport(getWasmFunctionName(node.symbol)) || node.symbol.name === "malloc" || node.symbol.name === "free") && !Compiler.mallocRequired) {
             return;
         }
 
