@@ -9,7 +9,3 @@ function __WASM_INITIALIZER(): void {
     // Global variable initialization expressions will be appended to this function
     HEAP_TOP = HEAP_BASE;
 }
-
-export function getHeapBase():int32 {
-    return HEAP_BASE;
-}
