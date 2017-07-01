@@ -1,0 +1,23 @@
+class Foo {
+    i32: int32;
+    f32: int32;
+    f64: int32;
+}
+
+export function create(): Foo {
+    return new Foo();
+}
+
+export function createAndSetGet(): int32 {
+    let foo = new Foo();
+    foo.i32 = 10;
+    return foo.i32;
+}
+
+export function setValue(foo: Foo, value: int32): void {
+    foo.i32 = value;
+}
+
+export function getValue(foo: Foo): int32 {
+    return foo.i32;
+}

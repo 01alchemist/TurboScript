@@ -1,5 +1,5 @@
-import {assert} from "./assert";
-import {isSigned, sizeOfNumber} from "./utils";
+import { assert } from "./assert";
+import { isSigned, sizeOfNumber } from "./utils";
 export function ByteArray_set16(array: ByteArray, index: number, value: number): void {
     array.set(index, value);
     array.set(index + 1, (value >> 8));
@@ -95,10 +95,9 @@ export class ByteArray {
         } else {
             this.write_position = byteLength > 0 ? byteLength : buffer.byteLength;
         }
-        if (buffer) {
-            this.data = new DataView(buffer, byteOffset, byteLength > 0 ? byteLength : buffer.byteLength);
-            this._array = new Uint8Array(this.data.buffer, this.data.byteOffset, this.data.byteLength);
-        }
+
+        this.data = new DataView(buffer, byteOffset, byteLength > 0 ? byteLength : buffer.byteLength);
+        this._array = new Uint8Array(this.data.buffer, this.data.byteOffset, this.data.byteLength);
         this._position = 0;
         this.endian = ByteArray.LITTLE_ENDIAN;
     }
@@ -382,7 +381,7 @@ export class ByteArray {
     /**
      * Read WASM String
      */
-    readWasmString():string {
+    readWasmString(): string {
         let length = this.readUnsignedLEB128(4);
         return this.readUTFBytes(length);
     }

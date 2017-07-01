@@ -21,10 +21,12 @@
     "debug": "^2.6.3",
     "fs": "^0.0.1-security",
     "fs-extra": "^2.1.2",
+    "has-flag": "^2.0.0",
     "jest": "^20.0.4",
+    "jest-cli": "^20.0.4",
     "raw-loader": "^0.5.1",
     "request": "^2.81.0",
-    "ts-jest": "^19.0.9",
+    "ts-jest": "^19.0.14",
     "ts-lint": "^4.5.1",
     "ts-loader": "^2.1.0",
     "ts-node": "^3.0.2",
@@ -32,8 +34,7 @@
     "uglify-js": "git://github.com/mishoo/UglifyJS2#harmony-v2.8.22",
     "uglifyjs-webpack-plugin": "^0.4.3",
     "webassembly": "^0.11.0",
-    "webpack": "^2.6.1",
-    "has-flag": "^2.0.0"
+    "webpack": "^2.6.1"
   },
   "bin": {
     "tc": "./bin/tc"

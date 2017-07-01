@@ -259,11 +259,17 @@ export function initialize(context: CheckContext, node: Node, parentScope: Scope
                 let body = node.functionBody();
                 if (body !== null) {
                     let variablesNode = body.firstChild;
-                    if (variablesNode.kind !== NodeKind.VARIABLES) {
+                    if (variablesNode === undefined) {
+                        let _variablesNode = createVariables();
+                        body.appendChild(_variablesNode);
+                        variablesNode = _variablesNode;
+                    }
+                    else if (variablesNode.kind !== NodeKind.VARIABLES) {
                         let _variablesNode = createVariables();
                         body.insertChildBefore(variablesNode, _variablesNode);
                         variablesNode = _variablesNode;
                     }
+
                     let firstVariable = variablesNode.firstChild;
                     if (firstVariable !== undefined) {
                         if (firstVariable.stringValue !== "this") {
@@ -1183,6 +1189,18 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         initializeSymbol(context, node.symbol);
         context.enclosingClass = node.symbol;
         resolveChildren(context, node, node.scope);
+        if (!node.isDeclare() && node.constructorFunctionNode === undefined) {
+            node.constructorFunctionNode = node.createEmptyConstructor();
+            node.appendChild(node.constructorFunctionNode);
+            initialize(context, node.constructorFunctionNode, node.scope, CheckMode.NORMAL);
+            // let firstFunction = node.firstInstanceFunction();
+            // if(firstFunction === undefined){
+            //     node.insertChildBefore(firstFunction, node.constructorFunctionNode);
+            // } else {
+            //     node.insertChildBefore(firstFunction, node.constructorFunctionNode);
+            // }
+            resolve(context, node.constructorFunctionNode, node.scope);
+        }
         if (node.symbol.kind == SymbolKind.TYPE_CLASS) {
             node.symbol.determineClassLayout(context);
         }
@@ -1580,6 +1598,10 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     value = name;
                 }
 
+                if (symbol.name === "malloc") {
+                    Compiler.mallocRequired = true;
+                }
+
                 let returnType = symbol.node.functionReturnType();
                 let argumentVariable = symbol.node.functionFirstArgumentIgnoringThis();
                 let argumentValue = value.nextSibling;
@@ -1699,7 +1721,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
 
     else if (kind == NodeKind.EXPRESSIONS) {
         let child = node.firstChild;
-        while(child) {
+        while (child) {
             resolveAsExpression(context, child.expressionValue(), parentScope);
             child = child.nextSibling;
         }
@@ -1851,12 +1873,14 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
         //Constructors argumentVariables
         let child = type.nextSibling;
         let constructorNode = node.constructorNode();
-        let argumentVariable = constructorNode.functionFirstArgument();
-        while (child != null) {
-            resolveAsExpression(context, child, parentScope);
-            checkConversion(context, child, argumentVariable.symbol.resolvedType, ConversionKind.IMPLICIT);
-            child = child.nextSibling;
-            argumentVariable = argumentVariable.nextSibling;
+        if (constructorNode !== undefined) {
+            let argumentVariable = constructorNode.functionFirstArgument();
+            while (child != null) {
+                resolveAsExpression(context, child, parentScope);
+                checkConversion(context, child, argumentVariable.symbol.resolvedType, ConversionKind.IMPLICIT);
+                child = child.nextSibling;
+                argumentVariable = argumentVariable.nextSibling;
+            }
         }
 
         // Match argument values with variables
@@ -1892,6 +1916,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
     else if (kind == NodeKind.POINTER_INDEX) {
         debugger
     }
+
     else if (kind == NodeKind.DEREFERENCE) {
         let value = node.unaryValue();
         resolveAsExpression(context, value, parentScope);

@@ -12,7 +12,7 @@ import {StartSection} from "./sections/start-section";
 import {ElementSection} from "./sections/element-section";
 import {CodeSection} from "./sections/code-section";
 import {DataSection} from "./sections/data-section";
-import {CustomSection} from "./sections/name-section";
+import {NameSection} from "./sections/name-section";
 import {Terminal} from "../../../utils/terminal";
 import {WasmFunction} from "../core/wasm-function";
 import {WasmSignature} from "../core/wasm-signature";
@@ -67,7 +67,9 @@ export function createSection(id: WasmSection, name?: string): WasmSectionBinary
             break;
         case WasmSection.Custom:
             if (name !== undefined) {
-                sectionBinary = new CustomSection(name, new ByteArray());
+                if (name === "name") {
+                    sectionBinary = new NameSection(name, new ByteArray());
+                }
             } else {
                 let error = "Cannot create custom section without name";
                 Terminal.error(error);
@@ -132,10 +134,12 @@ export function parseSection(data: ByteArray): WasmSectionBinary {
         case WasmSection.Data:
             sectionBinary = new DataSection(payload);
             break;
-        // case WasmSection.Custom:
-        //     sectionBinary = new CustomSection(name, payload);
-        //     sectionBinary.name_len = name_len;
-        //     break;
+        case WasmSection.Custom:
+            if (name === "name") {
+                sectionBinary = new NameSection(name, payload);
+                sectionBinary.name_len = name_len;
+            }
+            break;
     }
     if (sectionBinary !== undefined) {
         sectionBinary.read();

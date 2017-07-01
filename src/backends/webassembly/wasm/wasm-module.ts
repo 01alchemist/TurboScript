@@ -1,63 +1,59 @@
-import {WasmBinary} from "./wasm-binary";
-import {WasmFunction} from "../core/wasm-function";
-import {WasmImport} from "../core/wasm-import";
-import {wasmAreSignaturesEqual, WasmSignature} from "../core/wasm-signature";
-import {WasmGlobal} from "../core/wasm-global";
-import {ByteArray} from "../../../utils/bytearray";
-import {Bitness} from "../../bitness";
-import {Symbol} from "../../../compiler/core/symbol";
-import {symbolToWasmType} from "../utils/index";
-import {WasmType} from "../core/wasm-type";
-import {assert} from "../../../utils/assert";
-import {WasmSection} from "../core/wasm-section";
-import {ImportSection} from "./sections/import-section";
-import {WasmExport} from "../core/wasm-export";
-import {ExportSection} from "./sections/export-section";
-import {GlobalSection} from "./sections/global-section";
-import {SignatureSection} from "./sections/signature-section";
-import {FunctionSection} from "./sections/function-section";
-import {WasmExternalKind} from "../core/wasm-external-kind";
-import {Library} from "../../../library/library";
+import { WasmBinary } from "./wasm-binary";
+import { WasmFunction } from "../core/wasm-function";
+import { WasmImport } from "../core/wasm-import";
+import { wasmAreSignaturesEqual, WasmSignature } from "../core/wasm-signature";
+import { WasmGlobal } from "../core/wasm-global";
+import { ByteArray } from "../../../utils/bytearray";
+import { Bitness } from "../../bitness";
+import { Symbol } from "../../../compiler/core/symbol";
+import { symbolToWasmType } from "../utils/index";
+import { WasmType } from "../core/wasm-type";
+import { assert } from "../../../utils/assert";
+import { WasmSection } from "../core/wasm-section";
+import { ImportSection } from "./sections/import-section";
+import { WasmExport } from "../core/wasm-export";
+import { ExportSection } from "./sections/export-section";
+import { GlobalSection } from "./sections/global-section";
+import { SignatureSection } from "./sections/signature-section";
+import { FunctionSection } from "./sections/function-section";
+import { WasmExternalKind } from "../core/wasm-external-kind";
+import { Library } from "../../../library/library";
+import { Terminal } from "../../../utils/terminal";
 
 /**
  * Created by 01 on 2017-06-19.
  */
 export class WasmModule {
-    private importSection:ImportSection;
-    get imports(): WasmImport[] { // Reference to section imports.
-        return this.importSection.imports;
+    get imports(): WasmImport[] {
+        return (this.binary.getSection(WasmSection.Import) as ImportSection).imports;
     }
     get importCount(): int32 {
         return this.imports.length;
     }
 
-    private exportSection:ExportSection;
     get exports(): WasmExport[] { // Reference to section imports.
-        return this.exportSection.exports;
+        return (this.binary.getSection(WasmSection.Export) as ExportSection).exports;
     }
     get exportCount(): int32 {
         return this.exports.length;
     }
 
-    private  globalSection:GlobalSection;
-    get globals(): WasmGlobal[] { // Reference to section globals.
-        return this.globalSection.globals;
+    get globals(): WasmGlobal[] {
+        return (this.binary.getSection(WasmSection.Global) as GlobalSection).globals;
     }
     get globalCount(): int32 {
         return this.globals.length;
     }
 
-    private signatureSection:SignatureSection;
     get signatures(): WasmSignature[] { // Reference to section signatures.
-        return this.signatureSection.signatures;
+        return (this.binary.getSection(WasmSection.Signature) as SignatureSection).signatures;
     }
     get signatureCount(): int32 {
         return this.signatures.length;
     }
 
-    private functionSection:FunctionSection;
-    get functions(): WasmFunction[] { // Reference to section functions.
-        return this.functionSection.functions;
+    get functions(): WasmFunction[] {
+        return (this.binary.getSection(WasmSection.Function) as FunctionSection).functions;
     }
     get functionCount(): int32 {
         return this.functions.length;
@@ -72,17 +68,17 @@ export class WasmModule {
         } else {
             this.binary = new WasmBinary();
             this.binary.initializeSections();
-            this.getReferences();
+            // this.getReferences();
         }
     }
 
-    private getReferences(): void {
-        this.importSection = (this.binary.getSection(WasmSection.Import) as ImportSection);
-        this.exportSection = (this.binary.getSection(WasmSection.Export) as ExportSection);
-        this.globalSection = (this.binary.getSection(WasmSection.Global) as GlobalSection);
-        this.signatureSection = (this.binary.getSection(WasmSection.Signature) as SignatureSection);
-        this.functionSection = (this.binary.getSection(WasmSection.Function) as FunctionSection);
-    }
+    // private getReferences(): void {
+    // this.importSection = (this.binary.getSection(WasmSection.Import) as ImportSection);
+    // this.exportSection = (this.binary.getSection(WasmSection.Export) as ExportSection);
+    // this.globalSection = (this.binary.getSection(WasmSection.Global) as GlobalSection);
+    // this.signatureSection = (this.binary.getSection(WasmSection.Signature) as SignatureSection);
+    // this.functionSection = (this.binary.getSection(WasmSection.Function) as FunctionSection);
+    // }
 
     reset(): void {
         this.binary.reset();
@@ -96,7 +92,7 @@ export class WasmModule {
             this.binary = new WasmBinary(binary);
         }
 
-        this.getReferences();
+        // this.getReferences();
     }
 
     publish(): void {
@@ -154,6 +150,15 @@ export class WasmModule {
             signature
         );
         return [_import, this.imports.push(_import) - 1];
+    }
+
+    allocateExport(name: string, kind: WasmExternalKind, index: int32, as: string = name): void {
+        let duplicate = this.exports.find(_export => _export.name === as);
+        if (duplicate === undefined) {
+            this.exports.push(new WasmExport(name, kind, index, as));
+        } else {
+            Terminal.error("Error! Duplicate export " + name + " as " + as);
+        }
     }
 
     allocateFunction(name: string, signature: WasmSignature, signatureIndex: int32, symbol: Symbol, isExported: boolean = false): WasmFunction {

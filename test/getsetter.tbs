@@ -1,0 +1,34 @@
+class Foo {
+    internalValue: int32;
+
+    constructor() {
+        this.internalValue = 1;
+    }
+
+    get value(): int32 {
+        return this.internalValue;
+    }
+
+    set value(value: int32): void {
+        this.internalValue = value;
+    }
+
+}
+
+export function create(): Foo {
+    return new Foo();
+}
+
+export function createAndSetGet(): int32 {
+    let foo = new Foo();
+    foo.value = 10;
+    return foo.value;
+}
+
+export function setValue(foo: Foo, value: int32): void {
+    foo.value = value;
+}
+
+export function getValue(foo: Foo): int32 {
+    return foo.value;
+}

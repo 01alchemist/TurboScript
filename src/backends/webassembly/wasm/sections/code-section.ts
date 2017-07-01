@@ -1,7 +1,8 @@
-import {WasmSectionBinary} from "../wasm-binary-section";
-import {WasmSection} from "../../core/wasm-section";
-import {ByteArray} from "../../../../utils/bytearray";
-import {WasmFunction} from "../../core/wasm-function";
+import { WasmSectionBinary } from "../wasm-binary-section";
+import { WasmSection } from "../../core/wasm-section";
+import { ByteArray } from "../../../../utils/bytearray";
+import { WasmFunction } from "../../core/wasm-function";
+import { WasmOpcode } from "../../opcode"
 /**
  * Created by 01 on 2017-06-17.
  */
@@ -23,7 +24,6 @@ export class CodeSection extends WasmSectionBinary {
             this.functions = [];
         }
         let length = this.payload.readU32LEB();
-
         for (let i = 0; i < length; i++) {
             let _function = this.functions[i];
             if (_function === undefined) {
@@ -54,7 +54,18 @@ export class CodeSection extends WasmSectionBinary {
             //     }
             // }
             //skip content
-            _function.body = this.payload.readBytes(null, this.payload.position, bodyLength);
+            // _function.body = this.payload.readBytes(null, this.payload.position, bodyLength);
+            // let bodyArray = this.payload.array.subarray(this.payload.position, this.payload.position + bodyLength + 1);
+            let bodyArray = this.payload.readBytes(null, 0, bodyLength, true).array;
+            let lastOpcode = bodyArray[bodyArray.length - 1];
+            // console.log(`lastOpcode ${lastOpcode} => ${WasmOpcode[lastOpcode]}`);
+
+            // this.payload.position += bodyLength;
+            // console.log(bodyArray);
+
+            _function.body = new ByteArray(bodyArray.buffer, bodyArray.byteOffset, bodyArray.byteLength);
+            // console.log("Body parsed length:" + bodyLength);
+            // console.log(_function.body.array);
         }
     }
 
