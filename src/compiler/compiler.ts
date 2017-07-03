@@ -15,6 +15,7 @@ import {CompileTarget} from "./compile-target";
 import {assert} from "../utils/assert";
 import {Terminal} from "../utils/terminal";
 import {WasmBinary} from "../backends/webassembly/wasm/wasm-binary";
+import {BinaryImporter} from "../importer/binary-importer";
 /**
  * Author: Nidin Vinayakan
  */
@@ -39,13 +40,12 @@ export class Compiler {
 
     static mallocRequired: boolean = false;
     static debug:boolean = false;
-    static binaryImports: WasmBinary[];
 
     initialize(target: CompileTarget, outputName: string): void {
         assert(this.log == null);
         this.log = new Log();
         this.preprocessor = new Preprocessor();
-        Compiler.binaryImports = [];
+        BinaryImporter.reset();
         this.target = target;
         this.outputName = outputName;
         this.librarySource = this.addInput("<native>", Library.get(target));
