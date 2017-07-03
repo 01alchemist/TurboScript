@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Browser load test</title>
+</head>
+<body>
+<script>
+    let head = document.getElementsByTagName("head")[0];
+    setTimeout(() => {
+        let script = document.createElement('script');
+        script.onload = () => {
+            console.log(turboscript);
+        };
+        script.async = 1;
+        script.src = "https://rawgit.com/01alchemist/TurboScript/master/lib/turboscript.min.js";
+        head.insertBefore(script, head.lastChild);
+    }, 0);
+</script>
+</body>
+</html>

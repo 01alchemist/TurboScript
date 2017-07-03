@@ -2,7 +2,7 @@ import {Type} from "./type";
 import {isType, Symbol, SYMBOL_FLAG_IS_TEMPLATE, SymbolKind} from "./symbol";
 import {SourceRange} from "../../utils/log";
 import {Scope} from "./scope";
-import {addScopeToSymbol, CheckContext, linkSymbolToNode} from "../analyzer/type-checker";
+import {CheckContext} from "../analyzer/type-checker";
 import {assert} from "../../utils/assert";
 
 /**
@@ -1057,7 +1057,7 @@ export class Node {
             else if (symbol.name == "/") binaryKind = NodeKind.DIVIDE;
             else if (symbol.name == "<") binaryKind = NodeKind.LESS_THAN;
             else if (symbol.name == "<<") binaryKind = NodeKind.SHIFT_LEFT;
-            else if (symbol.name == "==") binaryKind = NodeKind.EQUAL;
+            else if (symbol.name == "==" || symbol.name == "===") binaryKind = NodeKind.EQUAL;
             else if (symbol.name == ">") binaryKind = NodeKind.GREATER_THAN;
             else if (symbol.name == ">>") binaryKind = NodeKind.SHIFT_RIGHT;
             else if (symbol.name == "[]") binaryKind = NodeKind.INDEX;

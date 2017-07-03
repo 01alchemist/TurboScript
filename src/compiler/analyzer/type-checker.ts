@@ -557,9 +557,11 @@ export function initializeSymbol(context: CheckContext, symbol: Symbol): void {
                 symbol.kind = SymbolKind.FUNCTION_GLOBAL;
                 symbol.flags = symbol.flags | SYMBOL_FLAG_CONVERT_INSTANCE_TO_GLOBAL;
                 symbol.rename = `${parent.name}_${symbol.rename != null ? symbol.rename : symbol.name}`;
-                let argument = node.functionFirstArgument();
-                assert(argument.symbol.name == "this");
-                argument.symbol.rename = "__this";
+                if (symbol.name !== "constructor") {
+                    let argument = node.functionFirstArgument();
+                    assert(argument.symbol.name == "this");
+                    argument.symbol.rename = "__this";
+                }
             }
         }
 

@@ -1,0 +1,101 @@
+function string_new(length: uint32): string {
+    var ptr = malloc(4 + length * 2);
+    *(ptr as *uint32) = length;
+    return ptr as string;
+}
+declare class string {
+
+    // constructor(length: uint32) {
+    //     var ptr = malloc(4 + length * 2);
+    //     *(ptr as *uint32) = length;
+    //     this = ptr as string;
+    // }
+
+    charAt(index: int32): string {
+        return this.slice(index, index + 1);
+    }
+
+    charCodeAt(index: int32): uint16 {
+        return this[index];
+    }
+
+    get length(): int32 {
+        return *(this as *int32);
+    }
+
+    operator [] (index: int32): uint16 {
+        if (index < this.length) {
+            return *((this as *int8 + 4 + index * 2) as *uint16);
+        }
+        return 0;
+    }
+
+    operator == (other: string): boolean {
+        if (this as *int8 == other as *int8) return true;
+        if (this as *int8 == null || other as *int8 == null) return false;
+        var length = this.length;
+        if (length != other.length) return false;
+        return memcmp((this as *int8 + 4) as int32, (other as *int8 + 4) as int32, length * 2) == 0;
+    }
+
+    slice(start: int32, end: int32): string {
+        var length = this.length;
+
+        if (start < 0) start = start + length;
+        if (end < 0) end = end + length;
+
+        if (start < 0) start = 0;
+        else if (start > length) start = length;
+
+        if (end < start) end = start;
+        else if (end > length) end = length;
+
+        var range = (end - start);
+        var ptr = string_new(range);
+        memcpy((ptr as *int8 + 4) as int32, (this as *int8 + 4 + start * 2) as int32, range * 2);
+        return ptr;
+    }
+
+    startsWith(text: string): boolean {
+        var textLength = text.length;
+        if (this.length < textLength) return false;
+        return memcmp((this as *int8 + 4) as int32, (text as *int8 + 4) as int32, textLength * 2) == 0;
+    }
+
+    endsWith(text: string): boolean {
+        var thisLength = this.length;
+        var textLength = text.length;
+        if (thisLength < textLength) return false;
+        return memcmp((this as *int8 + 4 + (thisLength - textLength) * 2) as int32, (text as *int8 + 4) as int32, textLength * 2) == 0;
+    }
+
+    indexOf(text: string): int32 {
+        var thisLength = this.length;
+        var textLength = text.length;
+        if (thisLength >= textLength) {
+            var i = 0;
+            while (i < thisLength - textLength) {
+                if (memcmp((this as *int8 + 4 + i * 2) as int32, (text as *int8 + 4) as int32, textLength * 2) == 0) {
+                    return i;
+                }
+                i = i + 1;
+            }
+        }
+        return -1;
+    }
+
+    lastIndexOf(text: string): int32 {
+        var thisLength = this.length;
+        var textLength = text.length;
+        if (thisLength >= textLength) {
+            var i = thisLength - textLength;
+            while (i >= 0) {
+                if (memcmp((this as *int8 + 4 + i * 2) as int32, (text as *int8 + 4) as int32, textLength * 2) == 0) {
+                    return i;
+                }
+                i = i - 1;
+            }
+        }
+        return -1;
+    }
+}

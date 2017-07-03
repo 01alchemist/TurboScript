@@ -1,4 +1,4 @@
-import {mspace_init, mspace_malloc, mspace_free} from "/library/dlmalloc.wasm";
+import {mspace_init, mspace_malloc, mspace_free, memcpy, memcmp} from "/library/dlmalloc.wasm";
 // declare function mspace_init(base:int32):int32;
 // declare function mspace_malloc(base:int32, size:int32):int32;
 // declare function mspace_free(base:int32, size:int32):void;

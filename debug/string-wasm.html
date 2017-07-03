@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>addTwo test</title>
+    <script>
+        async function init() {
+            let data = await fetch("./bin/string.wasm");
+            let wasmBytes = await data.arrayBuffer();
+            try {
+                WebAssembly.compile(wasmBytes).then(async function (compiled) {
+                    window.instance = await new WebAssembly.instantiate(compiled, importObject);
+                    window.HEAPU32 = new Uint32Array(instance.exports.memory.buffer);
+                    window.HEAPF32 = new Float32Array(instance.exports.memory.buffer);
+                    console.log("WASM Compiled!");
+                    test();
+                })
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        function test() {
+            let ptr = instance.exports.newStr();
+            console.log(decode(ptr));
+        }
+        function decode(ptr) {
+//            window.HEAPU32.
+        }
+        init();
+    </script>
+</head>
+<body>
+<script>
+</script>
+</body>
+</html>

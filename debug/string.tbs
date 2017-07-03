@@ -1,0 +1,9 @@
+export function test ():boolean {
+    let str1 = "TEST";
+    let str2 = "TEST";
+    return str1 == str2;
+}
+
+export function newStr():string {
+    return "TEST";
+}

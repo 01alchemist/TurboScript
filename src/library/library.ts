@@ -4,6 +4,7 @@ import {FileSystem} from "../utils/filesystem";
 const math = require('./common/math.tbs');
 const types = require('./common/types.tbs');
 const array = require('./common/array.tbs');
+const wasmStringType = require('./webassembly/string.tbs');
 const jstypes = require('./turbo/types.tbs');
 const runtime = require('raw-loader!./turbo/runtime.tjs');
 const wrapper = require('raw-loader!./turbo/wrapper.tjs');
@@ -31,10 +32,11 @@ export class Library {
             case CompileTarget.WEBASSEMBLY:
                 lib = [
                     types,
-                    initializer,
                     builtins,
-                    math,
                     malloc,
+                    wasmStringType,
+                    initializer,
+                    math,
                     array
                 ].join('\n');
                 break;

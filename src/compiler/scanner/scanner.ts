@@ -542,10 +542,10 @@ export function tokenize(source: Source, log: Log): Token {
                 i = i + 1;
 
                 // Recover from !==
-                if (i < limit && contents[i] == '=') {
-                    i = i + 1;
-                    log.error(createRange(source, start, i), "Use '!=' instead of '!=='");
-                }
+                // if (i < limit && contents[i] == '=') {
+                //     i = i + 1;
+                //     log.error(createRange(source, start, i), "Use '!=' instead of '!=='");
+                // }
             }
         }
 
@@ -558,10 +558,10 @@ export function tokenize(source: Source, log: Log): Token {
                 i = i + 1;
 
                 // Recover from ===
-                if (i < limit && contents[i] == '=') {
-                    i = i + 1;
-                    log.error(createRange(source, start, i), "Use '==' instead of '==='");
-                }
+                // if (i < limit && contents[i] == '=') {
+                //     i = i + 1;
+                //     log.error(createRange(source, start, i), "Use '==' instead of '==='");
+                // }
             }
         }
 
