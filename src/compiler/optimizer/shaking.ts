@@ -31,7 +31,7 @@ export function treeShakingMarkAllUsed(node: Node): void {
 
 export function treeShakingSearchForUsed(node: Node): void {
     if (node.kind == NodeKind.FUNCTION && (node.isExport() || node.isStart())) {
-        if ((isBinaryImport(getWasmFunctionName(node.symbol)) || node.symbol.name === "malloc" || node.symbol.name === "free") && !Compiler.mallocRequired) {
+        if ((node.symbol.name === "malloc" || node.symbol.name === "free") && !Compiler.mallocRequired) {
             return;
         }
 
@@ -52,7 +52,7 @@ export function treeShakingSearchForUsed(node: Node): void {
 }
 
 export function treeShakingRemoveUnused(node: Node): void {
-    if (node.kind == NodeKind.FUNCTION && !node.symbol.isUsed() && node.range.source.isLibrary) {
+    if (node.kind == NodeKind.FUNCTION && !node.symbol.isUsed()/* && node.range.source.isLibrary*/) {
         // if (node.symbol.kind == SymbolKind.FUNCTION_INSTANCE) {
         //     if (!node.parent.symbol.isUsed()) {
         //         node.remove();

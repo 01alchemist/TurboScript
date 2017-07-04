@@ -3,12 +3,15 @@ import { WasmSection } from "../../core/wasm-section";
 import { ByteArray } from "../../../../utils/bytearray";
 import { WasmFunction } from "../../core/wasm-function";
 import { WasmOpcode } from "../../opcode"
+import {WasmLocal} from "../../core/wasm-local";
+import {WasmInstruction} from "../wasm-instruction";
 /**
  * Created by 01 on 2017-06-17.
  */
 export class CodeSection extends WasmSectionBinary {
 
     functions: WasmFunction[];
+    opcodes:WasmInstruction[];
 
     constructor(payload = new ByteArray()) {
         super(
@@ -31,17 +34,19 @@ export class CodeSection extends WasmSectionBinary {
                 this.functions.push(_function);
             }
             let bodyLength = this.payload.readU32LEB();
-            // let localVariables: WasmLocal[] = []
-            // let localVariableCount = this.payload.readU32LEB();
-            // for (let j = 0; j < localVariableCount; j++) {
-            //     let typeCount = this.payload.readU8LEB();
-            //     for (let k = 0; k < typeCount; k++) {
-            //         let local = new WasmLocal(this.payload.readU8LEB(), "");
-            //         localVariables.push(local);
-            //     }
-            // }
-            // _function.localVariables = localVariables;
-            // console.log("localVariables:" + localVariables.length);
+            let pos = this.payload.position;
+            let localVariables: WasmLocal[] = [];
+            let localVariableCount = this.payload.readU32LEB();
+            for (let j = 0; j < localVariableCount; j++) {
+                let typeCount = this.payload.readU8LEB();
+                for (let k = 0; k < typeCount; k++) {
+                    let local = new WasmLocal(this.payload.readU8LEB(), "");
+                    localVariables.push(local);
+                }
+            }
+            _function.localVariables = localVariables;
+            console.log("localVariables:" + localVariables.length);
+
             // let opcode = this.readUnsignedByte();
             // let blockCount = 0;
             // while (opcode !== WasmOpcode.END && blockCount === 0) {
@@ -56,6 +61,7 @@ export class CodeSection extends WasmSectionBinary {
             //skip content
             // _function.body = this.payload.readBytes(null, this.payload.position, bodyLength);
             // let bodyArray = this.payload.array.subarray(this.payload.position, this.payload.position + bodyLength + 1);
+            this.payload.position = pos;
             let bodyArray = this.payload.readBytes(null, 0, bodyLength, true).array;
             let lastOpcode = bodyArray[bodyArray.length - 1];
             // console.log(`lastOpcode ${lastOpcode} => ${WasmOpcode[lastOpcode]}`);

@@ -22,9 +22,17 @@ export class BinaryImporter {
     }
 
     static resolveWasmBinaryImport(imports: string[], from: string, importPath: string): string {
-        let binary = FileSystem.readBinaryFile(importPath);
+        let binary;
+        if (FileSystem.existsSync(importPath)) {
+            binary = FileSystem.readBinaryFile(importPath);
+        }
         if (binary === null || binary === undefined) {
             binary = FileSystem.readBinaryFile(from);
+        }
+        if (binary === null || binary === undefined) {
+            let error = `Cannot find wasm binary! [file: ${importPath}]`;
+            Terminal.error(error);
+            throw error;
         }
         let wasmBinary = new WasmBinary(binary);
         let importSection = wasmBinary.getSection(WasmSection.Import) as ImportSection;
@@ -71,11 +79,17 @@ export function isBinaryImport(name: string): boolean {
 export function getMergedCallIndex(name: string): int32 {
     let __import: WasmBinaryImport;
     BinaryImporter.imports.some(_import => {
-        if(_import.name === name){
+        if (_import.name === name) {
             __import = _import;
             return true;
         }
         return false;
     });
-    return __import.functionIndex;
+    if (__import !== undefined) {
+        return __import.functionIndex
+    } else {
+        let error = "Cannot find imported function index of " + name;
+        Terminal.error(error);
+        throw error;
+    }
 }

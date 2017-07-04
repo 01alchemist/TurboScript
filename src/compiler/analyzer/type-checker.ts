@@ -1196,12 +1196,6 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
             node.constructorFunctionNode = node.createEmptyConstructor();
             node.appendChild(node.constructorFunctionNode);
             initialize(context, node.constructorFunctionNode, node.scope, CheckMode.NORMAL);
-            // let firstFunction = node.firstInstanceFunction();
-            // if(firstFunction === undefined){
-            //     node.insertChildBefore(firstFunction, node.constructorFunctionNode);
-            // } else {
-            //     node.insertChildBefore(firstFunction, node.constructorFunctionNode);
-            // }
             resolve(context, node.constructorFunctionNode, node.scope);
         }
         if (node.symbol.kind == SymbolKind.TYPE_CLASS) {
@@ -1601,7 +1595,7 @@ export function resolve(context: CheckContext, node: Node, parentScope: Scope): 
                     value = name;
                 }
 
-                if (symbol.name === "malloc") {
+                if (!node.isLibrary() && symbol.name === "malloc") {
                     Compiler.mallocRequired = true;
                 }
 

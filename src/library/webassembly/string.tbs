@@ -3,7 +3,8 @@ function string_new(length: uint32): string {
     *(ptr as *uint32) = length;
     return ptr as string;
 }
-declare class string {
+// declare function log2(v1:int32, v2:int32):void;
+class string {
 
     // constructor(length: uint32) {
     //     var ptr = malloc(4 + length * 2);
@@ -34,8 +35,11 @@ declare class string {
         if (this as *int8 == other as *int8) return true;
         if (this as *int8 == null || other as *int8 == null) return false;
         var length = this.length;
-        if (length != other.length) return false;
-        return memcmp((this as *int8 + 4) as int32, (other as *int8 + 4) as int32, length * 2) == 0;
+        if (length != other.length) {
+            return false;
+        }
+
+        return memcmp((this as *int8 + 2) as int32, (other as *int8 + 2) as int32, length * 2) == 0;
     }
 
     slice(start: int32, end: int32): string {

@@ -2,6 +2,10 @@
  * Created by n.vinayakan on 30.05.17.
  * WebAssembly start function where global variable expressions initializer
  */
+
+let HEAP_BASE: int32 = null;
+let HEAP_TOP: int32 = null;
+
 @start
 function __WASM_INITIALIZER(): void {
     // 🔥 WARNING 🔥

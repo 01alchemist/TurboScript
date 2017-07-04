@@ -43,10 +43,10 @@ export function compileWasmSync(sourcePath: string, imports: any = {}, outputFil
  * @param outputFile
  * @returns {WebAssembly.Instance}
  */
-export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outputFile?: string): WebAssembly.Instance {
+export function getWasmInstanceSync(sourcePath: string, imports: any = {}, outputFile?: string, options:string[]=[]): WebAssembly.Instance {
     outputFile = outputFile || getDefaultOutputFile(sourcePath);
     clean(outputFile);
-    const compileInfo = spawnSync(path.resolve(process.cwd(), './bin/tc'), [sourcePath, '--out', outputFile]);
+    const compileInfo = spawnSync(path.resolve(process.cwd(), './bin/tc'), [sourcePath, '--out', outputFile].concat(options));
     if (compileInfo.error) {
         let error = `Compiler Error! \n${compileInfo.error}`;
         Terminal.error(error);

@@ -4,9 +4,10 @@ import {Compiler, replaceFileExtension} from "./compiler/compiler";
 import {CompileTarget} from "./compiler/compile-target";
 import {Terminal} from "./utils/terminal";
 import {FileSystem} from "./utils/filesystem";
-import {CompilerOptions, defaultCompilerOptions} from "./compiler/compiler-options";
+import {CompilerOptions} from "./compiler/compiler-options";
 import {Color} from "./utils/color";
 import {Library} from "./library/library";
+import {DependencyLinking} from "./compiler/dependency-linking";
 
 /**
  * TurboScript compiler main entry
@@ -49,14 +50,13 @@ Examples:
 }
 
 export function main_entry(): int32 {
-    let target = CompileTarget.NONE;
+    let options: CompilerOptions = new CompilerOptions();
     let argument = firstArgument;
     let inputCount = 0;
     let output: string;
     let outputName: string;
     let outputPath: string;
-    let bundle: boolean = false;
-
+    let excludeMalloc: boolean = false;
     // Print usage by default
     if (firstArgument == null) {
         printUsage();
@@ -71,19 +71,24 @@ export function main_entry(): int32 {
                 printUsage();
                 return 0;
             } else if (text == "--cpp") {
-                target = CompileTarget.CPP;
+                options.target = CompileTarget.CPP;
             } else if (text == "--js") {
-                target = CompileTarget.JAVASCRIPT;
+                options.target = CompileTarget.JAVASCRIPT;
             } else if (text == "--wasm") {
-                target = CompileTarget.WEBASSEMBLY;
+                options.target = CompileTarget.WEBASSEMBLY;
             } else if (text == "--define" && argument.next != null) {
                 argument = argument.next;
             } else if (text == "--out" && argument.next != null) {
                 argument = argument.next;
                 output = argument.text;
             } else if (text == "--bundle" || text == "-b") {
-                argument = argument.next;
-                bundle = true;
+                options.bundle = true;
+            } else if (text == "--no-malloc") {
+                excludeMalloc = true;
+            } else if (text == "--link-static") {
+                options.link = DependencyLinking.STATIC;
+            } else if (text == "--link-dynamic") {
+                options.link = DependencyLinking.DYNAMIC;
             } else {
                 Terminal.error("Invalid flag: " + text);
                 return 1;
@@ -110,8 +115,8 @@ export function main_entry(): int32 {
     outputName = FileSystem.getFileName(output);
 
     // Automatically set the target based on the file extension
-    if (target == CompileTarget.NONE) {
-        if (output.endsWith(".wasm")) target = CompileTarget.WEBASSEMBLY;
+    if (options.target == CompileTarget.NONE) {
+        if (output.endsWith(".wasm")) options.target = CompileTarget.WEBASSEMBLY;
         // else if (output.endsWith(".cpp")) target = CompileTarget.CPP;
         // else if (output.endsWith(".js")) target = CompileTarget.JAVASCRIPT;
         else {
@@ -121,8 +126,7 @@ export function main_entry(): int32 {
     }
 
     // Start the compilation
-    let compiler = new Compiler();
-    compiler.initialize(target, output);
+    let compiler = new Compiler(options, output, excludeMalloc);
 
     // Second pass over the argument list
     argument = firstArgument;
@@ -151,7 +155,7 @@ export function main_entry(): int32 {
     // Only emit the output if the compilation succeeded
     if (!compiler.log.hasErrors()) {
         try {
-            switch (target) {
+            switch (options.target) {
                 case CompileTarget.CPP:
                     FileSystem.writeTextFile(output, compiler.outputCPP);
                     FileSystem.writeTextFile(replaceFileExtension(output, ".h"), compiler.outputH);
@@ -161,11 +165,11 @@ export function main_entry(): int32 {
                     break;
                 case CompileTarget.WEBASSEMBLY:
                     if (compiler.outputWASM !== undefined) {
-                        FileSystem.writeBinaryFile(outputPath + "/library.wasm", Library.binary);
+                        // FileSystem.writeBinaryFile(outputPath + "/library.wasm", Library.binary);
                         FileSystem.writeBinaryFile(output, compiler.outputWASM);
                         FileSystem.writeTextFile(replaceFileExtension(output, ".wast"), compiler.outputWAST);
                         FileSystem.writeTextFile(output + ".log", compiler.outputWASM.log);
-                        if (bundle) {
+                        if (options.bundle) {
                             let wrapper = Library.getWrapper(CompileTarget.WEBASSEMBLY).replace("__TURBO_WASM__", `"${outputName}"`);
                             FileSystem.writeTextFile(replaceFileExtension(output, ".bootstrap.js"), wrapper);
                         }
@@ -175,10 +179,10 @@ export function main_entry(): int32 {
                     }
                     break;
             }
+            Terminal.write("\n");
             return 0;
         } catch (e) {
             Terminal.error("Cannot write to " + output);
-            console.error(e);
             return 1;
         }
         // if (target == CompileTarget.CPP && FileSystem.writeTextFile(output, compiler.outputCPP) &&
@@ -212,13 +216,12 @@ export interface CompileResult {
     log?: Log;
 }
 
-export function compileString(source: string, options: CompilerOptions = defaultCompilerOptions): CompileResult {
+export function compileString(source: string, options: CompilerOptions = new CompilerOptions()): CompileResult {
     Terminal.silent = options.silent;
     let input = "/virtual/inline.tbs";
     let output = "/virtual/inline.wasm";
     FileSystem.writeTextFile(input, source, true);
-    let compiler = new Compiler();
-    compiler.initialize(options.target, output);
+    let compiler = new Compiler(options, output);
     compiler.addInput(input, source);
     compiler.finish();
     Terminal.silent = false;

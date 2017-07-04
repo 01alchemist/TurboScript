@@ -14,6 +14,9 @@ if (typeof Map === "undefined") {
 let fs = null;
 let virtualFileSystem = {
     fileMap: new Map(),
+    existsSync(path: string): boolean{
+        return virtualFileSystem.fileMap.get(path) !== undefined;
+    },
     readFileSync: (path, options?) => {
         return virtualFileSystem.fileMap.get(path);
     },
@@ -22,22 +25,29 @@ let virtualFileSystem = {
     }
 };
 if (isWorker) {
-    Terminal.write("----> Worker environment");
+    // Terminal.write("----> Worker environment");
     fs = virtualFileSystem;
     window["Buffer"] = Uint8Array;
 }
 else if (isBrowser) {
-    Terminal.write("----> Browser environment");
+    // Terminal.write("----> Browser environment");
     fs = virtualFileSystem;
     window["Buffer"] = Uint8Array;
 } else if (isNode) {
-    Terminal.write("----> NodeJS environment\n");
+    // Terminal.write("----> NodeJS environment\n");
     fs = require("fs");
 } else {
     Terminal.error("----> Unknown host environment!!!. Where are we?");
 }
 
 export class FileSystem {
+
+    static existsSync(path: string, virtual = false): boolean {
+        if (virtual) {
+            return virtualFileSystem.existsSync(path);
+        }
+        return fs.existsSync(path);
+    }
 
     static readTextFile(path, virtual = false) {
         if (virtual) {
@@ -48,8 +58,8 @@ export class FileSystem {
             return fs.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
         } catch (e) {
             let virtualFile = virtualFileSystem.readFileSync(path, 'utf8');
-            if(virtualFile === undefined){
-                Terminal.warn(`Requested file ${path} not found`);
+            if (virtualFile === undefined) {
+                Terminal.warn(`Requested text file ${path} not found`);
                 return null;
             } else {
                 return virtualFile.replace(/\r\n/g, '\n');
@@ -81,8 +91,8 @@ export class FileSystem {
             return fs.readFileSync(path);
         } catch (e) {
             let virtualFile = virtualFileSystem.readFileSync(path);
-            if(virtualFile === undefined){
-                Terminal.warn(`Requested file ${path} not found`);
+            if (virtualFile === undefined) {
+                Terminal.warn(`Requested binary file ${path} not found`);
                 return null;
             } else {
                 return virtualFile;

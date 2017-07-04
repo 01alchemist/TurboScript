@@ -1,9 +1,19 @@
+declare function console_log(v1:int32, v2:int32):void;
+
 export function test ():boolean {
     let str1 = "TEST";
     let str2 = "TEST";
     return str1 == str2;
 }
 
+export function cmp (str1:string, str2:string):boolean {
+    console_log(str1.length, str2.length);
+    return str1 == str2;
+}
+
 export function newStr():string {
+    return "TEST";
+}
+export function newStr2():string {
     return "TEST";
 }

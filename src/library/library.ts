@@ -1,5 +1,7 @@
 import {CompileTarget} from "../compiler/compile-target";
 import {FileSystem} from "../utils/filesystem";
+import {CompilerOptions} from "../compiler/compiler-options";
+import {DependencyLinking} from "../compiler/dependency-linking";
 // library files
 const math = require('./common/math.tbs');
 const types = require('./common/types.tbs');
@@ -10,6 +12,7 @@ const runtime = require('raw-loader!./turbo/runtime.tjs');
 const wrapper = require('raw-loader!./turbo/wrapper.tjs');
 const wasmWrapper = require('raw-loader!./webassembly/wrapper.tjs');
 const malloc = require('./common/dlmalloc.tbs');
+const malloc_dynamic = require('./common/dlmalloc.d.tbs');
 const dlmallocBin = require('./common/malloc/build/malloc.wasm');
 const builtins = require('./webassembly/builtins.tbs');
 const initializer = require('./webassembly/initializer.tbs');
@@ -22,10 +25,10 @@ export class Library {
         return dlmallocBin;
     }
 
-    static get(target: CompileTarget) {
+    static get(options: CompilerOptions, excludeMalloc: boolean = false) {
         let lib;
 
-        switch (target) {
+        switch (options.target) {
             case CompileTarget.JAVASCRIPT:
                 lib = jstypes + "\n";
                 break;
@@ -33,8 +36,8 @@ export class Library {
                 lib = [
                     types,
                     builtins,
-                    malloc,
-                    wasmStringType,
+                    options.link === DependencyLinking.DYNAMIC ? malloc_dynamic : malloc,
+                    excludeMalloc ? "declare class string {}" : wasmStringType,
                     initializer,
                     math,
                     array
@@ -54,7 +57,7 @@ export class Library {
         }
     }
 
-    static getWrapper(target:CompileTarget): string {
+    static getWrapper(target: CompileTarget): string {
         switch (target) {
             case CompileTarget.JAVASCRIPT:
                 return wrapper + "\n";

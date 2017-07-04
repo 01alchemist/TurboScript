@@ -1,6 +1,6 @@
 ///<reference path="assembler/wasm-assembler.ts"/>
 import {isFunction, Symbol, SymbolKind} from "../../compiler/core/symbol";
-import {ByteArray, ByteArray_set32, ByteArray_setString} from "../../utils/bytearray";
+import {ByteArray} from "../../utils/bytearray";
 import {CheckContext} from "../../compiler/analyzer/type-checker";
 import {alignToNextMultipleOf, toHex} from "../../utils/utils";
 import {isExpression, isUnary, isUnaryPostfix, Node, NODE_FLAG_IMPORT, NodeKind} from "../../compiler/core/node";
@@ -32,6 +32,8 @@ import {StartSection} from "./wasm/sections/start-section";
 import {CodeSection} from "./wasm/sections/code-section";
 import {ExportSection} from "./wasm/sections/export-section";
 import {BinaryImporter, getMergedCallIndex, isBinaryImport} from "../../importer/binary-importer";
+import {DependencyLinking} from "../../compiler/dependency-linking";
+import {CompilerOptions} from "../../compiler/compiler-options";
 
 class WasmModuleEmitter {
     memoryInitializer: ByteArray;
@@ -44,7 +46,7 @@ class WasmModuleEmitter {
     currentFunction: WasmFunction;
     assembler: WasmAssembler;
 
-    constructor(public bitness: Bitness) {
+    constructor(public bitness: Bitness, public compilerOptions: CompilerOptions) {
         this.assembler = new WasmAssembler();
     }
 
@@ -530,7 +532,7 @@ class WasmModuleEmitter {
         this.assembler.mergeBinaries(BinaryImporter.binaries);
     }
 
-    prepareToEmit(node: Node): void {
+    prepareToEmit(node: Node, link: DependencyLinking): void {
         if (node.kind == NodeKind.STRING) {
             let text = node.stringValue;
             let length = text.length;
@@ -540,8 +542,9 @@ class WasmModuleEmitter {
             let memoryInitializer = this.memoryInitializer;
 
             // Emit a length-prefixed string
-            ByteArray_set32(memoryInitializer, offset, length);
-            ByteArray_setString(memoryInitializer, offset + 4, text);
+            // ByteArray_set32(memoryInitializer, offset, length);
+            // ByteArray_setString(memoryInitializer, offset + 4, text);
+            memoryInitializer.writeUTF(text, offset);
         }
 
         else if (node.kind == NodeKind.VARIABLE) {
@@ -646,7 +649,7 @@ class WasmModuleEmitter {
                 if (!isBuiltin(wasmFunctionName)) {
                     let moduleName = symbol.kind == SymbolKind.FUNCTION_INSTANCE ? symbol.parent().name : "global";
                     symbol.offset = this.assembler.module.importCount;
-                    if (isBinaryImport(wasmFunctionName)) {
+                    if (isBinaryImport(wasmFunctionName) && link == DependencyLinking.STATIC) {
                         // this.assembler.module.allocateImport(signature, signatureIndex, "internal", symbol.name);
                         symbol.node.flags |= NODE_FLAG_IMPORT;
                     } else {
@@ -688,7 +691,7 @@ class WasmModuleEmitter {
 
         let child = node.firstChild;
         while (child != null) {
-            this.prepareToEmit(child);
+            this.prepareToEmit(child, link);
             child = child.nextSibling;
         }
     }
@@ -1336,7 +1339,7 @@ class WasmModuleEmitter {
             }
             else {
                 let callIndex: int32;
-                if (isBinaryImport(wasmFunctionName)) {
+                if (isBinaryImport(wasmFunctionName) && this.compilerOptions.link === DependencyLinking.STATIC) {
                     callIndex = getMergedCallIndex(wasmFunctionName);
                 } else {
                     callIndex = this.getWasmFunctionCallIndex(symbol);
@@ -2088,16 +2091,18 @@ function wasmAssignLocalVariableOffsets(fn: WasmFunction, node: Node, shared: Wa
 }
 
 export function wasmEmit(compiler: Compiler, bitness: Bitness = Bitness.x32, optimize: boolean = true): void {
-    let wasmEmitter = new WasmModuleEmitter(bitness);
+    let wasmEmitter = new WasmModuleEmitter(bitness, compiler.options);
     wasmEmitter.context = compiler.context;
     wasmEmitter.memoryInitializer = new ByteArray();
 
-    if (Compiler.mallocRequired) {
-        // Merge imported malloc.wasm binaries
+    if (compiler.options.link === DependencyLinking.STATIC) {
         wasmEmitter.mergeBinaryImports();
+    } else {
+
     }
+
     // Emission requires two passes
-    wasmEmitter.prepareToEmit(compiler.global);
+    wasmEmitter.prepareToEmit(compiler.global, compiler.options.link);
     wasmEmitter.assembler.sealFunctions();
 
     compiler.outputWASM = wasmEmitter.assembler.module.binary.data;

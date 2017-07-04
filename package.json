@@ -44,9 +44,9 @@
     "build:turboscript": "webpack --config webpack.config.js",
     "build:tc": "tsc -p ./lib",
     "build": "npm run build:malloc && npm run build:turboscript && npm run build:tc",
-    "watch-build": "cross-env NODE_ENV=dev webpack --progress --colors --watch",
+    "watch": "cross-env NODE_ENV=dev webpack --progress --colors --watch",
     "test": "node ./node_modules/jest/bin/jest.js",
-    "watch-test": "node ./node_modules/jest/bin/jest.js --watch"
+    "tdd": "node ./node_modules/jest/bin/jest.js --watch"
   },
   "jest": {
     "globals": {

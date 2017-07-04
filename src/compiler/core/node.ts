@@ -523,7 +523,7 @@ export class Node {
     parameterCount(): int32 {
         let count = 0;
         let child = this.firstChild;
-        if (child.kind == NodeKind.PARAMETERS) {
+        if (child !== undefined && child.kind == NodeKind.PARAMETERS) {
             child = child.firstChild;
             while (child != null) {
                 count = count + 1;
@@ -536,7 +536,7 @@ export class Node {
     hasParameters(): boolean {
         if (this.firstChild) {
             let child = this.firstChild;
-            if (child.kind == NodeKind.PARAMETERS) {
+            if (child !== undefined && child.kind == NodeKind.PARAMETERS) {
                 return child.childCount() > 0;
             }
         }
@@ -553,14 +553,6 @@ export class Node {
         body.appendChild(variablesNode);
         let returnNode: Node = createReturn(createName("this"));
         body.appendChild(returnNode);
-
-        // let symbol = new Symbol();
-        // symbol.kind = SymbolKind.FUNCTION_INSTANCE;
-        // symbol.name = node.stringValue;
-        // symbol.rename = "_ctr";
-        // addScopeToSymbol(symbol, this.scope);
-        // linkSymbolToNode(symbol, node);
-
         return node;
     }
 
@@ -740,6 +732,7 @@ export class Node {
         assert(this.kind == NodeKind.FUNCTION);
         assert(this.childCount() >= 2);
         let child = this.firstChild;
+        if(child === undefined) return null;
         if (child.kind == NodeKind.PARAMETERS) {
             child = child.nextSibling;
         }
@@ -750,6 +743,7 @@ export class Node {
         assert(this.kind == NodeKind.FUNCTION);
         assert(this.childCount() >= 2);
         let child = this.firstChild;
+        if(child === undefined) return null;
         if (child.kind == NodeKind.PARAMETERS) {
             child = child.nextSibling;
         }

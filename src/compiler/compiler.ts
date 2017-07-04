@@ -14,8 +14,8 @@ import {preparse} from "./parser/preparser";
 import {CompileTarget} from "./compile-target";
 import {assert} from "../utils/assert";
 import {Terminal} from "../utils/terminal";
-import {WasmBinary} from "../backends/webassembly/wasm/wasm-binary";
 import {BinaryImporter} from "../importer/binary-importer";
+import {CompilerOptions} from "./compiler-options";
 /**
  * Author: Nidin Vinayakan
  */
@@ -39,30 +39,30 @@ export class Compiler {
     outputH: string;
 
     static mallocRequired: boolean = false;
-    static debug:boolean = false;
+    static debug: boolean = false;
 
-    initialize(target: CompileTarget, outputName: string): void {
+    constructor(public options:CompilerOptions, outputName: string, excludeMalloc: boolean = false) {
         assert(this.log == null);
         this.log = new Log();
         this.preprocessor = new Preprocessor();
         BinaryImporter.reset();
-        this.target = target;
+        this.target = options.target;
         this.outputName = outputName;
-        this.librarySource = this.addInput("<native>", Library.get(target));
+        this.librarySource = this.addInput("<library>", Library.get(options, excludeMalloc));
         this.librarySource.isLibrary = true;
-        this.runtimeSource = Library.getRuntime(target);
-        this.wrapperSource = Library.getWrapper(target);
+        this.runtimeSource = Library.getRuntime(options.target);
+        this.wrapperSource = Library.getWrapper(options.target);
         this.createGlobals();
 
-        if (target == CompileTarget.CPP) {
+        if (options.target == CompileTarget.CPP) {
             this.preprocessor.define("CPP", true);
         }
 
-        else if (target == CompileTarget.JAVASCRIPT) {
+        else if (options.target == CompileTarget.JAVASCRIPT) {
             this.preprocessor.define("JS", true);
         }
 
-        else if (target == CompileTarget.WEBASSEMBLY) {
+        else if (options.target == CompileTarget.WEBASSEMBLY) {
             this.preprocessor.define("WASM", true);
         }
     }

@@ -1,9 +1,27 @@
-export function test ():boolean {
+export function cmpStrInternal ():boolean {
     let str1 = "TEST";
     let str2 = "TEST";
     return str1 == str2;
 }
 
+export function cmpStrInternal2 ():boolean {
+    let str1 = "TEST";
+    let str2 = "TEST2";
+    return str1 == str2;
+}
+
 export function newStr():string {
     return "TEST";
+}
+
+export function newStr2():string {
+    return "TEST2";
+}
+
+export function newStr3():string {
+    return "TEST";
+}
+
+export function cmpStr(s1:string, s2:string):boolean {
+    return s1 == s2;
 }

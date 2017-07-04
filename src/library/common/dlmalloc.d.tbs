@@ -1,0 +1,11 @@
+/**
+ * Created by n.vinayakan on 04.07.17.
+ */
+declare function memcmp(vl:int32, vr:int32, n:int32):boolean;
+declare function memcpy(dist:int32, src:int32, n:int32):void;
+declare function memset(dist:int32, c:int32, n:int32):void;
+declare function mspace_init(base:int32):int32;
+declare function mspace_malloc(base:int32, size:int32):int32;
+declare function mspace_free(base:int32, size:int32):void;
+declare function malloc(value:int32):int32;
+declare function free(value:int32):void;

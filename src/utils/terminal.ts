@@ -98,6 +98,7 @@ export class Terminal {
         Terminal.write(text);
         Terminal.write("\n");
         Terminal.clearColor();
+        Terminal.write("\n");
     }
 
     static warn(text: string) {
@@ -110,5 +111,6 @@ export class Terminal {
         Terminal.write(text);
         Terminal.write("\n");
         Terminal.clearColor();
+        Terminal.write("\n");
     }
 }
