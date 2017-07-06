@@ -1,9 +1,91 @@
-# TurboScript Module System
-A TurboScript module can be local tbs file or folder with index.tbs, external compiled wasm binary or well typed typescript module.
-
+# TurboScript Module System (Proposal)
+A TurboScript module can be a local tbs file or folder with index.tbs, external compiled wasm binary or well typed typescript module.
+A TurboScript project is a collection of interconnected modules.
 ## Import
 ```typescript
 import defaultExportSymbol as symbol from "module"
 import * as symbol from "module"
 import {exportSymbol1,exportSymbol2} as symbol from "module"
 ```
+"module" can be local turboscript module, local typescript module or compiled wasm module.
+
+### import default export from local TurboScript
+```typescript
+import defaultAwesomeComponent from "./components/awesome-component"
+// or
+import defaultAwesomeComponent from "./components/awesome-component.tbs"
+
+// if it is a const
+const awesomeConstRef = defaultAwesomeComponent;
+
+// if it is a function 
+let result = defaultAwesomeComponent();
+
+// if it is a class
+const instance = new defaultAwesomeComponent();
+instance.awesomeMember();
+```
+
+### import named exports from local TurboScript
+```typescript
+import {func1, const1, class1} from "./components/awesome-component"
+// or
+import {func1, const1, class1} from "./components/awesome-component.tbs"
+
+const awesomeConstRef = const1;
+let result = func1();
+const instance = new class1();
+instance.awesomeMember();
+```
+
+### import named exports as "something" from local TurboScript
+```typescript
+import {func1, const1, class1} as awesome from "./components/awesome-component"
+// or
+import {func1, const1, class1} as awesome from "./components/awesome-component.tbs"
+
+const awesomeConstRef = awesome.const1;
+let result = awesome.func1();
+const instance = new awesome.class1();
+instance.awesomeMember();
+```
+
+### import everything ( * ) as "something" from local TurboScript
+```typescript
+import * as awesome from "./components/awesome-component"
+// or
+import * as awesome from "./components/awesome-component.tbs"
+
+const awesomeConstRef = awesome.const1;
+let result = awesome.func1();
+let result2 = awesome.somethingElse();
+const instance = new awesome.class1();
+instance.awesomeMember();
+```
+
+## Export 
+### from TurboScript
+```typescript
+export const ROCK_SOLID:int32 = 1000;
+
+// Not allowed
+export let CRACKED_ROCK:int32 = 1000; // --> this will raise error as wasm cannot export mutable globals
+
+export function doSomething(...arguments:<type>):<type>{}
+
+export class someMightyClass{}
+
+export {
+    ROCK_SOLID,
+    someMightyClass,
+    doSomething,
+    doSomethingAsSomethingElse:doSomething
+}
+```
+
+### from TypeScript
+No special changes needed as TypeScript will compile to JavaScript and linked to TurboScript binary at runtime.
+
+### from WASM module
+Any compiled wasm module can be imported to TurboScript. Compiler will parse wasm module and generate declarations on the fly.
+
