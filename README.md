@@ -1,7 +1,7 @@
 # TurboScript
 [![Build Status](https://travis-ci.org/01alchemist/TurboScript.svg?branch=master)](https://travis-ci.org/01alchemist/TurboScript) [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/01alchemist/TurboScript?branch=master&svg=true)]() [![Stories in Ready](https://badge.waffle.io/01alchemist/TurboScript.png?label=ready&title=Ready)](https://waffle.io/01alchemist/TurboScript) [![Greenkeeper badge](https://badges.greenkeeper.io/01alchemist/TurboScript.svg)](https://greenkeeper.io/)
 
-Super charged JavaScript for parallel programming and WebAssembly
+Super charged typed JavaScript dialect for parallel programming which compiles to WebAssembly
 
 [![Throughput Graph](https://graphs.waffle.io/01alchemist/TurboScript/throughput.svg)](https://waffle.io/01alchemist/TurboScript/metrics/throughput)
 
