@@ -7,9 +7,9 @@ import defaultExportSymbol as symbol from "module"
 import * as symbol from "module"
 import {exportSymbol1,exportSymbol2} as symbol from "module"
 ```
-"module" can be local turboscript module, local typescript module or compiled wasm module.
+`module` can be local turboscript module, local typescript module or compiled wasm module.
 
-### import default export from local TurboScript
+#### import default export from local TurboScript
 ```typescript
 import defaultAwesomeComponent from "./components/awesome-component"
 // or
@@ -26,7 +26,7 @@ const instance = new defaultAwesomeComponent();
 instance.awesomeMember();
 ```
 
-### import named exports from local TurboScript
+#### import named exports from local TurboScript
 ```typescript
 import {func1, const1, class1} from "./components/awesome-component"
 // or
@@ -38,7 +38,7 @@ const instance = new class1();
 instance.awesomeMember();
 ```
 
-### import named exports as "something" from local TurboScript
+#### import named exports as "something" from local TurboScript
 ```typescript
 import {func1, const1, class1} as awesome from "./components/awesome-component"
 // or
@@ -50,7 +50,7 @@ const instance = new awesome.class1();
 instance.awesomeMember();
 ```
 
-### import everything ( * ) as "something" from local TurboScript
+#### import everything ( * ) as "something" from local TurboScript
 ```typescript
 import * as awesome from "./components/awesome-component"
 // or
@@ -64,7 +64,7 @@ instance.awesomeMember();
 ```
 
 ## Export 
-### from TurboScript
+#### from TurboScript
 ```typescript
 export const ROCK_SOLID:int32 = 1000;
 
@@ -83,9 +83,9 @@ export {
 }
 ```
 
-### from TypeScript
+#### from TypeScript
 No special changes needed as TypeScript will compile to JavaScript and linked to TurboScript binary at runtime.
 
-### from WASM module
+#### from WASM module
 Any compiled wasm module can be imported to TurboScript. Compiler will parse wasm module and generate declarations on the fly.
 
