@@ -40,8 +40,8 @@ Type      | Native type | Description
 `float32`   | f32         | A 32-bit floating point number.
 `float64`  | f64         | A 64-bit floating point number.
 `void`    | none        | No return type.
-`string`    | i32        | A utf-8 encoded textual data type.
-`Array<T>`    | i32        | A generic array data type.
+`string`    | *        | A utf-8 encoded textual data type.
+`Array<T>`    | *        | A generic array data type.
 
 ## Syntax
 
