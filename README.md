@@ -3,6 +3,13 @@
 
 Super charged typed JavaScript dialect for parallel programming which compiles to WebAssembly
 
+# :warning: Major redesign is undergoing.
+## Things going to change 
+* ### Binaryen as WebAssembly Backend
+* ### Interop with TypeScript/JavaScript (Import well typed TypeScript to TurboScript, will not compile to WASM)
+* ### Import any compiled WASM module to TurboScript
+* ### Integration with WebPack
+
 [![Throughput Graph](https://graphs.waffle.io/01alchemist/TurboScript/throughput.svg)](https://waffle.io/01alchemist/TurboScript/metrics/throughput)
 
 <pre>
