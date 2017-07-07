@@ -1,5 +1,0 @@
-var a1 = 1;
-export function binary_test():int32 {
-    var a = a1 + 2;
-    return a;
-}

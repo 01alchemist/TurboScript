@@ -1,3 +1,0 @@
-export function externalFn (value:int32):int32 {
-    return value + 1000;
-}

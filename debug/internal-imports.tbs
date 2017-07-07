@@ -1,9 +1,0 @@
-import { InternalMod1 , InternalMod2 } from "./internal-imports-lib.tbs";
-
-export function test1():InternalMod1{
-    return new InternalMod1();
-}
-
-export function test2():InternalMod2{
-    return new InternalMod2();
-}

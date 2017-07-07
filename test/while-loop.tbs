@@ -1,7 +1,0 @@
-export function test(value: int32): int32 {
-    let i = 0;
-    while (value > i) {
-        i = i + 1;
-    }
-    return i;
-}

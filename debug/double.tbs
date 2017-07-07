@@ -1,3 +1,0 @@
-export function addDouble(a:float64): float64 {
-  return a + 0.1d;
-}

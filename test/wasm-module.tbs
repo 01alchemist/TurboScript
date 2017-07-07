@@ -1,6 +1,0 @@
-export function test(): void {
-    let a: int32 = 0;
-}
-export function wasmFunction(value: int32): int32 {
-    return value;
-}

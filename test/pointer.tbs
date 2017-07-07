@@ -1,8 +1,0 @@
-export function initialize():*int32 {
-    let block:*int32 = malloc(4) as *int32;
-    block[0] = 1;
-    block[1] = 2;
-    block[2] = 3;
-    block[3] = 4;
-    return block;
-}

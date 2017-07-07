@@ -1,3 +1,0 @@
-export function test(a: float64): float64 {
-    return -a;
-}

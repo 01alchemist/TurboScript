@@ -1,8 +1,0 @@
-export function test(): Array<int32> {
-    let b = [
-        0,
-        1,
-        2
-    ];
-    return b;
-}

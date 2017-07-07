@@ -1,4 +1,0 @@
-import {sharedFunction} from "./internal.tbs";
-export function test(): int32 {
-    return sharedFunction();
-}

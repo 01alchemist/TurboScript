@@ -1,7 +1,0 @@
-// Import exported functions from wasm binary and its dependencies
-// import {wasmFunction} from "./bin/wasm-module.wasm";
-declare function wasmFunction(value:int32):int32;
-
-export function test(value:int32):int32 {
-    return wasmFunction(value);
-}

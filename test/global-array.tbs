@@ -1,5 +1,0 @@
-let a: Array<float32> = new Array<float32>(3);
-export function test(value:float32): float32 {
-    a[0] = value;
-    return a[0];
-}

@@ -1,5 +1,0 @@
-export function test():int32 {
-    {
-        return 1;
-    }
-}
