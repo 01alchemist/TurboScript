@@ -2,7 +2,7 @@
 
 * [Design Goals](design-goals.md)
 * [Quick start](quick-start.md)
-* [Tutorials](tutorials.md)
+* [Tutorials](tutorials)
 * [TurboScript Reference](turboScript-reference.md)
 * [What's New](whats-new.md)
 * [Handbook](handbook.md)
