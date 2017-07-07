@@ -1,6 +1,9 @@
 # TurboScript Module System (Proposal)
 A TurboScript module can be a local tbs file or folder with index.tbs, external compiled wasm binary or well typed typescript module.
 A TurboScript project is a collection of interconnected modules.
+
+![Diagram](https://rawgit.com/01alchemist/TurboScript/raw-files/turboscript-module-system.svg)
+
 ## Import
 ```typescript
 import defaultExportSymbol as symbol from "module"
