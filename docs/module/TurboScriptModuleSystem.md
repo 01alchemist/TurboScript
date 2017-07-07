@@ -112,6 +112,13 @@ Any compiled wasm module can be imported to TurboScript. Compiler will parse was
 ## Special cases
 #### Module folder with multiple targets
 When a module folder contains index.wasm and index.tbs or index.ts. 
-    TurboScript importer will parse
- * If TypeScript, TurboScript and only contains declerations .
+
+**Import everything and link separately.**
+ * If content of index.tbs, index.ts and index.wasm is different.
+
+**Import only index.wasm**
+ * If content of index.tbs, index.ts and index.wasm is same.
+
+**Import only index.tbs**
+ * If content of index.tbs and index.ts is same and no index.wasm present.
 
