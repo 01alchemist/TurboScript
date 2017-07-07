@@ -116,7 +116,7 @@ When a module folder contains index.wasm and index.tbs or index.ts.
 **Import everything and link separately.**
  * If content of index.tbs, index.ts and index.wasm is different.
 
-**Import only index.wasm**
+**Import only index.wasm use declarations from index.tbs or index.ts**
  * If content of index.tbs, index.ts and index.wasm is same.
 
 **Import only index.tbs**
