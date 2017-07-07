@@ -10,6 +10,5 @@
 ### Developer's Documents
 
 * [Design goals](design-goals.md)
-* [Technical docs](technical-docs.md)
-* [Architecture Diagrams & Documents @googledoc](https://drive.google.com/drive/folders/0B8w46pq-KPNXWk44MnpyaUYxN2c?usp=sharing)
+* [Architecture Documents & Diagrams](../architecture)
 * [Contributor's guide](contributors-guide.md)
