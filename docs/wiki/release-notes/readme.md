@@ -1,3 +1,3 @@
 # What's New
 
-## [Release v1.0.0-beta](v1.0.0-beta.md)
+## [Release v1.0.0-beta](versions/v1.0.0-beta.md)
