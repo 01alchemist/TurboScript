@@ -18,17 +18,7 @@ entry
   '-> import ts
 ```
 
-### Method 
+### Pre-parsing 
 
-    [peek `import`]
-      |
-      |
-      |-> peek `*` --------> wildcard import -.
-      |                                       |->
-      |-> peek `a-z0-9` ---> default import  -' 
-      |                                       
-      |-> peek `{` -> named import
-      |                |
-      |                '-> expect `a-z0-9` -> peek `,` -> false -> expect ``
-      '-> exception          ↑______________________| true
-                             
+
+![Diagram](https://rawgit.com/01alchemist/TurboScript/raw-files/pre-parsing.svg)
