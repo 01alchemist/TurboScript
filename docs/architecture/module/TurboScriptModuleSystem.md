@@ -88,16 +88,24 @@ instance.awesomeMember();
 
 ## Export 
 #### from TurboScript
+##### Constant
 ```typescript
 export const ROCK_SOLID:int32 = 1000;
-
-// Not allowed
-export let CRACKED_ROCK:int32 = 1000; // --> this will raise error as wasm-mvp cannot export mutable globals
-
+```
+##### Variable
+```typescript
+export let CRACKED_ROCK:int32 = 1001;
+```
+##### Function
+```typescript
 export function doSomething(...arguments:<type>):<type>{}
-
+```
+##### Class
+```typescript
 export class someMightyClass{}
-
+```
+##### Grouped
+```typescript
 export {
     ROCK_SOLID,
     someMightyClass,
@@ -105,6 +113,11 @@ export {
     doSomethingAsSomethingElse:doSomething
 }
 ```
+##### Default
+```typescript
+export default function doThisByDefault(...arguments:<type>):<type>{}
+```
+
 
 #### from TypeScript
 No special changes needed as TypeScript will compile to JavaScript and linked to TurboScript binary at runtime.
