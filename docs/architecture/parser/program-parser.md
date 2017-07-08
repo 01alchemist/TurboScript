@@ -21,4 +21,4 @@ entry
 ### Pre-parsing 
 
 
-![Diagram](https://rawgit.com/01alchemist/TurboScript/raw-files/pre-parsing.svg?v=2)
+![Diagram](https://rawgit.com/01alchemist/TurboScript/raw-files/pre-parsing.svg?v=3)
