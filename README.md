@@ -4,7 +4,7 @@
 Super charged typed JavaScript dialect for parallel programming which compiles to WebAssembly
 
 # :warning: Major re-architecting is undergoing.
-New spec (WIP) : [TurboScript Spec](https://github.com/TurboScriptLang/design/blob/master/architecture/spec.md)
+New spec (WIP) : [TurboScript Spec](https://github.com/TurboScriptLang/spec/blob/master/spec.md)
 ## Things going to change 
 * ### Binaryen as WebAssembly Backend
 * ### Interop with TypeScript/JavaScript (Import well typed TypeScript to TurboScript, will not compile to WASM)
