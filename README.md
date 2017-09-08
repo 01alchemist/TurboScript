@@ -198,7 +198,7 @@ export function setData(index:int32, value:float64):void {
 `tc add.tbs --wasm --out add.wasm`
 
 ## Join ![Slack](https://01alchemist.com/images/slack-logo-small.png)
-You need an invitation to join slack. open a ticket with your email address. I will make it happen.
+You need an invitation to join Slack. Open a ticket with your email address. I will make it happen.
 
 # Roadmap
 
